@@ -1,6 +1,7 @@
-Release Notes for Rtl66 v. 0.1.0 2024-04-17
+Release Notes for Rtl66 v. 0.1.0 2024-10-28
 
-- Initial release.
+- Initial release. Library usable only for testing existing
+  functions.
 
 See NEWS for more details, and ChangeLog.
 
