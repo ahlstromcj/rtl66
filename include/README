@@ -1,0 +1,12 @@
+Include Directory for the Rtl66 library
+Chris Ahlstrom
+2024-04-28 to 2024-04-28
+
+Unlike the other "66" library projects, the "build macros" header files is
+nested in a sub-directory ("include/rtl").
+
+Also note the rtl66-config.h.in file, which gets parsed by Meson to create
+
+    rtl66-config.h
+
+# vim: sw=4 ts=4 wm=8 et ft=sh

@@ -1,0 +1,49 @@
+#*****************************************************************************
+# meson.build (rtl66)
+#-----------------------------------------------------------------------------
+##
+# \file        tests/meson.build
+# \library     rtl66
+# \author      Chris Ahlstrom
+# \date        2022-06-13
+# \updates     2022-06-30
+# \license     $XPC_SUITE_GPL_LICENSE$
+#
+#  This file is part of the "rtl66" library. See the top-level meson.build
+#  file for license information.
+#
+#-----------------------------------------------------------------------------
+
+test_files = files(['api_names.cpp'])
+
+if (get_option('tests'))
+   
+   tests = [
+      ['api_names', ['main'], []]
+      ['test_c_api', ['main'], []]
+      ['midiclock', ['main'], []]
+      ['midiout', ['main'], []]
+      ['cbmidiin', ['main'], []]
+   ]
+
+	foreach t: tests
+
+		exe = executable(
+         t[0], '@0@.c'.format (t[0]),
+			c_args: [t[2]],
+			link_with: rtl66_library,
+			dependencies: rtl66_library,
+			include_directories: [public_headers]
+         )
+		test (t[0], exe, suite: t[1])
+
+	endforeach
+
+endif
+
+#****************************************************************************
+# meson.build (tests/rtl66)
+#----------------------------------------------------------------------------
+# vim: ts=3 sw=3 ft=meson
+#----------------------------------------------------------------------------
+

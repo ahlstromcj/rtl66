@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# Use if ~/.cgdb/cgdbrc contains this option:
+#
+#       :set winsplitorientation=vertical
+#
+# Ctrl-W does not work to change orientation until going into the source
+# window and typing ":set wso=horizontal" or vertical.
+
+/usr/bin/xfce4-terminal --geometry=160x58 -e "cgdb $1"
+

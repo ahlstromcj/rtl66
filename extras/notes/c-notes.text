@@ -1,0 +1,20 @@
+
+    o   == fixed
+
+In the C API test, the "rtl" namespace is still exposed to C in rtmidi_c.h:
+
+    -   rtl::midibyte
+    ?   midi::message
+    ?   rtl::midi_api
+    -   rtl::rtmidi
+    -   rtl::rtmidi_in_data
+    ?   rtl::rtmidi_in
+    ?   rtl::rtmidi_out
+    ?   rtl::rterror
+    ?   rtl::midiapi
+
+In test_c_api.c:
+
+    0   RtMidiWrapper * midiin = RtMidiInPtr rtmidi_in_create_default();
+
+

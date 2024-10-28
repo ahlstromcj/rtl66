@@ -1,0 +1,8 @@
+Seq66 Directory for the rtl66 library
+Chris Ahlstrom
+2024-04-28 to 2024-04-28
+
+This directory holds Seq66-specific library code. This code extends the
+basic MIDI code from the rtl66 directory
+
+# vim: sw=4 ts=4 wm=8 et ft=sh

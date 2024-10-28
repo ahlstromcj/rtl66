@@ -1,0 +1,25 @@
+#----------------------------------------------------------------------------
+#
+# Rtl66 Library Wrapper
+# Chris Ahlstrom
+# 2024-04-28 to 2024-04-28
+#
+#   Rtl66 wrapper for GitHub repository
+#
+#----------------------------------------------------------------------------
+
+[wrap-git]
+
+url = https://github.com/ahlstromcj/rtl66.git
+revision = head
+depth = 1
+
+[provide]
+
+#----------------------------------------------------------------------------
+# This dependency is declared in rtl66/meson.build.
+#----------------------------------------------------------------------------
+
+librtl66_library = librtl66_library_dep
+
+# vim: ft=dosini

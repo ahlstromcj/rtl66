@@ -1,0 +1,143 @@
+%-------------------------------------------------------------------------------
+% rtl66
+%-------------------------------------------------------------------------------
+%
+% \file        rtl66
+% \library     Documents
+% \author      Chris Ahlstrom
+% \date        2022-07-12
+% \update      2022-07-12
+% \version     $Revision$
+% \license     $XPC_GPL_LICENSE$
+%
+%     This document provides LaTeX documentation for the Rtl66 library.
+%
+%-------------------------------------------------------------------------------
+
+\section{Walk-through}
+\label{sec:walkthrough}
+
+   \index{ALSA}
+   Let's start by walking through one of the test applications,
+   \texttt{tests/qmidiin}.  We run our debugger, set a breakpoint
+   where the input object is created, and run using ALSA.
+
+   \begin{verbatim}
+      $ cgdb build/tests/qmidiin
+      (gdb) r --alsa
+   \end{verbatim}
+
+   Here is what happens:
+
+   \begin{enumerate}
+      \item \textbf{Select ALSA as the API}.
+         \begin{itemize}
+            \item Use the command-line to set the \texttt{--alsa} option.
+            \item \texttt{rt\_simple\_cli()} sets the API to
+               \texttt{rtl::rtmidi::api::alsa}.
+            \item Retrieved the API with \texttt{rtl::rtmidi::desired\_api()}.
+         \end{itemize}
+      \item\textbf{Create the MIDI input proxy}.
+         Pass the API to the
+         \texttt{rtl::rtmidi\_in} constructor.
+         The three possible parameters are:
+         \begin{itemize}
+            \item The API.  For \textsl{Linux}, they are
+               \textsl{JACK}, \textsl{ALSA}, and,
+               later, \textsl{Pipewire}. The default is "unspecified",
+               which would invoke the fallback sequence that
+               detects which APIs are available (currently
+               JACK to ALSA).
+            \item The client-name. Empty by default. For testing,
+               the \texttt{--client name}.
+            \item The input-queue size. Defaults to 100 MIDI messages.
+         \end{itemize}
+      \item\textbf{Open the selected API}.
+         \texttt{rtl::rtmidi\_in::open\_midi\_api()} detects the compiled
+         APIs and tries to create the desired one.
+      \item\textbf{Create the actual MIDI input}.
+         \texttt{rtl::midi\_alsa\_in()} with default client-name "rtl66 in".
+      \item\textbf{Set ALSA data structure to defaults}.
+         Initializes \texttt{rtl::midi\_alsa\_data} to useless defaults.
+      \item\textbf{Set up the ALSA client}.
+         The call sequence is:
+         \begin{itemize}
+            \item \texttt{rtl::midi\_alsa\_in::initialize()}
+            \item \texttt{rtl::midi\_alsa::impl\_initialize()}
+         \end{itemize}
+            The ALSA sequencer handle (\texttt{snd\_seq\_t}) gets set up.
+            Also called the "client" handle, not to be confused with
+            "port" handles.
+      \item\textbf{Set the tempo and PPQN}.
+         \texttt{rtl::midi\_alsa::impl\_set\_tempo()}.
+         Sets the default tempo and PPQN.
+      \item \textbf{Get the number of ports}.
+         The call sequence is:
+         \begin{itemize}
+            \item \texttt{rtmidi\_in::get\_port\_count()} calls
+            \item Get the \texttt{midi\_api} pointer returned by
+               \texttt{rtl::rtmidi::rt\_api\_ptr()}.
+            \item Calll \texttt{midi\_alsa\_in::get\_port\_count()}
+               via this pointer.
+            \item \texttt{rtl::midi\_alsa::impl\_get\_port\_count()}
+               for MIDI input.
+            \item This function also gets the port capabilities via ALSA.
+            \item Call the static function \texttt{rtl::get\_port\_info()}
+               (in \texttt{midi\_alsa.cpp})
+               with a port value of \texttt{-1}, which indicates "all ports".
+         \end{itemize}
+      \item \textbf{Open the input port}.
+         The call sequence is:
+         \begin{itemize}
+            \item \texttt{rtl::rtmidi\_in::open\_port()}.
+            \item \texttt{rtl::midi\_alsa\_in::open\_port()}.
+            \item \texttt{rtl::midi\_alsa::impl\_open\_port()}.
+            \item \texttt{rtl::get\_port\_info()}, this time for port 0.
+         \end{itemize}
+      \item \textbf{Get port information}.
+         \texttt{rtl::get\_port\_info()} iterates through all input ports,
+         retrieving port information (wasteful!) until it gets the 
+         proper kind of port where the index of the port matches the
+         desired port number.
+         \texttt{}.
+      \item \textbf{Create the port}.
+         \texttt{rtl::rtmidi\_in::open\_port()} then gets the sender and
+         receiver addresses, sets the client, the port, the capabilities, type,
+         and number of channels in the port (16), and the port's name.
+         (EMPTY!!!!!!)
+         Optionally sets time-stamping information.
+      \item \textbf{Port subscription}.
+         \texttt{midi\_alsa::impl\_subscription()} is called to set up
+         ALSA port subscription, a fancy way to connect ports.
+   \end{enumerate}
+
+   If ALSA were not specified, then
+   \texttt{rtl::rtmidi::fallback\_api()} would be
+   called to try JACK first, then ALSA.
+   (Later, PipeWire will be the first choice).
+
+   Also note that of the \texttt{midi\_api} functions call
+   an "impl" function as a helper, to reduce code duplication.
+
+
+\subsection{Supported APIs}
+\label{subsec:supported_apis}
+
+   \textsl{Rtl66} supports the following MIDI APIs:
+
+   \begin{itemize}
+      \item PipeWire. (Planned, not yet implemented).
+      \item JACK.
+      \item ALSA.
+      \item Windows Multi-Media.
+      \item Mac OSX Core.
+      \item Web MIDI.
+      \item Dummy.
+   \end{itemize}
+
+\subsection{xxxx}
+\label{subsec:xxxx}
+
+%-------------------------------------------------------------------------------
+% vim: ts=3 sw=3 et ft=tex
+%-------------------------------------------------------------------------------

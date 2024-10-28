@@ -1,0 +1,69 @@
+Sequence Composition
+Chris Ahlstrom
+2022-11-14 to 2022-11-14
+
+midi::trackbase :
+
+    midi::eventlist         A vector of midi::events.
+    midi::bytes             A vector of raw data for the events.
+    size_t                  Position when accessing the raw data.
+    read()                  Uses get-functions to read data from a file into
+                            the raw data buffer.
+    write()                 Not yet provided; just put-function to push data
+                            into the raw data buffer.
+
+    We ought to provide virtual read/write functions.
+
+midi::track : midi::trackbase :
+
+    put_event()             Functions to push events in the raw container.
+    put_seqspec()           Move to derived class.
+    put_seqspecs()          Move to derived class.
+    put_triggers()          Move to derived class.
+    song_put_seq_event()    Move to derived class.
+    bool song_put_track
+
+midi::file :
+
+midi::tracklist :
+
+    shared_ptr<eventlist>   Shared pointer to an event container.
+    map<int, eventptr>      Track numbers to event container dictionary.
+    add()                   Add an eventlist to the tracklist.
+    tracks()                List of tracks.
+
+    Need a remove() function as well.
+
+midi::pattern :             A track that can be played/recorded.
+
+Seq66 sequence :
+
+    fixparameters
+    color
+    playback modes
+    drawing actions
+    edit modes (note, drum)
+    note_info nested class  Could be useful in a track or pattern.
+*   eventlist
+    eventstack              For undo/redo.
+    clipboard               eventlist container.
+*   preserve velocity
+    fingerprint
+*   performer pointer
+    triggers
+    buss mapping
+    transposition
+?   masterbus
+    recording modes
+    queueing etc.
+*   transport parameters
+    musical key
+    musical scale
+    musical background
+*   mutex
+*   partial assignment
+    event selection
+    sequence export
+    metronome support
+
+# vim: sw=4 ts=4 wm=8 et ft=sh

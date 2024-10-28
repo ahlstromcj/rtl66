@@ -1,0 +1,199 @@
+Notes about Meson and Ninja
+Chris Ahlstrom
+2022-06-08 to 2022-06-08
+
+MESON OPTIONS
+=============
+
+The meson help option does not show these options, found at
+
+    https://mesonbuild.com/Builtin-options.html
+
+    Option          Default Value   Description
+    ------          -------------   -----------
+    prefix          See below       Installation prefix
+    bindir          bin             Executable directory
+    datadir         share           Data file directory
+    includedir      include         Header file directory
+    infodir         share/info      Info page directory
+    libdir          See below       Library directory
+    libexecdir      libexec         Library executable directory
+    localedir       share/locale    Locale data directory
+    localstatedir   var             Localstate data directory
+    mandir          share/man       Manual page directory
+    sbindir         sbin            System executable directory
+    sharedstatedir  com             Architecture-independent data directory
+    sysconfdir      etc             Sysconf data directory
+
+    'prefix' defaults to C:/ on Windows, and /usr/local otherwise.
+    You should always override this value.
+
+    'libdir' is automatically detected based on your platform; it should be
+    correct when doing "native" (build machine == host machine) compilation.
+
+    See the website above for a more complete description of the following
+
+    Option            Values         Default  Description
+    ------            ------         -------  -----------
+    auto_features     {1}            auto     Override all 'auto' features
+    backend           {2}            ninja    Backend to use
+    buildtype         {3}            debug    Build type to use
+    debug                            true     Enable debug symbols etc.
+    default_library   {4}            shared   Default library type
+    errorlogs                        true     Print the logs from failing tests
+    install_umask     {5}            022      umask to apply on installed files
+    layout            {mirror,flat}  mirror   Build directory layout
+    optimization      {0, g, 1-3, s} 0        Optimization level
+    pkg_config_path   {OS path}      ''       Added paths for pkg-config
+                                              to search before builtin paths
+    cmake_prefix_path                []       Added prefixes for cmake to search
+                                              before builtin paths
+    stdsplit                         true     Split stdout/stderr in test logs
+    strip                            false    Strip targets on install
+    unity             {7}            off      Unity build
+    unity_size        {>=2}          4        Unity file block size
+    warning_level     {0-3}          1        Set level; 0 = none to 3 = highest
+    werror                           false    Treat warnings as errors
+    wrap_mode         {8}            default  Wrap mode to use
+    force_fallback_for               []       Force it for listed dependencies
+
+    {1} auto_features {enabled, disabled, auto}
+    {2} backend {ninja, vs, vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, vs2022, xcode}
+    {3} buildtype {plain, debug, debugoptimized, release, minsize, custom}
+    {4} default_library {shared, static, both}
+    {5} install_umask {preserve, 0000-0777}
+    {6} layout {mirror, flat}
+    {7} unity {on, off, subprojects}    off    Unity build    no    no
+    {8} wrap_mode {default, nofallback, nodownload, forcefallback, nopromote}
+
+    For setting optimization levels and toggling debug, either set the
+    buildtype option, or set the optimization and debug options.
+
+    buildtype        debug    optimization
+    ---------        -----    ------------
+    plain            false       0
+    debug            true        0
+    debugoptimized   true        2
+    release          false       3
+    minsize          true        s
+
+    All other combinations of debug and optimization set buildtype to 'custom'.
+
+    Base Option   Values  Default         Description
+    -----------   ------  -------         -----------
+    b_asneeded            true            Use -Wl,--as-needed (linker)
+    b_bitcode             false           Embed Apple bitcode, see below
+    b_colorout    {1}     always          Use colored output
+    b_coverage            false           Enable coverage tracking
+    b_lundef              true            No undefined symbols allowed (linker)
+    b_lto                 false           Use link time optimization (LTO)
+    b_lto_threads <int>   0               Multiple threads for LTO (>= 0.57.0)
+    b_lto_mode    {2}     default         Select between LTO modes (>= 0.57.0)
+    b_ndebug              false (release) Disable asserts in debug mode
+    b_pch                 true            Use precompiled headers
+    b_pgo         {3}     off             Use profile guided optimization
+    b_sanitize            none            Code sanitizer to use; see below.
+    b_staticpic           true            Build static libraries as PIC
+    b_pie                 false           Build PIC executables (>= 0.49.0)
+    b_vscrt       {4}     from_buildtype  VS runtime library to use (>= 0.48.0)
+                                          (static_from_buildtype >= 0.56.0)
+
+    {1} b_colorout {auto, always, never}
+    {2} b_lto_mode {default, thin}
+    {3} b_pgo {off, generate, use}
+    {4} b_vscrt: from_buildtype {none, md, mdd, mt, mtd, from_buildtype,
+          static_from_buildtype}
+
+    "PIC" means "position-independent code".
+
+    b_sanitize: {none, address, thread, undefined, memory, address,undefined};
+    note that some compilers might not support all of them. Visual Studio only
+    supports the address sanitizer.  The site also has a map of VS flags.
+
+    Compiler Option  Possible values  Default value  Description
+    ---------------  ---------------  -------------  -----------
+    c_args           {list}                          C compile arguments
+    c_link_args      {list}                          C link arguments
+    c_std            {1}              none           C language standard
+    c_winlibs        {list}           See website    Windows libs to link to
+    c_thread_count   integer ≥ 0      4              emcc: no. of threads
+    cpp_args         {list}                          C++ compile arguments
+    cpp_link_args    {list}                          C++ link arguments
+    cpp_std          {2}              none           C++ language standard
+    cpp_debugstl     true, false      false          C++ STL debug mode
+    cpp_eh           {3}              default        C++ exception handling type
+    cpp_rtti         true, false      true           Whether to enable RTTI
+    cpp_thread_count integer ≥ 0      4              emcc: no. of threads
+    cpp_winlibs      {list}           See website    Windows libs to link to
+    fortran_std      {4}              none           Fortran language standard
+    cuda_ccbindir    filesystem path                 CUDA non-default toolchain
+                                                     directory -ccbin (>= 0.57.1)
+
+    {list} free-form comma-separated list
+    {1} c_std {none, c89, c99, c11, c17, c18, c2x, gnu89, gnu99, gnu11, gnu17, gnu18, gnu2x}
+    {2} cpp_std {none, c++98, c++03, c++11, c++14, c++17, c++20,
+            c++2a, c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z,
+            gnu++2a, gnu++20, vc++14, vc++17, vc++latest}
+    {3} cpp_eh {none, default, a, s, sc}
+    {4} fortran_std [none, legacy, f95, f2003, f2008, f2018]
+
+    Do not forget that the website fills in some of the blanks above.
+
+"RECURSIVE" MESON
+=================
+
+This section describes the build structure of the "openAV-Luppp" project:
+
+    Top-level meson.build:
+
+        -   project() settings
+        -   configuration_data() settings
+        -   If get_option('tests'), adds a test macro via add_project_arguments().
+        -   Adds options to turn off some warnings via add_project_arguments().
+        -   Clears:  "luppp_src = []", and sets subdir('src').
+        -   Creates "dep_names = [ list of library names ]", then uses it to
+            populate by looping to do "deps += dependency(dep)".
+        -   Pass the exe-name, luppp_src files, install option, and dependencies
+            to executable().
+        -   Adds resources for the 'share' directory via a set of
+            install_data() calls.
+
+    src/meson.build:
+
+        -   Creates a version source file via the vcs_tag() option.
+        -   Creates an initial list of source files, naming it 'luppp_src'.
+        -   Specifies subdir('dirnam') for each of the directories under 'src'.
+        -   If get_option('tests'), adds subdir('tests')
+
+    src/avtk/meson.build: Adds source files to the 'luppp_src' variable.
+    src/cjson/meson.build: Adds 'cJSON.c' to the 'luppp_src' variable.
+    src/controller/meson.build: Adds source files to the 'luppp_src' variable.
+    src/dsp/meson.build: Adds a dsp source file to the 'luppp_src' variable.
+    src/observer/meson.build: Adds 'midi' and 'time' sources to 'luppp_src'.
+    src/state/meson.build: Adds state source files to the 'luppp_src' variable.
+    src/test/meson.build: Adds test source files to the 'luppp_src' variable.
+
+MORE MESON TIPS
+===============
+
+    subdir('dirname') tells meson to go into a directory and run the
+    meson.build it finds there.
+
+    Additional items:
+
+		add_project_arguments('-DSOME_TOKEN=value', language : 'cpp')
+		glib_dep = dependency('glib-2.0')		# external dependency
+		inc = include_directories('include')
+
+		subdir('include')	# adds an install_headers() directive
+		subdir('src')		# adds sources and a shared_library() directive
+
+	# Generate a pkgconfig file:
+
+	pkg_mod = import('pkgconfig')
+	pkg_mod.generate(libraries : foolib, version : '1.0',
+					 name : 'libfoobar', filebase : 'foobar',
+					 description : 'A Library to barnicate your foos.')
+    
+# vim: sw=4 ts=4 wm=8 et ft=sh
+

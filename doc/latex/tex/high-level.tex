@@ -1,0 +1,330 @@
+%-------------------------------------------------------------------------------
+% rtl66
+%-------------------------------------------------------------------------------
+%
+% \file        rtl66
+% \library     Documents
+% \author      Chris Ahlstrom
+% \date        2024-06-04
+% \update      2024-06-04
+% \version     $Revision$
+% \license     $XPC_GPL_LICENSE$
+%
+%     This document provides LaTeX documentation for the Rtl66 library.
+%
+%-------------------------------------------------------------------------------
+
+\section{High-Level Desciption of Rtl66}
+\label{sec:rtl_high_level}
+
+   \index{rtl}
+   The \textsl{Rtl66} library refactors the \textsl{RtMidi} and
+   \textsl{RtAudio} libraries, and then extends them with additional
+   support for MIDI and audio operations.
+   Some additional helpful modules (e.g. for I/O threads) have also
+   been created.
+
+\subsection{Rtl Extras}
+\label{subsec:rtl_extras}
+
+   The "extras" are modules in the top-level directories
+   \texttt{include/rtl} and \texttt{src/rtl}.
+   They provide functionality common to MIDI and audio support.
+   They reside in the \texttt{rtl} namespace.
+
+\subsubsection{Rtl Build Macros}
+\label{subsubsec:rtl_build_macros}
+
+   The \texttt{rtl\_build\_macros.h} header file contains macro
+   definitions for version information, code export settings,
+   various features, and for the creation of the supported APIs.
+   The latter are somewhat determined by the build platform (e.g.
+   \textsl{Windows} versus \textsl{Linux}.
+
+   In the future, some feature macros might be migrated to the
+   \texttt{meson.options} file.
+
+\subsubsection{Rtl rterror}
+\label{subsubsec:rtl_rterror}
+
+   The \texttt{rterror} class provides an enumeration to indicate the
+   category of error (e.g. a driver error versus a warning),
+   an alias for an error callback function, and some virtual message-related
+   functions.
+
+\subsubsection{Rtl api\_base}
+\label{subsubsec:rtl_api_base}
+
+   The \texttt{api\_base} class currently provides only support for
+   the handling of errors and warnings.
+   It provides the ability for a caller to set a callback function to
+   handle errors, including a pointer to error-callback data.
+
+\subsubsection{Rtl rt\_types}
+\label{subsubsec:rtl_rt_types}
+
+   This C++ header file simply contains the following lines:
+
+   \begin{verbatim}`
+      #include "rtl/midi/rt_midi_types.hpp"
+      #include "rtl/audio/rt_audio_types.hpp"
+   \end{verbatim}`
+
+\subsubsection{Rtl iothread}
+\label{subsubsec:rtl_iothread}
+
+   The \texttt{iothread} class supports starting an
+   \texttt{std::thread} that will run a caller-supplied function object
+   \index{functor}
+   (also known as a \textsl{functor}).
+   It also simplies launching and joining a thread.
+   For an example of usage, see the \texttt{midi::player} class.
+
+\subsubsection{Rtl Test Helpers}
+\label{subsubsec:rtl_test_helpers}
+
+   Provides some free functions in the \texttt{rtl} namespace.
+   They provides some simple functions to choose test I/O port numbers,
+   show basic help text, and some other basic settings.
+
+\subsection{Rtl MIDI}
+\label{subsec:rtl_midi}
+
+   The \textsl{Rtl66} library consists of the core of \textsl{RtMidi} and
+   extensions to it. The core is in the \texttt{rtl} namespace and
+   the extensions are mostly in the \texttt{midi} namespace.
+
+\subsubsection{Rtl MIDI Core}
+\label{subsubsec:rtl_midi_core}
+
+   This section describes the classes and modules derived from the
+   \textsl{RtMidi} library.
+   Rather than a monolithic module, the classes have been split across
+   multiple modules for easier management.
+   They reside in the \texttt{rtl} namespace.
+
+\paragraph{Rtl MIDI midi\_api}
+\label{paragraph:rtl_midi_midi_api}
+
+   \index{ABC}
+   The \texttt{midi\_api} class is an \textsl{abstract base class}
+   ("ABC") for all of the various MIDI OS-related class (ALSA, JACK,
+   MacOSX Core MIDI, etc.).
+   The actual API in use is selected from one of the compiled-in
+   APIs, which depends on the build platform.
+
+   The \texttt{rtmidi} class is assigned a pointer to an instantiated
+   MIDI API class, and all the MIDI calls are done through this pointer.
+
+   The functionality covered is:
+
+   \begin{itemize}
+      \item \textsl{Current API}.
+         The selected API is stored for reuse.
+      \item \textsl{Port type}.
+         Indicates if the port is for input, output,
+         duplex (both input and output), and engine.
+         Engine is a concept whereby only one MIDI client needs to be
+         created, and the ports can all use this common client.
+      \item \textsl{Master buss}.
+         The \texttt{masterbus}, if created, provides the common MIDI
+         client data for the MIDI "engine".
+         If not created, operation is much like that of the \textsl{Rtmidi}
+         library.
+      \item \textsl{Handles}.
+         Our handles are void pointers to API data or API MIDI clients (e.g.
+         the \texttt{snd\_seq\_t} handle of ALSA).
+      \item \textsl{Engine connection/disconnection}.
+         If a \texttt{masterbus} was created, a connection is stored as
+         a void pointer.
+      \item \textsl{Port enumeration}.
+         Functions are provided to find all existing MIDI ports, count them,
+         and get their names.
+         For JACK, a port alias can also be obtained.
+      \item \textsl{Port opening/closing}.
+      \item \textsl{Sending}.
+         Virtual functions for various send operations are provided.
+         Non-functional in this base class.
+      \item \textsl{Receiving}.
+         Virtual functions for polling and event-retrieval
+         operations are provided.
+         Non-functional in this base class.
+      \item \textsl{Input callback}.
+         Callers can optionally provide a callback function to handle
+         MIDI input.
+      \item \textsl{Miscellaneous}.
+         Various other features are provided.
+         Unnecessary to describe them here.
+   \end{itemize}
+
+\paragraph{Rtl MIDI rtmidi}
+\label{paragraph:rtl_midi_rtmidi}
+
+   The \texttt{rtmidi} class is an abstract base class with non-virtual access
+   functions for the \texttt{midi\_api} functions.
+   The functions to open a regular and a "virtual" port are virtual
+   just so the default port name can be set correctly.
+
+   The enumeration \texttt{rtmidi::api} reflects the APIs available
+   (though some are not yet written); the pure-virtual function
+   \texttt{open\_midi\_api()} is written in
+   \texttt{rtmidi\_in}, \texttt{rtmidi\_out}, and \texttt{rtmidi\_engine}.
+
+   The actual functions of the selected API are called through the stored
+   \texttt{midi\_api} pointer, if it exists, as in the following
+   implementation of \texttt{flush\_port()}:
+
+   \begin{verbatim}
+      bool
+      rtmidi::flush_port ()
+      {
+         return rt_api_ptr()->flush_port();
+      }
+   \end{verbatim}
+
+   Also defined are a number of static functions to gather information
+   about the supported APIs and to select the API to be used for the
+   run of an application.
+
+   Note that \texttt{rtmidi} does not support the \textsl{Seq66/Rtl66}
+   concept of a "master bus".
+
+\paragraph{Rtl MIDI rtmidi\_in}
+\label{paragraph:rtl_midi_rtmidi_in}
+
+   The \texttt{rtmidi\_in} class extends \texttt{rtmidi} to
+   add functions for setting the input buffer size, setting or canceling
+   the input callback function, ignoring MIDI data such as SysEx,
+   and a function to get \texttt{midi::message} data.
+
+   It also overrides \texttt{open\_midi\_api()} to try to open
+   one of the MIDI APIs for input.
+
+\paragraph{Rtl MIDI rtmidi\_out}
+\label{paragraph:rtl_midi_rtmidi_out}
+
+   The \texttt{rtmidi\_in} class extends \texttt{rtmidi} to
+   add a function to send \texttt{midi::message} data.
+
+   It also overrides \texttt{open\_midi\_api()} to try to open
+   one of the MIDI APIs for output.
+
+\paragraph{Rtl MIDI rtmidi\_engine}
+\label{paragraph:rtl_midi_rtmidi_engine}
+
+   The \texttt{rtmidi\_in} class extends \texttt{rtmidi} to
+   add a pointer to a \texttt{midi::masterbus}.
+
+   It also overrides \texttt{open\_midi\_api()} to try to open
+   one of the MIDI APIs as an "engine" (neither input nor output).
+   If successful, then the \texttt{midi::masterbus} pointer is
+   passed to the currently-selected MIDI API object.
+
+\paragraph{Rtl MIDI Miscellaneous}
+\label{paragraph:rtl_midi_miscellaneous}
+
+   This section briefly describes some additional modules.
+
+   \begin{itemize}
+      \item \texttt{find\_midi\_api}.
+         Provides free functions to find and try to open a MIDI API object.
+         Some platforms provide multiple potential APIs and a fall-back
+         API in case the caller does not specify one. For example,
+         on \textsl{Linux}, JACK is the fallback API if detected, otherwise
+         ALSA is the fallback API.
+      \item \texttt{midi\_dummy}.
+         This API is a non-functional class to be use only when necessary.
+      \item \texttt{midi\_queue}.
+         Provides a queue of \texttt{midi::message} objects.
+      \item \texttt{rtmidi\_in\_data}.
+         Includes a \texttt{midi\_queue} for incoming data, plus
+         callbacks, optional user-specific data, buffer size, API data, and
+         other book-keeping for MIDI input events.
+      \item \texttt{rt\_midi\_types}.
+         Currently empty.
+      \item \texttt{rtmidi\_c}.
+         Provides C-function wrappers for \texttt{rtmidi} functionality.
+         Also provide are plain C enumerations corresponding to
+         \texttt{rtl::rtmidi::api} and
+         \texttt{rtl::rterror::kind}.
+      \item \textsl{MIDI API directories}.
+         Directories provided are:
+         \texttt{alsa},
+         \texttt{jack},
+         \texttt{macosx},
+         \texttt{pipewire},
+         \texttt{webmidi}, and
+         \texttt{winmm}.
+         Their contents will be discussed elsewhere.
+         Currently, only \texttt{alsa} and \texttt{jack} are fully implemented.
+         Also, there are some new APIs not yet represented.
+   \end{itemize}
+
+\subsubsection{Rtl MIDI Extensions}
+\label{subsubsec:rtl_midi_extensions}
+
+   They reside in the \texttt{midi} namespace.
+   Let's get the tricky "buss" stuff out of the way first.
+
+\paragraph{Rtl MIDI Bus}
+\label{paragraph:rtl_midi_extensions_bus}
+
+   The \texttt{midi::bus} class is base/mixin class for providing
+   \textsl{Seq66} concepts for \texttt{midi::bus\_in} and
+   \texttt{midi::bus\_out}.
+
+   It provides the following concepts:
+
+   \begin{itemize}
+      \item \textsl{Master Bus}.
+         Like \texttt{rtl::rtmidi\_engine}, this class hooks in a
+         \texttt{midi::masterbus}.
+      \item \textsl{Bus Index}.
+         This value is an ordinal number starting at 0.
+         In an application, MIDI busses are referred to by this number, not
+         by name.
+      \item \textsl{Client ID and Display Name}.
+         The client number determined by the MIDI engine, if available.
+         The display name is assembled by the \texttt{set\_name()} function.
+      \item \textsl{Bus ID and Bus Name}.
+         The buss number determined by the MIDI engine, if available.
+         In ALSA, these two are the client:bus (e.g. 14:0) numbers.
+         The bus name is obtained by \texttt{ports::get\_bus\_name()}.
+      \item \textsl{Port Number, Port Name, and Port Alias}.
+         Not sure what this is, must investigate and fix \textsl{Seq66}
+         first.
+         The name is accessed by \texttt{get\_port\_name()} and the
+         alias is accessed by \texttt{get\_port\_alias()} (available
+         only with JACK).
+      \item \textsl{Port Type, Port Kind}.
+         The type indicates if the bus is for input or output.
+         The kind indicates if it is a system, virtual, or normal port.
+      \item \textsl{Clock type}.
+         Indicates both the port status (unavailable, disabled) and the
+         sending of MIDI Clock and Start.
+      \item \textsl{Mutex}.
+         A recursive locking mutex can be used in processing.
+      \item \textsl{MIDI Processing Functions}.
+         Provides function to activate/deactivate, start, send system exclusive,
+         controlling MIDI Clock.
+   \end{itemize}
+
+   Quandary: we need to access the MIDI APIs. The current idea is to use
+   these virtual functions to call the virtual function overrides of bus\_in
+   and bus\_out. But these functions are not written, and they require
+   another bunch of boilerplate code to call the corresponding rtmidi\_in
+   and rtmidi\_out functions.
+
+   Alternative: ???
+
+
+
+\subsection{Rtl Audio}
+\label{subsec:rtl_audio}
+
+   They reside in the \texttt{audio} namespace.
+   TBD.
+
+%-------------------------------------------------------------------------------
+% vim: ts=3 sw=3 et ft=tex
+%-------------------------------------------------------------------------------

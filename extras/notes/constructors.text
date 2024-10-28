@@ -1,0 +1,101 @@
+Writing Constructors
+Chris Ahlstrom
+2024-05-28 to 2024-05-28
+
+class memblock
+{
+
+private:
+
+    size_t m_len;
+    int * m_data;
+
+public:
+
+	explicit memblock (size_t len) :        // explicit constructor
+        m_len   {len},
+        m_data  {new int[len]}
+	{
+	}
+
+	~memblock ()                            // destructor, optionally virtual
+	{
+        if (not_nullptr(m_data))
+            delete [] m_data;
+    }
+
+    memblock (const memblock & rhs) :       // copy constructor
+        m_len   {rhs.m_len},
+        m_data  {new int[rhs.m_len]}
+    {
+    }
+
+    memblock &
+    operator = (const memblock & rhs)       // assignment operator
+    {
+        if (this != &rhs)
+        {
+            if (not_nullptr(m_data))
+                delete [] m_data;
+
+            m_len   = rhs.m_len;
+            m_data  = new int[rhs.m_len];
+        }
+        return *this;
+    }
+
+    // "&&" indicates an rvalue reference parameter
+
+    memblock (memblock && rhs) noexcept :   // simplistic move constructor
+        m_len   {0},
+        m_data  {nullptr}
+    {
+        m_len   = rhs.m_len;                // copy the source's values
+        m_data  = rhs.m_data;
+        rhs.m_data = nullptr;               // disable/empty the source
+        rhs.m_len  = 0;
+    }
+
+    memblock (memblock && rhs) noexcept :   // better move constructor
+        m_len   {std::move(rhs.m_len)},     // move() makes an xvalues
+        m_data  {std::move(rhs.m_data)}
+    {
+        rhs.m_data = nullptr;               // disable/empty the source
+        rhs.m_len  = 0;
+    }
+
+    memblock &
+    operator = (memblock && rval) noexcept  // move assignment operator
+    {
+        if (this != &rhs)
+        {
+            if (not_nullptr(m_data))        // free source's resources
+                delete [] m_data;
+
+            m_len   = rval.m_len;           // copy the source's values
+            m_data  = rval.m_data;
+            rval.m_data = nullptr;          // disable/empty the source
+            rval.m_len  = 0;
+        }
+        return *this;
+    }
+
+Definitions:
+
+    Value categories:
+
+        https://en.cppreference.com/w/cpp/language/value_category
+
+        glvalue. A generalized lvalue, an expression whose evaluation
+                 determines the identity of an object or function.
+        prvalue. A pure rvalue, an expression whose evaluation (1) computes
+                 the value from a built-in operator; (2) initializes an
+                 object.
+        xvalue.  An expiring value, a glvale that denotes an object whose
+                 resources can be reusde.
+        lvalue.  A glvalue that is not an exvalue. A value that we want
+                 to change.
+        rvalue.  A prvalue or an xvalue. A value we do not need to preserve
+                 (e.g. a temporary).
+
+# vim: ft=cpp

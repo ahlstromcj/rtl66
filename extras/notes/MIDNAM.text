@@ -1,0 +1,23 @@
+
+https://manual.ardour.org/appendix/midnam-reference/
+
+ MIDNAM files are XML, and can be edited using any text editor. When doing so,
+ please ensure to change the "Model" of the device, as Ardour will only load
+ each model once (i.e. it will skip files, if there are clashes).
+
+ After you have done modifications to a file, it is a good idea to validate it.
+ This can be done using the tool xmllint as shown below:
+
+ $ xmllint --valid --noout myfile.midnam
+ $ wget http://www.midi.org/dtds/MIDINameDocument10.dtd
+ $ xmllint --dtdvalid MIDINameDocument10.dtd myfile.midnam
+
+http://archive.digidesign.com/support/tips/xnames.html
+
+    Apple AMS and XML (!?)
+
+https://digicake.com/midnams/
+
+Also see the Qtractor and SetBfree projects.  The former uses the QDomDocument
+object and the latter can write a .midinam file.
+

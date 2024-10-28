@@ -1,0 +1,774 @@
+%-------------------------------------------------------------------------------
+% midi_meta_and_sysex
+%-------------------------------------------------------------------------------
+%
+% \file        midi_meta_and_sysex.tex
+% \library     Documents
+% \author      Chris Ahlstrom
+% \date        2024-05-13
+% \update      2024-05-13
+% \version     $Revision$
+% \license     $XPC_GPL_LICENSE$
+%
+%     Provides a discussion of the MIDI meta and sysex message formats
+%     and how they are handled,
+%
+%-------------------------------------------------------------------------------
+
+\section{MIDI Meta and System Exclusive Events}
+\label{sec:midi_and_midi_notes}
+
+   This section describes how the \textsl{Rtl66} library handles MIDI
+   Meta and SysEx events.  There are many intricacies to work with.
+   It also covers, concisely, MIDI operations not yet implemented, but
+   important to keep in the "to do" queue.
+
+   Also helpful is additional information about other MIDI events in the
+   \textsl{Seq66} manual, section \textsl{MIDI Formats}
+   \cite{seq66}.
+
+\subsection{MIDI Meta Events}
+\label{subsec:midi_meta_events}
+
+   Meta events are non-MIDI data of various sorts consisting of a fixed prefix,
+   an event type, a length field, and the meta event data.
+   Meta events are \textsl{never} sent to a device.
+   \textsl{Rtl66} tries to load, store, and write all meta events, even
+   where it cannot use the meta data.
+ 
+   \texttt{0xFF + meta\_type + v\_length + event\_data\_bytes}
+
+   \begin{itemize}
+      \item \texttt{meta\_type} is 1 byte, expressing one of the meta event
+         types shown below.
+      \item \texttt{v\_length} is length of meta event data, a variable
+         length ("varinum") value.
+      \item \texttt{event\_data\_bytes} is the actual event data.
+   \end{itemize}
+
+   Here, we summarize the MIDI meta events data.
+   Two-character names represent a single byte; \textsl{len}
+   represents a variable-length value.
+
+   \begin{enumber}
+      \item \texttt{FF 00 02 ss ss}.
+         Sequence Number.
+      \item \texttt{FF 01 len text}.
+         Text Event.
+      \item \texttt{FF 02 len text}.
+         Copyright Notice.
+      \item \texttt{FF 03 len text}.
+         Sequence/Track Name.
+      \item \texttt{FF 04 len text}.
+         Instrument Name.
+      \item \texttt{FF 05 len text}.
+         Lyric.
+      \item \texttt{FF 06 len text}.
+         Marker.
+      \item \texttt{FF 07 len text}.
+         Cue Point.
+      \item \texttt{FF 08 len text}.
+         Program Name.
+      \item \texttt{FF 09 len text}.
+         Port Name.
+%     \item \texttt{FF 0A through 0F len text}.
+%        Other kinds of text events.
+      \item \texttt{FF 2F 00}.
+         End of Track.
+      \item \texttt{FF 51 03 tt tt tt}.
+         Set Tempo, us/qn.
+      \item \texttt{FF 54 05 hr mn se fr ff}.
+         SMPTE Offset.
+      \item \texttt{FF 58 04 nn dd cc bb}.
+         Time Signature.
+      \item \texttt{FF 59 02 sf mi}.
+         Key Signature.
+      \item \texttt{FF 7F len data}.
+         Sequencer-Specific.
+%     \item \texttt{FF F0 len data F7}.  FIXME in Seq66 manual!!!
+%        System-Exclusive
+   \end{enumber}
+
+   We need to make sure we read, save, and restore all of the items above,
+   even if \textsl{Rtl66} doesn't use them.
+   Some are deprecated in the MIDI standard.
+   The next sections describe the events that \textsl{Rtl66} tries to
+   handle.  These are:
+
+   \begin{itemize}
+      \item Generic Meta Messages.
+      \item Sequence Number (0x00).
+      \item Track Name (0x03).
+      \item Other text events(0x04 to 0x09)..
+      \item End-of-Track (0x2F).
+      \item Set Tempo (0x51).
+      \item Time Signature (0x58).
+      \item Key Signature (0x59).
+      \item Sequencer-Specific (0x7F) (handled differently in Rtl66).
+      \item System Exclusive (0xF0).
+   \end{itemize}
+
+   Also, all the text events should be handled by \textsl{Rtl66}, but
+   a lot more testing is needed.
+
+\subsubsection{Generic Meta Messages}
+\label{subsubsec:midi_meta_generic}
+
+   \begin{verbatim}
+      FF nn len data...
+   \end{verbatim}
+
+   Any meta message not explicitly handled is read and is stored in a track.
+   Nothing else is done with it.
+   It can be written back out to a MIDI file as is.
+
+\subsubsection{Track/Sequence Number (0x00)}
+\label{subsubsec:midi_meta_sequence_number}
+
+   \begin{verbatim}
+      FF 00 02 ss ss
+      FF 00 00
+   \end{verbatim}
+
+   This optional event must occur at the beginning of a track,
+   before any non-zero delta-times, and before any transmittable MIDI
+   events.  It specifies the number of a sequence. The second form,
+   lacking the "ss ss" (sequence number bytes), the track's location in the
+   file is use. \textsl{Rtl66} will read that form, but convert it to
+   the first form.
+
+\subsubsection{Track/Sequence Name (0x03)}
+\label{subsubsec:midi_meta_sequence_name}
+
+   \begin{verbatim}
+      FF 03 len text
+   \end{verbatim}
+
+   If in a format 0 track, or the first track in a format 1 file, the name
+   of the sequence (song).  Otherwise, the name of the track.
+
+\subsubsection{End of Track/Sequence (0x2F)}
+\label{subsubsec:midi_meta_end_of_track}
+
+   \begin{verbatim}
+      FF 2F 00
+   \end{verbatim}
+
+   This event is \textsl{not optional}.
+   It is included so that an exact ending
+   point may be specified for the track, so that it has an exact length,
+   which is necessary for tracks which are looped or concatenated.
+
+\subsubsection{Set Tempo Event (0x51)}
+\label{subsubsec:midi_meta_set_tempo}
+
+   The MIDI Set Tempo meta event sets the tempo of a MIDI sequence in terms of
+   the microseconds per quarter note.  This is a meta message, so this event is
+   never sent over MIDI ports to a MIDI device.
+   After the delta time, this event consists of six bytes, with three
+   tempo bytes.
+
+   \begin{verbatim}
+      FF 51 03 tt tt tt       Example: FF 51 03 07 A1 20
+   \end{verbatim}
+
+   \begin{enumber}
+      \item 0xFF is the status byte that indicates this is a Meta event.
+      \item 0x51 the meta event type that signifies this is a Set Tempo event.
+      \item 0x03 is the length of the event, always 3 bytes.
+      \item The remaining three bytes carry the number of microseconds per
+         quarter note.  For example, the three bytes above form the hexadecimal
+         value 0x07A120 (500000 decimal), which means that there are 500,000
+         microseconds per quarter note.
+   \end{enumber}
+
+   Since there are 60,000,000 microseconds per minute, the event above
+   translates to: set the tempo to 60,000,000 / 500,000 = 120 quarter notes per
+   minute (120 beats per minute).
+
+   This event normally appears in the first track. If not, the default tempo is
+   120 beats per minute.  This event is important if the MIDI time division is
+   specified in "pulses per quarter note", which does not itself define the
+   length of the quarter note. The length of the quarter note is then
+   determined by the Set Tempo meta event.
+
+   Representing tempos as time per beat instead of beat per time allows
+   absolutely exact synchronization with a time-based sync protocol
+   such as SMPTE time code or MIDI time code.  This amount of accuracy
+   in the tempo resolution allows a four-minute piece at 120 beats per minute
+   to be accurate within 500 usec at the end of the piece.
+
+\subsubsection{Time Signature Event (0x58)}
+\label{subsubsec:midi_meta_time_sig}
+
+   After the delta time, this event consists of seven bytes of data:
+
+   \begin{verbatim}
+      FF 58 04 nn dd cc bb
+   \end{verbatim}
+
+   The time signature is expressed as four numbers.
+   \texttt{nn} and \texttt{dd} represent the numerator and denominator of the
+   time signature as it would be notated.  The denominator is a negative power
+   of two:  2 represents a quarter-note, 3 represents an eighth-note, etc.  The
+   \texttt{cc} parameter expresses the number of MIDI clocks in a metronome
+   click.  The \texttt{bb} parameter expresses the number of notated 32nd-notes
+   in a MIDI quarter-note (24 MIDI Clocks).
+   Example:
+
+   \begin{verbatim}
+      FF 58 04 04 02 18 08
+   \end{verbatim}
+
+   \begin{enumber}
+      \item 0xFF is the status byte that indicates this is a Meta event.
+      \item 0x58 the meta event type that signifies this is a Time Signature
+         event.
+      \item 0x04 is the length of the event, always 4 bytes.
+      \item 0x04 is the numerator of the time signature, and ranges from 0x00
+         to 0xFF.
+      \item 0x02 is the log base 2 of the denominator, and is the power to
+         which 2 must be raised to get the denominator.  Here, the denominator
+         is 2 to 0x02, or 4, so the time signature is 4/4.
+      \item 0x18 is the metronome pulse in terms of the number of
+         MIDI clock ticks per click.  Assuming 24 MIDI clocks per quarter note,
+         the value here (0x18 = 24) indidicates that the metronome will tick
+         every 24/24 quarter note.  If the value of the sixth byte were 0x30 =
+         48, the metronome clicks every two quarter notes, i.e. every
+         half-note.
+      \item 0x08 defines the number of 32nd notes per beat. This byte is
+         usually 8 as there is usually one quarter note per beat, and one
+         quarter note contains eight 32nd notes.
+   \end{enumber}
+
+   If a time signature event is not present in a MIDI sequence, a 4/4 signature
+   is assumed.
+
+% FIXME: Add this section to the Seq66 manual.
+
+\subsubsection{Key Signature Event (0x59)}
+\label{subsubsec:midi_meta_key_sig}
+
+   After the delta time, this event consists of five bytes of data:
+
+   \begin{verbatim}
+      FF 59 02 ss kk
+   \end{verbatim}
+
+   \begin{enumber}
+      \item 0xFF is the status byte that indicates this is a Meta event.
+      \item 0x59 the meta event type that signifies this is a Key Signature
+         event.
+      \item 0x042is the length of the event, always 2 bytes.
+      \item ss is the number of the scale.
+      \item kk is 0 for a major scale, and 1 for a minor scale.
+   \end{enumber}
+   
+% FIXME elaborate more on this event.
+
+% FIXME: Add this section to the Seq66 manual.
+
+\subsubsection{Text Events}
+\label{subsubsec:midi_meta_text_events}
+
+   Text events store an arbitrary number of bytes to represent a
+   human-readable string.
+   The characters should be limited to the ASCII character set.
+
+   \begin{verbatim}
+      FF nn len text
+   \end{verbatim}
+
+   Here are the values of \textsl{nn} and the text they represent:
+
+   \begin{enumber}
+      \item 0x01.
+         Text Event. \texttt{FF 01 len text}.
+         Supplies an arbitrary text string tagged to the track and time.
+         It can be used for textual information which doesn't fall into
+         one of the more specific categories below.
+      \item 0x02.
+         Copyright. \texttt{FF 02 len text}.
+         The text specifies copyright information for the sequence (song).
+         This is usually placed at time 0 of the first track in the
+         sequence (song).
+      \item 0x03.
+         Track Name. \texttt{FF 03 len text}.
+         See \sectionref{subsubsec:midi_meta_sequence_name}.
+      \item 0x04.
+         Instrument name. \texttt{FF 04 len text}.
+         The text names the instrument intended to play the contents of
+         this track. Usually placed at time 0 of the track.
+         Note that this meta-event is simply a description; MIDI
+         synthesisers are not required (and rarely if ever) respond to it.
+         This meta event is particularly useful in sequences prepared
+         for synthesisers which do not conform to the General MIDI patch set,
+         as it documents the intended instrument for the track when the
+         sequence is used on a synthesiser with a different patch set.
+      \item 0x05.
+         Lyric.  \texttt{FF 05 len text}.
+         The text gives a lyric intended to be sung at the given time.
+         Lyrics are often broken down into separate syllables to time-align
+         them more precisely with the sequence. See karoke formats.
+      \item 0x06.
+         Marker. \texttt{FF 06 len text}.
+         The text marks a point in the sequence which occurs at the
+         given time; for example "Third Movement".
+      \item 0x07.
+         Cue Point. \texttt{FF 07 len text}.
+         The text identifies a synchronization point which occurs
+         at the specified time; for example, "Door slams".
+      \item 0x08.
+         Program Name. \texttt{FF 08 len text}.
+         The name of the program (i.e. patch) used to play the track.
+         This may be different than the Sequence/Track Name.
+         For example, if the name of your track is "Butterfly",
+         and the track is played upon an electric piano patch,
+         one may include a Program Name of "Electric Piano".
+      \item 0x09.
+         Port Name. \texttt{FF 09 len text}.
+         The name of the MIDI device (port) where the track is routed. It
+         replaces the "MIDI Port" meta event which some sequencers formally
+         used to route MIDI tracks to various MIDI ports (to support
+         more than 16 MIDI channels). Example: assume a
+         MIDI interface that has 4 MIDI output ports. They are listed as
+         "MIDI Out 1", "MIDI Out 2", "MIDI Out 3", and "MIDI Out 4". If you
+         wished a particular track to use "MIDI Out 1" then you would put a
+         Port Name Meta-event at the beginning of the track, with "MIDI Out
+         1" as the text. All MIDI events that occur in the track, after a
+         given Port Name event, will be routed to that port. In a format 0
+         MIDI file, it would be permissible to have numerous Port Name events
+         intermixed with MIDI events, so that the one track could address
+         numerous ports. But that would likely make the MIDI file much larger
+         than it need be. The Port Name event is useful primarily in format 1
+         MIDI files, where each track gets routed to one particular port.
+%     \item 0xXX to 0xZZ.
+%        Unspecified text events. \texttt{FF 01 len text}.
+   \end{enumber}
+
+\subsection{Sequencer-Specific Meta-Events Format}
+\label{subsec:midi_meta_format}
+
+   This data, also known as
+   \texttt{SeqSpec} data, provides a way to encode information
+   that a specific sequencer application needs, while marking it so that other
+   sequences can safely ignore the information.
+
+   \begin{verbatim}
+      FF 7F len id data
+   \end{verbatim}
+
+   The first byte of the message is the "manufacturer ID".
+
+
+\subsubsection{Meta Events Handling}
+\label{subsubsec:midi_meta_events_revisited}
+
+   If the event status masks off to 0xF0 (0xF0 to 0xFF), then it is a 
+   real-time event.
+   If the Meta event byte is 0xF7, it is called a "Sequencer-specific",
+   or "SeqSpec" event.  For this kind of event, then one to three manufacturer
+   ID bytes and the length of the event are read.
+
+   \begin{verbatim}
+      Meta type:     varies         1 byte
+      Meta length:   varies         1 or more bytes
+   \end{verbatim}
+
+   If the type of the
+   \texttt{SeqSpec} (0xFF) meta event is 0x7F, parsing checks to see
+   if it is one of the \textsl{Rtl66}-specific events.  These events are tagged
+   with various values that mask off to 0x242400nn.  The parser reads the
+   tag:
+
+   \begin{verbatim}
+      Prop tag:     0x242400nn      4 bytes
+   \end{verbatim}
+
+   These tags provide a way to save and recover \textsl{Seq24/Rtl66} properties
+   from the MIDI file: MIDI buss, MIDI channel, time signature, sequence
+   triggers, and the key, scale, and background sequence to use with the
+   track/sequence.  Any leftover data for the tagged event is let go.
+   Unknown tags are skipped.
+
+   If the type of the
+   \texttt{SeqSpec} (0xFF) meta event is 0x2F, then it is the
+   End-of-Track marker.  The current time marks the length (in MIDI pulses) of
+   the sequence.  Parsing is done for that track.
+
+   If the type of the
+   \texttt{SeqSpec} (0xFF) meta event is 0x03, then it is the
+   sequence name.  The "length" number of bytes are read, and loaded as the
+   sequence name.
+
+   If the type of the
+   \texttt{SeqSpec} (0xFF) meta event is 0x00, then it is the
+   sequence number, which is read:
+
+   \begin{verbatim}
+      Seq number:    varies         2 bytes
+   \end{verbatim}
+
+   Note that the sequence number might be modified latter to account for the
+   current \textsl{Seq24} screenset in force for a file import operation.
+   Any other \texttt{SeqSpec} type is simply skipped by reading the "length"
+   number of bytes.
+   The remaining sections simply describe MIDI meta events in more detail, for
+   reference.
+
+\subsection{System Exclusive Event (0xF0)}
+\label{subsec:midi_meta_sysex_event}
+
+   System messages are used to send data such as patch parameters, sampler
+   data, or a sequencer memory bulk dump.
+   If the meta event status value is 0xF0, it is a "System-exclusive",
+   or "SysEx" event.
+   \textsl{Rtl66} stores these messages, but there are complications
+   to be dealt with.
+
+   SysEx messages as sent and received are of the format:
+
+   \begin{verbatim}
+     F0 ID sysex data bytes F7
+   \end{verbatim}
+
+   The ID is a manufacturer's ID. Normally a single byte, additional IDs can be
+   represented by the sequence \texttt{00 xx yy}, to allow 16384 additional
+   manufacturer IDs. Here is the distribution of ID numbers:
+
+   \begin{verbatim}
+               American  European   Japanese    Other       Special
+   1 byte ID:  01 - 1F   20 - 3F    40 - 5F     60 - 7C     7D - 7F
+   3 byte ID: 00 00 01   00 20 00   00 40 00    00 60 00
+              00 1F 7F   00 3F 7F   00 5F 7F    00 7F 7F
+   \end{verbatim}
+
+   "00" and "00 00 00" are not to be used.
+   Currently \textsl{Rtl66} does not try to interpret the manufacturer ID.
+
+   There are three additional special ID codes that are \textsl{not}
+   manufacturer-specific:
+
+   \begin{itemize}
+      \item \textbf{0x7D}.
+         Used for private non-commercial purposes only.
+         It has no standard format.
+      \item \textbf{0x7E}.
+         Represents a non-realtime univerals system exclusive message.
+         All MIDI devices can respond to it, although not immediately.
+      \item \textbf{0x7F}.
+         Represents a realtime univerals system exclusive message.
+         All MIDI devices can respond to it, immediately.
+   \end{itemize}
+
+   The format for 0x7E and 0x7F is the same:
+
+   \begin{verbatim}
+      F0H ID_number device_ID sub-ID#1 sub-ID#2 ... F7H
+   \end{verbatim}
+
+   An ID number of 0x7F (the 'all call' ID) indicates all devices should
+   respond. As for device ID, some devices might have multiple IDs.
+
+   For more information on these events, see
+   \sectionref{subsubsec:midi_meta_universalsysex_event}.
+
+   Now, when encoded for storage in a MIDI file, the format of the bare message
+   (first line) is padded so that it starts with a delta time, and includes the
+   length (a variable-length quantity) of the SysEx including the final F7, but
+   excluding the F0 and the length bytes.:
+
+   \begin{verbatim}
+     F0 ID sysex data bytes F7               (message)
+     delta F0 len ID sysex data bytes F7     (encoded)
+   \end{verbatim}
+
+   SysEx events can be encoded in the following ways:
+
+   \begin{itemize}
+      \item \textbf{Single SysEx Message}.
+      \item \textbf{Continuation Events}.
+      \item \textbf{Escape Sequence}.
+   \end{itemize}
+
+\paragraph{Single SysEx Message}
+\label{paragraph:patterns_single_sysex_message}
+
+   A SysEx message that is \textsl{sent to a device} is not quite the 
+   same as a SysEx message that is \textsl{encoded in a MIDI file}.
+   SysEx messages encoded in a MIDI file
+   are preceded by a variable-length delta time, the byte F0,
+   a variable-length length value, and the message, and a terminating F7,
+   which \textsl{must} be present, and is counted in the length value.
+   In the following example, the first line is the actual SysEx message
+   (a General MIDI Enable message),
+   and the second line is its encoding in a MIDI file, ignoring the preceding
+   delta time:
+
+   \begin{verbatim}
+      F0 7E 00 09 01 F7          (message)
+      F0 05 7E 00 09 01 F7       (encoded)
+   \end{verbatim}
+
+\paragraph{Continuation Events}
+\label{paragraph:patterns_continuation_events}
+
+   Some equipment needs the SysEx to be split into smaller chunks for
+   processing.
+   This could be accomplished with a number of smaller single-SysEx messages,
+   but some manufacturers treat SysEx as if it supported running status (it
+   does not).
+   So the first message starts with F0, the next messages have only the SysEx
+   data, and the last message ends with F7.
+   However, when encoding in the MIDI file, each sub-packet begins with
+   an F7.
+   In between are the delta times to use to delay the sub-packets when sending
+   to a slow device.
+   An unencoded message with 3 packets is shown,
+   with a bar for a separator for this discussion:
+
+   \begin{verbatim}
+      F0 43 12 00 | 43 12 00 43 12 00 | 43 12 00 F7
+   \end{verbatim}
+
+   Encoded with a 200-tick delta time (\texttt{81 48}) between each message,
+   the F7 being used as a \textsl{continuation} byte, with length values:
+
+   \begin{verbatim}
+      00 F0 03 43 12 00
+      81 48 F7 06 43 12 00 43 12 00
+      81 48 F7 04 43 12 00 F7
+   \end{verbatim}
+
+   Since the first message is not terminated by F7 within the specified
+   length, the next two F7s indicate a continuation.
+   Note the F7 at the beginning of packets after the first one, and
+   the F7 at the end of the last one.
+
+\paragraph{Escape Sequence}
+\label{paragraph:patterns_escape_sequence}
+
+   An escape sequence is not SysEx, but it does use the F7 byte.
+   It is used for encoding arbitrary bytes for messages such as Song Select.
+   The first line shows such a message, and the second how it would be encoded.
+
+   \begin{verbatim}
+      F3 01
+      F7 02 F3 01
+   \end{verbatim}
+
+   The format is \texttt{F7 len <all bytes to be transmitted>}.
+
+   So how to figure out what F7 means?
+   Its interpretation is as follows:
+
+   \begin{itemize}
+      \item An F0 without a terminal F7 within the specified length
+         is a Casio-style multi-packet message,
+         and a flag (call it \texttt{multi})
+         should be raised to indicate this status.
+      \item If F7 is encountered while \texttt{multi} is set,
+         it is a continuation.
+      \item If this continuation ends with F7, it is the last packet and
+         \texttt{multi} should be cleared.
+      \item If F7 is encountered while \texttt{multi} is \textsl{not} set,
+         then the event is an escape sequence.
+   \end{itemize}
+
+\subsection{System Exclusive Sample Dump Standard}
+\label{subsec:midi_meta_sysex_sample_dump_standard}
+
+   This standard is not yet implemented in \textsl{Rtl66}.
+   It provides for for ampler data dumps.
+   Five of the basic messages are generic handshaking messages (ACK, NAK, Wait,
+   Cancel \& EOF), are also used in other applications e.g. File Dump.
+   The remaining messages are Dump Request, Dump Header, Data Packets, and a
+   Sample Dump Extensions message.  The data formats are given in hexadecimal.
+
+   Here we only summarize them.
+
+\paragraph{Generic Handshaking Messages}
+\label{paragraph:midi_seq66_generic_handshaking}
+
+   In these descriptions, \texttt{pp} is the packet number.
+
+   \begin{itemize}
+      \item ACK:
+         \texttt{F0 7E <device ID> 7F pp F7}.
+         The first handshaking flag, meaning "Last data packet
+         was received correctly. Send the next one."
+         The packet number represents the packet being acknowledged as correct.
+      \item NAK:
+         \texttt{F0 7E <device ID> 7E pp F7}.
+         The second handshaking flag, meaning "Last data packet was received
+         incorrectly. Please resend."
+         The packet number represents the packet being rejected.
+      \item CANCEL:
+         \texttt{F0 7E <device ID> 7D pp F7}.
+         The third handshaking flag. It means "Abort dump."
+         The packet number represents the packet on which the
+         abort takes place.
+      \item WAIT:
+         \texttt{F0 7E <device ID> 7C pp F7}.
+         The fourth handshaking flag, meaning "Do not send any more packets
+         until told to do otherwise." This is important for systems in
+         which the receiver (such as a computer) may need to
+         perform other operations (such as disk access)
+         before receiving the remainder of the dump. An ACK will
+         continue the dump while a Cancel will abort the dump.
+      \item EOF:
+         \texttt{F0 7E <device ID> 7B pp F7}.
+         A new generic handshaking flag added for the File Dump
+         extension.
+   \end{itemize}
+
+\paragraph{Data Messages}
+\label{paragraph:midi_seq66_data_message}
+
+   \begin{itemize}
+      \item DUMP HEADER.
+         \texttt{F0 7E <device ID> 01 ss ss ee ff ff ff
+            gg gg gg hh hh hh ii ii ii jj F7}.
+         \begin{itemize}
+            \item ss = Sample number (LSB first)
+            \item ee = Sample format (# of significant bits from 8-28)
+            \item ff = Sample period (1/sample rate) in nanoseconds (LSB first)
+            \item gg = Sample length in words (LSB first)
+            \item hh = Sustain loop start point word number (LSB first)
+            \item ii = Sustain loop end point word number (LSB first)
+            \item jj = Loop type (00 = forward only, 01 = backward/forward,
+               7F = Loop off)
+         \end{itemize}
+      \item DUMP REQUEST.
+         \texttt{F0 7E <device ID> 03 ss ss F7}, where ss =
+         Requested sample, LSB first.
+         Upon receiving this message, the sampler should check to see if the
+         requested sample number falls in a legal range.
+         If it is, the requested sample becomes the current sound
+         number and is dumped to the requesting master following the
+         procedure outlined in the documentation.
+         If it is not within a legal range, the message should be ignored.
+      \item DATA PACKET.
+         \texttt{F0 7E <device ID> 02 kk <120 bytes> ll F7}, where
+         kk = Running packet count (0-127); and
+         ll = Checksum (XOR of 7E <device ID> 02 kk <120 bytes>).
+      The total size of a data packet is 127 bytes. This is to prevent MIDI
+      input buffer overflow in machines that may want to receive an
+      entire message before processing it. 128
+      bytes, or 1/2 page of memory, is
+      considered the smallest reasonable buffer for modern MIDI instruments.
+   \end{itemize}
+
+   There are some more scenarios in the MIDI 1.0 detailed specification
+   document, including:
+
+   \begin{itemize}
+      \item Sample dump extensions and a description of the sample dump
+         scenario, too detailed to include here.
+      \item Device inquiry and response.
+         Messages used for device identification, categorized non-realtime
+         SysEx general information messages.
+      \item File dump provides a protocol for transmitting files from one
+         computer to another using MIDI.
+         Two primary motivations for this protocol: transmitting MIDI Files
+         (and tempo maps) between computers and small microcomputer “boxes”;
+         and transmitting files of \textsl{any} type between two computers
+         of different types. The filename is sent with the file.
+         The protocol includes a request, header, data packet, hand-shaking
+         flags,
+      \item MIDI Tuning.
+   \end{itemize}
+
+   There is so much more to look into.  Sigh.
+
+\subsubsection{Universal SysEx Events (0xF0 0x7E and 0xF0 0x7F)}
+\label{subsubsec:midi_meta_universalsysex_event}
+
+   As noted earlier, 0x7E and 0x7F provide for non-realtime and realtime SysEx
+   message.
+   Immediately following these value is the "channel", which can be a
+   manufacturer's ID or any value ranging from 0x00 to 0x7F (which is a
+   wild-card for "all devices").
+
+   \begin{verbatim}
+      F7 7E channel subid1 subid2 data bytes F7      (non-realtime)
+      F7 7F channel subid1 subid2 data bytes F7      (realtime)
+   \end{verbatim}
+
+   If \texttt{channel} is a device ID.
+   If its value is F7, this is a global broadcast that all devices
+   should heed.
+   The \texttt{subid1} and \texttt{subid2}
+   could be something like "01 00" for a long-form
+   (full frame) time-code message.
+
+%  F0 7E id 01                      Channel Pressure (Aftertouch)
+%  F0 7E id 01                      or Sample Dump Header???
+%  F0 7E id 02                      Polyphonic Key Pressure (Aftertouch)
+%  F0 7E id 02                      or Sample Data Packet???
+%  F0 7E id 03                      Controller (Control Change)
+%  F0 7E id 03                      or Sample Dump Request???
+%  F0 7E id 09 nn F7                GM System Enable / Disable (01 / 00)
+%  F0 7F 00                         ???
+%  F0 7F id 01 01 hh mm ss ff F7    MIDI Full Frame
+%  F0 7F id 04 01 mm nn F7          MIDI Master Volume (vs Controller Volume)
+
+   A detailed description is beyond the scope of this document.
+   Some messages supported by these messages are the
+   \textsl{MIDI Master Volume},
+   \textsl{MIDI Full Frame},
+   and the \textsl{General MIDI System Enable/Disable}
+   messages.
+
+   An interesting subset of these messages is \textsl{MIDI Show Control}
+   (MSC):
+
+   \begin{verbatim}
+      F7 7F deviceid 02 commandformat command data F7      (MSC)
+   \end{verbatim}
+
+   See \cite{msc}.
+   Some simple controls can be included in the 'ctrl' file's set of macros.
+
+\paragraph{Rtl66 SysEx Handling}
+\label{paragraph:midi_seq66_sysex_handling}
+
+   \textsl{Rtl66} is slowly gaining support for reading, storing, and
+   sending SysEx events within a sequence.
+   \textsl{Rtl66} warns if the
+   terminating 0xF7 SysEx terminator is not found at the expected length.
+   Also, some malformed SysEx events have been encountered, and those are
+   detected and handled as well.
+
+   The format of a bare (i.e. not encoded in a MIDI file) SysEx message is
+   like the following, complex case:
+
+   \begin{verbatim}
+      F0 manid devid modelid direction address   data checksum terminator
+      F0 0x41  0x10  0x42    0x12      0x40007F  0x00 0x41     0xF7
+   \end{verbatim}
+
+   The "manid" is a manufacturer's identifier. 0x41 is Roland, 0x24 is
+   Hohner. 0x00 is used for adding two more codes to greatly expand the ID
+   list. 0x7E is used to denote a non-realtime message, and 0x7F denotes
+   a realtime message.
+   The "devid" is the device identifier (e.g. 0x10 for Roland devices).
+   The "devid" indicates which devices will accept the SysEx message.
+   The "modelid" is the model identifier (0x42 for most GS synths).
+   The "direction" is 0x12 for sending information or 0x11 for requesting
+   information.
+   The "address" is a 3-byte value on which the SysEx message should act.
+   Devices provide an address map to define what is at each address.
+   For example, this address might define a "GS Reset", which performs
+   an initialization.
+   The "data" is either the data to send (one or more bytes), or the
+   size of the data we are requesting.
+   Some devices will include a "checksum" for data integrity.
+   All SysEx messages end with an F7 byte.
+   But see \sectionref{subsubsec:midi_meta_sysex_event}.
+
+
+
+%-------------------------------------------------------------------------------
+% vim: ts=3 sw=3 et ft=tex
+%-------------------------------------------------------------------------------

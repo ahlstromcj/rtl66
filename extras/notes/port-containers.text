@@ -1,0 +1,50 @@
+Rlt66 MIDI Port Container Survey
+Chris Ahlstrom
+2024-05-28 to 2024-05-28
+
+clientinfo:
+
+    App and client name
+    Boolean options
+    I/O port numbers
+    ports[2] ??? Input/output/duplex
+    Functions for port_lists
+
+port:
+
+    Client name and number
+    Port name, number, type, and alias (name); also an internal port number
+    Queue number
+    I/O type
+    Enabling and clocking? Nick name?
+
+bus: (includes bus_in and bus_out)
+
+    Bus, port, and client ID, plus bus index
+    Various names (bus, display, port, alias)
+    Clocking
+    Masterbus
+    Port I/O type and kind
+    Mutex
+
+masterbus:
+
+    shared_ptr<clientinfo>
+
+midi_api:
+
+    masterbus *
+
+player:
+
+    shared_ptr<masterbus>
+
+ports:
+
+    vector<port>
+
+rtmidi_engine:
+
+    masterbus *
+
+# vim: ft=cpp

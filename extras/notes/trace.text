@@ -1,0 +1,266 @@
+Seq66 MIDI Startup Walk-through
+Chris Ahlstrom
+2024-05-24 to 2024-05-25
+
+main() :
+    QApplication app(argc, argv);
+    Optional locale support;
+    Optional translator support;
+    for (;;)
+        qt5nsmanager sm(app) : clinsmanager(caps) : smanager(caps)
+            set_configuration_defaults(), m_poll_period_ms = 3 * window redraw
+            set_qt_version()
+        smanager::create(argc, argc)
+            get_and_set_build_issues() [e.g. read and parse /etc/issue.net]
+            main_settings()
+                get "home"
+                options parsing;
+                reroute stdio;
+                set MIDI filename if applied;
+            clinsmanager::create_session()
+            smanager::create_session() : daemonize, set signal handlers
+            clinsmanager::create_project() : smanager::create_configuration()
+                read_configuration()
+                include port-mapping configuration
+                nsm->open_reply()
+            open_midi_control_file()
+            if (create_performer())                 // SEE BELOW ****
+                performer::get_settings()
+                performer::launch()
+            open_playlist()
+            open_note_mapper()
+            open_midi_file(most recent)             ****
+                performer::read_midi_file()
+                performer::apply_session_mutes()
+            create_window()
+        sm.run()
+        sm.close_session() :
+            clinsmanager::close_session() : nsm->close_session()
+            smanager::close_session()
+            performer::finish() :
+                stop_playing(); reset; announce_exit(); join threads;
+                deinit_jack_transport() ; masterbus::get_port_statuses()
+                [ into lists of clocks and inputs ]
+            performer::put_settings()
+            save_session() :
+                saves MIDI file if performer modified ;
+                cmdlineopts::write_options_files()
+                write_midi_control_file()
+                performer::save_mutegroups()
+                performer::save_playlist()
+                performer::save_note_mapper()
+            signal session close
+            check for session close vs session restart
+
+performer [create_perform()] :
+
+    jack_assistant()
+    performer::populate_default_ops()
+                performer::get_settings()
+                performer::launch()
+
+    performer::get_settings(rc(), usr())
+        obtain rc().clocks() and inputs(); input/output port maps
+        obtain I/O MIDI controls and key controls
+        obtain mute groups
+        obtain other minor parameters
+    save pointer to performer
+
+    performer::launch():
+
+        create_master_bus()
+            new masterbus(ppqn, bpm)
+                mastermidibase(...) : announce buss, I/O bus arrays, queue, seq
+                masterbus base;
+                    rtmidi_info() [AkA "midi master" w/client name]
+                        openmidi_api() [also sets selected API]
+                            new midi_alsa_info
+                                snd_seq_open (..., DUPLEX, open block mode)
+                                store the engine handle
+                                set the client (app) name in engine
+                                global queue
+                                get_poll_descriptors()
+                            set_api_info(midi_alsa_info)    ****
+                        set_selected_api(midiapi)
+                        get_all_port_info()
+                            midi_info::get_all_port_info(inports, outports)
+                                midi_port_info.add(client/port info, alias)
+                                    port_info(ditto)
+                set jack polling as per rc() setting for JACK MIDI
+            masterbus settings;
+            masterbus::set_port_statuses()
+                copy configures clocks and inputs to masterbus
+                midi_control_out().set_master_bus(mmb)
+
+        init_jack_transport()
+            jack_assistant::init()
+                client_open()
+                get the sample rate
+                set the callbacks
+                if master : set jack_timebase_callback()
+                activate()                                  ****
+
+        masterbus::init(ppqn, bpm) : api_init()
+            rtmidi_info [ "midi master" ]
+                get_api_info->api_set_ppqn/bpm(value) [ implemented in ALSA ]
+
+            Make all the virtual or normal busses:
+
+            midibus * m = make_normal_bus() :
+                new midibus(midi_master : rtmidi_info, ...)
+                    midibase(...)
+                    Set port and bus IDs.
+            set_midi_alias()
+            I/O_bus_array().add(m, m_master_inputs.get(bus))
+
+                These "master I/Os" are inputslist and clockslist.
+                busarray::add() : businfo(bus), init_clock, push_back
+
+            midi_master().add_bus(m) [rtmidi_info]
+                midi_info::add_bus(m) --> m_bus_container
+
+            REDUNDANT!!!
+
+        performer::activate()
+            masterbus::activate()                           ****
+                I/O buss arrays.initialize()
+                    businfo::initialize()
+                        midibase::initialize()
+                            init_in() : api_init_in()
+                                new rtmidi_in(*this, master info)
+                                    rtmidi()
+                                        midi_api(midibus, midi_info)
+                                        set_jack_version()
+                                        set_alsa_version()
+                                    openmidi_api(selectedapi, info)
+                            businfo::activate()  [ just sets a couple flags ]
+                set_client_id() [ e.g. 128 in ALSA, but only for out-buss!!! ]
+                rtmidi_info::api_connect() [ MIDI master ]
+                    get_api_info()->api_connect()
+                        midi_alsa_info::api_connect() [ Does nothing for ALSA]
+                        midi_jack_info::api_connect()
+            // jack_assistant::activate() commented out
+            masterbus::copy_io_busses() :
+                adds the I/O bus array ID codes, names, to the masterbus's
+                    inputs and clocks list
+            masterbus::get_port_status() :
+                clockslist::match_system_to_map(m_master_clocks)
+                inputslist::match_system_to_map(m_master_inputs)
+                [ copies clocks/inputs to performer's copy of clocks/inputs]
+            Handle MIDI I/O controls true vs nominal busses
+            Launch the I/O threads
+            Announce the playscreen, mutes, and automation
+            set_playing_screenset(0)
+
+            END OF performer SETUP
+
+        performer::auto_play()
+            performer::start_playing()
+                start_jack() [actually tries to start JACK transport]
+                start()
+                    inner_start()
+                        cv().signal()
+
+                    output_func()
+                        while (! done())
+                            cv().wait()
+                            get_start_tick()
+                            handle resolution change
+                            LOTSA CODE!!!!
+
+# Ideas for Rtl66:
+
+midi::clientinfo contains the ports, connection-related boolean, the
+    kind-of-useless in and out port numbers, the MIDI handle pointer,
+    the useless-and-redundant m_port_type and m_is_connected members.
+
+    rtmidi.cpp access a global clientinfo with no ports.
+
+    How many copies of port info are there?
+
+    rtmidi_engine() calls open_midi_api()... again?
+
+# smoke trace
+
+    desired_api() --> unspecified
+    clientinfo::get_all_port_info()
+        rtmidi_in(unspecified)
+            rtmidi()
+            rtmidi::ctor_common_setup(unspecified)
+                rapi = fallback_api() --> alsa [NOTE 1]
+            rtmidi_in::open_midi_api(alsa)
+                midi::try_open_midi_api(alsa, input...) [NOTE 2]
+                    midi_alsa(input...)
+                        midi_alsa::initialize()
+                            midi_alsa::connect()
+                                midi_alsa::engine_connect()
+                                    snd_seq_open()
+                                midi_alsa_data::initialize()
+                                data.alsa_client(...)
+                                api_data(...)
+                            midi_alsa_data::initialize()
+                            [NOTE 3]
+                            rtmidi_in_data::api_data( logged )
+                rtmidi::selected_api(alsa)
+
+            rtmidi::get_io_port_info()
+                midi_alsa::get_io_port_info() [through rt_api_ptr()] for I & O
+                rtmidi::selected_api_display_name() [api::alsa]
+
+            rtmidi_out:: same sequence
+
+            clientinfo::port_list()
+
+    NOTE 1: why fall back to ALSA? Let JACK be tried first....
+    NOTE 2: try_open_midi_api() would then try JACK and try ALSA if that
+            failed.
+    NOTE 3: There is no masterbus at this time, so the ALSA client handle
+            is NOT LOGGED
+
+# play trace
+
+    desired_api() --> unspecified
+    clientinfo::get_all_port_info()
+        [ all of the same calls shown for "smoke" ]
+    selected API == alsa
+    player(out_port = 1)
+    player::launch()
+        create_master_bus()
+            rtl::find_midi_api() [ as ABOVE, finds alsa ]
+                midi::try_open_midi_api(alsa, input...) [NOTE 2]
+                set result as alsa
+            new masterbus(api = alsa)
+                rtmidi_engine()
+                    rtmidi::ctor_common_setup(alsa)
+                    rtmidi_engine::open_midi_api()
+                        midi::try_open_midi_api(alsa, engine...)
+                        rt_api_ptr()->master_bus(rtmidi_engine::m_master_bus)
+                    rtmidi::selected_api(alsa)
+                masterbus::engine_query()
+                    new clientinfo(io::duplex)
+
+                    rtmidi_in(alsa)
+                        rtmidi::ctor_common_setup(alsa) [ no fallback API call ]
+                        rtmidi_in::open_midi_api(alsa)
+                            midi::try_open_midi_api(alsa, input...)
+                        rtmidi::selected_api(alsa)  [ AGAIN ]
+                    rtmidi::get_io_port_info(ports, preclear = true)
+                        midi_alsa::get_io_port_info() [via rt_api_ptr()] for I & O
+
+                    rtmidi_out(alsa) similar sequence
+
+            if (masterbus) can do some more setup
+
+        init_jack_transport()     [NOTE 4]
+            jack/transport::init()
+
+
+    NOTE 4: We cannot call jack/transport::init() unless JACK is the
+            selected API /and/ JACK transport is *enabled*.  FIXME by
+            player.cpp#641
+
+
+
+
+
+# vim: ft=cpp

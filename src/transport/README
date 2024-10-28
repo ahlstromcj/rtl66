@@ -1,0 +1,11 @@
+Source Directory for Transport in the "rtl" library
+Chris Ahlstrom
+2022-06-07 to 2022-10-21
+
+This is the home for JACK transport C++ source code files.  And other MIDI
+transport mechanisms if we write them.  For now, see the "jack"
+subdirectory.
+
+The "rtl" project adds JACK Transport support to the "RtMidi" library.
+
+# vim: sw=4 ts=4 wm=8 et ft=sh

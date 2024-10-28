@@ -1,0 +1,108 @@
+MIDI Member Function Mappings
+Chris Ahlstrom
+2024-06-09 to 2024-06-09
+
+This file serves as a checklist to make sure all MIDI API functions are
+in place.
+
+View this file in a wide terminal.
+
+    Seq66               rtmidi                      midi_api                        bus_in/out              busarray
+  
+    -                   open_midi_api()         -
+    -                   get_current_api()       get_current_api()                   -
+    -                   open_port() ----------> open_port(), is_port_open()         To Do
+    -                   -                       connect(), is_connected()           *
+    -                   -                       initialize()                        To Do?                  *
+    -                   -                       -                                   init_input()            set_input(b), get_input(b)
+    -                   -                       -                                   init_clock()            set_clock(b), get_clock(b)
+    -                   open_virtual_port(2) -> open_virtual_port(), is_port_open() To Do?
+    -                   engine_connect() -----> engine_connect()                    -
+    -                   engine_disconnect() --> engine_disconnect()                 -
+    -                   engine_activate() ----> engine_activate()                   -
+    -                   engine_deactivate() --> engine_deactivate()                 -
+    -                   set_client_name() ----> set_client_name()                   set_display_name()
+    -                   set_port_name() ------> set_port_name()                     port_name(), bus_name() * similar
+    api_flush()         flush_port() ---------> flush_port()                        To do
+    -                   close_port() ---------> close_port()                        To do
+    -                   get_port_count() -----> get_port_count()                    -                       To do
+    -                   get_port_name() ------> get_port_name()                     To do                   get_midi_port_name(b)
+    -                   get_io_port_info() ---> get_io_port_info()                  -
+    -                   -                       -                                   get_in_port_info()
+    -                   -                       -                                   get_out_port_info()
+    -                   get_port_alias() -----> get_port_alias()                    To do
+    api_set_ppqn()      PPQN() ---------------> PPQN() getter                       *
+    api_set_beats...()  BPM() ----------------> BPM() getter                        *
+    -                   set_error_callback()    api_base::set_error_callback()      -
+    -                   send_byte() ----------> send_byte()                         To do
+    -                   -                       send_status()                       To do
+    api_start()         clock_start() --------> clock_start()                       * out                   * (need bus versions) use 0xff flag
+    api_clock()         clock_send() ---------> clock_send()                        * out                   To do (need bus versions)
+    api_stop()          clock_stop() ---------> clock_stop()                        * out                   * (need bus versions)
+    api_continue_from() clock_continue() -----> clock_continue()                    * out                   * (need bus & beats versions)
+    -                   poll_for_midi() ------> poll_for_midi()                     * in                    *
+    -                   get_midi_event() -----> get_midi_event()                    * in                    *
+    -                   -                       get_message()                       To do
+    api_play()          send_event() ---------> send_event()                        * out                   send_event(b) (need a non-channel version)
+    -                   send_message(2) ------> send_message(2)                     To do
+    -                   play() ???              -                                   -
+    api_sysex()         -                       -               send_sysex()        * out
+    -                   -                       -               activate()          To finish
+    -                   -                       -               deactivate()        To finish
+
+    -                   -                       master_bus functions
+    -                   -                       client_info()
+    -                   -                       void_handle()
+    -                   -                       api_data()
+    -                   -                       input_data() and cast
+    -                   -                       queue_size()
+    -                   -                       ignore_midi_types()
+    -                   -                       set_buffer_size()
+    -                   -                       set_input_callback()
+    -                   -                       cancel_input_callback()
+    -                   -                       reuse_connection()
+    -                   -                       reuse_connection()
+    -                   -                       reuse_connection()
+  
+    Seq66               rtmidi                      midi_api                        bus_in/out              busarray
+
+Port Information:
+
+    midi::port                  Seq66 midibus       Seq66 portslist::io             midi::client_info       portspec?
+
+    -                           -                   -                               API version
+    -                           -                   -                               App name
+    -                           -                   -                               Virtual ports           *
+    -                           -                   -                               Auto connect            *
+    -                           -                   -                               Global PPQN             ?
+    -                           -                   -                               Global BPM              ?
+    -                           -                   -                               Previous ports          -
+    -                           app name            -                               -                       -
+    -                           bus name            io_name                         -                       *
+    client number               -                   io_client_number                -                       -
+    client name                 client name         -                               Client name             -
+    -                           bus ID              -                               -                       for port map?
+    port number                 port ID             io_port_number                  -                       for port map?
+    port name                   port name           -                               -                       ?
+    queue number                queue (number)      -                               Global queue            -
+    I/O type                    I/O type            -                               -                       *
+    port type                   port type           -                               Port type               -
+    port alias                  port alias          io_alias                        -                       ?
+    internal ID                 -                   -                               -                       -
+    -                           PPQN                -                               -                       -
+    -                           BPM                 -                               -                       -
+    -                           -                   io_available (port-map)         -                       -
+
+    More (what if virtual ?):
+
+    -                           -                   is active?                      -                       -
+    -                           -                   is port map?                    -                       *
+    queue size                  -                   -                               -                       *
+    enabled?                    -                   io_enabled                      Is connected? (global)  *
+    output clocking             -                   out_clock                       -                       *
+    port nickname               -                   io_nick_name                    -                       -
+    ignore incoming sysex       -                   -                               -                       -
+    ignore incoming timing      -                   -                               -                       -
+    ignore incoming active sens -                   -                               -                       -
+
+# vim: sw=4 ts=4 wm=8 et ft=sh

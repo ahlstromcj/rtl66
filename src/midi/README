@@ -1,0 +1,19 @@
+Source Directory for other MIDI Support in the "rtl" library
+Chris Ahlstrom
+2022-06-07 to 2022-06-25
+
+This is the home for MIDI source code file adapted from the Seq66 project.
+It includes mostly C++ files adapted from the Seq66 project.
+
+All such files will be in the "midi" namespace.  This serves as an
+indication that these classes are separate (though now used) from the
+classes in the rtl directory.
+
+Ultimately we expected these classes to serve as the intermediary between
+the simplified Seq66 midibus classes and the Rtl66 classes refactored from
+the RtMidi project.
+
+The "rtl66" project adds more MIDI support (extracted from Seq66) to the
+"RtMidi" library.
+
+# vim: sw=4 ts=4 wm=8 et ft=sh

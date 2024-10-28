@@ -1,0 +1,13 @@
+MIDI Source Directory for the "rtl" library
+Chris Ahlstrom
+2022-06-07 to 2023-03-06
+
+The "rtl" project is a heavy refactoring of the "RtMidi" library by
+Gary Scavone.  It keeps roughly the same functionality but is easier to
+read and update.  The "C" API is preserved except for some minor cleanup.
+
+All such files will be in the "rtl" namespace.
+
+This directory is where the "rtmidi"-style library C/C++ files live.
+
+# vim: sw=4 ts=4 wm=8 et ft=sh

@@ -1,0 +1,146 @@
+TODO for the rtl66 library
+Chris Ahlstrom
+2022-07-23 to 2024-06-07
+
+Hot bugs:
+
+    -   Seq66: why does 1Bar show the first track being track 2?
+    -   Seq66: handle SeqSpec like a track somehow.
+
+This file documents the next (few) thing(s) to be done.
+
+    -   Master the in/outs of MIDI Clock and make sure the parameters
+        are of the correct type/kind.
+    -   Continue to correlate rtmidi(_in/out), bus(_in/out), and
+        busarray.
+    -   Determine which extended ALSA/JACK API functions need to be
+        added to the rtmidi public virtual interface.
+    -   Get the code that logs the MIDI engine handle to work.
+        -   It should be part of the midi::bus interface.
+        -   It should be set up in the midi::masterbus.
+            See src/midi/masterbus.cpp
+        -   It should store the handle in midi::masterbus
+        -   The masterbus is accessed in midi_api via an unowned
+            plain pointer. (Should this be a shared_ptr<>?)
+    -   Be rigorous with when connections are to be made.
+    -   Write the inverse to trackdata::parse_track(), including
+        the track header, size, and footer.
+
+Completion Matrix:
+
+    X = yes, x = partial
+
+   -----------------------------------------------------------------
+  | Feature          |  File/Directory        |  Drafted |  Tested  |
+  |-----------------------------------------------------------------|
+  | MIDI                                                            |
+  |-----------------------------------------------------------------|
+  |                  | midi                   |          |          |
+  |                  |   bus, bus_in, bus_out |    X     |          |
+  |                  |   calculations         |    X     |          |
+  |                  |   clientinfo           |    X     |    x     |
+  |                  |   clocking (header)    |    X     |          |
+  |                  |   eventcodes, event    |    X     |          |
+  |                  |   eventlist            |    X     |          |
+  |                  |   file                 |    X     |          |
+  |                  |   masterbus            |    X     |    x     |
+  |                  |   measures (header)    |    X     |          |
+  |                  |   message              |    X     |    X     |
+  |                  |   midibytes            |    X     |          |
+  |                  |   player               |    X     |    x     |
+  |                  |   portnaming, ports    |    X     |          |
+  |                  |   splitter             |    X     |          |
+  |                  |   timing (header)      |    X     |          |
+  |                  |   track, trackdata     |    X     |          |
+  |                  |   trackdataex          |    X     |          |
+  |                  |   trackinfo, tracklist |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  |                  | rtl                    |          |          |
+  |                  |   api_base             |    X     |          |
+  |                  |   rtl_build_macros (h) |    X     |          |
+  |                  |   rterror (header)     |    X     |          |
+  |                  |   rt_types (header)    |    X     |    X     |
+  |                  |   test_helpers         |    X     |    X     |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  |                  | rtl/midi               |          |          |
+  |                  |   find_midi_api        |    X     |          |
+  |                  |   midi_api             |    X     |          |
+  |                  |   midi_dummy           |    X     |          |
+  |                  |   midi_queue           |    X     |          |
+  |                  |   rtmidi_c             |    X     |    X     |
+  |                  |   rtmidi               |    X     |    X     |
+  |                  |   rtmidi_in            |    X     |    X     |
+  |                  |   rtmidi_in_data       |    X     |          |
+  |                  |   rtmidi_out           |    X     |    X     |
+  |                  |   rtmidi_engine        |    X     |          |
+  |                  |   rt_midi_types (hdr)  |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | ALSA MIDI        | rtl/midi/alsa          |          |          |
+  |                  |   midi_alsa            |    X     |          |
+  |                  |   midi_alsa_data       |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | JACK MIDI        | rtl/midi/jack          |          |          |
+  |                  |   midi_jack            |    X     |          |
+  |                  |   midi_jack_data       |    X     |          |
+  |                  |   midi_jack_callbacks  |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | MacOSX MIDI      | rtl/midi/macosx        |          |          |
+  |                  |   midi_macosx_core     |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | Pipewire MIDI    | rtl/midi/pipewire      |          |          |
+  |                  |   midi_pipewire        |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | WebMIDI          | rtl/midi/webmidi       |          |          |
+  |                  |   midi_webmidi         |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | WinMM MIDI       | rtl/midi/winmm         |          |          |
+  |                  |   midi_win_mm          |    X     |          |
+  |                  |   midi_win_mm_data     |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | Seq66 "APIs"     | seq66                  |          |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | Seq66 MIDI       | seq66/midi             |          |          |
+  |                  |   seqspec              |    X     |          |
+  |                  |   trackdata            |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | Seq66 Session    | seq66/session          |          |          |
+  |                  |   defaults             |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | NSM Session CLI  | seq66/session          |          |          |
+  |                  |   clinsmanager         |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | Seq66 Config.    | session                |          |          |
+  |                  |   rtlconfiguration     |    X     |          |
+  |                  |   rtlmanager           |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | Transport        | transport              |          |          |
+  |                  |   info                 |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | Transport Clock  | transport/clock        |          |          |
+  |                  |   info                 |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | JACK Transport   | transport/jack         |          |          |
+  |                  |   info                 |    X     |          |
+  |                  |   scratchpad           |    X     |          |
+  |                  |   transport            |    X     |          |
+  |-----------------------------------------------------------------|
+  | Audio                                                           |
+  |-----------------------------------------------------------------|
+  |                  | rtl/audio              |          |          |
+  |                  |   audio_api            |    X     |          |
+  |                  |   audio_support        |    X     |          |
+  |                  |   rtaudio              |    X     |          |
+  |                  |   rt_audio_types (hdr) |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | ALSA Audio       | rtl/audio/alsa         |          |          |
+  |                  |   audio_alsa           |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | Jack Audio       | rtl/audio/jack         |          |          |
+  |                  |   audio_jack           |    X     |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  | Pipewire Audio   |                        |          |          |
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+  |                  |                        |          |          |
+   -----------------------------------------------------------------
+
+# vim: sw=4 ts=4 wm=8 et ft=sh

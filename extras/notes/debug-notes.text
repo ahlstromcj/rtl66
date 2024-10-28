@@ -1,0 +1,105 @@
+
+rtmidi_in (midi::api::unspecified, "", 0) :
+
+
+TO DO:
+
+    -   Settings group for default and current:
+
+        -   Client name:    "rtl66 in", ""
+        -   PPQN:           192
+        -   Tempo:          120
+        -   API choice:     Unspecified; see use_jack_midi() setting
+        -   Input Q size:   100
+
+    -   Linux build options
+
+        -   Build JACK
+        -   Build ALSA
+        -   Build Pipewire
+
+    -   Try to solve potential race-condition between opening the
+        port and then setting the callback.  Maybe an open_port() 
+        overload for setting callback.
+
+    -   When JACK dbus shows that JACK is detected, but not running,
+        we go ahead anyway and have issues at.....
+
+        midi_jack::impl_open_port()
+            midi_jack::impl_client_connect()
+                jack_client_open() succeeds
+                jack_set_process_callback() succeeds
+                jack_activate() succeeds
+            jack_port_register() fails
+
+    -   Update rt_choose_... to use the selected API, not midi::api::unspecified.
+
+    -   Make the API pointer unique? Global?
+
+Locations used:
+
+    -   Queue size:
+
+        -   rtmidi_in
+
+midiprobeex:
+
+    masterbus mb(midi::api::unspecified, default ppqn, default bpm)
+    mb.engine_initialize()
+
+        class midi::info, with m_io_ports
+
+        info (port::io::input)       [ m_info_in ]
+            ports()
+        info (port::io::input)       [ m_info_out ]
+            ports()
+
+        Once we have the above an ALTERNATIVE is to use the RTMIDI_STYLE
+        code in masterbus::engine_initialize().
+
+        bus_in inbus(*this, index = 0, queuesizelimit = 100)
+            rtmidi_in(midi::api::unspecified, "rtl66", 100
+                rtmidi()
+                info::client_name("rtl66")
+                fallback_api() --> midi::api::alsa
+                open_midi_api(midi::api::alsa, "rtl66", 100)
+                    try_open_midi_api(midi::api::alsa, port::io::input, "rtl66", 100)
+                        midi_alsa(port::io::input, "rtl66", 100)
+                            midi_api(port::io::input, 100)
+                                rtmidi_in_data() [bufsize 1024, bufcount 4]
+                                    midi_queue()
+                                        allocate()
+                                            new message[100]
+                                allocate() called AGAIN
+                        initialize("rtl66")
+                            connect()
+                                opens the ALSA client
+     API data:                  midi_alsa_data::initialize(seq, in=true,
+                                    bsize=1024)
+                                api_data(&data)
+     API data:                  midi_alsa_data::initialize(...) AGAIN
+                            havemaster() is FALSE !
+                    [ We now have a midi_alsa object]
+                rtmidi::selected_api(midi::api::alsa)
+            xpc::recmutex()
+            bus()
+        set_master_bus(*this) since midi_api * --> rt_api_ptr() is valid now
+        masterbus::selected_api(midi::api::alsa)
+
+        bus_out outbus(...)
+          
+        NOTE:  get_all_port_info() in rtmidi_in/_out is COMMENTED OUT
+               This function is REPLACED by get_io_port_info(midi::ports &)
+
+        mb.port_listing()
+            info_in()
+            info_in()->io_ports().to_string()
+            info_out()
+            info_out()->io_ports().to_string()
+
+            m_io_ports, 1 port, with ALSA number, ALSA client and ports names,
+            no port alias, io type (input or output), internal ID 65534
+
+   get_io_port_info(midi::ports &) is a virtual member of midi_api.
+   It assumes that midi_API_data is already set up, and includes the client
+   handle, client().

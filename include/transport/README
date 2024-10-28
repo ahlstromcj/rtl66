@@ -1,0 +1,10 @@
+Header Directory for Transport in the "rtl" library
+Chris Ahlstrom
+2022-06-07 to 2022-06-14
+
+This is the home for JACK transport header files, and other transports if
+we ever implement them.
+
+The "rtl" project adds JACK Transport support to the "RtMidi" library.
+
+# vim: sw=4 ts=4 wm=8 et ft=sh

@@ -1,0 +1,37 @@
+
+Seq66 Class     Seq66 Parts                 Rtl66 Class         Rtl66 Parts
+
+performer       performer::synch            midi::player        player::synch, xpc::condition
+                performer::SeqOperation                         player::seqoperation
+                mastermidibus                                   midi::masterbus (pointer)
+                                                                midi::tracklist
+                jack_assistant                                  midi::transport::info
+                                                                std::thread (In and Out threads!)
+                jack_scratchpad                                 midi::transport::jack::scratchpad
+                                                                midi::transport::jack::transport
+                                                                midi::transport::clock::info
+                bool m_error_pending                            bool m_error_pending
+                performer::automaton_function
+                performer::automaton_pair
+                performer::change
+                performer::callbacks
+                performer::ff_rw
+                performer std::string m_song_info
+                screenset::playset
+                clockslist
+                inputslist
+                keycontainer
+                metro
+                midicontrolin
+                midicontrolout
+                mutegroups
+                notemapper
+                opcontainer
+                playlist
+                recorder
+                setmaster
+                vector<sequencen *> m_buss_patterns
+                undo/redo support
+                edit-pending support
+
+

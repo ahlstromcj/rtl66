@@ -1,0 +1,77 @@
+Midiprobe Debug Output
+Chris Ahlstrom
+2022-07-19
+
+This file contains output from the midiprobe test application with
+debug messages turned on.
+
+Note that, on the system used, JACK was not running, but jackdbus was.
+This causes JACK to be detected, but there are no JACK MIDI I/O ports.
+
+Also notice the FluidSynth port.
+
+Also notice the needless repetition at present.  :-[
+
+Compiled APIs:
+  Jack
+  Linux ALSA
+
+Probing with API Jack
+Current input API: Jack
+get_port_count: no ports
+There are 0 MIDI inputs.
+Current output API: Jack
+get_port_count: no ports
+There are 0 MIDI outputs.
+
+Probing with API Linux ALSA
+Current input API: Linux ALSA
+ALSA caps: read write subread subwrite : port 0
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 1
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 2
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 3
+ALSA caps: write subwrite : port 4
+There are 4 MIDI inputs.
+ALSA caps: read write subread subwrite : port 0
+  Input Port #0: Midi Through:Midi Through Port-0 14:0
+ALSA caps: read write subread subwrite : port 0
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 1
+  Input Port #1: nanoKEY2:nanoKEY2 nanoKEY2 _ CTRL 20:0
+ALSA caps: read write subread subwrite : port 0
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 1
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 2
+  Input Port #2: USB Midi:USB Midi MIDI 1 24:0
+ALSA caps: read write subread subwrite : port 0
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 1
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 2
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 3
+  Input Port #3: Launchpad Mini:Launchpad Mini MIDI 1 28:0
+Current output API: Linux ALSA
+ALSA caps: read write subread subwrite : port 0
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 1
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 2
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 3
+ALSA caps: write subwrite : port 4
+There are 5 MIDI outputs.
+ALSA caps: read write subread subwrite : port 0
+  Output Port #0: Midi Through:Midi Through Port-0 14:0
+ALSA caps: read write subread subwrite : port 0
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 1
+  Output Port #1: nanoKEY2:nanoKEY2 nanoKEY2 _ CTRL 20:0
+ALSA caps: read write subread subwrite : port 0
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 1
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 2
+  Output Port #2: USB Midi:USB Midi MIDI 1 24:0
+ALSA caps: read write subread subwrite : port 0
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 1
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 2
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 3
+  Output Port #3: Launchpad Mini:Launchpad Mini MIDI 1 28:0
+ALSA caps: read write subread subwrite : port 0
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 1
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 2
+ALSA caps: read write syncread syncwrite duplex subread subwrite : port 3
+ALSA caps: write subwrite : port 4
+  Output Port #4: FLUID Synth (3550956):Synth input port (3550956:0) 128:0
+
+# vim: sw=4 ts=4 wm=8 et ft=sh

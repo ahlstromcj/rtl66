@@ -1,0 +1,48 @@
+
+Installed:
+
+    LIBRARIES:
+
+        The libraries (libcfg66, librtl66d, etc.) are installed to the official
+        library area, plus the base directory, e.g. /usr/lib/libs66 or
+        /usr/local/lib/lib66.
+
+    HEADERS:
+
+        The headers are in /usr/include/libs66/ plus subdirectories without the
+        library root:
+
+        rtl66:
+
+            midi: bus, events and list, MIDI bytes and codes, track, player, ....
+
+            rtl: RtMidi constructs and various API support.
+
+            transport: Currently just JACK transport.
+
+        cfg66:
+
+            cfg: configuration files and "mementos" for undo/redo.
+
+            cli: command-line parsing support.
+
+            util: functions for files, strings, messages, and more.
+
+        seq66:
+
+            midi: seqspec and track data, incomplete at present.
+
+            CALL IT 'play', not 'midi'.
+
+        xpc66:
+
+            xpc: automutex, condition, daemonizing, shellexecute, timing, other
+            OS-specific stuff.
+
+In source tree:
+
+    LIBRARIES:
+
+    HEADERS:
+
+
