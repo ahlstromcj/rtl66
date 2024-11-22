@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-11-07
- * \updates       2024-05-09
+ * \updates       2024-11-22
  * \license       GNU GPLv2 or above
  *
  *  This code was moved from the globals module so that other modules
@@ -323,16 +323,25 @@ pulses_to_string (pulse p)
 std::string
 pulses_to_measurestring (pulse p, const timing & seqparms)
 {
-    measures m;                             /* measures, beats, divisions   */
+    measures m;                                     /* bars, beats, ticks   */
     char tmp[32];
+    int width = 3;
     if (is_null_pulse(p))
-        p = 0;                              /* punt the runt!               */
-
-    pulses_to_midi_measures(p, seqparms, m); /* fill measures struct */
+    {
+        p = 0;                                      /* punt the runt!       */
+    }
+    else if (seqparms.PPQN() >= 1000)
+    {
+        if (seqparms.PPQN() < 10000)
+            width = 4;
+        else if (seqparms.PPQN() < 32000)           /* PPQN() is a short    */
+            width = 5;
+    }
+    pulses_to_midi_measures(p, seqparms, m);        /* fill measures struct */
     snprintf
     (
-        tmp, sizeof tmp, "%03d:%d:%03d",
-        m.bars(), m.beats(), m.divisions()
+        tmp, sizeof tmp, "%03d:%d:%0*d",            /* "%03d:%d:%03d"       */
+        m.bars(), m.beats(), width, m.divisions()   /* divisions vs ticks   */
     );
     return std::string(tmp);
 }
@@ -1603,6 +1612,68 @@ set_meta_event_text (midi::bytes & bdata, const std::string & text)
             midi::byte b = static_cast<midi::byte>(c);
             bdata.push_back(b);
         }
+    }
+    return result;
+}
+
+/**
+ *  Calculates the closest snap value.
+ *
+ * \param S
+ *      Provides the snap value to be applied. Ignored if it is 0.
+ *
+ * \param p
+ *      Provide the value to be snapped.
+ *
+ * \return
+ *      Returns the snapped value.
+ */
+
+midi::pulse
+closest_snap (int S, midi::pulse p)
+{
+    midi::pulse result = p;
+    if (p <= 0)
+        return 0;
+
+    if (S > 0)
+    {
+        midi::pulse Sn0 = p - (p % S);
+        midi::pulse Sn1 = Sn0 + S;
+        int deltalo = p - Sn0;                  /* do we need to use abs()? */
+        int deltahi = Sn1 - p;
+        result = deltalo <= deltahi ? Sn0 : Sn1 ;
+    }
+    return result;
+}
+
+midi::pulse
+down_snap (int S, midi::pulse p)
+{
+    midi::pulse result = p;
+    if (p <= 0)
+        return 0;
+
+    if (S > 0)
+    {
+        result = midi::pulse(p - (p % S));
+        if (p <= 0)
+            result = 0;
+    }
+    return result;
+}
+
+midi::pulse
+up_snap (int S, midi::pulse p)
+{
+    midi::pulse result = p;
+    if (p < 0)
+        return 0;
+
+    if (S > 0)
+    {
+        midi::pulse Sn0 = p - (p % S);
+        result = Sn0 + midi::pulse(S);
     }
     return result;
 }

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2024-05-26
+ * \updates       2024-11-22
  * \license       GNU GPLv2 or above
  *
  */
@@ -131,6 +131,11 @@ public:
     int divisions () const
     {
         return m_divisions;
+    }
+
+    midi::pulse ticks () const
+    {
+        return midi::pulse(m_divisions);
     }
 
     /**
