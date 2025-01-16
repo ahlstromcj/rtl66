@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-11-07
- * \updates       2024-06-11
+ * \updates       2025-01-16
  * \license       GNU GPLv2 or above
  *
  *  These items were moved from the globals.h module so that only the modules
@@ -55,6 +55,18 @@
 
 namespace midi
 {
+
+/**
+ *  Indicates what kind of snap movement to apply in the snapped() template
+ *  function.
+ */
+
+enum class snapper
+{
+    down,
+    closest,
+    up
+};
 
 /**
  *  Provides a clear enumeration of wave types supported by the wave function.
@@ -118,12 +130,13 @@ lengthfix_cast (int v)
 
 enum class alteration
 {
-    none = 0,   /**< grid_quant_none:    Not adjusting timing of pattern.   */
-    tighten,    /**< grid_quant_tighten: Adjusting timing less forcefully.  */
-    quantize,   /**< grid_quant_full:    Adjusting timing strictly.         */
-    jitter,     /**< grid_quant_jitter:  Randomize timing slightly.         */
-    random,     /**< grid_quant_random:  Randomize event magnitude a bit.   */
-    notemap,    /**< grid_quant_notemap: Apply a configured note-mapping.   */
+    none = 0,       /**< grid_quant_none:    No adjustment of pattern.      */
+    tighten,        /**< grid_quant_tighten: Adjust timing less halfway.    */
+    quantize,       /**< grid_quant_full:    Adjust timing strictly.        */
+    jitter,         /**< grid_quant_jitter:  Randomize timing slightly.     */
+    random,         /**< grid_quant_random:  Randomize event magnitude.     */
+    notemap,        /**< grid_quant_notemap: Apply configured note-mapping. */
+    rev_notemap,    /**< Apply the note-map in the reverser direction.      */
     max         /**<                      Illegal value.                    */
 };
 
@@ -140,26 +153,37 @@ quantization_cast (int v)
 }
 
 /**
- *  Manifest constants for the "Effect" GroupBox in qpatternfix.
+ *  Manifest constants for the "Applied Effects" GroupBox in qpatternfix.
  */
 
 enum class fixeffect
 {
     none            = 0x00,
-    shifted         = 0x01,
-    shrunk          = 0x02,
-    expanded        = 0x04,
-    truncated       = 0x08,
-    reversed        = 0x10,
-    reversed_abs    = 0x20,             /* short for "reversed in place"    */
-    all             = 0x3F
+    alteration      = 0x01,
+    shifted         = 0x02,
+    reversed        = 0x04,
+    reversed_abs    = 0x08,             /* short for "reversed in place"    */
+    shrunk          = 0x10,
+    expanded        = 0x20,
+    time_sig        = 0x40,
+    truncated       = 0x80,
+    all             = 0xFF
 };
+
+/**
+ *  Tests that the rhs value's bit(s) is (are) set in the lhs value.
+ */
 
 inline bool
 bit_test (fixeffect lhs, fixeffect rhs)
 {
     return (static_cast<int>(lhs) & static_cast<int>(rhs)) != 0;
 }
+
+/**
+ *  Grabs the bit(s) from rhs and OR's them into lhs, and returns the
+ *  new value of lhs.
+ */
 
 inline fixeffect
 bit_set (fixeffect lhs, fixeffect rhs)
@@ -170,114 +194,66 @@ bit_set (fixeffect lhs, fixeffect rhs)
 }
 
 /*------------------------------------------------------------------------
- * Free functions in the midi namespace.
- *------------------------------------------------------------------------*/
-
-extern int byte_to_int (midi::byte b);
-extern midi::byte int_to_byte (int v);
-extern std::string wave_type_name (waveform wv);
-extern int extract_timing_numbers
-(
-    const std::string & s,
-    std::string & part_1,
-    std::string & part_2,
-    std::string & part_3,
-    std::string & fraction
-);
-extern int tokenize_string
-(
-    const std::string & source,
-    lib66::tokenization & tokens
-);
-extern std::string pulses_to_string (midi::pulse p);
-extern std::string pulses_to_measurestring
-(
-    midi::pulse p,
-    const timing & seqparms
-);
-extern bool pulses_to_midi_measures
-(
-    midi::pulse p,
-    const timing & seqparms,
-    measures & measures
-);
-extern double pulses_to_measures
-(
-    midi::pulse p, int P, int B, int W
-);
-extern std::string pulses_to_time_string
-(
-    midi::pulse p,
-    const timing & timinginfo
-);
-extern std::string pulses_to_time_string
-(
-    midi::pulse pulses, midi::bpm b, midi::ppqn ppq, bool showus = true
-);
-extern int pulses_to_hours (midi::pulse pulses, midi::bpm b, int ppq);
-extern midi::pulse measurestring_to_pulses
-(
-    const std::string & measures,
-    const timing & seqparms
-);
-extern midi::pulse midi_measures_to_pulses
-(
-    const measures & measures,
-    const timing & seqparms
-);
-extern midi::pulse timestring_to_pulses
-(
-    const std::string & timestring,
-    midi::bpm bp, midi::ppqn ppq
-);
-extern midi::pulse string_to_pulses
-(
-    const std::string & s,
-    const timing & mt,
-    bool timestring = false
-);
-extern int pulses_per_substep (midi::pulse ppq, int zoom = 1);
-extern int pulses_per_pixel (midi::pulse ppq, int zoom = 1);
-extern double wave_func (double angle, waveform wavetype);
-extern midi::pulse closest_snap (int S, midi::pulse p);
-extern midi::pulse down_snap (int S, midi::pulse p);
-extern midi::pulse up_snap (int S, midi::pulse p);
-extern int randomize (int range, int seed = 0);
-
-#if defined SEQ66_USE_UNIFORM_INT_DISTRIBUTION
-extern int randomize_uniformly (int range, int seed = -1);
-#endif
-
-extern bool is_power_of_2 (int value);
-extern int log2_power_of_2 (int tsd);
-extern int beat_power_of_2 (int logbase2);
-extern int power (int base, int exponent);
-extern midi::byte beat_log2 (int value);
-extern bool tempo_us_to_bytes (midi::bytes & tt, midi::bpm tempo_us);
-extern midi::bpm tempo_us_from_bytes (const midi::bytes & tt);
-extern midi::byte tempo_to_note_value (midi::bpm tempo);
-extern midi::bpm note_value_to_tempo (midi::byte tempo);
-extern midi::bpm fix_tempo (midi::bpm tempo);
-extern unsigned short combine_bytes (midi::byte b0, midi::byte b1);
-extern double unit_truncation (double angle);
-extern double exp_normalize (double angle, bool negate = false);
-extern midi::ulong bytes_to_varinum
-(
-    const midi::bytes & bdata,
-    size_t offset = 0
-);
-extern midi::bytes varinum_to_bytes (midi::ulong v);
-extern int varinum_size (long len);
-extern std::string get_meta_event_text (const midi::bytes & bdata);
-extern bool set_meta_event_text
-(
-    midi::bytes & bdata,
-    const std::string & text
-);
-
-/*------------------------------------------------------------------------
  * Inline functions in the midi namespace.
  *------------------------------------------------------------------------*/
+
+/**
+ *  The base PPQN matches that of Seq24 through Seq66.
+ */
+
+inline int
+base_ppqn ()
+{
+    return 192;
+}
+
+/**
+ *  This value represent the smallest horizontal unit in a Sequencer66 grid.
+ *  It is the number of pixels in the smallest increment between vertical
+ *  lines in the grid.  For a zoom of 2, this number gets doubled.
+ */
+
+inline int
+pixels_per_substep ()
+{
+    return 6;
+}
+
+/**
+ *  This value represents the fundamental beats-per-bar.
+ */
+
+inline int
+qn_beats ()
+{
+    return 4;
+}
+
+/**
+ *  Taken from Seq66 usrsettings.
+ *
+ *      static const midi::bpm c_def_beats_per_minute =  120.0;
+ *      static const int c_def_bpm_precision    =    0;
+ *      static const int c_min_bpm_precision    =    0;
+ */
+
+inline midi::bpm
+min_beats_per_minute ()
+{
+    return 2.0;
+}
+
+inline midi::bpm
+max_beats_per_minute ()
+{
+    return 600.0;
+}
+
+inline int
+max_bpm_precision ()
+{
+    return 2;
+}
 
 /**
  *  Formalizes the rescaling of ticks base on changing the PPQN.  For speed
@@ -357,6 +333,8 @@ bpm_from_tempo_us (double tempous)
  *      The 3 tempo bytes that were read directly from a MIDI file.
  */
 
+extern midi::bpm tempo_us_from_bytes (const midi::bytes & tt);
+
 inline midi::bpm
 bpm_from_bytes (const midi::bytes & tt)
 {
@@ -373,6 +351,9 @@ bpm_from_bytes (const midi::bytes & tt)
         P = ------------
              BPM * PPQN
 \endverbatim
+ *
+ *  An alternate calculation is 60000000.0 / ppq / bp, but we can save
+ *  a division operation.
  *
  * \param bpm
  *      Provides the beats-per-minute value.  No sanity check is made.  If
@@ -393,7 +374,7 @@ pulse_length_us (midi::bpm bp, midi::ppqn ppq)
     /*
      * Let's use the original notation for now.
      *
-     * return 60000000.0 / double(bpm * p);
+     * return 60000000.0 / double(bp * p);
      */
 
     return 60000000.0 / ppq / bp;
@@ -526,22 +507,67 @@ double_ticks_from_ppqn (midi::ppqn ppq)
 }
 
 /**
+ *  This provides a kind of fundamental value. See measures_to_ticks() and
+ *  midi_clock_beats_per_qn()
+ */
+
+inline double
+qn_per_beat (int bw = 4)
+{
+    return (bw > 0) ? 4.0 / double(bw) : 1.0 ;
+}
+
+/**
  *  Calculates the pulses per measure.  This calculation is extremely simple,
  *  and it provides an important constraint to pulse (ticks) calculations:
  *  the default number of pulses in a measure is always 4 times the PPQN value,
  *  regardless of the time signature.  The number pulses in a 7/8 measure is
  *  *not* the same as in a 4/4 measure.
+ *
+ *  A candidate for moving to a zoomer class.
  */
 
 inline int
-default_pulses_per_measure (int ppq)
+default_pulses_per_measure (int ppq, int bpb = 4)
 {
-    return 4 * ppq;
+    return ppq * bpb;
+}
+
+/**
+ *  Factors in the number of beats in a measure.
+ *
+ *  A candidate for moving to a zoomer class.
+ */
+
+inline int
+pulses_per_measure (int ppq, int bpb = 4, int bw = 4)
+{
+    return (bw > 0) ? 4 * ppq * bpb / bw : ppq * bpb ;
+}
+
+/**
+ *  Calculates the number of pulses in a quarter beat, with an adjustment
+ *  for 120 and 240 PPQN.
+ *
+ *  A candidate for moving to a zoomer class.
+ */
+
+inline int
+pulses_per_quarter_beat (int ppq, int bpb = 4, int bw = 4)
+{
+    return (bw > 0) ? ppq * bpb / bw : ppq ;
 }
 
 /**
  *  Calculates the pulses in a beat. For a 4/4 time signature, this is the
  *  same as PPQN.
+ *
+ *  Now, pulses/beat should be the same as qn/beat x pulse/qn. So we do not
+ *  need the number of beats, just the beatwidth. This is wrong:
+ *
+ *          return ppq * bpb / bw;
+ *
+ *  Used only in the metro class.
  */
 
 inline int
@@ -549,6 +575,13 @@ pulses_per_beat (int ppq, int beatspm = 4, int beatwidth = 4)
 {
     return beatspm * ppq / beatwidth;
 }
+
+/*
+ * Defined in the cpp file.
+ *
+ *      int pulses_per_substep (midipulse ppq, int zoom)
+ *      int pulses_per_pixel (midipulse ppq, int zoom = 2)
+ */
 
 /**
  *  Calculates the length of an integral number of measures, in ticks.
@@ -561,12 +594,20 @@ pulses_per_beat (int ppq, int beatspm = 4, int beatwidth = 4)
  *  beat_width beats.  So:
  *
 \verbatim
-    p = 4 * P * m * B / W
+    p = 4 * P * M * B / W
         p == pulse count (ticks or pulses)
-        m == number of measures
+        M == number of measures
         B == beats per measure (constant)
         P == pulses per quarter-note (constant)
         W == beat width in beats per measure (constant)
+\endverbatim
+ *
+ *  Testing the units to make sure they cancel out to "pulses":
+ *
+\verbatim
+                4   qn      pulses     beats
+    p pulses = --- ---- x P ------ x B ----- x M bars
+                W  beat       qn        bar
 \endverbatim
  *
  *  For our "b4uacuse" MIDI file, M can be about 100 measures, B is 4,
@@ -574,7 +615,8 @@ pulses_per_beat (int ppq, int beatspm = 4, int beatwidth = 4)
  *  So p = 100 * 4 * 4 * 192 / 4 = 76800 ticks.
  *
  *  Note that 4 * P is a constraint encapsulated by the inline function
- *  default_pulses_per_measure().
+ *  default_pulses_per_measure() using the default value of beats.
+ *  Also note that 4 / W is calculable using qn_per_beat().
  *
  * \param bpb
  *      The B value in the equation, beats/measure or beats/bar.
@@ -585,7 +627,9 @@ pulses_per_beat (int ppq, int beatspm = 4, int beatwidth = 4)
  * \param bw
  *      The W value in the equation, the denominator of the time signature.
  *      If this value is 0, we'll get an arithmetic exception (crash), so we
- *      just return 0 in this case.
+ *      just return 0 in this case. The quantity 4 / W is in units of
+ *      quarter-notes/beat. So a beat-width of 8 is 1/2 qn/beat, or
+ *      an eighth note.
  *
  * \param measures
  *      The M value in the equation.  It defaults to 1, in case one desires a
@@ -605,6 +649,8 @@ measures_to_ticks (int bpb, midi::ppqn ppq, int bw, int measures = 1)
 /**
  *  The inverse of measures_to_ticks(). Note that callers who want to
  *  display the measure number to a user should add 1 to it.
+ *
+ *  Compare this function to pulses_to_measures(), which returns a double.
  *
  * \param B
  *      The B value in the equation, beats/measure or beats/bar.
@@ -636,6 +682,149 @@ ticks_to_beats (midi::pulse p, int P, int B, int W)
 {
     return (P > 0 && B > 0.0) ? ((p * W / P / 4 ) % B) : 0 ;
 }
+
+template <typename INTTYPE>
+INTTYPE snapped (snapper snaptype, int S, INTTYPE p)
+{
+    INTTYPE result = 0;
+    if (p > 0 && S > 0)
+    {
+        INTTYPE snap = INTTYPE(S);
+        INTTYPE p0 = p - (p % snap);          /* drop down to a snap      */
+        if (snaptype == snapper::down)
+        {
+            return p0;
+        }
+        else if (snaptype == snapper::up)
+        {
+            return p0 + snap;
+        }
+        else
+        {
+            INTTYPE p1 = p0 + snap;             /* go up by one snap        */
+            int deltalo = int(p - p0);          /* amount to lower snap     */
+            int deltahi = int(p1 - p);          /* amount to upper snap     */
+            result = deltalo <= deltahi ? p0 : p1 ; /* use closest one      */
+        }
+    }
+    return result;
+}
+
+/*------------------------------------------------------------------------
+ * Free functions in the midi namespace.
+ *------------------------------------------------------------------------*/
+
+extern int byte_to_int (midi::byte b);
+extern midi::byte int_to_byte (int v);
+extern std::string wave_type_name (waveform wv);
+extern int extract_timing_numbers
+(
+    const std::string & s,
+    std::string & part_1,
+    std::string & part_2,
+    std::string & part_3,
+    std::string & fraction
+);
+extern int tokenize_string
+(
+    const std::string & source,
+    lib66::tokenization & tokens
+);
+extern std::string pulses_to_string (midi::pulse p);
+extern std::string pulses_to_measurestring
+(
+    midi::pulse p,
+    const timing & seqparms
+);
+extern bool pulses_to_midi_measures
+(
+    midi::pulse p,
+    const timing & seqparms,
+    measures & measures
+);
+extern double pulses_to_measures
+(
+    midi::pulse p, int P, int B, int W
+);
+extern std::string pulses_to_time_string
+(
+    midi::pulse p,
+    const timing & timinginfo
+);
+extern std::string pulses_to_time_string
+(
+    midi::pulse pulses, midi::bpm b, midi::ppqn ppq, bool showus = true
+);
+extern int pulses_to_hours (midi::pulse pulses, midi::bpm b, int ppq);
+extern midi::pulse measurestring_to_pulses
+(
+    const std::string & measures,
+    const timing & seqparms
+);
+extern midi::pulse midi_measures_to_pulses
+(
+    const measures & measures,
+    const timing & seqparms
+);
+extern midi::pulse timestring_to_pulses
+(
+    const std::string & timestring,
+    midi::bpm bp, midi::ppqn ppq
+);
+extern midi::pulse string_to_pulses
+(
+    const std::string & s,
+    const timing & mt,
+    bool timestring = false
+);
+
+/*
+ * These functions are candidate for moving to a zoomer class, as in Seq66.
+ */
+extern int pulses_per_substep (midi::pulse ppq, int zoom = 1);
+extern int pulses_per_pixel (midi::pulse ppq, int zoom = 1);
+extern double wave_func (double angle, waveform wavetype);
+extern midi::pulse closest_snap (int S, midi::pulse p);
+extern midi::pulse down_snap (int S, midi::pulse p);
+extern midi::pulse up_snap (int S, midi::pulse p);
+
+/*
+ * Randomisation of MIDI values like velocity or ticks.
+ */
+
+extern int randomize (int range, int seed = 0);
+
+#if defined RTL66_USE_UNIFORM_INT_DISTRIBUTION
+extern int randomize_uniformly (int range, int seed = -1);
+#endif
+
+extern bool is_power_of_2 (int value);
+extern int log2_of_power_of_2 (int tsd);
+extern int beat_power_of_2 (int logbase2);
+extern int previous_power_of_2 (int value);
+extern int next_power_of_2 (int value);
+extern int power (int base, int exponent);
+extern midi::byte beat_log2 (int value);
+extern bool tempo_us_to_bytes (midi::bytes & tt, midi::bpm tempo_us);
+extern midi::byte tempo_to_note_value (midi::bpm tempo);
+extern midi::bpm note_value_to_tempo (midi::byte tempo);
+extern midi::bpm fix_tempo (midi::bpm tempo);
+extern unsigned short combine_bytes (midi::byte b0, midi::byte b1);
+extern double unit_truncation (double angle);
+extern double exp_normalize (double angle, bool negate = false);
+extern midi::ulong bytes_to_varinum
+(
+    const midi::bytes & bdata,
+    size_t offset = 0
+);
+extern midi::bytes varinum_to_bytes (midi::ulong v);
+extern int varinum_size (long len);
+extern std::string get_meta_event_text (const midi::bytes & bdata);
+extern bool set_meta_event_text
+(
+    midi::bytes & bdata,
+    const std::string & text
+);
 
 }           // namespace midi
 

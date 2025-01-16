@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2024-05-15
+ * \updates       2025-01-15
  * \license       GNU GPLv2 or above
  *
  *  A MIDI event (i.e. "track event") is encapsulated by the midi::event
@@ -102,8 +102,12 @@ event::event () :
     m_linked        (),
     m_has_link      (false),
     m_selected      (false),
+#if defined RTL66_SUPPORT_PAINTED_EVENTS
     m_marked        (false),
     m_painted       (false)
+#else
+    m_marked        (false)
+#endif
 {
     m_message.push(midi::to_byte(status::note_off));
     m_message.push(0);
@@ -137,8 +141,12 @@ event::event (midi::pulse tstamp, midi::byte s, midi::byte d0, midi::byte d1) :
     m_linked        (),
     m_has_link      (false),
     m_selected      (false),
+#if defined RTL66_SUPPORT_PAINTED_EVENTS
     m_marked        (false),
     m_painted       (false)
+#else
+    m_marked        (false)
+#endif
 {
     m_message.push(s);
     m_message.push(d0);
@@ -157,8 +165,12 @@ event::event (midi::pulse tstamp, midi::bpm tempo) :
     m_linked        (),
     m_has_link      (false),
     m_selected      (false),
+#if defined RTL66_SUPPORT_PAINTED_EVENTS
     m_marked        (false),
     m_painted       (false)
+#else
+    m_marked        (false)
+#endif
 {
     set_tempo(tempo);                       /* fills the m_message vector      */
 }
@@ -182,8 +194,12 @@ event::event
     m_linked        (),
     m_has_link      (false),
     m_selected      (false),
+#if defined RTL66_SUPPORT_PAINTED_EVENTS
     m_marked        (false),
     m_painted       (false)
+#else
+    m_marked        (false)
+#endif
 {
     if (is_null_channel(channel))
     {
@@ -233,8 +249,12 @@ event::event (const event & rhs) :
     m_linked        (rhs.m_linked),         /* for vector implemenation */
     m_has_link      (rhs.m_has_link),       /* m_linked has 2 linkers!  */
     m_selected      (rhs.m_selected),
+#if defined RTL66_SUPPORT_PAINTED_EVENTS
     m_marked        (rhs.m_marked),
     m_painted       (rhs.m_painted)
+#else
+    m_marked        (rhs.m_marked)
+#endif
 {
     // No code needed
 }
@@ -272,7 +292,9 @@ event::operator = (const event & rhs)
         m_has_link      = rhs.m_has_link;           /* two linkers!         */
         m_selected      = rhs.m_selected;           /* false instead?       */
         m_marked        = rhs.m_marked;             /* false instead?       */
+#if defined RTL66_SUPPORT_PAINTED_EVENTS
         m_painted       = rhs.m_painted;            /* false instead?       */
+#endif
     }
     return *this;
 }
@@ -1033,7 +1055,7 @@ event::to_string () const
         result += is_linked() ? "L" : " ";
         result += is_marked() ? "M" : " ";
         result += is_selected() ? "S" : " ";
-        result += is_painted() ? "P" : " ";
+//      result += is_painted() ? "P" : " ";
         result += is_midi_clock() ? "C" : " ";
         result += ") ";
     }

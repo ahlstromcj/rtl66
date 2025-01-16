@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2023-09-23
+ * \updates       2025-01-16
  * \license       GNU GPLv2 or above
  *
  *  This container now can indicate if certain Meta events (time-signaure or
@@ -56,6 +56,7 @@ eventlist::eventlist () :
     m_action_in_progress    (false),                    /* atomic boolean   */
     m_length                (0),
     m_note_off_margin       (3),
+    m_zero_len_correction   (16),
     m_is_modified           (false),
     m_has_tempo             (false),
     m_has_time_signature    (false),
@@ -79,6 +80,7 @@ eventlist::eventlist (const eventlist & rhs) :
     m_action_in_progress    (false),                    /* atomic boolean   */
     m_length                (rhs.m_length),
     m_note_off_margin       (rhs.m_note_off_margin),
+    m_zero_len_correction   (rhs.m_zero_len_correction),
     m_is_modified           (rhs.m_is_modified),
     m_has_tempo             (rhs.m_has_tempo),
     m_has_time_signature    (rhs.m_has_time_signature),
@@ -100,6 +102,7 @@ eventlist::operator = (const eventlist & rhs)
         m_action_in_progress    = false;                /* atomic boolean   */
         m_length                = rhs.m_length;
         m_note_off_margin       = rhs.m_note_off_margin;
+        m_zero_len_correction   = rhs.m_zero_len_correction;
         m_is_modified           = rhs.m_is_modified;
         m_has_tempo             = rhs.m_has_tempo;
         m_has_time_signature    = rhs.m_has_time_signature;
@@ -340,8 +343,6 @@ eventlist::merge (const eventlist & el, bool presort)
 void
 eventlist::link_new (bool wrap)
 {
-    bool wrap_em = m_link_wraparound || wrap;       /* a Stazed extension   */
-    sort();                                         /* IMPORTANT!           */
     for (auto on = m_events.begin(); on != m_events.end(); ++on)
     {
         if (on->on_linkable())
@@ -364,10 +365,20 @@ eventlist::link_new (bool wrap)
                 {
                     if (link_notes(on, off))
                     {
-                        if (! wrap_em)
+                        bool wrapped = off->timestamp() < on->timestamp();
+                        if (wrapped)
                         {
-                            if (off->timestamp() < on->timestamp())
+                            if (! wrap)
                                 off->set_timestamp(length() - 1);
+                        }
+                        else                        /* not wrapped          */
+                        {
+                            if (on->timestamp() == off->timestamp())
+                            {
+                                long ts = on->timestamp();
+                                ts += m_zero_len_correction;
+                                off->set_timestamp(ts);
+                            }
                         }
                         break;
                     }
@@ -443,8 +454,10 @@ eventlist::link_notes (event::iterator eon, event::iterator eoff)
 void
 eventlist::verify_and_link (midi::pulse slength, bool wrap)
 {
+    bool wrap_em = m_link_wraparound || wrap;       /* a Stazed extension   */
     clear_links();                          /* unlink and unmark all events */
-    link_new(wrap);
+    sort();                                 /* important, but be careful... */
+    link_new(wrap_em);
     if (slength > 0)
     {
         mark_out_of_range(slength);
@@ -1650,6 +1663,8 @@ eventlist::remove_selected ()
     return result;
 }
 
+#if 0
+
 /**
  *  Unpaints all list-events.
  */
@@ -1660,6 +1675,8 @@ eventlist::unpaint_all ()
     for (auto & er : m_events)
         er.unpaint();
 }
+
+#endif  // 0
 
 /**
  *  Counts the selected Note On events in the event list.

@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2024-06-09
+ * \updates       2024-12-03
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -155,6 +155,12 @@ private:
      *  midi::message object m_message.
      *
      *      midi::status m_status;
+     *
+     *  The two bytes of data for the MIDI event.  Remember that the
+     *  most-significant bit of a data byte is always 0.  A one-byte message
+     *  uses only the 0th index. Now folded into midi::message.
+     *
+     *      midi::byte m_data[m_data_byte_count];
      */
 
     /**
@@ -232,6 +238,8 @@ private:
 
     bool m_marked;
 
+#if defined RTL66_SUPPORT_PAINTED_EVENTS
+
     /**
      *  Answers the question "is this event being painted."  This setting is
      *  made by sequence::add_event() or add_note() if the paint parameter is
@@ -239,6 +247,8 @@ private:
      */
 
     bool m_painted;
+
+#endif
 
 public:
 
@@ -337,8 +347,6 @@ public:
         midi::pulse timestamp,
         const midi::bytes & buffer,
         size_t count
-//      const midi::byte * buffer,
-//      int count
     );
     bool set_midi_event (const midi::message & msg);
 
@@ -704,6 +712,8 @@ public:
         m_has_link = false;
     }
 
+#if defined RTL66_SUPPORT_PAINTED_EVENTS
+
     void paint ()
     {
         m_painted = true;
@@ -718,6 +728,8 @@ public:
     {
         return m_painted;
     }
+
+#endif  // defined RTL66_SUPPORT_PAINTED_EVENTS
 
     void mark ()
     {
@@ -931,6 +943,17 @@ public:
     bool is_program_change () const
     {
         return midi::is_program_change_msg(status());
+    }
+
+    /**
+     *  Indicates an event that has a line-drawable data item, such as
+     *  velocity.  It is false for discrete data such as program/path number
+     *  or Meta events.
+     */
+
+    bool is_continuous_event () const
+    {
+        return midi::is_continuous_event_msg(status());
     }
 
     /**

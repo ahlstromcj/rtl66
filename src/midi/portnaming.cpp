@@ -45,7 +45,7 @@ namespace midi
 
 /**
  *  Indicates if one string can be found within another.  Doesn't force the
- *  caller to use size_type.
+ *  caller to use size_type. Also see util::contains() in strfunctions.
  */
 
 bool

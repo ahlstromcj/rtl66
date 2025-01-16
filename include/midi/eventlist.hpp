@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2023-09-23
+ * \updates       2025-01-15
  * \license       GNU GPLv2 or above
  *
  *  This module extracts the event-list functionality from the sequencer
@@ -174,6 +174,14 @@ private:
      */
 
     midi::pulse m_note_off_margin;
+
+    /**
+     *  A sort of snap value to use when a quantized note gets shrunk to
+     *  close to zero length. Set to 16 ticks in the constructor, but
+     *  can be changed by the owning sequence.
+     */
+
+    midi::pulse m_zero_len_correction;
 
     /**
      *  A flag to indicate if an event was added or removed.  We may need to
@@ -386,6 +394,12 @@ private:                                /* functions for friend sequence    */
     void link_new (bool wrap = false);
     void clear_links ();
     int note_count () const;
+
+    // NEW
+    bool first_notes (midi::pulse & ts, int & n, midi::pulse snap = 0) const;
+#if defined RTL66_USE_FILL_TIME_SIG_AND_TEMPO
+    void scan_meta_events ();
+#endif
     void verify_and_link (midi::pulse slength = 0, bool wrap = false);
     bool edge_fix (midi::pulse snap, midi::pulse seqlength);
     bool remove_unlinked_notes ();
@@ -413,6 +427,7 @@ private:                                /* functions for friend sequence    */
     bool jitter_events (int snap, int jitr);
     bool jitter_notes (int snap, int jitr);
     bool link_notes (event::iterator eon, event::iterator eoff);
+//  void clear_links ();    // NEW
     void link_tempos ();
     void clear_tempo_links ();
     bool mark_selected ();
@@ -433,7 +448,9 @@ private:                                /* functions for friend sequence    */
     );
     bool remove_marked ();                  /* deprecated   */
     bool remove_selected ();
+#if defined RTL66_SUPPORT_PAINTED_EVENTS
     void unpaint_all ();
+#endif
     int count_selected_notes () const;
     bool any_selected_notes () const;
     int count_selected_events (midi::byte status, midi::byte cc) const;
@@ -492,6 +509,11 @@ private:                                /* functions for friend sequence    */
     {
         if (len > 0)
             m_length = len;
+    }
+
+    void zero_len_correction (midi::pulse zlc)
+    {
+        m_zero_len_correction = zlc;
     }
 
 };          // class eventlist

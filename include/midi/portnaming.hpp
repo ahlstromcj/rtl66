@@ -57,10 +57,10 @@ namespace midi
 
 enum class portnaming
 {
-    brief,  /**< "short": Use short names: "[0] midi_out".              */
-    pair,   /**< "pair": Pair names: "36:0 fluidsynth:midi_out".        */
-    full,   /**< "long": Long names: "[0] 36:0 fluidsynth:midi_out".    */
-    max     /**< Keep this last... a size value.                        */
+    brief,  /**< "short": Use short names: "[0] midi_out".                  */
+    pair,   /**< "pair": Pair names: "36:0 fluidsynth:midi_out".            */
+    full,   /**< "long": Long names: "[0] 36:0 fluidsynth:midi_out".        */
+    max     /**< Keep this last... a size/illegal value.                    */
 };
 
 /*------------------------------------------------------------------------

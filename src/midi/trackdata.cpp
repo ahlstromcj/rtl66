@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2024-05-22
+ * \updates       2025-01-16
  *
  * \license       GNU GPLv2 or above
  *
@@ -1125,7 +1125,7 @@ trackdata::put_time_sig
     int cpm, int get32pq
 )
 {
-    int bw = log2_power_of_2(beatwidth);
+    int bw = log2_of_power_of_2(beatwidth);
     put_meta_header(midi::meta::time_signature, 4); /* 0x58 marker, 4 bytes */
     put(byte(bpb));
     put(byte(bw));

@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-11-07
- * \updates       2024-11-22
+ * \updates       2025-01-16
  * \license       GNU GPLv2 or above
  *
  *  This code was moved from the globals module so that other modules
@@ -86,6 +86,8 @@
 namespace midi
 {
 
+#if 0   // moved to the header
+
 /**
  *  This value represent the smallest horizontal unit in a Sequencer66 grid.
  *  It is the number of pixels in the smallest increment between vertical
@@ -111,6 +113,8 @@ static const int c_qn_beats = 4;
 static const midi::bpm c_min_beats_per_minute =    2.0;
 static const midi::bpm c_max_beats_per_minute =  600.0;
 static const int c_max_bpm_precision          =    2;
+
+#endif  // 0
 
 /**
  *  Convenience function. We don't want to use seq66::string_to_int()
@@ -388,11 +392,11 @@ pulses_to_midi_measures
     bool result = (W > 0) && (P > 0) && (B > 0);
     if (result)
     {
-        double qnotes = double(c_qn_beats) * B / W; /* Q notes per measure  */
+        double qnotes = double(qn_beats()) * B / W; /* Q notes per measure  */
         double measlength = P * qnotes;             /* pulses in a measure  */
         int beatticks = measlength / B;             /* pulses in a beat     */
         int m = int(p / measlength) + 1;            /* measure no. of pulse */
-        int metro = 1 + ((p * W / P / c_qn_beats ) % B);
+        int metro = 1 + ((p * W / P / qn_beats()) % B);
         bars.bars(m);                               /* number of measures   */
         bars.beats(metro);                          /* beats within measure */
         bars.divisions(int(p % beatticks));         /* leftover pulses      */
@@ -403,6 +407,19 @@ pulses_to_midi_measures
 /**
  *  Function used in sequence::analyze_time_signatures() to precalculate
  *  the size of each time-signature (sequence::timesig) segment.
+ *
+ *  Compare this function to ticks_to_measures(), which returns an
+ *  integer. Also, in measures_to_ticks() the formula is:
+ *
+\verbatim
+            p = 4 * P * M * B / W
+\endverbatim
+ *
+ *  Solving for M:
+ *
+\verbatim
+            M = p * W / (4 * P * B)
+\endverbatim
  *
  * \param p
  *      Provides either the time in ticks (pulses), or the duration of a
@@ -438,9 +455,14 @@ pulses_to_measures
     bool ok = (W > 0) && (P > 0) && (B > 0);
     if (ok)
     {
-        double qnotes = double(c_qn_beats) * B / W; /* Q notes per measure  */
+#if defined USE_CLUMSY_CODE
+        double qnotes = double(qn_beats()) * B / W; /* Q notes per measure  */
         double measlength = P * qnotes;             /* pulses/std measure   */
         result = p / measlength;
+#else
+        double divisor = double(qn_beats()) * P * B;
+        return double(p) * W / divisor;
+#endif
     }
     return result;
 }
@@ -572,6 +594,33 @@ pulses_to_hours (midi::pulse p, midi::bpm bp, midi::ppqn ppq)
 }
 
 /**
+ *  Recalculates the number of measures, making sure that values less than 1.0
+ *  become 1, and that, otherwise, the measure count is either very close
+ *  (0.01) to the lower integer number, or moved up the next integer measure
+ *  value. A static function.
+ */
+
+double
+trunc_measures (double measures)
+{
+    static const double s_slop = 0.01;   /* allows for a little slop */
+    double result;
+    if (measures <= (1.0 + s_slop))
+    {
+        result = 1.0;
+    }
+    else
+    {
+        double truncated = std::trunc(measures);
+        if ((measures - truncated) <= s_slop)
+            result = double(int(truncated));
+        else
+            result = double(int(truncated)) + 1.0;
+    }
+    return result;
+}
+
+/**
  *  Converts a string that represents "measures:beats:division" (also known
  *  as "B:B:T") to a MIDI pulse/ticks/clock value. Note that, here, "division"
  *  is simply a number of pulses less than a beat.
@@ -668,6 +717,8 @@ measurestring_to_pulses
  *      Returns the absolute pulses that mark this duration.  If the
  *      pulse-value cannot be calculated, then c_null_pulse is
  *      returned.
+ *
+ * TODO: verify against the Seq66 version.
  */
 
 midi::pulse
@@ -686,7 +737,7 @@ midi_measures_to_pulses
     if (b < 0)
         b = 0;
 
-    double qn_per_beat = double(c_qn_beats) / seqparms.beat_width();
+    double qn_per_beat = double(qn_beats()) / seqparms.beat_width();
     result = 0;
     if (m > 0)
         result += int(m * seqparms.beats_per_measure() * qn_per_beat);
@@ -961,7 +1012,10 @@ randomize_uniformly (int range, int seed)
 bool
 is_power_of_2 (int b)
 {
-    return b && (! (b & (b - 1)));
+    if (b <= 0)
+        return false;
+    else
+        return (b & (b - 1)) == 0;
 }
 
 /**
@@ -975,30 +1029,46 @@ is_power_of_2 (int b)
  *
  * \return
  *      Returns the power of 2 that achieves the \a tsd parameter value.
+ *      Returns -1 if the value is not a power of 2.
  */
 
 int
-log2_power_of_2 (int tsd)
+log2_of_power_of_2 (int tsd)
 {
-    int result = 0;
-    while (tsd > 1)
+    if (is_power_of_2(tsd))
     {
-        ++result;
-        tsd >>= 1;
+        int result = 0;
+        while (tsd > 1)
+        {
+            ++result;
+            tsd >>= 1;
+        }
+        return result;
     }
-    return result;
+    else
+        return (-1);
 }
 
 /**
+ *
+ *  A candidate to move to a zoomer class.
+ *
  *  This function provides the size of the smallest horizontal grid unit in
  *  units of pulses (ticks).  We need this to be able to increment grid
  *  drawing by more than one (time-wasting!) without skipping any lines.
  *
  *  The smallest grid unit in the seqroll is a "sub-step".  The next largest
  *  unit is a "note-step", which is inside a note.  Each note contains PPQN
- *  ticks.
+ *  ticks.  The  pulses-per-sub-step value represent the smallest horizontal
+ *  unit in a Seq66 grid.  It is the number of pixels in the smallest
+ *  increment between vertical lines in the grid.  For a zoom of 2, this
+ *  number gets doubled.
  *
- *  Current status at PPQN = 192, Base pixels = 6:
+ *  If the value that results is odd, then the horizontal line match
+ *  calculation can fail, resulting in missing lines and missing measure
+ *  numbers. In this case, we increment the resul to make it even.
+ *
+ *  Current status at PPQN = 192, Base pixels (pixels_per_substep) = 6:
  *
 \verbatim
     Zoom    Note-steps  Substeps   Substeps/Note (#SS)
@@ -1017,33 +1087,46 @@ log2_power_of_2 (int tsd)
  *
  *      PPSS = (PPQN * Zoom * Base Pixels) / Base PPQN
  *
+ *  In units:
+ *
+ *      pulses      pulses     pulses     pixel         qn
+ *     --------- = -------- * -------- * --------- * --------
+ *      substep       qn       pixel      substep     pulses
+ *
  *  Currently the Base values are hardwired (see usrsettings).  The base
- *  pixels value is c_pixels_per_substep = 6, and the base PPQN is
- *  usr().base_ppqn() = 192.  The numerator of this equation is well within
+ *  pixels value is pixels_per_substep = 6, and the base PPQN is
+ *  base_ppqn() = 192.  The numerator of this equation is well within
  *  the limit of a 32-bit integer.
  *
  * \param ppqn
  *      Provides the actual PPQN used by the currently-loaded tune.
  *
  * \param zoom
- *      Provides the current zoom value.  Defaults to 1, but is normally
- *      another value.
+ *      Provides the current zoom value.  Defaults to 2, but can be
+ *      another value. The zoom value is the number of pulses per pixel.
+ *      Thus, zooming in (making the horizontal grid segments wider)
+ *      yields fewer pulses per pixel. We can zoom out further than
+ *      we can zoom in, which is just one step from the default zoom.
  *
  * \return
  *      The result of the above equation is returned.
  */
 
-static const midi::pulse s_usr_base_ppqn = 192;     // TODO
-
 int
 pulses_per_substep (midi::pulse ppq, int zoom)
 {
-    return int((ppq * zoom * c_pixels_per_substep) / s_usr_base_ppqn);
+    const int pixels_per_substep = 6;
+    int result = int(ppq) * zoom * pixels_per_substep;
+    result /= base_ppqn();
+    if ((result % 2) != 0)
+        ++result;
+
+    return result;
 }
 
 /**
  *  Similar to pulses_per_substep(), but for a single pixel.  Actually, what
- *  this function does is scale the PPQN against usr().base_ppqn() (192).
+ *  this function does is scale the PPQN against base_ppqn() (192).
  *
  * \param ppq
  *      Provides the actual PPQN used by the currently-loaded tune.
@@ -1051,7 +1134,7 @@ pulses_per_substep (midi::pulse ppq, int zoom)
  * \param zoom
  *      Provides the current zoom value.  Defaults to 1, which can be used
  *      to simply get the ratio between the actual PPQN, but only when PPQN >=
- *      usr().base_ppqn().
+ *      base_ppqn().
  *
  * \return
  *      The result of the above equation is returned.
@@ -1060,7 +1143,7 @@ pulses_per_substep (midi::pulse ppq, int zoom)
 int
 pulses_per_pixel (midi::pulse ppq, int zoom)
 {
-    midi::pulse result = (ppq * zoom) / s_usr_base_ppqn;
+    midi::pulse result = (ppq * zoom) / base_ppqn();
     if (result == 0)
         result = 1;
 
@@ -1092,7 +1175,66 @@ beat_power_of_2 (int logbase2)
     {
         result = 2;
         for (int c = 1; c < logbase2; ++c)
-            result *= 2;
+            result <<= 1;
+    }
+    return result;
+}
+
+/**
+ *  Calculates the previous power of 2 before a given number. Not meant to be
+ *  rigorous, just enough for MIDI usage. No numbers where a multiplication
+ *  by 2 would overflow an int.
+ *
+ *
+ * \param value
+ *      Provides the value to be rounded up to the next power of 2.
+ *
+ * \return
+ *      Returns the previous power of 2 below the given value. If already a
+ *      power of 2, it is returned as is. If the value is 0 (or less than
+ *      0), 1 is returned.
+ */
+
+int
+previous_power_of_2 (int value)
+{
+    int result = 1;
+    if (value > 1)
+    {
+        result = value >> 1;
+        result <<= 1;
+    }
+    return result;
+}
+
+/**
+ *  Calculates the next power of 2 after a given number. Not meant to be
+ *  rigorous, just enough for MIDI usage. No numbers where a multiplication
+ *  by 2 would overflow an int.
+ *
+ *
+ * \param value
+ *      Provides the value to be rounded up to the next power of 2.
+ *
+ * \return
+ *      Returns the next power of 2 above the given value. If already a
+ *      power of 2, it is returned as is. If the value is 0 (or less than
+ *      0), 1 is returned.
+ */
+
+int
+next_power_of_2 (int value)
+{
+    int result = 1;
+    if (value > 0)
+    {
+        while (result <= value)
+        {
+            if (result < value)
+                result <<= 1;
+            else
+                break;
+        }
     }
     return result;
 }
@@ -1145,12 +1287,14 @@ power (int base, int exponent)
 midi::byte
 beat_log2 (int value)
 {
-    return midi::byte(std::log(double(value)) / std::log(2.0));
+    return value > 0 ? midi::byte(std::log(double(value)) / std::log(2.0)) : 0 ;
 }
 
 /**
  *  Calculates the tempo in microseconds from the bytes read from a Tempo
  *  event in the MIDI file.
+ *
+ *  Is it correct to simply cast the bytes to a double value?
  *
  * \param tt
  *      Provides the 3-byte vector of values making up the raw tempo data.
@@ -1231,7 +1375,7 @@ tempo_us_to_bytes (midi::bytes & tt, midi::bpm tempo_us)
 \endverbatim
  *
  *  where N0 = 0 (MIDI note 0 is the minimum), N1 = 127 (the maximum MIDI
- *  note), B0 is the value of c_min_beats_per_minute) B1 is the value of
+ *  note), B0 is the value of min_beats_per_minute()) B1 is the value of
  *  usr().midi_bpm_maximum(), B is the input beats/minute, and N is the
  *  resulting note value.  As a precaution due to rounding error, we clamp the
  *  values between 0 and 127.
@@ -1248,14 +1392,22 @@ midi::byte
 tempo_to_note_value (midi::bpm tempovalue)
 {
     double slope = double(max_midi_value());
-    slope /= c_max_beats_per_minute - c_min_beats_per_minute;
+    slope /= max_beats_per_minute() - min_beats_per_minute();
 
-    int note = int(slope * (tempovalue - c_min_beats_per_minute) + 0.5);
+    int note = int(slope * (tempovalue - min_beats_per_minute()) + 0.5);
     return clamp_midi_value(note);
 }
 
 /**
  *  The inverse of tempo_to_note_value().
+ *
+ *  From the above, we can derive:
+ *
+\verbatim
+            (B1 - B0) N
+        B = ------------ + B0
+               127
+\endverbatim
  *
  * \param note
  *      The note value used for displaying the tempo in the seqdata pane, the
@@ -1263,15 +1415,17 @@ tempo_to_note_value (midi::bpm tempovalue)
  *
  * \return
  *      Returns the tempo in beats/minute.
+ *
+ * TODO: see the Seq66 version.
  */
 
 midi::bpm
 note_value_to_tempo (midi::byte note)
 {
-    double result = c_max_beats_per_minute - c_min_beats_per_minute;
+    double result = max_beats_per_minute() - min_beats_per_minute();
     result *= double(note);
     result /= double(max_midi_value());
-    result += c_min_beats_per_minute;
+    result += min_beats_per_minute();
     return result;
 }
 
@@ -1289,7 +1443,7 @@ note_value_to_tempo (midi::byte note)
 midi::bpm
 fix_tempo (midi::bpm bp)
 {
-    int precision = c_max_bpm_precision;    /* 0/1/2 digits past decimal    */
+    int precision = max_bpm_precision();    /* 0/1/2 digits past decimal    */
     if (precision > 0)
     {
         bp *= 10.0;
@@ -1339,6 +1493,86 @@ combine_bytes (midi::byte b0, midi::byte b1)
    short_14bit <<= 7;
    short_14bit |= (unsigned short)(b0);
    return short_14bit * 48;
+}
+
+/**
+ *  Calculates a wave function for use as an LFO (low-frequency oscillator)
+ *  for modifying data values in a sequence.  We extracted this function from
+ *  mattias's lfownd module, as it is more generally useful.  The angle
+ *  parameter is provided by the lfownd object.  It is calculated by
+ *
+\verbatim
+                 speed * tick
+        angle = -------------- + phase
+                    length
+\endverbatim
+ *
+ *  The speed (number of periods in the transformation) ranges from 0 to 16 in
+ *  the user interface; the ratio of tick/seqlength ranges from 0 to 1; the
+ *  phase ranges from 0 to 1, equivalent to 0 to 360 degrees.
+ *
+ * \param angle
+ *      Provides the radial "angle" to be applied. Assuming that the "speed"
+ *      (number of periods) is 1, then, for a one-measure pattern or
+ *      a longer pattern with "Use Measures" unchecked in qlfoframe, this value
+ *      ranges from 0.0 to 1.0.  Increasing the "speed" or the number of
+ *      measures increases the angle range proportionately.
+ *
+ * \param wavetype
+ *      Provides the wave value to select the type of wave data-point
+ *      to be generated.
+ *
+ * \return
+ *      Returns the result of the calculation, which will range from -1.0 to
+ *      0.0 to 1.0, depending on the wave employed.
+ */
+
+double
+wave_func (double angle, waveform wavetype)
+{
+    double result = 0.0;
+    double tmp;
+    double anglefixed;
+    switch (wavetype)
+    {
+    case waveform::sine:
+        tmp = 2.0 * M_PI * angle;                       /* angle in radians */
+        result = sin(tmp);
+        break;
+
+    case waveform::sawtooth:
+        anglefixed = angle - int(angle);
+        tmp = 2.0 * anglefixed;
+        result = tmp - 1.0;
+        break;
+
+    case waveform::reverse_sawtooth:
+        anglefixed = angle - int(angle);
+        tmp = -2.0 * anglefixed;
+        result = tmp + 1.0;
+        break;
+
+    case waveform::triangle:
+        tmp = 2.0 * angle;
+        result = (tmp - int(tmp));
+        if ((int(tmp)) % 2 == 1)
+            result = 1.0 - result;
+
+        result = 2.0 * result - 1.0;
+        break;
+
+    case waveform::exponential:
+        result = exp_normalize(angle);
+        break;
+
+    case waveform::reverse_exponential:
+        result = exp_normalize(angle, true);
+        break;
+
+    default:
+        break;
+    }
+    return result;
 }
 
 /**
@@ -1393,6 +1627,69 @@ exp_normalize (double angle, bool negate)
     result *= s_scaler;
     return result;
 }
+
+/**
+ *  Converts a wave type value to a string.  These names are short because I
+ *  cannot figure out how to get the window pad out to show the longer names.
+ *
+ * \param wavetype
+ *      The wave-type value to be displayed.
+ *
+ * \return
+ *      Returns a short description of the wave type.
+ */
+
+std::string
+wave_type_name (waveform wavetype)
+{
+    std::string result = "None";
+    switch (wavetype)
+    {
+    case waveform::sine:
+
+        result = "Sine";
+        break;
+
+    case waveform::sawtooth:
+
+        result = "Ramp Up Saw";
+        break;
+
+    case waveform::reverse_sawtooth:
+
+        result = "Decay Saw";
+        break;
+
+    case waveform::triangle:
+
+        result = "Triangle";
+        break;
+
+    case waveform::exponential:
+
+        result = "Exponential Rise";
+        break;
+
+    case waveform::reverse_exponential:
+
+        result = "Exponential Fall";
+        break;
+
+    default:
+
+        break;
+    }
+    return result;
+}
+
+/**
+ *  Moved to portnames:
+ *
+ *      -   extract_port_names ()
+ *      -   extract_bus_name ()
+ *      -   extract_port_name ()
+ *      -   extract_a2j_port_name ()
+ */
 
 /**
  *  Converts an array containing a MIDI Variable-Length Value (VLV),
@@ -1677,6 +1974,72 @@ up_snap (int S, midi::pulse p)
     }
     return result;
 }
+
+/**
+ *  Comparison of floating-point values. We can tolerate a fairly large
+ *  epsilon value in our MIDI code.
+ *
+ *  See https://realtimecollisiondetection.net/blog/?p=89 for some gory
+ *  details.
+ *
+ *     if (Abs(x – y) <= EPSILON * Max(1.0f, Abs(x), Abs(y))
+ */
+
+static double s_epsilon = 0.0001;
+
+static double
+one_max (double a, double b)
+{
+    double result = 1.0f;
+    if (std::fabs(a) > result)
+        result = std::fabs(a);
+
+    if (std::fabs(b) > result)
+        result = std::fabs(b);
+
+    return result;
+}
+
+/**
+ *  Calculates x == y to within the epsilon, and returns true if that is so.
+ */
+
+bool
+fequal (double x, double y)
+{
+    return std::fabs(x - y) <= s_epsilon * one_max(std::fabs(x), std::fabs(y));
+}
+
+/**
+ *  Calculates x != y to within the epsilon, and returns true if that is so.
+ */
+
+bool
+fnotequal (double x, double y)
+{
+    return std::fabs(x - y) > s_epsilon * one_max(std::fabs(x), std::fabs(y));
+}
+
+/**
+ *  Calculates x < y and returns true if that is so.
+ */
+
+bool
+flessthan (double x, double y)
+{
+    return x < (y - s_epsilon * one_max(std::fabs(x), std::fabs(y)));
+}
+
+/**
+ *  Calculates x > y and returns true if that is so.
+ */
+
+bool
+fgreaterthan (double x, double y)
+{
+    return x > (y + s_epsilon * one_max(std::fabs(x), std::fabs(y)));
+}
+
 
 }       // namespace midi
 
