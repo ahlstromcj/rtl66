@@ -79,7 +79,7 @@
 #include "midi/eventcodes.hpp"          /* functions to analyze MIDI bytes  */
 #include "util/strfunctions.hpp"        /* util::string_to_long()           */
 
-#if defined SEQ66_USE_UNIFORM_INT_DISTRIBUTION
+#if defined RTL66_USE_UNIFORM_INT_DISTRIBUTION
 #include <random>                       /* std::uniform_int_distribution    */
 #endif
 
@@ -938,7 +938,7 @@ randomize (int range, int seed)
         return 0;
 }
 
-#if defined SEQ66_USE_UNIFORM_INT_DISTRIBUTION
+#if defined RTL66_USE_UNIFORM_INT_DISTRIBUTION
 
 class randomizer
 {

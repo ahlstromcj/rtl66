@@ -1242,7 +1242,7 @@ event::randomize (int range)
     {
         bool twobytes = is_two_bytes();
         int datum = int(twobytes ? m_message[1] : m_message[0]);
-#if defined SEQ66_USE_UNIFORM_INT_DISTRIBUTION
+#if defined RTL66_USE_UNIFORM_INT_DISTRIBUTION
         int delta = midi::randomize_uniformly(range);
 #else
         int delta = midi::randomize(range);
@@ -1276,7 +1276,7 @@ event::jitter (int snap, int range, midi::pulse seqlength)
     bool result = range > 0;
     if (result)
     {
-#if defined SEQ66_USE_UNIFORM_INT_DISTRIBUTION
+#if defined RTL66_USE_UNIFORM_INT_DISTRIBUTION
         midi::pulse delta = midi::pulse(midi::randomize_uniformly(range));
 #else
         midi::pulse delta = midi::pulse(midi::randomize(range));

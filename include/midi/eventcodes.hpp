@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2024-05-16
+ * \updates       2025-01-16
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -158,7 +158,7 @@ any_event (byte b)
 inline bool
 is_channel_msg (byte m)
 {
-    return m >= 0x80 && m < realtime;       // 0xF0
+    return m >= 0x80 && m < realtime;       /* between Note Off and 0xF0    */
 }
 
 /**
@@ -219,7 +219,7 @@ is_meta_seq_spec (byte b)
 /**
  *  Assumes the message has already been determined to be a meta message.
  *  Includes text_event, copyright, track_name, instrument, lyric, marker, and
- *  cue_point Meta messages.
+ *  cue_point Meta messages. The byte range is 0x01 to 0x07.
  */
 
 inline bool
@@ -384,7 +384,7 @@ add_channel (byte bstatus, byte channel)
 inline bool
 is_data_msg (byte m)
 {
-    return (m & status_bit) == 0x00;
+    return (m & status_bit) == 0;
 }
 
 /**
@@ -417,7 +417,7 @@ normalized_status (byte s)
 
 /*
  *  Functions used in event and editable event.  These can be useful
- *  to any caller.
+ *  to any caller. The SysEx byte is 0xF0.
  */
 
 inline bool
@@ -427,10 +427,10 @@ is_system_msg (byte m)
 }
 
 /**
- *  0xFF is a MIDI "escape code" used in MIDI files to introduce a MIDI meta
- *  event.  Note that it has the same code (0xFF) as the Reset message, but
- *  the Meta message is read from a MIDI file, while the Reset message is sent
- *  to the sequencer by other MIDI participants.
+ *  The meta byte 0xFF is a MIDI "escape code" used in MIDI files to introduce
+ *  a MIDI meta event.  Note that it has the same code (0xFF) as the Reset
+ *  message, but the Meta message is read from a MIDI file, while the Reset
+ *  message is sent to the sequencer by other MIDI participants.
  */
 
 inline bool
@@ -450,17 +450,31 @@ is_meta_msg (byte m, meta mmsg)
     return m == to_byte(mmsg);
 }
 
+/**
+ *  Test for the special cases of meta byte (0xFF) or status byte for SysEx
+ *  (0xF0). These items have an array of data bytes instead of merely
+ *  d0 and/or d1.
+ */
+
 inline bool
 is_ex_data_msg (byte m)
 {
     return m == to_byte(meta::meta_byte) || m == to_byte(status::sysex);
 }
 
+/**
+ *  Checks for byte 0xEn; n, the channel byte, is masked off first.
+ */
+
 inline bool
 is_pitchbend_msg (byte m)
 {
     return mask_status(m) == to_byte(status::pitch_wheel);
 }
+
+/**
+ *  Checks for byte 0xBn; n, the channel byte, is masked off first.
+ */
 
 inline bool
 is_controller_msg (byte m)

@@ -28,23 +28,24 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2024-12-03
+ * \updates       2025-01-16
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
  *  values, or data values for MIDI events.  This class is also a base class,
  *  so that we can manage "editable events".
  *
- *  One thing we need to add to this event class is a way to encapsulate
- *  Meta events.  First, we use the existing event::sysex to hold
- *  this data.
+ *  One thing we need to add to this event class is a way to encapsulate Meta
+ *  events.  First, we use the existing event::sysex to hold this data.
  *
- *  The MIDI protocol consists of MIDI events that carry four types of messages:
+ *  The MIDI protocol consists of MIDI events that carry four types of
+ *  messages:
  *
  *      -   Voice messages.  0x80 to 0xEF; includes channel information.
  *      -   System common messages.  0xF0 (SysEx) to 0xF7 (End of SysEx)
  *      -   System realtime messages. 0xF8 to 0xFF.
- *      -   Meta messages. 0xFF is the flag, followed by type, length, and data.
+ *      -   Meta messages. 0xFF is the flag, followed by type, length, and
+ *          data.
  */
 
 #include <string>                       /* used in to_string()              */
@@ -52,15 +53,20 @@
 #include "midi/eventcodes.hpp"          /* event status bytes, free funcs   */
 #include "midi/message.hpp"             /* storage for any MIDI event       */
 
+#define RTL66_STAZED_SELECT_EVENT_HANDLE
+
 namespace midi
 {
 
 /**
  *  Provides a sanity-check limit for the number of bytes in a MIDI Meta Text
- *  message and similar messages. Might be better larger, but....
+ *  message and similar messages. Might be better larger, but.... Well, now
+ *  that we're handling meta text  message, we'll make this a bit larger than
+ *  1024. This value is also used in the main Session tab to limit the
+ *  amount of text in the song info edit field.
  */
 
-const size_t c_meta_text_limit           = 1024;    // for sanity only
+const size_t c_meta_text_limit = 32767;     /* good for a sanity check, too */
 
 /**
  *  Provides events for management of MIDI events.
@@ -81,6 +87,7 @@ class event
 {
 
     friend class eventlist;
+    friend class track;         /* is this needed? */
 
 public:
 
@@ -88,8 +95,7 @@ public:
      *  Provides a type definition for a vector of midi::bytes.  This type will
      *  also hold the generally small amounts of data needed for Meta events,
      *  but doesn't help us encapsulate derived values, such as tempo.
-     *
-     *  Now replaced by midi::message for all messages.
+     *  Replaced by midi::message for all messages.
      *
      *      using sysex = midi::bytes;
      */
@@ -111,7 +117,8 @@ public:
     /**
      *  Provides a key value for an event.  Its types match the
      *  m_timestamp and get_rank() function of the event class.
-     *  We eventually need this key for an "editable-events" container.
+     *  We eventually need this key for an "editable-events" container,
+     *  which would use a multimap.
      */
 
     class key
@@ -164,7 +171,14 @@ private:
      */
 
     /**
-     *  The channel is included when recording MIDI, but, once a sequence with
+     *  All bytes of status and data for the MIDI event. It includes the
+     *  event time-stamp, event status, event channel if applicable, d0
+     *  and d1 data bytes or the array of data for Meta messages and SysEx.
+     *
+     *  Remember that the most-significant bit of a data byte is always 0.  A
+     *  one-byte message uses only the 1st index.
+     *
+     *  The channel is included when recording MIDI, but, once a track with
      *  a matching channel is found, the channel nybble is cleared for
      *  storage.  The channel will be added back on the MIDI bus upon
      *  playback.  The high nybble = type of event; The low nybble = channel.
@@ -174,11 +188,7 @@ private:
      *  handling of the event can occur.  We would like to eventually use
      *  inheritance to keep the event class simple, but that would interfere
      *  with event containment by copy (we don't want to manage event
-     *  pointers.
-     *
-     *  All bytes of status and data for the MIDI event.  Remember that the
-     *  most-significant bit of a data byte is always 0.  A one-byte message
-     *  uses only the 1st index.
+     *  pointers).
      */
 
     midi::message m_message;                           /* status, d0, d1, ...  */
@@ -255,13 +265,17 @@ public:
     event ();
     event
     (
-        midi::pulse tstamp, midi::byte status,
-        midi::byte d0, midi::byte d1 = 0
+        midi::pulse tstamp,
+        midi::byte status,
+        midi::byte d0,
+        midi::byte d1 = 0
     );
     event (midi::pulse tstamp, midi::bpm tempo);
     event
     (
-        midi::pulse tstamp, midi::status notekind, midi::byte channel,
+        midi::pulse tstamp,
+        midi::status notekind,
+        midi::byte channel,
         int note, int velocity
     );
     event (const event & rhs);
@@ -462,7 +476,12 @@ public:
         m_message[1] = m_message[2] = 0;
     }
 
-    void clear_links ()
+    /**
+     *  Clears a note-link. Does not (yet) touch the note to which it was
+     *  linked.
+     */
+
+    void clear_link ()
     {
         unmark();
         unlink();

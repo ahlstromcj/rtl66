@@ -1440,7 +1440,7 @@ sequence::toggle_queued ()
     set_dirty_mp();
     m_queued = ! m_queued;
 
-#if defined SEQ66_PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG_TMI
     printf("seq %d: queuing %s\n", int(seq_number()), m_queued ? "on" : "off");
 #endif
 
@@ -6016,7 +6016,7 @@ sequence::set_armed (bool p)
         set_dirty();
         m_queued = m_one_shot = false;
         perf()->announce_pattern(seq_number());     /* for issue #89        */
-#if defined SEQ66_PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG_TMI
         printf("seq %d: playing %s\n", int(seq_number()), p ? "on" : "off");
 #endif
     }
@@ -7152,7 +7152,7 @@ sequence::expand_recording () const
         midi::pulse tstamp = m_last_tick;
         if (tstamp >= expand_threshold())
         {
-#if defined SEQ66_PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG_TMI
             printf
             (
                 "tick %ld >= length %ld - measure %ld / 4\n",

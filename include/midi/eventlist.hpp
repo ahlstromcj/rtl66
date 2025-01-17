@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2025-01-15
+ * \updates       2025-01-16
  * \license       GNU GPLv2 or above
  *
  *  This module extracts the event-list functionality from the sequencer
@@ -227,7 +227,7 @@ public:
 
     eventlist ();
     eventlist (const eventlist & rhs);                      /* = default;   */
-    eventlist (eventlist &&) = delete;  // ???
+    eventlist (eventlist &&) = delete;
     eventlist & operator = (const eventlist & rhs);         /* = default;   */
     eventlist & operator = (eventlist &&) = delete;
 
@@ -391,8 +391,9 @@ private:                                /* functions for friend sequence    */
      * involved data from the caller.
      */
 
-    void link_new (bool wrap = false);
-    void clear_links ();
+    bool link_new (bool wrap = false);
+    bool link_notes (event::iterator eon, event::iterator eoff);
+    bool clear_links ();
     int note_count () const;
 
     // NEW
@@ -400,7 +401,7 @@ private:                                /* functions for friend sequence    */
 #if defined RTL66_USE_FILL_TIME_SIG_AND_TEMPO
     void scan_meta_events ();
 #endif
-    void verify_and_link (midi::pulse slength = 0, bool wrap = false);
+    bool verify_and_link (midi::pulse slength = 0, bool wrap = false);
     bool edge_fix (midi::pulse snap, midi::pulse seqlength);
     bool remove_unlinked_notes ();
     bool quantize_events
@@ -408,8 +409,8 @@ private:                                /* functions for friend sequence    */
         midi::byte status, midi::byte cc, int snap,
         int divide, bool fixlink
     );
-    bool quantize_all_events (int snap, int divide);
-    bool quantize_notes (int snap, int divide);
+    bool quantize_events (int snap, int divide, bool all = false);
+    bool quantize_notes (int snap, int divide, bool all = false);
     midi::pulse adjust_timestamp (event & er, midi::pulse deltatick);
     void scale_note_off (event & noteoff, double factor);
     midi::pulse apply_time_factor
@@ -422,18 +423,22 @@ private:                                /* functions for friend sequence    */
     bool move_selected_notes (midi::pulse delta_tick, int delta_note);
     bool move_selected_events (midi::pulse delta_tick);
     bool align_left (bool relink = false);
-    bool randomize_selected (midi::byte status, int range);
-    bool randomize_selected_notes (int range);
+    bool align_right (bool relink = false);
+    bool randomize (midi::byte status, int range, bool all = false);
+    bool randomize (int range, bool all = false);
+//  bool randomize_selected_notes (int range);
     bool jitter_events (int snap, int jitr);
-    bool jitter_notes (int snap, int jitr);
-    bool link_notes (event::iterator eon, event::iterator eoff);
-//  void clear_links ();    // NEW
+    bool jitter_notes (int snap, int jitr, bool all = false);
+#if defined RTL66_LINK_TEMPOS
     void link_tempos ();
     void clear_tempo_links ();
+#endif
     bool mark_selected ();
-    void mark_out_of_range (midi::pulse slength);
+    bool mark_out_of_range (midi::pulse slength);
+#if defined RTL66_MARK_ALL
     void mark_all ();
     void unmark_all ();
+#endif
     bool remove_event (event & e);
     event::iterator find_first_match
     (
@@ -447,6 +452,7 @@ private:                                /* functions for friend sequence    */
         midi::pulse starttick = 0
     );
     bool remove_marked ();                  /* deprecated   */
+    bool remove_trailing_events (midi::pulse limit);
     bool remove_selected ();
 #if defined RTL66_SUPPORT_PAINTED_EVENTS
     void unpaint_all ();

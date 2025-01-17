@@ -625,7 +625,7 @@ triggers::grow_trigger (midi::pulse tickfrom, midi::pulse tickto, midi::pulse le
 
             if (calcend > ender)
             {
-#if defined SEQ66_PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG_TMI
                 printf("Growing trigger from %ld to %ld (%ld), length %ld\n",
                     long(tickfrom), long(tickto), long(calcend), long(len));
 #endif

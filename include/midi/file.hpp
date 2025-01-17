@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2024-05-26
+ * \updates       2025-01-16
  * \license       GNU GPLv2 or above
  *
  *  This version is very basic, and does not include any Seq66 features.
@@ -62,6 +62,10 @@ private:
      */
 
     player & m_coordinator;
+
+    /**
+     *  Potential new.
+     */
 
     /**
      *  The tentative list of tracks.

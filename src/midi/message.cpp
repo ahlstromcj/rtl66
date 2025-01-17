@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-12-01
- * \updates       2024-05-15
+ * \updates       2025-01-16
  * \license       See above.
  *
  *  Provides a basic type for the (heavily-factored) rtl66 library, very
@@ -154,11 +154,12 @@ message::message (double ts) :
 #if defined RTL66_PLATFORM_DEBUG
     m_msg_number    (sm_msg_number++),
 #endif
+    m_time_stamp    (ts),
     m_bytes         (),
 #if defined RTL66_USE_MESSAGE_HEADER_SIZE
     m_header_size   (0),
 #endif
-    m_time_stamp    (ts)
+    m_channel       (null_channel())
 {
     // Empty body
 }
@@ -182,11 +183,12 @@ message::message (const midi::byte * mbs, std::size_t sz) :
 #if defined RTL66_PLATFORM_DEBUG
     m_msg_number    (sm_msg_number++),
 #endif
+    m_time_stamp    (0),                    /* TODO */
     m_bytes         (),
 #if defined RTL66_USE_MESSAGE_HEADER_SIZE
     m_header_size   (0),
 #endif
-    m_time_stamp    (0)
+    m_channel       (null_channel())        /* TODO */
 {
     for (std::size_t i = 0; i < sz; ++i)
         m_bytes.push_back(*mbs++);
@@ -205,8 +207,12 @@ message::message (const midi::bytes & mbs) :
 #if defined RTL66_PLATFORM_DEBUG
     m_msg_number    (sm_msg_number++),
 #endif
-    m_bytes         (),
-    m_time_stamp    (0)
+    m_time_stamp    (0),
+    m_bytes         (mbs),
+#if defined RTL66_USE_MESSAGE_HEADER_SIZE
+    m_header_size   (0),
+#endif
+    m_channel       (null_channel())        /* TODO */
 {
     for (auto c : mbs)
         m_bytes.push_back(c);

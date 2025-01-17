@@ -3337,7 +3337,7 @@ performer::create_master_bus ()
 bool
 performer::launch (int ppqn)
 {
-#if defined SEQ66_PLATFORM_WINDOWS
+#if defined PLATFORM_WINDOWS
     bool allow_unavailable_devices = true;
 #else
     bool allow_unavailable_devices = false;
@@ -3485,7 +3485,7 @@ performer::sequence_inbus_setup ()
                     m_buss_patterns.push_back(seqi.get());
                     result = true;
 
-#if defined SEQ66_PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG
                     char temp[64];
                     snprintf
                     (
@@ -4735,7 +4735,7 @@ performer::output_func ()
             }
             else
             {
-#if defined SEQ66_PLATFORM_DEBUG && ! defined SEQ66_PLATFORM_WINDOWS
+#if defined PLATFORM_DEBUG && ! defined PLATFORM_WINDOWS
                 if (seq_app_cli())
                 {
                     if (delta_us != 0)
@@ -4898,14 +4898,14 @@ performer::poll_cycle ()
 
                                 if (not_nullptr(sp))
                                     sp->stream_event(ev);
-#if defined SEQ66_PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG
                                 else
                                     warn_message("no buss-recording pattern");
 #endif
                             }
                             else if (record_by_channel())
                             {
-#if defined SEQ66_PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG
                                 if (! m_master_bus->dump_midi_input(ev))
                                     warn_message("no matching channel");
 #else
@@ -4917,7 +4917,7 @@ performer::poll_cycle ()
                                 sequence * sp = m_master_bus->get_sequence();
                                 if (not_nullptr(sp))
                                     sp->stream_event(ev);
-#if defined SEQ66_PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG
                                 else
                                     error_message("no active pattern");
 #endif
@@ -5122,7 +5122,7 @@ performer::midi_stop ()
 void
 performer::midi_clock ()
 {
-#if defined SEQ66_PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG_TMI
     if (rc().verbose())
     {
         infoprint("MIDI Clock");
@@ -6588,7 +6588,7 @@ performer::pop_trigger_redo ()
 void
 performer::show_cpu ()
 {
-#if defined SEQ66_PLATFORM_UNIX // LINUX
+#if defined PLATFORM_UNIX // LINUX
     if (rc().verbose())
         infoprintf("Output function on CPU #%d", sched_getcpu());
 #endif
@@ -7067,7 +7067,7 @@ performer::replace_for_solo (seq::number seqno, bool queued)
 
         if (seqno == m_solo_seqno)              /* user toggle of slot  */
         {
-#if defined SEQ66_PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG
             msgprintf(msglevel::debug, "Pattern %d solo cleared", seqno);
 #endif
             (void) set_ctrl_status              /* restores snapshot    */
@@ -7079,7 +7079,7 @@ performer::replace_for_solo (seq::number seqno, bool queued)
         }
         else
         {
-#if defined SEQ66_PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG
             msgprintf(msglevel::debug, "Pattern %d soloed", seqno);
 #endif
             (void) set_ctrl_status              /* saves snapshot       */

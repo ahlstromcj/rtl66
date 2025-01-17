@@ -1301,7 +1301,7 @@ midi_jack::clock_send (midi::pulse tick)
 {
     if (tick >= 0)
     {
-#if defined SEQ66_PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG_TMI
         midibase::show_clock("JACK", tick);
 #endif
         return send_status(midi::status::clk_clock);

@@ -454,7 +454,7 @@ track::live_play (midi::pulse tick)
         {
             if (times_played >= loop_count_max())
             {
-#if defined SEQ66_METRO_COUNT_IN_ENABLED
+#if defined RTL66_METRO_COUNT_IN_ENABLED
                 if (is_metro_seq())                 /* count-in is complete */
                     m_parent->finish_count_in();
 #endif
@@ -546,7 +546,7 @@ track::play
         {
             if (times_played >= loop_count_max())
             {
-#if defined SEQ66_METRO_COUNT_IN_ENABLED
+#if defined RTL66_METRO_COUNT_IN_ENABLED
                 if (is_metro_track())               /* count-in is complete */
                     m_parent->finish_count_in();
 #endif

@@ -574,7 +574,7 @@ jack_get_event_data
         }
         else
         {
-#if defined SEQ66_PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
             char value[util::c_async_safe_utoa_size];
             char text[util::c_async_safe_utoa_size + 32];
             std::strcpy(text, "Event ");

@@ -1284,7 +1284,7 @@ audio_jack::clock_send (::audio::pulse tick)
 {
     if (tick >= 0)
     {
-#if defined SEQ66_PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG_TMI
         audiobase::show_clock("JACK", tick);
 #endif
         return send_status(::audio::status::clock);

@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2024-05-26
+ * \updates       2025-01-16
  * \license       See above.
  *
  *  Should we add operator [] for setting as well?
@@ -69,8 +69,8 @@ private:
 #if defined RTL66_PLATFORM_DEBUG
 
     /**
-     *  Provide a static counter to keep track of events. Currently needed for
-     *  trouble-shooting.  We don't care about wraparound.
+     *  Provide a static counter to keep track of events. Currently needed
+     *  only for trouble-shooting.  We don't care about wraparound.
      */
 
     static unsigned sm_msg_number;
@@ -82,6 +82,15 @@ private:
     unsigned m_msg_number;
 
 #endif
+
+    /**
+     *  Holds the (optional) timestamp of the MIDI message.  Holds the
+     *  timestamp of the MIDI message. Non-zero only in the JACK
+     *  implementation at present.  It can also hold a JACK frame number. The
+     *  caller can know this only by context at present.
+     */
+
+    double m_time_stamp;
 
     /**
      *  Holds the event status, length (for events supporting that)
@@ -103,13 +112,16 @@ private:
 #endif
 
     /**
-     *  Holds the (optional) timestamp of the MIDI message.  Holds the
-     *  timestamp of the MIDI message. Non-zero only in the JACK
-     *  implementation at present.  It can also hold a JACK frame number. The
-     *  caller can know this only by context at present.
+     *  In order to be able to handle MIDI channel-splitting of an SMF 0 file,
+     *  we need to store the channel, even if we override it when playing the
+     *  MIDI data.
+     *
+     *  Overload:  For Meta events, where is_meta() is true, this value holds
+     *  the type of Meta event. See the editable_event::sm_meta_event_names[]
+     *  array.
      */
 
-    double m_time_stamp;
+    midi::byte m_channel;       // FOLD INTO STATUS BYTE??
 
 public:
 
@@ -284,6 +296,11 @@ public:
     void jack_stamp (double t)
     {
         m_time_stamp = t;
+    }
+
+    midi::byte channel () const
+    {
+        return m_channel;
     }
 
     bool is_sysex () const

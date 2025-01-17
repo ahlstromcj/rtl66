@@ -40,15 +40,15 @@
  *
  *  Somewhat analogous to the Seq66 midi_vector class. It combines the
  *  functionality of that class and seq66::midifile, so that we don't have
- *  separate modules for input and output.
+ *  separate modules with different design for input and output.
  *
- *  Here are the mappings between old and new functions. The trackdata
+ *  Here are the mappings between new and old functions. The trackdata
  *  versions generally do more checking, but no error reporting.
  *  Note that the some of the trackdata function return types are in the
  *  "midi" namespace. Some functions have been commented out, and are
  *  marked with an exclamation point.
  *
- *  trackdata              midifile                   midi_vector/_base
+ *  trackdata (new)        midifile (old)             midi_vector/_base (old)
  *
  *  seek()                 read_seek()
  *  peek()                 peek()
@@ -113,6 +113,24 @@
 
 namespace midi
 {
+
+/**
+ *  F0:
+ *
+ *  In Dixie04.mid, we find instances of the sequences
+ *
+ *      9D 7D F0 7F 00 F0
+ *      F0 7F nn F0
+ *
+ *  We have found not information on these sequences. They are not legal, and
+ *  the 7F is misinterpreted as a bogus length of 127.
+ *
+ *  We peek ahead for an F0 and abort if we find one.  The result does not
+ *  change the patterns, but does strip out sequences like F0 7F nn that "end"
+ *  with an F0.
+ */
+
+#undef  RTL66_IGNORE_F0_F7_NN_F0
 
 /**
  *  The maximum length of a track name.
@@ -1404,6 +1422,8 @@ trackdata::put_track_events (/*const*/ track & /*trk*/)
  *      messages properly for a MIDI file.  Instead of a varinum length value,
  *      they are followed by extended IDs (0x7D, 0x7E, or 0x7F).
  *
+ *      THE ABOVE IS WRONG!
+ *
  *      We've covered some of those cases by disabling access to m_data if the
  *      position passes the size of the file, but we want try to bypass these
  *      odd cases properly.  So we look ahead for one of these special values.
@@ -1524,6 +1544,11 @@ trackdata::parse_track
     size_t offset, size_t trklength
 )
 {
+    int evcount = 0;                        /* for sanity checking          */
+//  TODO
+//  bool timesig_set = false;               /* first time-sig wins          */
+    bool error_reported = false;            /* for handling message         */
+
     size_t result = offset + trklength;     /* presumed next track offset   */
     midi::pulse runningtime = 0;            /* reset timestamp accumulator  */
     midi::pulse currenttime = 0;            /* adjust by PPQN?              */
@@ -1597,18 +1622,12 @@ trackdata::parse_track
                 runningstatus = last_runningstatus;
                 bstatus = runningstatus;
             }
-#if 0
-            else                                        /* EXPERIMENTAL     */
-            {
-                finished = true;
-                continue;
-            }
-#endif
+//          e.set_status_keep_channel(bstatus);  /* set status, channel  */
         }
         runningtime += delta;                           /* add the time     */
         currenttime = runningtime;
 
-#if defined USE_TIMESTAMP_PPQN_SCALING
+#if defined USE_TIMESTAMP_PPQN_SCALING                  /* TO DO            */
         if (scaled())                   /* adjust time via ppqn     */
             currenttime = midipulse(currenttime * ppqn_ratio());
 #endif
@@ -1645,7 +1664,12 @@ trackdata::parse_track
              */
 
             if (append_event(e))                        /* does not sort    */
+            {
                 tentative_channel = channel;            /* log MIDI channel */
+                ++evcount;
+//              if (is_smf0)
+//                  m_smf0_splitter.increment(channel); /* count chan.  */
+            }
             break;
 
         case midi::status::program_change:              /* 1-byte events    */
@@ -1656,8 +1680,9 @@ trackdata::parse_track
             if (append_event(e))                        /* does not sort    */
             {
                 tentative_channel = channel;            /* log MIDI channel */
-                // if (is_smf0)
-                //      m_smf0_splitter.increment(channel); /* count chan.  */
+                ++evcount;
+//              if (is_smf0)
+//                  m_smf0_splitter.increment(channel); /* count chan.      */
             }
             break;
 
@@ -1674,7 +1699,7 @@ trackdata::parse_track
                  * see the function banner for notes.
                  */
 
-                midi::byte check = get();
+                midi::byte check = get();               /* or peek()???     */
                 if (is_sysex_special_id(check))
                 {
                     /*
@@ -1685,6 +1710,10 @@ trackdata::parse_track
                 {
                     m_data.decrement();                 /* trackdata func   */
                     len = get_varinum();
+#if defined THIS_FUNCTION_PORTED_FROM_SEQ66_MIDIFILE
+                    if (read_sysex_data(s, e, len, true))
+                        ++evcount;
+#else
                     while (len--)
                     {
                         midi::byte b = get();
@@ -1692,11 +1721,14 @@ trackdata::parse_track
                             break;
                     }
                     skip(len);                          /* eat it, just eat */
+#endif
                 }
             }
             else if (midi::is_sysex_end_msg(bstatus))   /* ... 0xF7         */
             {
-                    (void) e.append_sysex(bstatus);     /* TODO             */
+#if ! defined THIS_FUNCTION_PORTED_FROM_SEQ66_MIDIFILE
+                (void) e.append_sysex(bstatus);         /* TODO             */
+#endif
             }
             else
             {
@@ -1719,33 +1751,56 @@ trackdata::parse_track
              * in them.
              */
 
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
             printf
             (
                 "Unsupported MIDI event 0x%02x at 0x%04x\n",
                 bstatus, unsigned(position() + offset)
             );
+            if (! error_reported)
+            {
+                /*
+                 * Some files (e.g. 2rock.mid, which has "00 24 40" hanging
+                 * out there all alone at offset 0xba) have junk in them.
+                 * Others (trilogy.mid) try to use running status after a
+                 * SysEx event.
+                 *
+                 * TODO: add the track_error() infrastructure.
+                 */
+
+                std::string msg = "Bad event";
+                skip_to_end = track_error(msg, trk);
+                if (m_running_status_action == rsaction::abort)
+                    return true;    /* don't process more tracks    */
+                else
+                    error_reported = true;
+            }
 #endif
 
-#if 0
-                // This is in midi::file
-            (void) set_error_dump
-            (
-                "Unsupported MIDI event", midi::ulong(bstatus)
-            );
-#endif
-            return result;      /* allow further processing */
+//          return result;      /* allow further processing */
             break;
         }
     }                          /* while not done loading Trk chunk */
 
     /*
-     * Tracks has been filled, add it to the performance or SMF 0
+     * Track has been filled, add it to the performance or SMF 0
      * splitter.  If there was no sequence number embedded in the
      * track, use the for-loop track number.  It's not fool-proof.
      * "If the ID numbers are omitted, the sequences' locations in
      * order in the file are used as defaults."
      */
+
+#if defined THIS_CODE_IS_READY
+    if (at_end() && ! done)         /* done == end-of-track found   */
+    {
+        std::string msg = "Premature end-of-file";
+        (void) track_error(msg, trk);
+        if (m_running_status_action == rsaction::abort)
+            break;
+    }
+    if (trkno == c_midishort_max)
+        trkno = trk;
+#endif
 
     if (trkno == midi::c_ushort_max)
         trkno = 0;                      // FIXME

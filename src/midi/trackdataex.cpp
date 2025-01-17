@@ -216,7 +216,7 @@ track::put_seqspecs (const track & seq)  // was put_proprietary
         put_seqspec(seq66::seqspec::seq_color, 1);              /* byte     */
         put(midi::byte(seq.color()));
     }
-#if defined SEQ66_SEQUENCE_EDIT_MODE                            /* useful?  */
+#if defined RTL66_SEQUENCE_EDIT_MODE                            /* useful?  */
     if (seq.edit_mode() != sequence::editmode::note)
     {
         put_seqspec(seq66::seqspec::seq_edit_mode, 1);          /* byte     */

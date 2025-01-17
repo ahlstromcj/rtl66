@@ -2163,7 +2163,7 @@ midi_alsa::get_midi_event (midi::event * inev)
         break;
 
     default:
-#if defined SEQ66_PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG_TMI
         // result = show_event(ev, "Port other");
 #endif
         break;
@@ -2215,7 +2215,7 @@ midi_alsa::get_midi_event (midi::event * inev)
 #endif
             bool sysex = inev->is_sysex();
             inev->set_input_bus(b);
-#if defined SEQ66_PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG_TMI
             warnprintf("Input on buss %d\n", int(b));
 #endif
             while (sysex)           /* sysex might be more than one message */
@@ -2246,7 +2246,7 @@ midi_alsa::get_midi_event (midi::event * inev)
 
         snd_midi_event_free(midi_ev);
 
-#if defined SEQ66_PLATFORM_DEBUG    // _TMI
+#if defined PLATFORM_DEBUG    // _TMI
         errprintf("snd_midi_event_decode() returned %ld", bytecount);
 #endif
 

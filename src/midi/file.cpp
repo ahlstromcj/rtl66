@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2024-05-26
+ * \updates       2025-01-16
  * \license       GNU GPLv2 or above
  *
  *  A midi::file is file-header data plus the data in each of the tracks of
@@ -95,6 +95,17 @@
  *      each sequence in the file, and then use midi::trackdata functions to
  *      build each track.
  *
+ * Differences from Seq66 (version 1):
+ *
+ *  In Seq66, the midifile class uses its own code to parse the MIDI file
+ *  byte stream, but the writing uses a midi_vector(_base) class. The Seq66v2
+ *  layout is diffe rent.
+ *
+ *      -   Parsing.
+ *          -   The MIDI file is read into a util::bytevector, which is
+ *              a class in the cfg66 library. This class provides for
+ *              positioning incrementing and decrementing, seeking, and
+ *              put/poke/peek/get functions.
  */
 
 #include <fstream>                      /* std::ifstream & std::ofstream    */
@@ -414,7 +425,7 @@ file::parse_smf_0 ()
 
 /**
  *  This function parses an SMF 1 binary MIDI file; it is basically the
- *  original seq66 file::parse() function.  It assumes the file-data has
+ *  original seq66 midifile::parse() function. It assumes the file-data has
  *  already been read into memory in totality, in the bytevector m_data.
  *  It first calls read_header(); see that function's banner for the
  *  layout of a MIDI header. The layout of a track is shown here:

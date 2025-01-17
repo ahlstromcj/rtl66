@@ -246,9 +246,7 @@ eventlist::add (const event & e)
 void
 eventlist::sort ()
 {
-    m_action_in_progress = true;
     std::sort(m_events.begin(), m_events.end());
-    m_action_in_progress = false;
 }
 
 /**
@@ -314,7 +312,7 @@ eventlist::merge (const eventlist & el, bool presort)
 }
 
 /**
- *  Links a new event.  This function checks for a note on, then look for
+ *  Links a new event.  This function checks for a note on, then looks for
  *  its note off.  This function is provided in the eventlist because it
  *  does not depend on any external data.  Also note that any desired
  *  thread-safety must be provided by the caller.
@@ -337,56 +335,52 @@ eventlist::merge (const eventlist & el, bool presort)
  *      We could add a feature to truncate the note.  Think!
  *
  * \param wrap
- *      Optionally (the default is false) wrap when relinking.
+ *      Optionally (the default is false) wrap when relinking.  Can be used to
+ *      override pattern_wraparound().  Defaults to false.
+ *
+ * \return
+ *      Returns true if any events were liked.
  */
 
-void
+bool
 eventlist::link_new (bool wrap)
 {
-    for (auto on = m_events.begin(); on != m_events.end(); ++on)
+    bool result = false;
+    for (auto eon = m_events.begin(); eon != m_events.end(); ++eon)
     {
-        if (on->on_linkable())
+        if (eon->on_linkable())                     /* note-on, not linked  */
         {
             bool endfound = false;                  /* end-of-note flag     */
-            auto off = on;                          /* point to note on     */
-            ++off;                                  /* get next element     */
-            while (off != m_events.end())
+            auto eoff = eon;                        /* point to note on     */
+            ++eoff;                                 /* get next element     */
+            while (eoff != m_events.end())
             {
-                endfound = link_notes(on, off);
+                endfound = link_notes(eon, eoff);   /* calls off_linkable() */
                 if (endfound)
+                {
+                    result = true;
                     break;
-
-                ++off;
+                }
+                ++eoff;
             }
             if (! endfound)
             {
-                off = m_events.begin();
-                while (off != on)
+                eoff = m_events.begin();
+                while (eoff != eon)
                 {
-                    if (link_notes(on, off))
+                    bool wrapped = eoff->timestamp() < eon->timestamp();
+                    if (link_notes(eon, eoff))
                     {
-                        bool wrapped = off->timestamp() < on->timestamp();
-                        if (wrapped)
-                        {
-                            if (! wrap)
-                                off->set_timestamp(length() - 1);
-                        }
-                        else                        /* not wrapped          */
-                        {
-                            if (on->timestamp() == off->timestamp())
-                            {
-                                long ts = on->timestamp();
-                                ts += m_zero_len_correction;
-                                off->set_timestamp(ts);
-                            }
-                        }
-                        break;
+                        result = true;
+                        if (wrapped && ! wrap)
+                            eoff->set_timestamp(length() - 1);
                     }
-                    ++off;
+                    ++eoff;
                 }
             }
         }
     }
+    return result;
 }
 
 /**
@@ -445,23 +439,30 @@ eventlist::link_notes (event::iterator eon, event::iterator eoff)
  *
  * \param slength
  *      Provides the length beyond which events will be pruned. Normally the
- *      caller supplies sequence::length().
+ *      caller supplies track::length(). Can be set to 0 ignore
+ *      the length, as in expanded step-edit note entry. See the function
+ *      sequence :: verify_and_link().
  *
  * \param wrap
- *      Optionally (the default is false) wrap when relinking.
+ *      Optionally (the default is false) wrap when relinking.  Can be used to
+ *      override usr().pattern_wraparound().
+ *
+ * \return
+ *      Returns true if any
  */
 
-void
+bool
 eventlist::verify_and_link (midi::pulse slength, bool wrap)
 {
-    bool wrap_em = m_link_wraparound || wrap;       /* a Stazed extension   */
     clear_links();                          /* unlink and unmark all events */
     sort();                                 /* important, but be careful... */
-    link_new(wrap_em);
+
+    bool wrap_em = m_link_wraparound || wrap;       /* a Stazed extension   */
+    bool result = link_new(wrap_em);
     if (slength > 0)
     {
-        mark_out_of_range(slength);
-        (void) remove_marked();             /* prune out-of-range events    */
+        if (mark_out_of_range(slength))
+            (void) remove_marked();         /* prune out-of-range events    */
     }
 
     /*
@@ -470,6 +471,8 @@ eventlist::verify_and_link (midi::pulse slength, bool wrap)
      *
      * link_tempos();
      */
+
+    return result;
 }
 
 /**
@@ -481,22 +484,30 @@ eventlist::clear ()
 {
     if (! m_events.empty())
     {
-        m_action_in_progress = true;          /* might not help */
         m_events.clear();
-        m_action_in_progress = false;
         m_is_modified = true;
     }
 }
 
 /**
- *  Clears all event links and unmarks them all.
+ *  Clears all event links and unmarks them all. We get a segfault here
+ *  pretty regulary when recording is enabled and the pattern's event list
+ *  is showing.
  */
 
-void
+bool
 eventlist::clear_links ()
 {
+    bool result = false;
     for (auto & e : m_events)
-        e.clear_links();                    /* does unmark() and unlink()   */
+    {
+        if (e.is_linked())
+        {
+            result = true;
+            e.clear_link();                 /* does unmark() and unlink()   */
+        }
+    }
+    return result;
 }
 
 int
@@ -534,6 +545,64 @@ eventlist::note_count () const
     {
         if (e.is_note_on())
             ++result;
+    }
+    return result;
+}
+
+/**
+ *  Look at note events within the snap interval. Return the first time-stamp
+ *  and the first (or average within the snap interval) note value. This
+ *  function is used for centering the seqroll on visible notes.
+ */
+
+bool
+eventlist::first_notes (midi::pulse & ts, int & n, midi::pulse snap) const
+{
+    bool result = false;
+    bool doaverage = snap > 0;
+    if (doaverage)
+    {
+        midi::pulse ts_first = (-1);
+        int note_avg = 0;
+        int note_count = 0;
+        for (const auto & e : m_events)
+        {
+            if (e.is_note_on())
+            {
+                result = true;
+
+                midi::pulse ts_temp = e.timestamp();
+                if (ts_first == (-1))
+                    ts_first = ts_temp;
+
+                int note = int(e.get_note());
+                if (ts_temp < (ts_first + snap))
+                {
+                    note_avg += note;
+                    ++note_count;
+                }
+                else
+                    break;
+            }
+        }
+        if (result)
+        {
+            ts = ts_first;
+            n = note_avg / note_count;
+        }
+    }
+    else
+    {
+        for (const auto & e : m_events)
+        {
+            if (e.is_note_on())
+            {
+                ts = e.timestamp();
+                n = int(e.get_note());
+                result = true;
+                break;
+            }
+        }
     }
     return result;
 }
@@ -651,12 +720,14 @@ eventlist::remove_unlinked_notes ()
  * \param fixlink
  *      This parameter indicates if linked events are to be
  *      adjusted against the length of the pattern.
+ *
+ *      NOT PRESENT IN SEQ66 VERSION.
  */
 
 bool
 eventlist::quantize_events
 (
-    midi::byte status, midi::byte cc, int snap,
+    midi::byte astatus, midi::byte cc, int snap,
     int divide, bool fixlink
 )
 {
@@ -669,14 +740,14 @@ eventlist::quantize_events
         {
             midi::byte d0, d1;
             er.get_data(d0, d1);
-            bool match = er.match_status(status);
+            bool match = er.match_status(astatus);
             bool canselect = false;
             if (er.is_marked())                 /* ignore marked events     */
             {
                 er.unmark();
                 continue;
             }
-            if (midi::is_controller_msg(status))
+            if (midi::is_controller_msg(astatus))
                 canselect = match && d0 == cc;  /* correct status and cc    */
             else
                 canselect = match;              /* correct status, any cc   */
@@ -732,20 +803,37 @@ eventlist::quantize_events
  *
  * \param divide
  *      An indicator of the amount of quantization.  The values are either
- *      1 ("quantize") or 2 ("tighten").
+ *      1 ("quantize") or 2 ("tighten"). The default value is 1, which makes
+ *      the snap parameter the quantization value.
+ *
+ * \param all
+ *      If true (the default is false), then all events, not just selected
+ *      ones, are quantized.
+ *
+ * \return
+ *      Returns true if events were quantized.
  */
 
 bool
-eventlist::quantize_all_events (int snap, int divide)
+eventlist::quantize_events (int snap, int divide, bool all)
 {
     bool result = false;
-    midi::pulse len = length();
     bool tight = divide == 2;
+    bool found_note = false;
+    midi::pulse len = length();
     for (auto & er : m_events)
     {
-        result = tight ? er.tighten(snap, len) : er.quantize(snap, len) ;
+        if (all || er.is_selected())
+        {
+            bool ok = tight ? er.tighten(snap, len) : er.quantize(snap, len) ;
+            if (ok)
+                result = true;
+
+            if (er.is_note())
+                found_note = true;
+        }
     }
-    if (result)
+    if (result && found_note)
         verify_and_link();                          /* sorts them again!!!  */
 
     return result;
@@ -753,17 +841,31 @@ eventlist::quantize_all_events (int snap, int divide)
 
 /**
  *  Quantize/tighten all Note events, including Aftertouch.
+ *
+ * \param snap
+ *      The value to which to snap the events.
+ *
+ * \param divide
+ *      Divides the snap, e.g. in order to "tighten" rather than fully
+ *      quantize. Use set to 1 (the default) or 2.
+ *
+ * \param all
+ *      If false (the default), then only selected notes are acted on.
+ *      Otherwise, they all are.
+ *
+ * \return
+ *      Returns true if notes were quantized.
  */
 
 bool
-eventlist::quantize_notes (int snap, int divide)
+eventlist::quantize_notes (int snap, int divide, bool all)
 {
     bool result = false;
     midi::pulse len = length();
     bool tight = divide == 2;
     for (auto & er : m_events)
     {
-        if (er.is_selected_note())
+        if (all || er.is_selected_note())
         {
             if (er.is_marked())                 /* ignore marked events     */
             {
@@ -940,7 +1042,7 @@ eventlist::move_selected_events (midi::pulse delta_tick)
  *      If true, the events are sorted and relinked.
  *
  * \return
- *      Returns true all timestamps were adjusted.Otherwise, false is
+ *      Returns true all timestamps were adjusted. Otherwise, false is
  *      returned, which means the original events should be restored.
  */
 
@@ -951,13 +1053,13 @@ eventlist::align_left (bool relink)
     if (result)
     {
         const auto startev = m_events.begin();
-        midi::pulse ts = startev->timestamp();
-        result = ts > 0;
+        midi::pulse shift = startev->timestamp();
+        result = shift > 0;
         if (result)
         {
             for (auto & ev : m_events)
             {
-                midi::pulse newstamp = ev.timestamp() - ts;
+                midi::pulse newstamp = ev.timestamp() - shift;
                 if (newstamp >= 0)
                 {
                     ev.set_timestamp(newstamp);
@@ -971,8 +1073,53 @@ eventlist::align_left (bool relink)
             if (result && relink)
             {
                 sort();
-                verify_and_link();
-                result = get_max_timestamp();
+                result = verify_and_link();
+            }
+        }
+    }
+    return result;
+}
+
+/**
+ *  Makes the last event end at the end of the pattern.
+ *
+ * \param relink
+ *      If true (the default is false), the events are sorted and relinked.
+ *
+ * \return
+ *      Returns true all timestamps were adjusted. Otherwise, false is
+ *      returned, which means the original events should be restored.
+ */
+
+bool
+eventlist::align_right (bool relink)
+{
+    bool result = ! empty();
+    if (result)
+    {
+        const auto endev = m_events.rbegin();
+        midi::pulse endts = length();
+        midi::pulse shift = endts - endev->timestamp() - 1;
+        result = shift > 0;
+        if (result)
+        {
+            for (auto & ev : m_events)
+            {
+                midi::pulse newstamp = ev.timestamp() + shift;
+                if (newstamp < endts)
+                {
+                    ev.set_timestamp(newstamp);
+                }
+                else
+                {
+                    result = false;
+                    break;
+                }
+            }
+            if (result && relink)
+            {
+                sort();
+                result = verify_and_link();
             }
         }
     }
@@ -1149,14 +1296,14 @@ eventlist::reverse_events (bool inplace, bool relink)
  */
 
 bool
-eventlist::randomize_selected (midi::byte status, int range)
+eventlist::randomize (midi::byte astatus, int range, bool all)
 {
     bool result = false;
     if (range > 0)
     {
         for (auto & e : m_events)
         {
-            if (e.is_selected_status(status))
+            if (all || e.is_selected_status(astatus))
             {
                 if (e.randomize(range))
                     result = true;
@@ -1168,26 +1315,30 @@ eventlist::randomize_selected (midi::byte status, int range)
 
 /**
  *  This function randomizes a Note On or Note Off message, and more
- *  thoroughly than randomize_selected().  We want to be able to "jitter" the
+ *  thoroughly than randomize().  We want to be able to "jitter" the
  *  velocity (data byte d[1]) of the note.  The note pitch (d[0]) is not
  *  altered.
  *
  * \param range
  *      Provides the amount of velocity randomization.
  *
+ * \param all
+ *      If true (the default is false), handle all notes, not just the
+ *      selected notes.
+ *
  * \return
  *      Returns true if any event got altered.
  */
 
 bool
-eventlist::randomize_selected_notes (int range)
+eventlist::randomize (int range, bool all)
 {
     bool result = false;
     if (range > 0)
     {
         for (auto & e : m_events)
         {
-            if (e.is_selected_note())               /* randomizable event?  */
+            if (all || e.is_selected_note())        /* randomizable event?  */
             {
                 if (! e.is_note_off_recorded())     /* don't ruin fake Off  */
                 {
@@ -1197,10 +1348,12 @@ eventlist::randomize_selected_notes (int range)
             }
         }
         if (result)
-            verify_and_link();                      /* sort & relink notes  */
+            (void) verify_and_link();                      /* sort & relink notes  */
     }
     return result;
 }
+
+#if defined RTL66_USE_JITTER_EVENTS
 
 /**
  *  This function jitters the timestamps of all events. If note events were
@@ -1246,6 +1399,8 @@ eventlist::jitter_events (int snap, int jitr)
                      * In some cases, the linked Note Off, when quantized,
                      * will end up next to the Note On.  How to fix? If they
                      * are closer than half the snap, add the snap.
+                     *
+                     * Hmmmm, how about the zero-length correction???
                      */
 
                     event::iterator f = e.link();
@@ -1271,6 +1426,8 @@ eventlist::jitter_events (int snap, int jitr)
     return result;
 }
 
+#endif  // defined RTL66_USE_JITTER_EVENTS
+
 /**
  *  This function jitters the timestamps of all note events.  If any
  *  were jittered, then we verify-and-link.
@@ -1285,19 +1442,23 @@ eventlist::jitter_events (int snap, int jitr)
  * \param jitr
  *      Provides the amount of time jitter in ticks.
  *
+ * \param all
+ *      If true (the default is false), all events are jittered,
+ *      not just the selected events.
+ *
  * \return
  *      Returns true if some jittering was actually done.
  */
 
 bool
-eventlist::jitter_notes (int snap, int jitr)
+eventlist::jitter_notes (int snap, int jitr, bool all)
 {
     bool result = false;
     if (jitr > 0)
     {
         for (auto & e : m_events)
         {
-            if (e.is_selected_note())
+            if (all || e.is_selected_note())
             {
                 if (e.jitter(snap, jitr, length()))
                     result = true;
@@ -1308,6 +1469,8 @@ eventlist::jitter_notes (int snap, int jitr)
     }
     return result;
 }
+
+#if defined RTL66_USE_FILL_TIME_SIG_AND_TEMPO
 
 /**
  *  Scans the event-list for any tempo or time_signature events.
@@ -1333,6 +1496,10 @@ eventlist::scan_meta_events ()
     }
 }
 
+#endif  // RTL66_USE_FILL_TIME_SIG_AND_TEMPO
+
+#if defined RTL66_LINK_TEMPOS
+
 /**
  *  This function tries to link tempo events.  Native support for temp tracks
  *  is a new feature of seq66.  These links are only in one direction: forward
@@ -1345,9 +1512,10 @@ eventlist::scan_meta_events ()
  *      function safely.
  */
 
-void
+bool
 eventlist::link_tempos ()
 {
+    bool result = false;
     clear_tempo_links();
     for (auto t = m_events.begin(); t != m_events.end(); ++t)
     {
@@ -1359,6 +1527,7 @@ eventlist::link_tempos ()
             {
                 if (t2->is_tempo())
                 {
+                    result = true;
                     t->link(t2);
                     break;                  /* tempos link only one way     */
                 }
@@ -1366,21 +1535,28 @@ eventlist::link_tempos ()
             }
         }
     }
+    return result;
 }
 
 /**
- *  Clears all tempo event links.
+ *  Clears all tempo event links. We currently don't link them, though.
  */
 
-void
+bool
 eventlist::clear_tempo_links ()
 {
+    bool result = false;
     for (auto & e : m_events)
     {
         if (e.is_tempo())
+        {
             e.unlink();
+            result = true;
+        }
     }
 }
+
+#endif  // defined RTL66_LINK_TEMPOS
 
 /**
  *  Marks all selected events.
@@ -1404,28 +1580,45 @@ eventlist::mark_selected ()
     return result;
 }
 
+#if defined RTL66_MARK_ALL
+
 /**
  *  Marks all events.  Not yet used, but might come in handy with the event
  *  editor dialog.
  */
 
-void
+bool
 eventlist::mark_all ()
 {
+    bool result = false;
     for (auto & e : m_events)
+    {
+        result = true;
         e.mark();
+    }
+    return result;
 }
 
 /**
  *  Unmarks all events.
  */
 
-void
+bool
 eventlist::unmark_all ()
 {
+    bool result = false;
     for (auto & e : m_events)
+    {
+        if (e.is_marked())
+        {
+            result = true;
         e.unmark();
+        }
+    }
+    return result;
 }
+
+#endif  // defined RTL66_MARK_ALL
 
 /**
  *  Marks all events that have a time-stamp that is out of range.
@@ -1441,11 +1634,15 @@ eventlist::unmark_all ()
  *
  * \param slength
  *      Provides the length beyond which events will be pruned.
+ *
+ * \return
+ *      Returns true if any event(s) got marked.
  */
 
-void
+bool
 eventlist::mark_out_of_range (midi::pulse slength)
 {
+    bool result = false;
     for (auto & e : m_events)
     {
         bool prune = e.timestamp() > slength;   /* WAS ">=", SEE BANNER */
@@ -1454,11 +1651,13 @@ eventlist::mark_out_of_range (midi::pulse slength)
 
         if (prune)
         {
+            result = true;
             e.mark();
             if (e.is_linked())
                 e.link()->mark();
         }
     }
+    return result;
 }
 
 /**
@@ -1632,6 +1831,53 @@ eventlist::remove_marked ()
 }
 
 /**
+ *  Removes events on or after the given timestamp, which is normally
+ *  the beginning of a measure (though it does not have to be that).
+ *
+ *  We have to handle notes across the boundary carefully. We can either
+ *  removed both parts (On and Off) of the note, or shorten the note.
+ *  Probably the latter is better.
+ *
+ *  TO BE DETERMINED.
+ *
+ * \param limit
+ *      The time stamp at or after which events are to be remove.
+ */
+
+bool
+eventlist::remove_trailing_events (midi::pulse limit)
+{
+    bool result = false;
+    for (auto i = m_events.begin(); i != m_events.end(); /*++i*/)
+    {
+        if (i->timestamp() >= limit)
+        {
+            /*
+             * TODO: handled linked notes
+             */
+
+            auto t = remove(i);
+            i = t;
+            result = true;
+        }
+        else
+        {
+            if (i->is_note_on_linked())
+            {
+                auto ioff = i->link();
+                if (ioff->timestamp() >= limit)
+                    ioff->set_timestamp(limit - 1);
+            }
+            ++i;
+        }
+    }
+    if (result)
+        verify_and_link();
+
+    return result;
+}
+
+/**
  *  Removes selected events.  Note how this function handles removing a
  *  value to avoid incrementing a now-invalid iterator.
  *
@@ -1770,9 +2016,9 @@ eventlist::any_selected_events () const
 }
 
 /**
- *  Indicates that at least one matching event is selected.  Acts like
- *  eventlist::count_selected_events(), but stops after finding a selected
- *  note.
+ *  This is an overload of any_selected_events(). It indicates that at least
+ *  one matching event is selected.  Acts like eventlist ::
+ *  count_selected_events(), but stops after finding a selected note.
  *
  * \return
  *      Returns true if at least one matching event is selected.
@@ -1886,7 +2132,7 @@ eventlist::unselect_all ()
  * \param status
  *      The desired event in the selection.  Now, as a new feature, tempo
  *      events are also selectable, in addition to events selected by this
- *      parameter.
+ *      parameter. Oh, and now time-signature events.
  *
  * \param cc
  *      The desired control-change in the selection, if the event is a
@@ -1959,9 +2205,29 @@ eventlist::select_events
 }
 
 /**
- *  Selects the seqdata event handle if in range.
- *  One issue in adjusting data is Pitch events, which have two
- *  components [d0() and d1()] which must be combined.
+ *  Selects the seqdata event handle if in range.  One issue in adjusting data
+ *  is Pitch events, which have two components [d0() and d1()] which must be
+ *  combined. Another issue is tempo events, where the value is converted to a
+ *  note-velocity in order to display it in the data pane.
+ *
+ * \param tick_s
+ *      Provides the starting tick, which is some small amount below the tick
+ *      represented by the mouse position.
+ *
+ * \param tick_f
+ *      Provides the finishing  tick, which is some small amount above the
+ *      tick represented by the mouse position.
+ *
+ * \param astatus
+ *      Provides the type of event, such as Note-On/Off, Pitchbend, or Tempo.
+ *
+ * \param cc
+ *      For control events, represents the control code. Does not apply to
+ *      Notes, Tempo, Pitchbend.  For Meta events, cc is the type of Meta
+ *      event.
+ *
+ * \param data
+ *      Currently represents the note value.
  */
 
 int
@@ -1978,6 +2244,10 @@ eventlist::select_event_handle
     {
         if (count_selected_events(astatus, cc) > 0)
             have_selected_note_ons = true;
+    }
+    else if (is_tempo_msg(cc))
+    {
+        // TODO?
     }
     for (auto & er : m_events)
     {
@@ -2122,7 +2392,8 @@ eventlist::select_note_events
     int result = 0;
     for (auto & er : m_events)
     {
-        if (er.is_note() && er.get_note() <= note_h && er.get_note() >= note_l)
+        int n = int(er.get_note());                 /* gets byte m_data[0]  */
+        if (er.is_note() && n <= note_h && n >= note_l)
         {
             midi::pulse stick = 0, ftick = 0;
             if (er.is_linked())
