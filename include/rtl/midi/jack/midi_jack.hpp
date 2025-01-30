@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2023-07-20
+ * \updates       2025-01-20
  * \license       See above.
  *
  */
@@ -64,7 +64,7 @@ namespace rtl
  *  parameter requires that more than 0 ports must be found.
  */
 
-extern bool detect_jack (bool checkports, bool forcecheck = false);
+extern bool detect_jack (bool forcecheck = false);
 extern void set_jack_version ();
 extern void silence_jack_errors (bool silent);
 extern void silence_jack_info (bool silent);

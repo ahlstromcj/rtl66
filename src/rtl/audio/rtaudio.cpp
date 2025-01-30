@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2023-03-07
- * \updates       2024-01-30
+ * \updates       2025-01-20
  * \license       See above.
  *
  */
@@ -222,7 +222,7 @@ rtaudio::detected_apis () noexcept
             s_api_list.push_back(api::pipewire);
 #endif
 #if defined RTL66_BUILD_JACK_TODO               // TEMPORARILY DISABLED
-        if (detect_jack(true, false))           /* check ports, no recheck  */
+        if (detect_jack(false))                 /* check ports, no recheck  */
             s_api_list.push_back(api::jack);
 #endif
 #if defined RTL66_BUILD_ALSA_TODO               // TEMPORARILY DISABLED

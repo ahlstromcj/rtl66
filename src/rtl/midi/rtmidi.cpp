@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2024-06-09
+ * \updates       2025-01-20
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -284,7 +284,7 @@ rtmidi::detected_apis () noexcept
         }
 #endif
 #if defined RTL66_BUILD_JACK
-        if (detect_jack(true, false))           /* check ports, no recheck  */
+        if (detect_jack(false))                 /* check ports, no recheck  */
         {
             s_api_list.push_back(rtmidi::api::jack);
             s_uninitialized = false;

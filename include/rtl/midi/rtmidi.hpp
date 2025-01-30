@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2024-06-09
+ * \updates       2025-01-30
  * \license       See above.
  *
  *      Also contains some additional capabilities.
@@ -393,7 +393,7 @@ extern bool detect_pipewire ();
  * These declarations duplicate those in midi_jack.hpp!
  */
 
-extern bool detect_jack (bool checkports, bool forcecheck /*= false*/);
+extern bool detect_jack (bool forcecheck);          /* = false */
 extern void silence_jack_errors (bool silent);
 extern void silence_jack_info (bool silent);
 extern void silence_jack_messages (bool silent);

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2024-06-09
+ * \updates       2025-01-30
  * \license       See above.
  *
  *  Engine candidates:
@@ -129,7 +129,7 @@ static const size_t c_jack_ringbuffer_size = 2048;  /* tentative */
  */
 
 bool
-detect_jack (bool checkports, bool forcecheck)
+detect_jack (bool forcecheck)
 {
     bool result = false;
     static bool s_already_checked = false;
@@ -155,36 +155,21 @@ detect_jack (bool checkports, bool forcecheck)
             int rc = ::jack_activate(jackman);
             if (rc == 0)
             {
-                if (checkports)
+                const char ** ports = ::jack_get_ports
+                (
+                    jackman, NULL, JACK_DEFAULT_MIDI_TYPE, JackPortIsOutput
+                );
+                result = not_nullptr(ports);
+                if (result)
                 {
-                    const char ** ports = ::jack_get_ports
-                    (
-                        jackman, NULL, JACK_DEFAULT_MIDI_TYPE, JackPortIsOutput
-                    );
-                    result = not_nullptr(ports);
+                    int count = 0;
+                    while (not_nullptr(ports[count]))
+                        ++count;
 
-                    /*
-                     * We could also repeat this for input ports. Necessary?
-                     */
+                    result = count > 0;
                 }
-                else
-                {
-                    /*
-                     * This succeeds with jack_dbus running unless the port name
-                     * is empty.
-                     */
-
-                    jack_port_t * p = ::jack_port_register
-                    (
-                        jackman, "detector", JACK_DEFAULT_MIDI_TYPE,
-                        JackPortIsOutput, 0     /* no flags */
-                    );
-                    result = not_nullptr(p);
-                    if (result)
-                        (void) ::jack_port_unregister(jackman, p);
-                }
-                ::jack_deactivate(jackman);
             }
+            ::jack_deactivate(jackman);
             (void) ::jack_client_close(jackman);
         }
         if (result)
