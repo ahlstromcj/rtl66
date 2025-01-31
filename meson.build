@@ -126,11 +126,16 @@ endif
 #-----------------------------------------------------------------------------
 # Information for this sub-project.
 #-----------------------------------------------------------------------------
+#
+#  Tricky: the *.pc file must have a base name matching the name of the
+#  subproject *.wrap file.
+#
+#-----------------------------------------------------------------------------
 
 rtl66_pkg_description = 'Refactoring/extension of the RtMidi library for Seq66v2.'
 rtl66_pkg_version = meson.project_version()
 rtl66_api_version = '0.1'
-rtl66_info_date = '2024-04-28'
+rtl66_info_date = '2025-01-31'
 rtl66_info_build_type = get_option('buildtype')
 rtl66_info_build_root = meson.project_build_root()
 rtl66_info_lib_type = get_option('default_library')
@@ -212,7 +217,7 @@ os_unix = not os_win32
 # We prefer to use the style '#include "cfg/header.hpp".
 #-----------------------------------------------------------------------------
 
-librtl66_includes = include_directories('.',    # librtl66_include_top,
+librtl66_includes = include_directories('.',
    'include',
    'include/midi',
    'include/rtl',
@@ -363,7 +368,8 @@ endif
 #
 # The choice of library type is of some import for debugging:
 #
-#     library:          Defaults to a shared library.
+#     library:          Defaults to a shared library. The User setting is
+#                       'default_library'.  See project() above.
 #     shared_library:   Cannot see source files until stepped into.
 #     static_library:   Can see the source files when debugging.
 #     both_libraries:   Product both static and shared libraries.
@@ -386,8 +392,8 @@ if rtl66_use_potext
       c_args : build_args,
       cpp_args : build_args,
       dependencies : [
-         system_depends, libcfg66_library_dep, libxpc66_library_dep,
-         libpotext_library_dep
+         system_depends, liblib66_library_dep, libcfg66_library_dep,
+         libxpc66_library_dep, libpotext_library_dep
          ],
       include_directories : [ librtl66_includes ]
       )
@@ -402,7 +408,8 @@ else
       c_args : build_args,
       cpp_args : build_args,
       dependencies : [
-         system_depends, libcfg66_library_dep, libxpc66_library_dep
+         system_depends, liblib66_library_dep,libcfg66_library_dep,
+         libxpc66_library_dep
          ],
       include_directories : [ librtl66_includes ]
       )
