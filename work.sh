@@ -8,7 +8,7 @@
 # \library        rtl66
 # \author         Chris Ahlstrom
 # \date           2024-02-06
-# \update         2024-05-23
+# \update         2025-01-31
 # \version        $Revision$
 # \license        $XPC_SUITE_GPL_LICENSE$
 #
@@ -30,7 +30,7 @@ LANG=C
 export LANG
 CYGWIN=binmode
 export CYGWIN
-export RTL66_SCRIPT_EDIT_DATE="2024-05-23"
+export RTL66_SCRIPT_EDIT_DATE="2025-01-31"
 export RTL66_LIBRARY_API_VERSION="0.1"
 export RTL66_LIBRARY_VERSION="$RTL66_LIBRARY_API_VERSION.0"
 export RTL66="rtl66"
@@ -242,6 +242,7 @@ if test $DOCLEAN = "yes" ; then
    rm -rf build/include/
    rm -rf build/latex/
    rm -rf build/src/
+   rm -rf build/subprojects/
    rm -rf build/tests/
    rm -rf build/meson*
    rm -rf build/lib*
@@ -257,9 +258,10 @@ if test $DOCLEAN = "yes" ; then
    rm -f doc/latex/*.log
    rm -rf build/subprojects/
    echo "Build products removed from the rtl66/build directory."
-   rm -rf subprojects/potext
+   rm -rf subprojects/liblib66/
    rm -rf subprojects/libcfg66
    rm -rf subprojects/libxpc66
+   rm -rf subprojects/potext
    echo "Subproject products removed from the subprojects directory."
    git checkout doc/rtl66-dev-manual.pdf
    echo "Previous version of developer guide restored."

@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-07
-# \updates     2024-04-28
+# \updates     2025-01-31
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the rtl66 library.
@@ -269,9 +269,14 @@ if rtl66_use_potext
 
 endif
 
+liblib66_library_dep = dependency(
+   'liblib66', fallback : [ 'liblib66', 'liblib66_dep' ]
+   )
+
 libcfg66_library_dep = dependency(
    'libcfg66', fallback : [ 'libcfg66', 'libcfg66_dep' ]
    )
+
 libxpc66_library_dep = dependency(
    'libxpc66', fallback : [ 'libxpc66', 'libxpc66_dep' ]
    )

@@ -19,7 +19,8 @@
 /**
  * \file          mutegroups.cpp
  *
- *  This module declares a container for a number of optional mutegroup objects.
+ *  This module declares a container for a number of optional mutegroup
+ *  objects.
  *
  * \library       rtl66 library
  * \author        Chris Ahlstrom

@@ -4,7 +4,7 @@
 "
 "  Language:      C/C++
 "  Maintainer:    Chris Ahlstrom <ahlstromcj@users.sourceforge.net>
-"  Last Change:   2006-09-04 to 2024-06-12
+"  Last Change:   2006-09-04 to 2025-01-31
 "  Project:       XPC Suite library project
 "  Usage:
 "
@@ -45,7 +45,7 @@ syn keyword XPCC cfg cfg66 cli disabled enabled event eventlist
 syn keyword XPCC functor iothread lib66
 syn keyword XPCC masterbus midi message po port ports ringbuffer
 syn keyword XPCC rtl rtaudio rtmidi rtmidi_engine rtmidi_in rtmidi_out rtl66
-syn keyword XPCC seq seq66 session toggle track util xpc xpc66
+syn keyword XPCC seq seq66 session toggle toggler track util xpc xpc66
 syn keyword XPCC action clock clocking e_clock ignore jack max none
 syn keyword XPCC input output player transport synch
 syn keyword XPCC automutex recmutex

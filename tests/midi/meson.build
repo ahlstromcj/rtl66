@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-13
-# \updates     2024-05-26
+# \updates     2025-01-31
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the "rtl66" library. See the top-level meson.build
@@ -21,13 +21,13 @@
 api_names_exe = executable(
    'api_names',
    sources : ['api_names.cpp'],
-   dependencies : [ rtl66_dep ]
+   dependencies : [ rtl66_dep, liblib66_library_dep ]
    )
 
 cbmidiin_exe = executable(
    'cbmidiin',
    sources : ['cbmidiin.cpp'],
-   dependencies : [ rtl66_dep ]
+   dependencies : [ rtl66_dep, liblib66_library_dep ]
    )
 
 #-----------------------------------------------------------------------------
@@ -37,61 +37,67 @@ cbmidiin_exe = executable(
 midiclock_in_exe = executable(
    'midiclock_in',
    sources : ['midiclock.cpp'],
-   dependencies : [ rtl66_dep ]
+   dependencies : [ rtl66_dep, liblib66_library_dep ]
    )
 
 midiclock_out_exe = executable(
    'midiclock_out',
    sources : ['midiclock.cpp'],
-   dependencies : [ rtl66_dep ]
+   dependencies : [ rtl66_dep, liblib66_library_dep ]
    )
 
 midiout_exe = executable(
    'midiout',
    sources : ['midiout.cpp'],
-   dependencies : [ rtl66_dep ]
+   dependencies : [ rtl66_dep, liblib66_library_dep ]
    )
 
 midiprobe_exe = executable(
    'midiprobe',
    sources : ['midiprobe.cpp'],
-   dependencies : [ rtl66_dep ]
+   dependencies : [ rtl66_dep, liblib66_library_dep ]
    )
 
 midiprobeex_exe = executable(
    'midiprobeex',
    sources : ['midiprobeex.cpp'],
-   dependencies : [ rtl66_dep, libxpc66_library_dep ]
+   dependencies : [ rtl66_dep, liblib66_library_dep, libxpc66_library_dep ]
    )
 
 qmidiin_exe = executable(
    'qmidiin',
    sources : ['qmidiin.cpp'],
-   dependencies : [ rtl66_dep ]
+   dependencies : [ rtl66_dep, liblib66_library_dep ]
    )
 
 sysextest_exe = executable(
    'sysextest',
    sources : ['sysextest.cpp'],
-   dependencies : [ rtl66_dep ]
+   dependencies : [ rtl66_dep, liblib66_library_dep ]
    )
 
 test_c_api_exe = executable(
    'test_c_api',
    sources : ['test_c_api.c'],
-   dependencies : [ rtl66_dep ]
+   dependencies : [ rtl66_dep, liblib66_library_dep ]
    )
 
 smoke_exe = executable(
    'smoke',
    sources : ['smoke.cpp'],
-   dependencies : [ rtl66_dep, libcfg66_library_dep, libxpc66_library_dep ]
+   dependencies : [
+                     rtl66_dep, liblib66_library_dep, libcfg66_library_dep,
+                     libxpc66_library_dep
+                     ]
    )
 
 play_exe = executable(
    'play',
    sources : ['play.cpp'],
-   dependencies : [ rtl66_dep, libcfg66_library_dep, libxpc66_library_dep ]
+   dependencies : [
+                     rtl66_dep, liblib66_library_dep, libcfg66_library_dep,
+                     libxpc66_library_dep
+                     ]
    )
 
 test('API Names', api_names_exe)

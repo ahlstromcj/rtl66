@@ -1,9 +1,9 @@
-Libs66 Subprojects Directory
+Rtl66 Subprojects Directory
 Chris Ahlstrom
-2024-03-18 to 2024-03-19
+2024-03-18 to 2025-01-31
 
-The "subprojects" directory shall support usage of the potext library.
-Currently it gets the potext library from our local (in-house) git
-repository.
+The "subprojects" directory shall support usage of the potext, lib66,
+cfg66, and xpc66 libraries. These are all incorporated as Meson
+subprojects.
 
 # vim: sw=4 ts=4 wm=8 et ft=sh

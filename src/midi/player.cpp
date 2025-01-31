@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2024-06-01
+ * \updates       2025-01-31
  * \license       GNU GPLv2 or above
  *
  */
@@ -260,8 +260,8 @@ player::install_track
         label += trk->track_name();
         printf("%s\n", label.c_str());
 #endif
-        lib66::toggle sorting = m_sort_on_install ?
-            lib66::toggle::on : lib66::toggle::off ;
+        lib66::toggler sorting = m_sort_on_install ?
+            lib66::toggler::on : lib66::toggler::off ;
 
         trk->set_parent(this, sorting);         /* also sets a lot of stuff */
         if (! fileload)
@@ -1123,7 +1123,11 @@ player::set_track_name (track::ref t, const std::string & name)
  */
 
 bool
-player::set_recording (track::ref t, bool recordon, track::record r, bool toggle)
+player::set_recording
+(
+    track::ref t, bool recordon,
+    track::record r, bool toggle
+)
 {
     return t.set_recording(recordon, r, toggle);
 }

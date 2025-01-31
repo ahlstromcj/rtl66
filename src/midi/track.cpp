@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2022-12-05
+ * \updates       2025-01-31
  * \license       GNU GPLv2 or above
  *
  *  This class is important when writing the MIDI and track data out to a
@@ -627,7 +627,7 @@ track::track_name (const std::string & n)
  */
 
 void
-track::set_parent (player * p, lib66::toggle sorting)
+track::set_parent (player * p, lib66::toggler sorting)
 {
     if (not_nullptr(p))
     {
@@ -638,7 +638,7 @@ track::set_parent (player * p, lib66::toggle sorting)
 #if defined USE_MASTER_BUS
         master_midi_bus(p->master_bus());
 #endif
-        if (sorting == lib66::toggle::on)
+        if (sorting == lib66::toggler::on)
             sort_events();                  /* sort the events now          */
 
         set_length();                       /* final verify_and_link()      */

@@ -505,7 +505,7 @@ public:
         return m_armed;
     }
 
-    bool recording (bool recordon, bool toggle = false);
+    bool recording (bool recordon, bool toggler = false);
 
     bool recording () const
     {
@@ -568,7 +568,7 @@ public:
     void play_note_off (int note);
     void off_playing_notes ();
 
-    bool set_thru (bool thru_active, bool toggle = false);
+    bool set_thru (bool thru_active, bool toggler = false);
     bool toggle_playing ();
     bool toggle_playing (midi::pulse tick, bool resumenoteons);
     midi::pulse unit_measure (bool reset = false) const;
@@ -605,7 +605,7 @@ public:
 
     virtual void set_parent
     (
-        player * p, lib66::toggle sorting = lib66::toggle::off
+        player * p, lib66::toggler sorting = lib66::toggler::off
     );
     virtual bool set_length (midi::pulse len = 0, bool verify = true);
     virtual bool master_midi_bus (const midi::masterbus * mmb);
@@ -632,7 +632,7 @@ public:
     );
     virtual bool set_recording
     (
-        bool recordon, record r = record::normal, bool toggle = false
+        bool recordon, record r = record::normal, bool toggler = false
     );
     virtual void track_playing_change (bool on, bool qinprogress = false);
 
