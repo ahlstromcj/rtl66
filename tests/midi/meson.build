@@ -86,9 +86,9 @@ smoke_exe = executable(
    'smoke',
    sources : ['smoke.cpp'],
    dependencies : [
-                     rtl66_dep, liblib66_library_dep, libcfg66_library_dep,
-                     libxpc66_library_dep
-                     ]
+      rtl66_dep, liblib66_library_dep, libcfg66_library_dep,
+      libxpc66_library_dep
+      ]
    )
 
 play_exe = executable(

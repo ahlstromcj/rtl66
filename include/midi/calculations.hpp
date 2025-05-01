@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-11-07
- * \updates       2025-01-16
+ * \updates       2025-05-01
  * \license       GNU GPLv2 or above
  *
  *  These items were moved from the globals.h module so that only the modules
@@ -38,7 +38,7 @@
  */
 
 #include "cpp_types.hpp"                /* std::string, tokenization alias  */
-#include "midi/midibytes.hpp"           /* pulse alias and much more        */
+#include "midi/midibytes.hpp"           /* midi::pulse alias and much more  */
 #include "midi/measures.hpp"            /* midi::measures class             */
 #include "midi/timing.hpp"              /* midi::timing class               */
 
@@ -714,6 +714,24 @@ INTTYPE snapped (snapper snaptype, int S, INTTYPE p)
  * Free functions in the midi namespace.
  *------------------------------------------------------------------------*/
 
+inline int
+pitch_value_absolute (midi::byte d0, midi::byte d1)
+{
+    return int(d1) * 128 + int(d0);     /* absolute range is 0 to 16383     */
+}
+
+inline int
+pitch_value (midi::byte d0, midi::byte d1)
+{
+    return pitch_value_absolute(d0, d1) - 8192;
+}
+
+inline int
+pitch_value_scaled (midi::byte d0, midi::byte d1)
+{
+    return pitch_value(d0, d1) / 128;
+}
+
 extern int byte_to_int (midi::byte b);
 extern midi::byte int_to_byte (int v);
 extern std::string wave_type_name (waveform wv);
@@ -781,8 +799,10 @@ extern midi::pulse string_to_pulses
 /*
  * These functions are candidate for moving to a zoomer class, as in Seq66.
  */
+
 extern int pulses_per_substep (midi::pulse ppq, int zoom = 1);
 extern int pulses_per_pixel (midi::pulse ppq, int zoom = 1);
+extern double pitch_value_semitones (midi::byte d0, midi::byte d1);
 extern double wave_func (double angle, waveform wavetype);
 extern midi::pulse closest_snap (int S, midi::pulse p);
 extern midi::pulse down_snap (int S, midi::pulse p);
