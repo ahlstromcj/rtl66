@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2024-05-24
+ * \updates       2025-06-20
  * \license       GNU GPLv2 or above
  *
  *  These aliases are intended to remove ambiguity seen between signed and
@@ -41,6 +41,9 @@
  *  characters and increase the beauty.  Besides, it is easy to set up vim to
  *  highlight these new types in a special color, making them stand out easily
  *  while reading the code.
+ *
+ *  Also included are some small classes for encapsulating MIDI timing
+ *  information.
  */
 
 #if defined __cplusplus                 /* do not expose this to C code     */
@@ -77,7 +80,8 @@ namespace midi
 using byte = uint8_t;
 
 /**
- *  Provides an array-like container for bytes.
+ *  Provides an array-like container for midibytes. Compare it to the
+ *  midistring type.
  */
 
 using bytes = std::vector<byte>;
@@ -132,6 +136,14 @@ using jacktick = long;
  *  HOWEVER, CURRENTLY, if you make this value unsigned, then perfroll won't
  *  show any notes in the sequence bars!!!  Also, a number of manipulations of
  *  this type currently depend upon it being a signed value.
+ *
+ *  JACK timestamps are in units of "frames":
+ *
+ *      typedef uint32_t jack_nframes_t;
+ *      #define JACK_MAX_FRAMES (4294967295U)   // UINT32_MAX
+ *
+ *  A long value is the same size in 32-bit code, and longer in 64-bit code,
+ *  so we can use a midi::pulse to hold a frame number.
  */
 
 using pulse = long;
@@ -163,12 +175,22 @@ using ppqn = short;
  *  in this file.
  */
 
+using string = std::basic_string<byte>;         /* remember, midi::string   */
+
 /**
  *  Provides a convenient way to package a number of booleans, such as
  *  mute-group values or a screenset's sequence statuses.
  */
 
 using booleans = std::vector<boolean>;
+
+/**
+ *  Default settings for MIDI as per the specification.
+ */
+
+const int c_midi_clocks_per_metronome   = 24;
+const int c_midi_32nds_per_quarter      =  8;
+const int c_midi_pitch_wheel_range      =  2;       /* +/- 2 semitones      */
 
 /**
  *  We need a unique pulse value that can be used to be indicate a bad,
@@ -231,6 +253,13 @@ const int c_channel_null        = 0x80;
  */
 
 const int c_bad_id              = (-1);
+
+/*
+ * -------------------------------------------------------------------------
+ *  midi::measures: see measures.hpp
+ *  midi::timing: see timing.hpp
+ * -------------------------------------------------------------------------
+ */
 
 /**
  *  Compares a pulse value to c_null_pulse.  By "null" in this
@@ -326,6 +355,15 @@ midi_bytes (const bytes & b)
     return static_cast<const byte *>(b.data());
 }
 
+/*
+ *  More free functions, not inline. For reference only.
+
+extern std::string midi_bytes_string (const midistring & b, int limit = 0);
+extern midibyte string_to_midibyte (const std::string & s, midibyte defalt = 0);
+extern midibooleans fix_midibooleans (const midibooleans & mbs, int newsz);
+
+ */
+
 /**
  *  Compares a channel value to the maximum (and illegal) value.
  */
@@ -403,6 +441,24 @@ byte_value (int height, int value)
     const int s_max_height = 128;
     return s_max_height * value / height;
 }
+/*
+ *  In the latest versions of JACK, 0xFFFE is the macro "NO_PORT".  Although
+ *  krufty, we can use this value in Seq66 no matter the version of JACK, or
+ *  even what API is used.
+ *
+ *  See port.hpp for these definitions.
+ *
+ *  inline uint32_t
+ *  null_system_port_id ()
+ *  {
+ *      return 0xFFFE;
+ *  }
+ *  inline bool
+ *  is_null_system_port_id (uint32_t portid)
+ *  {
+ *      return portid == null_system_port_id();
+ *  }
+ */
 
 /*
  *  More free functions, not inline.

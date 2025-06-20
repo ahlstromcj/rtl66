@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-11-07
- * \updates       2025-01-16
+ * \updates       2025-06-20
  * \license       GNU GPLv2 or above
  *
  *  These items were moved from the globals.h module so that only the modules
@@ -135,6 +135,7 @@ enum class alteration
     quantize,       /**< grid_quant_full:    Adjust timing strictly.        */
     jitter,         /**< grid_quant_jitter:  Randomize timing slightly.     */
     random,         /**< grid_quant_random:  Randomize event magnitude.     */
+    random_pitch,   /**< ------------------  Randomize note pitches.        */
     notemap,        /**< grid_quant_notemap: Apply configured note-mapping. */
     rev_notemap,    /**< Apply the note-map in the reverser direction.      */
     max         /**<                      Illegal value.                    */
@@ -708,6 +709,36 @@ INTTYPE snapped (snapper snaptype, int S, INTTYPE p)
         }
     }
     return result;
+}
+
+/**
+ *  The absolute pitchbend range is 0 to 16383.
+ */
+
+inline int
+pitch_value_absolute (byte d0, byte d1)
+{
+    return int(d1) * 128 + int(d0);
+}
+
+/**
+ *  Move the range to -8192 to +8191.
+ */
+
+inline int
+pitch_value (byte d0, byte d1)
+{
+    return pitch_value_absolute(d0, d1) - 8192;
+}
+
+/**
+ *  Scale to range 0 to 128 (approximately).
+ */
+
+inline int
+pitch_value_scaled (byte d0, byte d1)
+{
+    return pitch_value_absolute(d0, d1) / 128;
 }
 
 /*------------------------------------------------------------------------
