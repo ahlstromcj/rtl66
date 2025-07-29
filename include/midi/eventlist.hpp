@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2025-01-16
+ * \updates       2025-07-29
  * \license       GNU GPLv2 or above
  *
  *  This module extracts the event-list functionality from the sequencer
@@ -59,18 +59,37 @@
 /**
  *  We made some fixes for sequencer64 issue #141 to disable saving the tempo
  *  into first track. But for Seq66, we do want to be able to save the
- *  time signature of each pattern with that pattern (especially if different
- *  from the global time signature). Note that we would support only one
- *  time-signature per pattern, but unlimited tempo changes.  Also note that,
- *  unlike tempo, time-signature does not affect the playback of MIDI events.
- *  It changes how they are displayed.
+ *  time signature(s) of each pattern with that pattern (especially if
+ *  different from the global time signature). Note that we would support
+ *  only one time-signature per pattern, but unlimited tempo changes.
+ *  Also note that, unlike tempo, time-signature does not affect the playback
+ *  of MIDI events. It changes how they are displayed.
  */
 
 #undef   RTL66_USE_FILL_TIME_SIG_AND_TEMPO
 
+/**
+ *  When recording, instead of a complete verify_and_link(), backtrack
+ *  from the latest event if it is a Note Off, and link to the previous
+ *  Note On with the same note value.
+ *
+ *  One issue is that this will cause problems on loop_reset() when recording.
+ *  Not recommended.
+ */
+
+#undef RTL66_LINK_NEWEST_NOTE_ON_RECORD
+
+/**
+ *  The jitter_events() function is currently unused, so it is macroed out.
+ */
+
+#undef RTL66_USE_JITTER_EVENTS
+
+
 #include <atomic>                       /* std::atomic<bool> usage          */
 
 #include "midi/event.hpp"               /* midi::event, midi::event::buffer */
+#include "midi/scales.hpp"              /* midi::scales enumeration class   */
 #include "midi/trackinfo.hpp"           /* data holders for MIDI parameters */
 
 namespace midi
@@ -82,9 +101,9 @@ namespace midi
 
 class eventlist
 {
-    friend class editable_events;       // access to verify_and_link()
-    friend class midifile;              // access to print()
-    friend class track;                 // any_selected_notes()
+    friend class editable_events;       /* access to verify_and_link()      */
+    friend class midifile;              /* access to print()                */
+    friend class track;                 /* any_selected_notes()             */
 
 public:
 
@@ -138,6 +157,7 @@ private:
 
     /**
      *  This list holds the current pattern/sequence events.
+     *  Note that it is std::vector<event>.
      */
 
     event::buffer m_events;
@@ -394,9 +414,14 @@ private:                                /* functions for friend sequence    */
     bool link_new (bool wrap = false);
     bool link_notes (event::iterator eon, event::iterator eoff);
     bool clear_links ();
+#if defined RTL66_LINK_TEMPOS
+    void link_tempos ();
+    void clear_tempo_links ();
+#endif
+#if defined RTL66_LINK_NEWEST_NOTE_ON_RECORD
+    void link_new_note ();
+#endif
     int note_count () const;
-
-    // NEW
     bool first_notes (midi::pulse & ts, int & n, midi::pulse snap = 0) const;
 #if defined RTL66_USE_FILL_TIME_SIG_AND_TEMPO
     void scan_meta_events ();
@@ -425,14 +450,15 @@ private:                                /* functions for friend sequence    */
     bool align_left (bool relink = false);
     bool align_right (bool relink = false);
     bool randomize (midi::byte status, int range, bool all = false);
-    bool randomize (int range, bool all = false);
-//  bool randomize_selected_notes (int range);
+    bool randomize_note_velocities (int range, bool all = false);
+    bool randomize_note_pitches
+    (
+        int range, scales s, keys keyofpattern, bool all = false
+    );
+#if defined RTL66_USE_JITTER_EVENTS
     bool jitter_events (int snap, int jitr);
-    bool jitter_notes (int snap, int jitr, bool all = false);
-#if defined RTL66_LINK_TEMPOS
-    void link_tempos ();
-    void clear_tempo_links ();
 #endif
+    bool jitter_notes (int snap, int jitr, bool all = false);
     bool mark_selected ();
     bool mark_out_of_range (midi::pulse slength);
 #if defined RTL66_MARK_ALL
@@ -446,6 +472,7 @@ private:                                /* functions for friend sequence    */
         midi::pulse starttick = 0
     );
     event::iterator find_next_match (const event & e);
+    bool remove_time_signature (midi::pulse target);
     bool remove_first_match
     (
         const event & e,

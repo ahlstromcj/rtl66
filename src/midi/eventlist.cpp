@@ -25,14 +25,14 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2025-01-16
+ * \updates       2025-07-29
  * \license       GNU GPLv2 or above
  *
  *  This container now can indicate if certain Meta events (time-signaure or
  *  tempo) have been added to the container.
  */
 
-#include <algorithm>                    /* std::sort(), std::merge()        */
+#include <algorithm>                    /* std::stable)sort(), std::merge() */
 
 #include "midi/calculations.hpp"        /* midi::randomize()                */
 #include "midi/eventlist.hpp"           /* midi::eventlist                  */
@@ -206,7 +206,7 @@ bool
 eventlist::add (event::buffer & evlist, const event & e)
 {
     evlist.push_back(e);                        /* std::vector operation    */
-    std::sort(evlist.begin(), evlist.end());
+    std::stable_sort(evlist.begin(), evlist.end());
     return true;
 }
 
@@ -230,7 +230,7 @@ eventlist::add (const event & e)
 {
     bool result = append(e);
     if (result)
-        sort();                         /* by time-stamp and "rank" */
+        sort();                                         /* time-stamp, rank */
 
     return result;
 }
@@ -239,14 +239,12 @@ eventlist::add (const event & e)
  *  Sorts the event list.  For the vector, equivalent elements are not
  *  guaranteed to keep their original relative order [see
  *  std::stable_sort(), which we could try at some point].
- *
- *  This method is probably flawed.
  */
 
 void
 eventlist::sort ()
 {
-    std::sort(m_events.begin(), m_events.end());
+    std::stable_sort(m_events.begin(), m_events.end());
 }
 
 /**
@@ -383,6 +381,92 @@ eventlist::link_new (bool wrap)
     return result;
 }
 
+#if defined RTL66_LINK_NEWEST_NOTE_ON_RECORD        /* undefined            */
+
+/**
+ *  This function links only the latest note, and should be called
+ *  only for Note Off events. It requires the following:
+ *
+ *  -   The note is the last one appended.
+ *  -   It is a Note Off.
+ *  -   All previous notes are already linked.
+ *
+ *  The caller assumes the above responsibilities. Additional checks are made:
+ *
+ *  -   The Note On is not already linked.
+ *  -   The Note Off is on the same channel as the Note On.
+ *  -   The note value (pitch) is the same for both notes.
+ *  -   The time-stamp of the Note Off is at are after the Note On.
+ *      If right at it (due to quantization), then a zero-length
+ *      correction is made for the Note Off.
+ *
+ *  Note that we cannot (easily) use a reverse_iterator because
+ *  the event object stores links as normal iterators. It's a real
+ *  issue to convert between reverse and forward iterators, or pointers
+ *  or references. Luckily, the container (std::vector) has bidirectional
+ *  iterators.
+ *
+ *  We could change to using the std::bidirectional_iterator once we
+ *  graduate to C++20, which won't be for some time.
+ */
+
+void
+eventlist::link_new_note ()
+{
+    if (count() > 1)
+    {
+        bool done = false;
+        for (auto off = m_events.end(); off != m_events.begin(); /* none */ )
+        {
+            --off;                                  /* can't use end() val  */
+            if (off->off_linkable())                /* note-off, not linked */
+            {
+                auto on = off;
+                while (! done)
+                {
+                    --on;
+                    if (on == m_events.begin())
+                    {
+                        done = true;
+                        break;
+                    }
+
+                    bool ok = on->on_linkable();
+                    if (ok)
+                        ok = on->channel() == off->channel();
+
+                    if (ok)
+                        ok = on->get_note() == off->get_note();
+
+                    if (ok)
+                    {
+                        ok = on->timestamp() <= off->timestamp();
+                        if (on->timestamp() == off->timestamp())
+                        {
+                            long ts = on->timestamp();
+                            ts += m_zero_len_correction;
+                            off->set_timestamp(ts);
+#if defined RTL66_PLATFORM_DEBUG_TMI
+                            printf ("Zero-length note @%ld fixed\n", ts);
+#endif
+                        }
+                    }
+                    if (ok)
+                    {
+                        (void) link_notes(on, off);
+                        done = true;
+                    }
+                }
+            }
+            if (done)
+                break;
+        }
+    }
+}
+
+#endif  // defined SEQ66_LINK_NEWEST_NOTE_ON_RECORD
+
+
 /**
  *  If we're in legacy merge mode for a loop, the Note Off is actually earlier
  *  than the Note On.  And in replace mode, the Note On is cleared, leaving us
@@ -414,6 +498,15 @@ eventlist::link_notes (event::iterator eon, event::iterator eoff)
     {
         eon->link(eoff);
         eoff->link(eon);
+        if (eon->timestamp() == eoff->timestamp())
+        {
+            long ts = eon->timestamp();
+            ts += m_zero_len_correction;
+            eoff->set_timestamp(ts);
+#if defined RTL66_PLATFORM_DEBUG_TMI
+            printf ("Zero-length note @%ld fixed\n", ts);
+#endif
+        }
     }
     return result;
 }
@@ -640,7 +733,7 @@ eventlist::edge_fix (midi::pulse snap, midi::pulse len)
                 midi::pulse offstamp = e.link()->timestamp();
                 if (offstamp < onstamp)
                 {
-                    e.set_timestamp(0);         /* move to beginning    */
+                    e.set_timestamp(0);             /* move to beginning    */
                     e.link()->set_timestamp(offstamp + delta);
                     result = true;
                 }
@@ -648,7 +741,7 @@ eventlist::edge_fix (midi::pulse snap, midi::pulse len)
         }
     }
     if (result)
-        verify_and_link();                      /* sorts as well        */
+        (void) verify_and_link();                   /* sorts as well        */
 
     return result;
 }
@@ -674,7 +767,7 @@ eventlist::remove_unlinked_notes ()
             ++i;
     }
     if (result)
-        verify_and_link();                      /* sorts as well        */
+        (void) verify_and_link();                   /* sorts as well        */
 
     return result;
 }
@@ -720,8 +813,10 @@ eventlist::remove_unlinked_notes ()
  * \param fixlink
  *      This parameter indicates if linked events are to be
  *      adjusted against the length of the pattern.
+ *      NOT PRESENT IN SEQ66 VERSION. IS IT USEFUL HERE?
  *
- *      NOT PRESENT IN SEQ66 VERSION.
+ * \return
+ *      Returns true if quantization was performed.
  */
 
 bool
@@ -787,7 +882,7 @@ eventlist::quantize_events
         }
     }
     if (result)
-        verify_and_link();                          /* sorts them again!!!  */
+        (void) verify_and_link();               /* sorts the events again!! */
 
     return result;
 }
@@ -796,7 +891,7 @@ eventlist::quantize_events
  *  Quantizes all events, unconditionally.  No adjustment for wrapped notes
  *  is made.
  *
- * \param snap_tick
+ * \param snap
  *      Provides the maximum amount to move the events.  Actually, events are
  *      moved to the previous or next snap_tick value depend on whether they
  *      are halfway to the next one or not.
@@ -834,7 +929,7 @@ eventlist::quantize_events (int snap, int divide, bool all)
         }
     }
     if (result && found_note)
-        verify_and_link();                          /* sorts them again!!!  */
+        (void) verify_and_link();                   /* sorts them again!!!  */
 
     return result;
 }
@@ -1009,7 +1104,7 @@ eventlist::move_selected_notes (midi::pulse delta_tick, int delta_note)
         }
     }
     if (result)
-        verify_and_link();                          /* sort and relink      */
+        (void) verify_and_link();                   /* sort and relink      */
 
     return result;
 }
@@ -1291,6 +1386,10 @@ eventlist::reverse_events (bool inplace, bool relink)
  * \param range
  *      The amount of randomization.  A positive non-zero value is enforced.
  *
+ * \param all
+ *      If true, randomize all events regardless of status value. The default
+ *      is false.
+ *
  * \return
  *      Returns true if some randomization occurred.
  */
@@ -1331,11 +1430,12 @@ eventlist::randomize (midi::byte astatus, int range, bool all)
  */
 
 bool
-eventlist::randomize (int range, bool all)
+eventlist::randomize_note_velocities (int range, bool all)
 {
-    bool result = false;
-    if (range > 0)
+    bool result = range > 0;
+    if (result)
     {
+        result = false;                             /* ca 2025-06-18        */
         for (auto & e : m_events)
         {
             if (all || e.is_selected_note())        /* randomizable event?  */
@@ -1347,8 +1447,128 @@ eventlist::randomize (int range, bool all)
                 }
             }
         }
-        if (result)
-            (void) verify_and_link();                      /* sort & relink notes  */
+
+        /*
+         * ca 2025-06-13. We're not changing the order or timing
+         * of notes, why relink?
+         *
+         *    if (result)
+         *        (void) verify_and_link();         // sort & relink notes
+         */
+    }
+    return result;
+}
+
+/**
+ *  This function randomizes the pitch of a Note On/Note Off message pair.
+ *  We want it to fall within the given scale (which might be
+ *  scale::chromatic, which includes all twelve notes.)
+ *
+ *  This is a little tricky. If the randomized pitch isn't part of the
+ *  specified scale we need to go up or down a pitch value until it is.
+ *
+ * \param range
+ *      Provides the amount of velocity randomization.
+ *
+ * \param s
+ *      Provides the scale to adhere to. If equal to scale::chromatic
+ *      (also known as scale::off), no adjustment is needed.
+ *
+ * \param all
+ *      If true (the default is false), handle all notes, not just the
+ *      selected notes.
+ *
+ * \return
+ *      Returns true if any event got altered.
+ */
+
+bool
+eventlist::randomize_note_pitches
+(
+    int range, scales s, keys keyofpattern, bool all
+)
+{
+    bool result = range > 0;
+    if (result)
+    {
+#if defined SEQ66_PLATFORM_DEBUG_TMI
+        printf
+        (
+            "Key of %s, %s scale\n",
+            musical_key_name(keyofpattern).c_str(),
+            musical_scale_name(s).c_str()
+        );
+#endif
+        result = false;
+        (void) verify_and_link();                       /* play safe & sort */
+        for (auto & e : m_events)
+        {
+            bool ok = all ? e.is_note() : e.is_selected_note() ;
+            if (ok)                                     /* randomizable?    */
+            {
+#if defined SEQ66_USE_UNIFORM_INT_DISTRIBUTION
+                int delta = midi::randomize_uniformly(range);
+#else
+                int delta = midi::randomize(range);
+#endif
+                int p = int(e.get_note());
+                if (s == scales::off)
+                {
+                    p += delta;
+                }
+                else
+                {
+                    p += delta;
+                    for (int offset = 0; ; ++offset)    /* find legal note  */
+                    {
+                        int testp = p + offset;
+                        if (scales_policy(s, keyofpattern, testp))
+                        {
+                            p = testp;
+                            break;
+                        }
+                        else
+                        {
+                            testp = p - offset;
+                            if (scales_policy(s, keyofpattern, testp))
+                            {
+                                p = testp;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (e.is_note_on())
+                {
+                    result = true;
+                    e.set_note(midi::byte(p));
+                    if (e.is_linked())
+                    {
+                        e.link()->set_note(midi::byte(p));
+                    }
+                    else
+                    {
+#if defined SEQ66_PLATFORM_DEBUG
+                        printf("Orphaned Note On in randomizing pitch\n");
+#endif
+                    }
+                }
+                else if (e.is_note_off())
+                {
+                    if (! e.is_linked())
+                    {
+                        result = true;
+                        e.set_note(midi::byte(p));
+#if defined SEQ66_PLATFORM_DEBUG
+                        printf("Orphaned Note Off in randomizing pitch\n");
+#endif
+                    }
+                }
+            }
+            else
+                continue;
+        }
+        (void) verify_and_link();                       /* play safe & sort */
     }
     return result;
 }
@@ -1385,7 +1605,7 @@ eventlist::jitter_events (int snap, int jitr)
             if (e.is_marked())                  /* ignore marked events     */
             {
                 e.unmark();
-                continue;
+                continue;                       /* it was a linked note     */
             }
             if (e.jitter(snap, jitr, length()))
             {
@@ -1502,7 +1722,7 @@ eventlist::scan_meta_events ()
 
 /**
  *  This function tries to link tempo events.  Native support for temp tracks
- *  is a new feature of seq66.  These links are only in one direction: forward
+ *  is a feature of seq66.  These links are only in one direction: forward
  *  in time, to the next tempo event, if any.
  *
  *  Also, at present, tempo events are not markable.
@@ -1647,7 +1867,7 @@ eventlist::mark_out_of_range (midi::pulse slength)
     {
         bool prune = e.timestamp() > slength;   /* WAS ">=", SEE BANNER */
         if (! prune)
-            prune = e.timestamp() < 0;          /* added back, seq66    */
+            prune = e.timestamp() < 0;
 
         if (prune)
         {
@@ -1703,7 +1923,7 @@ eventlist::remove_event (event & e)
  *          -   Song-info: Find (or remove) the first meta text event at
  *              timestamp 0.
  *          -   Track-info: Find (and take note of) the first meta text event
- *              at any timestamp (e.timestamp == c_null_midipulse).
+ *              at any timestamp (e.timestamp == c_null_midi::pulse).
  *              -   Get the text and timestamp. As en event?
  *              -   Set the event to a new value.
  *
@@ -1763,6 +1983,37 @@ eventlist::find_next_match (const event & e)
 
     return result;
 
+}
+
+/**
+ *  Do we need a time fudge-factor of a few ticks?
+ *
+ * \param target
+ *      Provides the time at which we expect the time-signature to be.
+ *
+ * \return
+ *      Returns true only if the time signature was found and removed.
+ */
+
+bool
+eventlist::remove_time_signature (midi::pulse target)
+{
+    bool result = false;
+    for (auto i = m_events.begin(); i != m_events.end(); ++i)
+    {
+        event & er = dref(i);
+        if (er.is_time_signature())
+        {
+            midi::pulse t = er.timestamp();
+            if (t == target)
+            {
+                (void) remove(i);
+                result = true;
+                break;
+            }
+        }
+    }
+    return result;
 }
 
 /**
@@ -1909,7 +2160,7 @@ eventlist::remove_selected ()
     return result;
 }
 
-#if 0
+#if defined RTL66_SUPPORT_PAINTED_EVENTS
 
 /**
  *  Unpaints all list-events.
@@ -1922,7 +2173,7 @@ eventlist::unpaint_all ()
         er.unpaint();
 }
 
-#endif  // 0
+#endif  // defined RTL66_SUPPORT_PAINTED_EVENTS
 
 /**
  *  Counts the selected Note On events in the event list.
@@ -2227,7 +2478,10 @@ eventlist::select_events
  *      event.
  *
  * \param data
- *      Currently represents the note value.
+ *      Currently represents the note or d0 value.
+ *
+ * \return
+ *      Returns the number of matching events in range of the data value.
  */
 
 int
