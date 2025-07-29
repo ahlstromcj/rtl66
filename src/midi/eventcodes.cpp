@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2024-05-13
+ * \updates       2024-07-29
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -856,6 +856,99 @@ meta_label (byte m)
     if (iter != s_meta_names.end())
         result = iter->second;
 
+    return result;
+}
+
+/**
+ *  Duty now for the future.
+ */
+
+using rpnpair = struct
+{
+    short number;
+    std::string name;
+};
+
+const int c_rpn_value_count = 8;
+
+static rpnpair
+s_rpn_names [c_rpn_value_count] =
+{
+    {   0x0000,     "Pitch Bend Range"            },
+    {   0x0001,     "Fine Tuning"                 },
+    {   0x0002,     "Coarse Tuning"               },
+    {   0x0003,     "Tuning Program Change"       },
+    {   0x0004,     "Tuning Bank Select"          },
+    {   0x0005,     "Modulation Depth Range"      },
+    {   0x0006,     "Channel Range"               },
+    {   0x3FFF,     "RPN Null"                    }
+};
+
+std::string
+rpn_name (int index)
+{
+    std::string result;
+    if (index == 0x3FFFF)
+        index = c_rpn_value_count - 1;
+
+    if (index >= 0 && index < c_rpn_value_count)
+    {
+        std::string name = s_rpn_names[index].name;
+        result = std::to_string(index);
+        result += " ";
+        result += name;
+    }
+    return result;
+}
+
+/**
+ *  Converts a 14-but RPN number to the MSB and LSB bytes.
+ *
+ *  Here is the process:
+ *
+ *  -   In binary, this is a 16-bit number.  0011111110000000.
+ *  -   Ignore the two leading zeroes, i.e. it's a 14-bit number.
+ *  -   Get the MSB.
+ *          -   Get the next 7 bits.
+ *          -   Prepend a 0.
+ *  -   Get the LSB.
+ *          -   Get the last 7 bits.
+ *          -   Prepend a 0.
+ *
+ *        MMMMMMMLLLLLLL
+ *
+ * \param rpnn
+ *      The 14-bit RPN number. It must be greater than zero and less
+ *      than 16364 (0x4000).
+ *
+ * \param [out] out
+ *      Holds the two bytes, with out[0] being the LSB, and out[1] being
+ *      the MSB.
+ *
+ * \return
+ *      Returns true if the output bytes can be used.
+ */
+
+bool
+rpn_number_to_bytes (short rpnn, midi::byte out [2])
+{
+    bool result = rpnn >= 0 && rpnn < 16384;
+    if (result)
+    {
+        unsigned short rpnn_lsb = rpnn & 0x3F;
+        unsigned short rpnn_msb = rpnn & 0x3F80;    /* rpnn - rpnn_lsb ?    */
+        out[0] = midi::byte(rpnn_lsb);
+        out[1] = midi::byte(rpnn_msb);
+    }
+    return result;
+}
+
+short
+bytes_to_rpn_number (const midi::byte in [2])
+{
+    short result = short(in[1]);                    /* the MSB 7 bits       */
+    result <<= 7;
+    result += short(in[0]);
     return result;
 }
 

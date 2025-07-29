@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-01-16
+ * \updates       2025-07-29
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -811,6 +811,9 @@ extern int meta_msg_size (byte m);
 extern std::string status_label (byte m);
 extern std::string meta_text_label (byte m);
 extern std::string meta_label (byte m);
+extern std::string rpn_name (int index);
+extern bool rpn_number_to_bytes (short rpnn, midi::byte out [2]);
+extern short bytes_to_rpn_number (const midi::byte in [2]);
 
 }           // namespace midi
 

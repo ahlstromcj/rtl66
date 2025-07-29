@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-01-15
+ * \updates       2025-07-29
  * \license       GNU GPLv2 or above
  *
  *  A MIDI event (i.e. "track event") is encapsulated by the midi::event
@@ -74,8 +74,8 @@
  */
 
 #include "c_macros.h"                   /* not_nullptr(), errprint()        */
-#include "midi/event.hpp"               /* midi::event class                */
 #include "midi/calculations.hpp"        /* midi::rescale_tick(), etc.       */
+#include "midi/event.hpp"               /* midi::event class                */
 
 namespace midi
 {
@@ -160,7 +160,7 @@ event::event (midi::pulse tstamp, midi::byte s, midi::byte d0, midi::byte d1) :
 event::event (midi::pulse tstamp, midi::bpm tempo) :
     m_input_buss    (null_buss()),
     m_timestamp     (tstamp),
-    m_message          (),                     /* now a midi::message ????     */
+    m_message       (),
     m_channel       (midi::to_byte(meta::set_tempo)),
     m_linked        (),
     m_has_link      (false),
@@ -173,6 +173,31 @@ event::event (midi::pulse tstamp, midi::bpm tempo) :
 #endif
 {
     set_tempo(tempo);                       /* fills the m_message vector      */
+}
+
+/**
+ *  Creates other Meta events.
+ */
+
+event::event
+(
+    midi::pulse tstamp, midi::meta metatype, const midi::bytes & data
+) :
+    m_input_buss    (null_buss()),
+    m_timestamp     (tstamp),
+    m_message       (),
+    m_channel       (midi::to_byte(metatype)),
+    m_linked        (),
+    m_has_link      (false),
+    m_selected      (false),
+#if defined RTL66_SUPPORT_PAINTED_EVENTS
+    m_marked        (false),
+    m_painted       (false)
+#else
+    m_marked        (false)
+#endif
+{
+    (void) append_meta_data(metatype, data);
 }
 
 /**
@@ -189,7 +214,7 @@ event::event
 ) :
     m_input_buss    (null_buss()),
     m_timestamp     (tstamp),
-    m_message          (),                     /* now a midi::message          */
+    m_message       (),
     m_channel       (channel),
     m_linked        (),
     m_has_link      (false),
@@ -244,7 +269,7 @@ event::event
 event::event (const event & rhs) :
     m_input_buss    (rhs.m_input_buss),
     m_timestamp     (rhs.m_timestamp),
-    m_message          (rhs.m_message),
+    m_message       (rhs.m_message),
     m_channel       (rhs.m_channel),
     m_linked        (rhs.m_linked),         /* for vector implemenation */
     m_has_link      (rhs.m_has_link),       /* m_linked has 2 linkers!  */
@@ -286,7 +311,7 @@ event::operator = (const event & rhs)
     {
         m_input_buss    = rhs.m_input_buss;
         m_timestamp     = rhs.m_timestamp;
-        m_message          = rhs.m_message;
+        m_message       = rhs.m_message;
         m_channel       = rhs.m_channel;
         m_linked        = rhs.m_linked;             /* vector implemenation */
         m_has_link      = rhs.m_has_link;           /* two linkers!         */
@@ -300,12 +325,12 @@ event::operator = (const event & rhs)
 }
 
 /**
- *
+ *  Destructor.
  */
 
 event::~event ()
 {
-    // Automatic destruction of members is enough
+    // automatic destruction of members is enough
 }
 
 /**
@@ -337,7 +362,7 @@ event::prep_for_send (midi::pulse tick, const event & source)
 {
     m_input_buss    = source.m_input_buss;
     m_timestamp     = tick;
-    m_message          = source.m_message;    /* holds event data or SysEx bytes  */
+    m_message       = source.m_message; /* holds event data/SysEx bytes     */
 }
 
 /**
@@ -451,47 +476,6 @@ event::is_desired (midi::byte s, midi::byte cc) const
     return result;
 }
 
-#if defined RTL66_ENABLE_THIS_CODE
-
-/**
- *  This is a bit tricky. The range of pixels in the data pane is 0 to 127
- *  or 0 to 64 (in shrunken mode). For note events, the ranges is also
- *  0 to 127. The diameter of tempo grab handle is currently s_handled_d = 8,
- *  which can represent a wide range in tempos.
- *
- *      event::is_data_in_handle_range (midi::byte target) const
- *
- *  See the uncommented duplicate below! Which is better?
- */
-
-bool
-event::is_data_in_handle_range (midi::byte target) const
-{
-    bool result = false;
-    if (is_tempo())
-    {
-        static const midi::bpm s_delta = note_value_to_tempo(4);
-        midi::bpm t = tempo();
-        midi::bpm tdesired = note_value_to_tempo(target);
-        result = t >= (tdesired - s_delta) && t <= (tdesired + s_delta);
-    }
-    else
-    {
-        static const midi::byte s_delta = 2;                /* seq32 provision  */
-        static const midi::byte max = c_midibyte_value_max - s_delta;
-        midi::byte datum = is_one_byte() ? d0() : d1() ;
-        result = target >= s_delta && target <= max;
-        if (result)
-        {
-            result = datum >= (target - s_delta) &&
-                datum <= (target + s_delta);
-        }
-    }
-    return result;
-}
-
-#endif
-
 bool
 event::is_desired (midi::byte s, midi::byte cc, midi::byte data) const
 {
@@ -537,16 +521,44 @@ event::is_desired_ex (midi::byte s, midi::byte cc) const
     return result;
 }
 
+/**
+ *  This is a bit tricky. The range of pixels in the data pane is 0 to 127
+ *  or 0 to 64 (in shrunken mode). For note events, the ranges is also
+ *  0 to 127. The diameter of tempo grab handle is currently s_handled_d = 8,
+ *  which can represent a wide range in tempos.
+ *
+ *      event::is_data_in_handle_range (midi::byte target) const
+ *
+ *  See the uncommented duplicate below! Which is better?
+ */
+
 bool
 event::is_data_in_handle_range (midi::byte target) const
 {
-    static const midi::byte delta = 2;                  /* seq32 provision  */
-    static const midi::byte max = c_byte_value_max - delta;
-    midi::byte datum = is_one_byte() ? d0() : d1() ;
-    bool result = target >= delta && target <= max;
-    if (result)
-        result = datum >= (target - delta) && datum <= (target + delta);
-
+    bool result = false;
+    if (is_tempo())
+    {
+        static const midi::bpm s_delta = note_value_to_tempo(4);
+        midi::bpm t = tempo();
+        midi::bpm tdesired = note_value_to_tempo(target);
+        result = t >= (tdesired - s_delta) && t <= (tdesired + s_delta);
+    }
+    else if (is_program_change())
+    {
+        result = true;
+    }
+    else
+    {
+        static const midi::byte s_delta = 4;    /* 2? seq32 provision  */
+        static const midi::byte max = midi::c_byte_value_max - s_delta;
+        midi::byte datum = is_one_byte() ? d0() : d1() ;
+        result = target >= s_delta && target <= max;
+        if (result)
+        {
+            result = datum >= (target - s_delta) &&
+                datum <= (target + s_delta);
+        }
+    }
     return result;
 }
 
@@ -559,8 +571,7 @@ event::set_data
 (
     midi::pulse tstamp,
     midi::byte status,
-    midi::byte d0,
-    midi::byte d1
+    midi::byte d0, midi::byte d1
 )
 {
     set_timestamp(tstamp);
@@ -640,6 +651,8 @@ event::set_status (midi::byte s)
     {
         m_message[0] = s;
         m_channel = null_channel();         /* channel "not applicable"     */
+
+        // WHAT ABOUT m_channel in m_message ??? Use set_channel() ?
     }
     else if (is_channel_msg(s))             /* 0x80 to 0xEF                 */
     {
@@ -688,7 +701,7 @@ event::set_status_keep_channel (midi::byte eventcode)
 {
     m_message[0] = eventcode;
     if (is_channel_msg(eventcode))
-        m_channel = mask_channel(eventcode);
+        m_channel = mask_channel(eventcode);    // set_channel() ?
 }
 
 #if defined RTL66_THIS_FUNCTION_IS_USED
@@ -732,48 +745,50 @@ event::set_midi_event
     midi::pulse timestamp,
     const midi::bytes & buffer,
     size_t count
-//  const midi::byte * buffer,
-//  int count
 )
 {
-    bool result = true;
+    midi::byte eventstatus = buffer[0];
+    bool result = is_below_sysex_msg(eventstatus);          /* < 0xf0       */
     set_timestamp(timestamp);
-//  set_sysex_size(count);
-    if (count == 0)             /* portmidi: analyze the event to get count */
+    if (result)
     {
-        if (is_two_byte_msg(buffer[0]))
-            count = 3;
-        else if (is_one_byte_msg(buffer[0]))
-            count = 2;
-        else
-            count = 1;
-    }
-    if (count == 3)
-    {
-        set_status_keep_channel(buffer[0]);
-        set_data(buffer[1], buffer[2]);
-        if (is_note_off_recorded())
+        if (count == 0)         /* portmidi: analyze the event to get count */
         {
-            midi::byte channel = mask_channel(buffer[0]);
-            midi::byte status = add_channel
-            (
-                midi::to_byte(status::note_off), channel
-            );
-            set_status_keep_channel(status);
+            if (is_two_byte_msg(buffer[0]))
+                count = 3;
+            else if (is_one_byte_msg(buffer[0]))
+                count = 2;
+            else
+                count = 1;
         }
-    }
-    else if (count == 2)
-    {
-        set_status_keep_channel(buffer[0]);
-        set_data(buffer[1]);
-    }
-    else if (count == 1)
-    {
-        set_status(buffer[0]);
-        clear_data();
+        if (count == 3)
+        {
+            set_status_keep_channel(buffer[0]);
+            set_data(buffer[1], buffer[2]);
+            if (is_note_off_recorded())
+            {
+                midi::byte channel = mask_channel(buffer[0]);
+                midi::byte status = add_channel
+                (
+                    midi::to_byte(status::note_off), channel
+                );
+                set_status_keep_channel(status);
+            }
+        }
+        else if (count == 2)
+        {
+            set_status_keep_channel(buffer[0]);
+            set_data(buffer[1]);
+        }
+        else if (count == 1)
+        {
+            set_status(buffer[0]);
+            clear_data();
+        }
     }
     else
     {
+#if 0
         if (midi::is_sysex_msg(buffer[0]))
         {
             reset_sysex();            /* set up for sysex if needed   */
@@ -785,6 +800,65 @@ event::set_midi_event
         }
         else
             result = false;
+#endif
+        midi::status s = midi::to_status(eventstatus);
+        result = true;
+        reset_sysex();                      /* set up for sysex if needed   */
+        switch (s)
+        {
+        case midi::status::sysex:
+
+            result = append_sysex(buffer, count);
+            if (! result)
+                errprint("append_sysex() failed");
+            break;
+
+        case midi::status::meta_msg:        /* 0xFF: done in create_event() */
+
+            break;
+
+        /*
+         *  System Common Messages. Included in the default case (i.e. no
+         *  data bytes) are:
+         *
+         *      midi::status::TUNE_REQUEST   = 0xF6u
+         *
+         *  System Realtime Messages are all in the default case:
+         *
+         *      midi::status::CLOCK          = 0xF8u
+         *      midi::status::START          = 0xFAu
+         *      midi::status::CONTINUE       = 0xFBu
+         *      midi::status::STOP           = 0xFCu
+         *      midi::status::ACTIVE_SENSE   = 0xFEu
+         *      midi::status::RESET          = 0xFFu
+         */
+
+        case midi::status::quarter_frame:      /* 0xF1u:  1 data byte          */
+
+            result = append_sysex(buffer[1]);
+            break;
+
+        case midi::status::song_pos:           /* 0xF2u:  2 data bytes         */
+
+            result = append_sysex(&buffer[1], 2);
+            break;
+
+        case midi::status::song_select:        /* 0xF3u:  1 data byte, unused  */
+
+            result = append_sysex(buffer[1]);
+            break;
+
+        case midi::status::sysex_end:          /* 0xF7u: SysEx End or Continue */
+
+            warnprint("Unexpected SysEx End");
+            break;
+
+        default:
+
+            set_status(eventstatus);
+            clear_data();
+            break;
+        }
     }
     return result;
 }
@@ -807,6 +881,26 @@ event::set_midi_event (const midi::message & msg)
     (
         msg.time_stamp(), msg.event_bytes(), int(msg.size())
     );
+}
+
+/**
+ *  Sets a Meta event.  Meta events have a status byte of status::meta_msg ==
+ *  0xff and a channel value that reflects the type of Meta event (e.g. 0x51
+ *  for a "Set Tempo" event). We also (redundantly) store it it m_message[1].
+ *
+ *  Note that the data bytes (if any) for this event will still need to be
+ *  added to the event via (for example) the append_sysex(), set_sysex(),
+ *  or append_meta_data() functions.
+ *
+ * \param metatype
+ *      Indicates the type of meta event.
+ */
+
+void
+event::set_meta_status (midi::meta metatype)
+{
+    set_status(status::meta_msg);                       /* sets m_message[0]   */
+    m_message[1] = m_channel = midi::to_byte(metatype);
 }
 
 /**
@@ -892,26 +986,6 @@ event::append_sysex (const midi::byte * data, size_t dsize)
 }
 
 /**
- *  Sets a Meta event.  Meta events have a status byte of EVENT_MIDI_META ==
- *  0xff and a channel value that reflects the type of Meta event (e.g. 0x51
- *  for a "Set Tempo" event). We also (redundantly) store it it m_message[1].
- *
- *  Note that the data bytes (if any) for this event will still need to be
- *  added to the event via (for example) the append_sysex(), set_sysex(),
- *  or append_meta_data() functions.
- *
- * \param metatype
- *      Indicates the type of meta event.
- */
-
-void
-event::set_meta_status (midi::meta metatype)
-{
-    set_status(status::meta_msg);                       /* sets m_message[0]   */
-    m_message[1] = m_channel = midi::to_byte(metatype);
-}
-
-/**
  *  This function appends Meta-event data from a vector to a new buffer.
  *
  *      0xff mm len data...
@@ -947,15 +1021,15 @@ event::append_meta_data
 )
 {
     midi::bytes vlen = varinum_to_bytes(midi::ulong(data.size()));
-    m_message.clear();                     /* empty it to reconstruct it       */
-    m_message.push(0);                     /* allocate message::m_message[0]      */
-    m_message.push(0);                     /* allocate message::m_message[1]      */
-    set_meta_status(metatype);          /* set m_message[0] and [1]            */
+    m_message.clear();                  /* empty it to reconstruct it       */
+    m_message.push(0);                  /* allocate message::m_message[0]   */
+    m_message.push(0);                  /* allocate message::m_message[1]   */
+    set_meta_status(metatype);          /* set m_message[0] and [1]         */
     for (auto b : vlen)
         m_message.push(b);
 
 #if defined RTL66_USE_MESSAGE_HEADER_SIZE
-    m_message.log_header_size();           /* log the offset to actual data    */
+    m_message.log_header_size();        /* log the offset to actual data    */
 #endif
 
     for (auto b : data)                 /* add the actual data              */
@@ -1055,7 +1129,6 @@ event::to_string () const
         result += is_linked() ? "L" : " ";
         result += is_marked() ? "M" : " ";
         result += is_selected() ? "S" : " ";
-//      result += is_painted() ? "P" : " ";
         result += is_midi_clock() ? "C" : " ";
         result += ") ";
     }
@@ -1102,6 +1175,13 @@ event::rescale (midi::ppqn newppqn, midi::ppqn oldppqn)
  *  We also now consider SysEx and Meta event. Meta comes first, SysEx comes
  *  last.
  *
+ *  Considering that bank select control values (coarse and fine) would be
+ *  followed by a program change. Can they occur simultaneously?
+ *  Just in case, we should give control change the higher priority.
+ *  Actually, no, because this screws up the order of bank change then
+ *  program change. So we make them equivalent, *and* we also change
+ *  to using std::stable_sort() [slower] in eventlist.
+ *
  * Note:
  *      We could add the channel number as part of the ranking. Sound?
  *
@@ -1136,25 +1216,20 @@ event::get_rank () const
                 break;
 
             case midi::status::aftertouch:
-            case status::channel_pressure:
-            case status::pitch_wheel:
+            case midi::status::channel_pressure:
+            case midi::status::pitch_wheel:
                 result = 0x0050;
                 break;
 
             case midi::status::control_change:
-                result = 0x0020;
-                break;
-
             case midi::status::program_change:
-                result = 0x0010;
+                result = 0x0200;
                 break;
 
             default:
                 result = 0;
                 break;
-            }
-            if (result != 0)
-                result += mask_channel(status()) << 8;
+        }
     }
     return result;
 }
@@ -1470,6 +1545,74 @@ create_tempo_event (midi::pulse tick, midi::bpm tempo)
 {
     event e(tick, tempo);
     return e;
+}
+
+/**
+ *  We want to create a single event from raw bytes (not from a file), for
+ *  the purpose of inserting macros into a pattern.
+ *
+ *  The first parameter is the time-stamp.
+ *
+ *  For three byte events:
+ *
+ *       note_off, note_on, aftertouch, control_change, pitch_wheel
+ *
+ *       event (midi::pulse tstamp, midi::byte status, midi::byte d0, midi::byte d1) :
+ *
+ *       status = byte[0],
+ *       d0 = byte[1]
+ *       d1 = byte[2]
+ *
+ *  For two-byte events:
+ *
+ *       program_change, channel_pressure
+ *
+ *       event (midi::pulse tstamp, midi::byte status, midi::byte d0, midi::byte d1) :
+ *
+ *       status = byte[0],
+ *       d0 = byte[1]
+ *       d1 = 0 or default
+ *
+ *  Realtime MIDI Meta:
+ *
+ *       status = byte[0],
+ *       meta-type = byte[1]
+ *       length = varinum bytes [2 to 4]
+ *       data = length bytes
+ *
+ *  Realtime SysEx:
+ *
+ *       status = byte[0],
+ *       length = varinum bytes [1 to 3]
+ *       data = length bytes
+ *
+ *  Seq66-specific SeqSpecs are not handled.
+ *
+ *      https://www.songstuff.com/recording/article/midi-message-format/
+ */
+
+event
+create_event (midi::pulse tstamp, const midi::bytes & dbytes)
+{
+    event result;
+    bool is_set = result.set_midi_event(tstamp, dbytes, dbytes.size());
+    if (! is_set)
+    {
+        midi::status eventstatus = to_status(dbytes[0]);
+        if (eventstatus == midi::status::meta_msg)
+        {
+            midi::byte metatype = dbytes[1];
+            int index = 2;
+            midi::ulong len = extract_varinum(dbytes, index);
+            result.set_meta_status(metatype);
+            (void) result.set_sysex(dbytes.data() + index, len);
+        }
+        else
+        {
+            warnprint("unhandled MIDI event");
+        }
+    }
+    return result;
 }
 
 }           // namespace midi

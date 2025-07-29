@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-01-16
+ * \updates       2025-07-29
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -201,6 +201,9 @@ private:
      *  Overload:  For Meta events, where is_meta() is true, this value holds
      *  the type of Meta event. See the editable_event::sm_meta_event_names[]
      *  array.
+     *
+     *  TODO: This item is already present in the message class. We should use
+     *        that one.
      */
 
     midi::byte m_channel;
@@ -271,6 +274,7 @@ public:
         midi::byte d1 = 0
     );
     event (midi::pulse tstamp, midi::bpm tempo);
+    event (midi::pulse tstamp, midi::meta metatype, const midi::bytes & data);
     event
     (
         midi::pulse tstamp,
@@ -360,7 +364,7 @@ public:
     (
         midi::pulse timestamp,
         const midi::bytes & buffer,
-        size_t count
+        size_t count                    // = 0 ???
     );
     bool set_midi_event (const midi::message & msg);
 
@@ -469,11 +473,19 @@ public:
 
     /**
      *  Clears the data, useful in reusing an event to hold incoming MIDI.
+     *  The name isn't quite accurate, but is legacy.
+     *
+     *  The second function clears all bytes ni the message.
      */
 
     void clear_data ()
     {
         m_message[1] = m_message[2] = 0;
+    }
+
+    void clear_bytes ()
+    {
+        m_message.clear();
     }
 
     /**
@@ -483,7 +495,7 @@ public:
 
     void clear_link ()
     {
-        unmark();
+        unmark();           // DO WE REALLY NEED THIS HERE?
         unlink();
     }
 
@@ -626,11 +638,17 @@ public:
      *      and false is returned.
      *
      * \param len
-     *      The number of bytes to set. STILL NEEDED???
+     *      The number of bytes to set.
      *
      * \return
      *      Returns true if the function succeeded.
      */
+
+    bool set_sysex (const midi::byte * data, int len)
+    {
+        reset_sysex();
+        return append_sysex(data, size_t(len));
+    }
 
     bool set_sysex (const midi::bytes & data)
     {
@@ -1094,10 +1112,11 @@ private:    // used by friend eventlist
 };          // class event
 
 /*
- * Global functions in the midi
+ * Global functions in the midi namespace.
  */
 
 extern event create_tempo_event (midi::pulse tick, midi::bpm tempo);
+extern event create_event (midi::pulse tick, const midi::bytes & data);
 
 }           // namespace midi
 

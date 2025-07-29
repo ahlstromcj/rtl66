@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-11-07
- * \updates       2025-06-20
+ * \updates       2025-07-29
  * \license       GNU GPLv2 or above
  *
  *  These items were moved from the globals.h module so that only the modules
@@ -48,6 +48,13 @@
  */
 
 #undef  CFG66_USE_UNIFORM_INT_DISTRIBUTION     /* EXPERIMENTAL */
+
+/**
+ *  Most of the "pulses-to-xxx" functions have been moved to the zoomer
+ *  class. The definitions in the current module have issues.
+ *
+ * #undef  CFG66_USE_EXTRA_PULSE_CALCULATIONS
+ */
 
 /*
  * Global functions in the midi namespace for MIDI timing calculations.
@@ -82,6 +89,7 @@ enum class waveform
     triangle,                   /**< No waveform, never used.               */
     exponential,                /**< A partial exponential rise.            */
     reverse_exponential,        /**< A partial exponential fall.            */
+    dc,                         /**< DC offset adjustment only.             */
     max                         /**< Illegal value.                         */
 };
 
@@ -167,7 +175,7 @@ enum class fixeffect
     shrunk          = 0x10,
     expanded        = 0x20,
     time_sig        = 0x40,
-    truncated       = 0x80,
+    truncated       = 0x80,             // STILL NEEDED?
     all             = 0xFF
 };
 
@@ -324,16 +332,6 @@ bpm_from_tempo_us (double tempous)
     return tempous >= 1.0 ? (60000000.0 / tempous) : 0.0 ;
 }
 
-/**
- *  Provides a direct conversion from a byte array to the beats/minute
- *  value.
- *
- *  It might be worthwhile to provide an std::vector version at some point.
- *
- * \param t
- *      The 3 tempo bytes that were read directly from a MIDI file.
- */
-
 extern midi::bpm tempo_us_from_bytes (const midi::bytes & tt);
 
 inline midi::bpm
@@ -341,6 +339,16 @@ bpm_from_bytes (const midi::bytes & tt)
 {
     return bpm_from_tempo_us(tempo_us_from_bytes(tt));
 }
+
+#if defined THIS_IS_NEEDED
+
+inline midi::bpm
+bpm_from_bytes (midi::byte t[3])
+{
+    return bpm_from_tempo_us(tempo_us_from_bytes(t));
+}
+
+#endif
 
 /**
  *  Calculates pulse-length from the BPM (beats-per-minute) and PPQN
@@ -456,7 +464,7 @@ ticks_to_delta_time_us (midi::pulse delta, midi::bpm bp, midi::ppqn ppq)
  *  confuse it with "MIDI timecode".
  *
  *  The standard MIDI beat clock ticks every 24 times every quarter note
- *  (crotchet).
+ *  (crotchet). See c_midi_clocks_per_metronome in the midibytes module.
  *
  *  Unlike MIDI timecode, the MIDI beat clock is tempo-dependent. Clock events
  *  are sent at a rate of 24 PPQN (pulses per quarter note). Those pulses are
@@ -469,7 +477,7 @@ ticks_to_delta_time_us (midi::pulse delta, midi::bpm bp, midi::ppqn ppq)
 inline int
 midi_clock_beats_per_qn ()
 {
-    return 24;
+    return c_midi_clocks_per_metronome;
 }
 
 /**
@@ -519,47 +527,6 @@ qn_per_beat (int bw = 4)
 }
 
 /**
- *  Calculates the pulses per measure.  This calculation is extremely simple,
- *  and it provides an important constraint to pulse (ticks) calculations:
- *  the default number of pulses in a measure is always 4 times the PPQN value,
- *  regardless of the time signature.  The number pulses in a 7/8 measure is
- *  *not* the same as in a 4/4 measure.
- *
- *  A candidate for moving to a zoomer class.
- */
-
-inline int
-default_pulses_per_measure (int ppq, int bpb = 4)
-{
-    return ppq * bpb;
-}
-
-/**
- *  Factors in the number of beats in a measure.
- *
- *  A candidate for moving to a zoomer class.
- */
-
-inline int
-pulses_per_measure (int ppq, int bpb = 4, int bw = 4)
-{
-    return (bw > 0) ? 4 * ppq * bpb / bw : ppq * bpb ;
-}
-
-/**
- *  Calculates the number of pulses in a quarter beat, with an adjustment
- *  for 120 and 240 PPQN.
- *
- *  A candidate for moving to a zoomer class.
- */
-
-inline int
-pulses_per_quarter_beat (int ppq, int bpb = 4, int bw = 4)
-{
-    return (bw > 0) ? ppq * bpb / bw : ppq ;
-}
-
-/**
  *  Calculates the pulses in a beat. For a 4/4 time signature, this is the
  *  same as PPQN.
  *
@@ -568,17 +535,18 @@ pulses_per_quarter_beat (int ppq, int bpb = 4, int bw = 4)
  *
  *          return ppq * bpb / bw;
  *
- *  Used only in the metro class.
+ *  Used only in the metro class. Could also be used in the analysis of
+ *  time-signatures.
  */
 
 inline int
 pulses_per_beat (int ppq, int beatspm = 4, int beatwidth = 4)
 {
-    return beatspm * ppq / beatwidth;
+    return (beatwidth > 0) ? beatspm * ppq / beatwidth : ppq ;
 }
 
 /*
- * Defined in the cpp file.
+ * Defined in the cpp file, but macroed out to save for posterity.
  *
  *      int pulses_per_substep (midipulse ppq, int zoom)
  *      int pulses_per_pixel (midipulse ppq, int zoom = 2)
@@ -712,55 +680,86 @@ INTTYPE snapped (snapper snaptype, int S, INTTYPE p)
 }
 
 /**
- *  The absolute pitchbend range is 0 to 16383.
+ *  The absolute pitchbend range is 0 to 16383, which is 14 bits.
+ *
+ *         Bend down    Center      Bend up
+ *      0 |<-----------  8192  ----------->| 16384
+ *  -8192                 0                   8191
+ *
+ *      14 bits resolution (MSB, LSB). Value = 128 * MSB + LSB, where,
+ *      in Seq66, d0 is the LSB and d1 is the MSB.
+ *
+ *  minimum : The maximum negative swing is achieved with data bytes of
+ *            00, 00. Value = 0.
+ *
+ *  center:   The center (no effect) position is achieved with data bytes of
+ *            00, 64 (00H, 40H). Value = 8192.
+ *
+ *  maximum : The maximum positive swing is achieved with data bytes of
+ *            127, 127 (7FH, 7FH). Value = 16384.
+ *
+ *  There are 2 ways to make the calculation:
+ *
+ *      int(d1) << 7 + int(d0)   - OR -    int(d1) * 128 + int(d0)
+ *
+ * \param d0
+ *      Provides the LSB (least significant byte) of the pitchbend value.
+ *
+ * \param d1
+ *      Provides the MSB (most significant byte) of the pitchbend value.
+ *
+ * \return
+ *      Returns the pitch value, ranging from 0 to 16383.
+ *      If either data value exceeds 127, 8192 is returned.
  */
 
 inline int
-pitch_value_absolute (byte d0, byte d1)
+pitch_value_absolute (midi::byte d0, midi::byte d1)
 {
-    return int(d1) * 128 + int(d0);
-}
+    int result = 8192;                      /* 8192 is the center, no bend  */
+    if ((d0 < 128) && (d1 < 128))           /* this is a sanity check       */
+        result = (int(d1) << 7) + int(d0);
 
-/**
- *  Move the range to -8192 to +8191.
- */
-
-inline int
-pitch_value (byte d0, byte d1)
-{
-    return pitch_value_absolute(d0, d1) - 8192;
-}
-
-/**
- *  Scale to range 0 to 128 (approximately).
- */
-
-inline int
-pitch_value_scaled (byte d0, byte d1)
-{
-    return pitch_value_absolute(d0, d1) / 128;
+    return result;
 }
 
 /*------------------------------------------------------------------------
  * Free functions in the midi namespace.
  *------------------------------------------------------------------------*/
 
-inline int
-pitch_value_absolute (midi::byte d0, midi::byte d1)
-{
-    return int(d1) * 128 + int(d0);     /* absolute range is 0 to 16383     */
-}
+/**
+ *  Like pitch_value_absolute(), but moves the range to -8192 to +8191.
+ *  This little table summarizes the results:
+ *
+\verbatim
+        d0      d1      Value   Absolute value
+    -   127     127     +8191     16383
+    -     0      64       0        8192
+    -     0       0     -8192         0
+\endverbatim
+ */
 
 inline int
 pitch_value (midi::byte d0, midi::byte d1)
 {
-    return pitch_value_absolute(d0, d1) - 8192;
+    int pabs = pitch_value_absolute(d0, d1);
+    return pabs - 8192;
 }
+
+/**
+ *  Scale to range 0 to 128 (approximately), where 0 is down 2 semitones
+ *  and 127 is up 2 semitones.
+ *
+ *         Bend down    Center      Bend up
+ *      0 |<-----------   64   ----------->| 128
+ */
 
 inline int
 pitch_value_scaled (midi::byte d0, midi::byte d1)
 {
-    return pitch_value(d0, d1) / 128;
+    int pv = pitch_value_absolute(d0, d1);  /* ranges from 0 to 16384       */
+    pv /= 128;                              /* ranges from 0 to 128         */
+    return pv;
 }
 
 extern int byte_to_int (midi::byte b);
@@ -815,6 +814,7 @@ extern midi::pulse midi_measures_to_pulses
     const measures & measures,
     const timing & seqparms
 );
+extern midi::measures string_to_measures (const std::string & bbt);
 extern midi::pulse timestring_to_pulses
 (
     const std::string & timestring,
@@ -829,12 +829,26 @@ extern midi::pulse string_to_pulses
 
 /*
  * These functions are candidate for moving to a zoomer class, as in Seq66.
+ *
+ *      extern int pulses_per_substep (midi::pulse ppq, int zoom = 1);
+ *      extern int pulses_per_pixel (midi::pulse ppq, int zoom = 1);
  */
 
-extern int pulses_per_substep (midi::pulse ppq, int zoom = 1);
-extern int pulses_per_pixel (midi::pulse ppq, int zoom = 1);
-extern double pitch_value_semitones (midi::byte d0, midi::byte d1);
+extern double pitch_value_semitones
+(
+    midi::byte d0, midi::byte d1, int semitone_range = 2
+);
+extern void pitch_data_bytes
+(
+    int pitchvalue, midi::byte & d0, midi::byte & d1
+);
+extern void pitch_data_bytes_scaled
+(
+    midi::byte pitch,
+    midi::byte & d0, midi::byte & d1
+);
 extern double wave_func (double angle, waveform wavetype);
+extern midi::ulong extract_varinum (const midi::bytes & data, int & index);
 extern midi::pulse closest_snap (int S, midi::pulse p);
 extern midi::pulse down_snap (int S, midi::pulse p);
 extern midi::pulse up_snap (int S, midi::pulse p);
@@ -856,12 +870,18 @@ extern int previous_power_of_2 (int value);
 extern int next_power_of_2 (int value);
 extern int power (int base, int exponent);
 extern midi::byte beat_log2 (int value);
+
+/*
+ * Declared earlier: extern midi::bpm tempo_us_from_bytes (const midibytes &);
+ */
+
 extern bool tempo_us_to_bytes (midi::bytes & tt, midi::bpm tempo_us);
 extern midi::byte tempo_to_note_value (midi::bpm tempo);
 extern midi::bpm note_value_to_tempo (midi::byte tempo);
 extern midi::bpm fix_tempo (midi::bpm tempo);
+extern int midi_data_adjust (int invalue, int reduction);
 extern unsigned short combine_bytes (midi::byte b0, midi::byte b1);
-extern double unit_truncation (double angle);
+// extern double unit_truncation (double angle);
 extern double exp_normalize (double angle, bool negate = false);
 extern midi::ulong bytes_to_varinum
 (

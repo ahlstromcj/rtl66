@@ -50,9 +50,9 @@ namespace seq66
 std::string
 to_string (seqspec sp)
 {
-    static midi::long s_min = static_cast<midi::long> seqspec::midibus;
-    static midi::long s_max = static_cast<midi::long> seqspec::max;
-    static std::map<midi::long, std::string> s_string_map
+    static midi::ulong s_min = static_cast<midi::ulong> seqspec::midibus;
+    static midi::ulong s_max = static_cast<midi::ulong> seqspec::max;
+    static std::map<midi::ulong, std::string> s_string_map
     {
         { midibus,          "MIDI Bus"                  },
         { midichannel,      "MIDI Channel"              },
@@ -88,7 +88,7 @@ to_string (seqspec sp)
         { trig_transpose,   "Triggers (Seq66)"          }
     };
     std::string result;
-    midi::long splong = static_cast<midi::long>(sp);
+    midi::ulong splong = static_cast<midi::long>(sp);
     if (splong >= s_min and splong < s_max)
         result = s_string_map[sp];
 

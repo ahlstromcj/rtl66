@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2024-05-09
+ * \updates       2024-06-30
  * \license       GNU GPLv2 or above
  *
  */
@@ -44,6 +44,8 @@ namespace midi
 
 /**
  *  Converts a vector of bytes to a human-readable string in hex notation.
+ *
+ *  Seq66: midi_bytes_string()
  *
  * \param b
  *      Provides the vector of bytes to be rendered readable.
@@ -112,6 +114,8 @@ bytes_to_string (const bytes & b)
 /**
  *  Converts a string to a MIDI byte.  Similar to string_to_long() in the
  *  cfg66/util/strfunctions module.
+ *
+ *  Seq66: string_to_midibyte()
  *
  * \param s
  *      Provides the string to convert to a MIDI byte.

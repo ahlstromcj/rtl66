@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2025-06-20
+ * \updates       2025-06-30
  * \license       GNU GPLv2 or above
  *
  *  These aliases are intended to remove ambiguity seen between signed and
@@ -426,7 +426,8 @@ inline int
 byte_height (int height, byte value)
 {
     const int s_max_height = 128;
-    return int(value) * height / s_max_height;
+    return height == s_max_height ?
+        int(value) : int(value) * height / s_max_height;
 }
 
 /**
@@ -439,7 +440,8 @@ inline int
 byte_value (int height, int value)
 {
     const int s_max_height = 128;
-    return s_max_height * value / height;
+    return height == s_max_height ?
+        value : s_max_height * value / height;
 }
 /*
  *  In the latest versions of JACK, 0xFFFE is the macro "NO_PORT".  Although

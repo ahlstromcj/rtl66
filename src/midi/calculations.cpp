@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-11-07
- * \updates       2025-05-01
+ * \updates       2025-07-28
  * \license       GNU GPLv2 or above
  *
  *  This code was moved from the globals module so that other modules
@@ -86,7 +86,7 @@
 namespace midi
 {
 
-#if 0   // moved to the header
+#if 0   // moved to the header and returned via inline functions.
 
 /**
  *  This value represent the smallest horizontal unit in a Sequencer66 grid.
@@ -325,9 +325,9 @@ pulses_to_string (pulse p)
  */
 
 std::string
-pulses_to_measurestring (pulse p, const timing & seqparms)
+pulses_to_measurestring (midi::pulse p, const midi::timing & seqparms)
 {
-    measures m;                                     /* bars, beats, ticks   */
+    midi::measures m;                               /* bars, beats, ticks   */
     char tmp[32];
     int width = 3;
     if (is_null_pulse(p))
@@ -382,8 +382,8 @@ bool
 pulses_to_midi_measures
 (
     pulse p,
-    const timing & seqparms,
-    measures & bars
+    const midi::timing & seqparms,
+    midi::measures & bars
 )
 {
     int W = seqparms.beat_width();
@@ -485,7 +485,7 @@ pulses_to_measures
  */
 
 std::string
-pulses_to_time_string (pulse p, const timing & timinginfo)
+pulses_to_time_string (midi::pulse p, const midi::timing & timinginfo)
 {
     return pulses_to_time_string
     (
@@ -651,7 +651,7 @@ midi::pulse
 measurestring_to_pulses
 (
     const std::string & measures,
-    const timing & seqparms
+    const midi::timing & seqparms
 )
 {
     midi::pulse result = 0;
@@ -724,8 +724,8 @@ measurestring_to_pulses
 midi::pulse
 midi_measures_to_pulses
 (
-    const measures & bars,
-    const timing & seqparms
+    const midi::measures & bars,
+    const midi::timing & seqparms
 )
 {
     midi::pulse result = c_null_pulse;
@@ -756,7 +756,7 @@ midi_measures_to_pulses
  *  less than a pulse.
  */
 
-measures
+midi::measures
 string_to_measures (const std::string & bbt)
 {
     std::string m;
@@ -826,7 +826,12 @@ timestring_to_pulses
             int hours = strtoi(sh);
             int minutes = strtoi(sm);
             int seconds = strtoi(ss);
-            double secfraction = atof(us.c_str());
+
+            /*
+             * Alternative: atof(us.c_str());
+             */
+
+            double secfraction = util::string_to_double(us, 0, 3);
             long sec = ((hours * 60) + minutes) * 60 + seconds;
             long microseconds = 1000000 * sec + long(1000000.0 * secfraction);
             double pulses = delta_time_us_to_ticks(microseconds, bp, ppq);
@@ -871,7 +876,7 @@ midi::pulse
 string_to_pulses
 (
     const std::string & s,
-    const timing & mt,
+    const midi::timing & mt,
     bool timestring
 )
 {
@@ -1049,6 +1054,9 @@ log2_of_power_of_2 (int tsd)
         return (-1);
 }
 
+#if defined CFG66_USE_EXTRA_PULSE_CALCULATIONS
+#endif  // defined CFG66_USE_EXTRA_PULSE_CALCULATIONS
+
 /**
  *
  *  A candidate to move to a zoomer class.
@@ -1116,8 +1124,12 @@ int
 pulses_per_substep (midi::pulse ppq, int zoom)
 {
     const int pixels_per_substep = 6;
-    int result = int(ppq) * zoom * pixels_per_substep;
-    result /= base_ppqn();
+
+    /*
+     *  int result = zoom * pixels_per_substep;
+     */
+
+    int result = int(ppq) * zoom * pixels_per_substep / base_ppqn();
     if ((result % 2) != 0)
         ++result;
 
@@ -1149,6 +1161,8 @@ pulses_per_pixel (midi::pulse ppq, int zoom)
 
     return result;
 }
+
+// #endif  // defined SEQ66_USE_EXTRA_PULSE_CALCULATIONS
 
 /**
  *  Internal function for simple calculation of a power of 2 without a lot of
@@ -1291,10 +1305,12 @@ beat_log2 (int value)
 }
 
 /**
- *  Calculates the tempo in microseconds from the bytes read from a Tempo
- *  event in the MIDI file.
+ *  Provides a direct conversion from a byte array to the beats/minute
+ *  value. Calculates the tempo in microseconds from the bytes read from
+ *  a Tempo event in a MIDI file.
  *
  *  Is it correct to simply cast the bytes to a double value?
+ *  It might be worthwhile to provide an std::vector version at some point.
  *
  * \param tt
  *      Provides the 3-byte vector of values making up the raw tempo data.
@@ -1461,6 +1477,31 @@ fix_tempo (midi::bpm bp)
 }
 
 /**
+ *  In order to display discrete data, such as Program/Patch values,
+ *  properly in the data pane, we need to account for the constraints
+ *  on viewability that reduce the range from 0-127 to something less,
+ *  such as 7-120, for painting.
+ *
+ * \param invalue
+ *      Provides the input value, ranging from 0 to 127.
+ *
+ * \param reduction
+ *      Provides the amount to reduce the range on both ends.
+ *      This value might be a radius in pixels, for example.
+ */
+
+int
+midi_data_adjust (int invalue, int reduction)
+{
+    const int m_min = 0;
+    const int m_max = max_midi_value();     /* 127 */
+    const int a_min = m_min + reduction;
+    const int a_max = m_max - reduction;
+    double slope = double(a_max - a_min) / double(m_max - m_min);
+    return int(slope * int(invalue) + a_min);
+}
+
+/**
  *  Combines bytes into an unsigned-short value.
  *
  *  http://www.blitter.com/~russtopia/MIDI/~jglatt/tech/midispec/wheel.htm
@@ -1496,6 +1537,42 @@ combine_bytes (midi::byte b0, midi::byte b1)
 }
 
 /**
+ *  Extracts a MIDI Variable-Length Value (VLV) from a byte array.
+ *  See read_varinum().
+ *
+ * \param [out] index
+ *      Provides the starting index of the varinum in data, and
+ *      returns the index after scanning the varinum.
+ *
+ * \return
+ *      Returns the accumulated values as a single number.
+ */
+
+midi::ulong
+extract_varinum (const midi::bytes & data, int & index)
+{
+    midi::ulong result = 0;
+    midi::byte c = 0;
+    for ( ; index < int(data.size()); ++index)
+    {
+        c = data[index];
+        if ((c & 0x80) != 0x00)                     /* bit 7 is set         */
+        {
+            result <<= 7;                           /* shift result 7 bits  */
+            result += c & 0x7F;                     /* add bits 0-6         */
+        }
+        else
+        {
+            ++index;
+            break;
+        }
+    }
+    result <<= 7;                                   /* bit was clear       */
+    result += c & 0x7F;
+    return result;
+}
+
+/**
  *  Calculates a wave function for use as an LFO (low-frequency oscillator)
  *  for modifying data values in a sequence.  We extracted this function from
  *  mattias's lfownd module, as it is more generally useful.  The angle
@@ -1528,45 +1605,49 @@ combine_bytes (midi::byte b0, midi::byte b1)
  */
 
 double
-wave_func (double angle, waveform wavetype)
+wave_func (double omega, waveform wavetype)
 {
     double result = 0.0;
     double tmp;
-    double anglefixed;
     switch (wavetype)
     {
     case waveform::sine:
-        tmp = 2.0 * M_PI * angle;                       /* angle in radians */
-        result = sin(tmp);
+
+        result = sin(omega);
         break;
 
     case waveform::sawtooth:
-        anglefixed = angle - int(angle);
-        tmp = 2.0 * anglefixed;
-        result = tmp - 1.0;
+
+        result = fmod(omega, 2.0 * M_PI) / (2.0 * M_PI);    /* 0.0 to 1.0   */
         break;
 
     case waveform::reverse_sawtooth:
-        anglefixed = angle - int(angle);
-        tmp = -2.0 * anglefixed;
-        result = tmp + 1.0;
+
+        result = 1.0 - fmod(omega, 2.0 * M_PI) / (2.0 * M_PI);
         break;
 
     case waveform::triangle:
-        tmp = 2.0 * angle;
-        result = (tmp - int(tmp));
-        if ((int(tmp)) % 2 == 1)
-            result = 1.0 - result;
 
-        result = 2.0 * result - 1.0;
+        result = fmod(omega, 2.0 * M_PI) / (2.0 * M_PI);    /* 0.0 to 1.0   */
+        result *= 2.0;                                      /* 0.0 to 2.0   */
+        result -= 1.0;                                      /* -1.0 to 1.0  */
         break;
 
     case waveform::exponential:
-        result = exp_normalize(angle);
+
+        tmp = fmod(omega, 2.0 * M_PI) / (2.0 * M_PI);       /* 0.0 to 1.0   */
+        result = exp_normalize(tmp);
         break;
 
     case waveform::reverse_exponential:
-        result = exp_normalize(angle, true);
+
+        tmp = fmod(omega, 2.0 * M_PI) / (2.0 * M_PI);       /* 0.0 to 1.0   */
+        result = exp_normalize(tmp, true);
+        break;
+
+    case waveform::dc:
+
+        result = 1.0;
         break;
 
     default:
@@ -1574,6 +1655,8 @@ wave_func (double angle, waveform wavetype)
     }
     return result;
 }
+
+#if CFG66_NEEDS_UNIT_TRUNCATION
 
 /**
  *  Converts a double value to range from 0.0 to 1.0. That is, it returns the
@@ -1591,6 +1674,8 @@ unit_truncation (double angle)
     }
     return result;
 }
+
+#endif
 
 /**
  *  This function maps byte values from 0 to 127 to the range of
@@ -1618,8 +1703,14 @@ exp_normalize (double angle, bool negate)
     static const double s_exp_max = s_range / 2.0;               /* +2.42 */
     static const double s_exp_min = -s_exp_max;                  /* -2.42 */
     static const double s_scaler = exp(s_exp_min);
-    double T = unit_truncation(angle);
-    double Aprime = s_range * T + s_exp_min;
+
+    /*
+     * Removed in Seq66
+     *
+     * double T = unit_truncation(angle);
+     */
+
+    double Aprime = s_range * angle + s_exp_min;
     if (negate)
         Aprime = -Aprime;
 
@@ -1673,6 +1764,11 @@ wave_type_name (waveform wavetype)
     case waveform::reverse_exponential:
 
         result = "Exponential Fall";
+        break;
+
+    case waveform::dc:
+
+        result = "DC Offset";
         break;
 
     default:

@@ -148,7 +148,7 @@ public:
      */
 
     void put_meta (midi::byte metavalue, int datalen, midi::pulse deltatime = 0);
-    void put_seqspec (midi::long spec, int datalen);
+    void put_seqspec (midi::ulong spec, int datalen);
 
     /**
      *  Provide a way to get the next byte from the container.  It also

@@ -46,7 +46,7 @@ namespace seq66
  *  file.  See the cpp file for more information.
  */
 
-enum class seqspec : midi::long
+enum class seqspec : midi::ulong
 {
     midibus        = 0x24240001,        /**< Track buss number.         */
     midichannel    = 0x24240002,        /**< Track channel number.      */
