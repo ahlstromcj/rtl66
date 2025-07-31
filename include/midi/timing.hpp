@@ -59,7 +59,7 @@ class timing
      *  of pulses/ticks/divisions.
      */
 
-    bpm m_beats_per_minute {0.0};       /* T (tempo, BPM in upper-case)   */
+    midi::bpm m_beats_per_minute {0.0}; /* T (tempo, BPM in upper-case)   */
 
     /**
      *  This value should match the numerator value selected when editing the
@@ -83,13 +83,13 @@ class timing
      *  still working getting "non-standard" values to work.
      */
 
-    ppqn m_ppqn {0};                    /* P (PPQN or ppqn)               */
+    midi::ppqn m_ppqn {0};              /* P (PPQN or ppqn)               */
 
 public:
 
     timing () = default;
 
-    timing (bpm bpminute, int bpmeasure, int beatwidth, int ppq) :
+    timing (midi::bpm bpminute, int bpmeasure, int beatwidth, int ppq) :
         m_beats_per_minute  (bpminute),
         m_beats_per_measure (bpmeasure),
         m_beat_width        (beatwidth),
@@ -98,12 +98,12 @@ public:
         // No code
     }
 
-    bpm BPM () const
+    midi::bpm BPM () const
     {
         return m_beats_per_minute;
     }
 
-    bpm beats_per_minute () const
+    midi::bpm beats_per_minute () const
     {
         return m_beats_per_minute;
     }
@@ -114,12 +114,12 @@ public:
      *      We can add validation later.
      */
 
-    void BPM (bpm b)
+    void BPM (midi::bpm b)
     {
         m_beats_per_minute = b;
     }
 
-    void beats_per_minute (bpm b)
+    void beats_per_minute (midi::bpm b)
     {
         m_beats_per_minute = b;
     }
@@ -157,7 +157,7 @@ public:
         m_beat_width = bw;
     }
 
-    ppqn PPQN () const
+    midi::ppqn PPQN () const
     {
         return m_ppqn;
     }
@@ -170,7 +170,7 @@ public:
 
     void PPQN (int p)
     {
-        m_ppqn = ppqn(p);
+        m_ppqn = midi::ppqn(p);
     }
 
 };              // class timing

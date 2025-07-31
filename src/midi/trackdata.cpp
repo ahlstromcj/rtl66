@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2025-01-16
+ * \updates       2025-07-31
  *
  * \license       GNU GPLv2 or above
  *
@@ -996,7 +996,7 @@ trackdata::put_channel_event (const event & e, midi::pulse deltatime)
 {
     midi::byte d0 = e.data(0);
     midi::byte d1 = e.data(1);
-    midi::byte st = e.status();
+    midi::byte st = e.status_byte();
     put_varinum(midi::ulong(deltatime));        /* encode delta_time    */
     put(st);                                    /* add (fixed) status   */
     if (e.has_channel())
@@ -1310,7 +1310,7 @@ trackdata::put_track (/*const*/ track & trk, int tempotrack, bool doseqspec)
             if (! trk.free_channel())           // || is_null_channel(channel))
             {
                 midi::byte channel = trk.track_midi_channel();
-                midi::byte st = midi::mask_status(e.status());
+                midi::byte st = midi::mask_status(e.status_byte());
                 st = st | channel;                  /* channel from track   */
                 e.set_status(st);
             }

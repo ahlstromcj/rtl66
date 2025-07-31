@@ -97,7 +97,7 @@ protected:
      *---------------------------------------------------------------------*/
 
     bool extract_meta_msg (midi::pulse currenttime, midi::status eventstat);
-    bool extract_tempo (track & trk, int tracknumber);
+    bool extract_tempo (midi::track & trk, int tracknumber);
     bool extract_time_signature (midi::track & trk, int tracknumber);
 
     /*---------------------------------------------------------------------

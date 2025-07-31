@@ -119,9 +119,9 @@ enum class action
 enum class clocking
 {
     unavailable = -2,
-    disabled = -1,
-    none = 0,
-    input = 0,
+    disabled    = -1,
+    none        = 0,
+    input       = 0,
     pos,
     mod,
     max

@@ -62,7 +62,7 @@ splitter::splitter () :
 void
 splitter::initialize ()
 {
-    for (int i = 0; i < c_channel_max; ++i)
+    for (int i = 0; i < midi::c_channel_max; ++i)
         m_smf0_channels[i] = false;
 }
 
@@ -80,10 +80,13 @@ splitter::initialize ()
 void
 splitter::increment (int channel)
 {
-    if (! m_smf0_channels[channel])             /* channel not yet logged?  */
+    if (midi::is_good_channel(channel))
     {
-        m_smf0_channels[channel] = true;
-        ++m_smf0_channels_count;
+        if (! m_smf0_channels[channel])         /* channel not yet logged?  */
+        {
+            m_smf0_channels[channel] = true;
+            ++m_smf0_channels_count;
+        }
     }
 }
 
@@ -103,7 +106,7 @@ splitter::increment (int channel)
  */
 
 bool
-splitter::log_main_events (track & trk, track::number trkno)
+splitter::log_main_events (midi::track & trk, midi::track::number trkno)
 {
     bool result = smf0_unlogged();              /* no main track or number  */
     if (result)
@@ -157,7 +160,7 @@ splitter::log_main_events (track & trk, track::number trkno)
  */
 
 bool
-splitter::split (player & p)
+splitter::split (midi::player & p)
 {
     bool result = smf0_logged();
     if (result)
@@ -169,13 +172,13 @@ splitter::split (player & p)
             {
                 if (m_smf0_channels[chan])
                 {
-                    track * trkptr = new (std::nothrow) track(chan);
-                    if (not_nullptr(trkptr))
+                    midi::track * tptr = new (std::nothrow) midi::track(chan);
+                    if (not_nullptr(tptr))
                     {
-                        if (split_channel(p, *m_smf0_main_track, *trkptr, chan))
-                            p.install_track(trkptr, trkno, true);
+                        if (split_channel(p, *m_smf0_main_track, *tptr, chan))
+                            p.install_track(tptr, trkno, true);
                         else
-                            delete trkptr;  /* empty track */
+                            delete tptr;                    /* empty track  */
                     }
 
                 }
@@ -188,7 +191,7 @@ splitter::split (player & p)
     return result;
 }
 
-/*
+/**
  * It is necessary to (redundantly, it turns out) set the master MIDI buss
  * first, before setting the other track parameters.
  *
@@ -197,14 +200,13 @@ splitter::split (player & p)
  *      trk.zero_markers();
  */
 
-
 void
 splitter::make_track_settings
 (
-    const player & p,
-    track & trk,
+    const midi::player & p,
+    midi::track & trk,
     const std::string & name,
-    track::number chan
+    midi::track::number chan
 )
 {
     trk.master_midi_bus(p.master_bus());

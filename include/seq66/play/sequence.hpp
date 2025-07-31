@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2015-07-30
- * \updates       2024-06-13
+ * \updates       2025-07-30
  * \license       GNU GPLv2 or above
  *
  *  The functions add_list_var() and add_long_list() have been replaced by
@@ -48,7 +48,6 @@
 #include "midi/eventlist.hpp"           /* midi::eventlist                  */
 #include "play/triggers.hpp"            /* seq66::triggers, etc.            */
 #include "util/automutex.hpp"           /* xpc::recmutex, automutex         */
-
 
 namespace seq66
 {
@@ -75,8 +74,11 @@ const int c_seq_color_none = (-1);
 using colorbyte = char;
 
 /**
- *  A structure for encapsulating the many parameters of sequence ::
- *  fix_pattern().  Must be created using an initializer list.
+ *  A structure for encapsulating the many input parameters of sequence ::
+ *  fix_pattern(). Also serves as an output to describe exactly what
+ *  happened with the calculations.
+ *
+ *  Must be created using an initializer list.
  *
  * \var fp_fix_type
  *      Indicates if the length of the pattern is to be affected, either by
@@ -84,20 +86,43 @@ using colorbyte = char;
  *      of those cases, the timestamps of all events will be adjusted
  *      accordingly.
  *
- * \var fp_quan_type
- *      Indicates if all events are to be tighted or quantized.
+ w \var fp_alter_type
+ *      Indicates how all events are to be altered, such as being tightened,
+ *      quantized, note-mapping, etc.
+ *
+ * \var fp_length
+ *      Indicates to set the pattern length to a specified value, in ticks.
+ *
+ * \var fp_tighten_range
+ *      Set a range for tightening (partial quantization) of the pattern's
+ *      events.
+ *
+ * \var fp_random_range
+ *      Set a range for randomization of events. Randomize velocity for notes.
+ *
+ * \var fp_pitch_range
+ *      Set a range for randomization of note-event pitches.
+ *
+ * \var fp_quantize_range
+ *      Set a range for full quantization) of the pattern's events.
+ *
+ * \var fp_jitter_range
+ *      Set a range, in MIDI ticks, for "humanizing" a pattern.
  *
  * \var fp_align_left
  *      Indicates if the offset of the first event or, preferably first note
- *      event, is to be adjusted to 0, shifting all events by the same ammount
- *      of time.
+ *      event, is to be adjusted to 0, shifting all events leftward by the same
+ *      ammount of time.
+ *
+ * \var fp_align_right
+ *      The opposite of fp_align_right.
  *
  * \var fp_reverse
  *      Reverses the timestamps of event, while preserving the duration of the
  *      notes. The new timestamp is the distance of the event from the end
  *      (length) of the pattern, which we call the "reference".
  *
- * \var fp_absolute_reverse
+ * \var fp_reverse_in_place
  *      Similar to fp_reverse, except that the last event is used as the
  *      "reference" (instead of the pattern length).
  *
@@ -128,6 +153,12 @@ using colorbyte = char;
  *      not too large, and not 0.  Might be changed according to process, so
  *      that the final value can be displayed.
  *
+ * \var fp_notemap_file
+ *      Provides the name of the note-map file to use to re-map notes.
+ *
+ * \var fp_reverse_notemap
+ *      Re-map notes in the other directions
+ *
  * \var [out] fp_effect
  *      Indicate the effect(s) of the change, using the fixeffect enumeration
  *      in the calculations module.
@@ -136,18 +167,75 @@ using colorbyte = char;
 struct fixparameters
 {
     lengthfix fp_fix_type;
-    alteration fp_quan_type;
-    int fp_jitter;
+    alteration fp_alter_type;
+    midipulse fp_length;
+    int fp_tighten_range;
+    int fp_quantize_range;
+    int fp_random_range;
+    int fp_pitch_range;
+    int fp_jitter_range;
     bool fp_align_left;
+    bool fp_align_right;
     bool fp_reverse;
     bool fp_reverse_in_place;
     bool fp_save_note_length;
     bool fp_use_time_signature;
-    int & fp_beats_per_bar;
-    int & fp_beat_width;
-    double & fp_measures;
-    double & fp_scale_factor;
-    fixeffect & fp_effect;
+    int fp_beats_per_bar;
+    int fp_beat_width;
+    double fp_measures;
+    double fp_scale_factor;
+    std::string fp_notemap_file;
+    bool fp_reverse_notemap;
+    fixeffect fp_effect;
+};
+
+/**
+ *  A structure for encapsulating the input parameters of sequence ::
+ *  change_event_data_lfo().
+ *
+ * \var lfo_dc_offset
+ *      Provides the "DC" value to be added to the waveform. Ranges from
+ *      0 to 127.
+ *
+ * \var lfo_range
+ *      Provides the range of the function, that is, its lowest value and
+ *      its highest value. Ranges from 0 to 127.
+ *
+ * \var lfo_periods
+ *      Also known as the "range". It provides the number of periods of
+ *      the waveform to apply over the given duration (which is one
+ *      measure or the whole pattern length). Ranges from 0 to 16.
+ *
+ * \var lfo_phase
+ *      The starting phase of the waveform. Vaires from 0.0 to 1.0,
+ *      which corresponds to a range of 0 to 360 degrees.
+ *
+ * \var lfo_waveform
+ *      The waveform to be applied. See "enum class waveform" in
+ *      the calculations.hpp module.
+ *
+ * \var lfo_use_measure
+ *      If true (the normal case) the duration of a period of the
+ *      waveform is one measure. If false, then the duration is
+ *      the whole pattern length.
+ *
+ * \var lfo_multiply
+ *      Normally, the y(t) value of each LFO calculation is given by
+ *      the waveform function. If set to true, then the y(t) value
+ *      is scaled from 0 to 127 to 0.0 to 1.0, and is then multiplied
+ *      by the actual data value. This allows mutiple applications of
+ *      waveform transformations.
+ */
+
+struct lfoparameters
+{
+    double lfo_dc_offset;
+    double lfo_range;
+    double lfo_periods;
+    double lfo_phase;
+    waveform lfo_waveform;
+    bool lfo_use_measure;
+    bool lfo_multiply;
 };
 
 /**
@@ -190,6 +278,8 @@ public:
         note_off,       /**< For finishing the drawing of a note.       */
         tempo,          /**< For drawing tempo meta events.             */
         program,        /**< For drawing program change (patch) events. */
+        controller,     /**< For all control-change events.             */
+        pitchbend,      /**< For indicating a pitch-wheel event.        */
         max
     };
 
@@ -207,6 +297,12 @@ public:
     /**
      *  A structure that holds note information, used, for example, in
      *  sequence::get_next_note().
+     *
+     *  If the note is invalid (as might happen in searches), then the
+     *  note value is (-1).
+     *
+     *  The usage of this small class has evolved to support other
+     *  events, as indicated by the draw enumeration above.
      */
 
     class note_info
@@ -220,6 +316,7 @@ public:
         int ni_note;                /* for tempo, the location to paint it  */
         int ni_velocity;            /* for tempo, the truncated tempo value */
         bool ni_selected;
+        bool ni_non_note;           /* true for all non-note events         */
 
     public:
 
@@ -228,7 +325,8 @@ public:
             ni_tick_finish  (0),
             ni_note         (0),
             ni_velocity     (0),
-            ni_selected     (false)
+            ni_selected     (false),
+            ni_non_note     (false)
             {
                 // no code
             }
@@ -253,6 +351,11 @@ public:
            return ni_note;
        }
 
+       bool valid () const
+       {
+           return note() >= 0;
+       }
+
        int velocity () const
        {
            return ni_velocity;
@@ -261,6 +364,11 @@ public:
        bool selected () const
        {
            return ni_selected;
+       }
+
+       bool non_note ()
+       {
+           return ni_non_note;
        }
 
        void show () const;
@@ -348,8 +456,8 @@ private:
 
     /**
      *  This list holds the current pattern/sequence events.  It used to be
-     *  called m_list_events, but a map implementation is now available, and
-     *  is the default.
+     *  called m_list_events, but a vector implementation is now available,
+     *  and is the default.
      */
 
     midi::eventlist m_events;
@@ -486,7 +594,7 @@ private:
      *  off the notes that are playing.
      */
 
-    unsigned short m_playing_notes[c_notes_count];
+    std::vector<unsigned short> m_playing_notes;
 
     /**
      *  Indicates if the sequence was playing.  This value is set at the end
@@ -514,6 +622,8 @@ private:
      *  If true, the first incoming event in the step-edit (auto-step) part of
      *  stream_event() will reset the starting tick to 0.  Useful when
      *  recording a stock pattern from a drum machine.
+     *
+     *  Hmmm, no longer in seq66::sequence.
      */
 
     bool m_auto_step_reset;
@@ -529,13 +639,20 @@ private:
      *  the calculations module.
      */
 
-     alteration m_alter_recording;
+    alteration m_record_alteration;
 
     /**
      *  True if recording in MIDI-through mode.
      */
 
     bool m_thru;
+
+    /**
+     *  True if there's a popup-menu present. See how it is used in
+     *  qloopbutton.
+     */
+
+    bool m_has_popup;
 
     /**
      *  True if the events are queued.
@@ -565,6 +682,8 @@ private:
 
     /**
      *  A counter used in the step-edit (auto-edit) feature.
+     *
+     *  Hmmmm, not in seq66::sequence.
      */
 
     int m_step_count;
@@ -743,6 +862,8 @@ private:
      *  A new member so that the sequence number is carried along with the
      *  sequence.  This number is set in the performer::install_sequence()
      *  function.
+     *
+     *  Also see the alias seq::number, which is not short, but int!
      */
 
     short m_seq_number;
@@ -752,7 +873,7 @@ private:
      *  palette.  The colorbyte type is defined in the midi::bytes.hpp file.
      */
 
-    colorbyte m_seq_color;
+    midi::colorbyte m_seq_color;
 
     /**
      * A feature adapted from Kepler34.
@@ -768,6 +889,14 @@ private:
      */
 
     midi::pulse m_length;
+
+    /**
+     *  Used in handling one-shot recording while playback is in progress.
+     *  This value allows the user to wait a few loops before starting to play
+     *  the one-shot pattern.
+     */
+
+    midipulse m_next_boundary;
 
     /**
      *  Holds the last number of measures, purely for detecting changes that
@@ -808,6 +937,16 @@ private:
      */
 
     unsigned short m_time_beat_width;
+
+    /**
+     *  members to use for the c_timesig SeqSpec. Rather than hold
+     *  the last time-signature that was set, this holds the first one,
+     *  or the value in a c_timesig SeqSpec. If 0, the c_timesig values
+     *  have not yet been set.
+     */
+
+    unsigned short m_timesig_beats_per_measure;
+    unsigned short m_timesig_beat_width;
 
     /**
      *  Augments the beats/bar and beat-width with the additional values
@@ -966,6 +1105,11 @@ public:
     const midi::eventlist & events () const
     {
         return m_events;
+    }
+
+    bool empty () const
+    {
+        return m_events.empty();
     }
 
     bool any_selected_notes () const
@@ -1194,6 +1338,16 @@ public:
         return int(m_time_beat_width);
     }
 
+    int timesig_beats_per_measure () const
+    {
+        return m_timesig_beats_per_measure;
+    }
+
+    int timesig_beat_width () const
+    {
+        return m_timesig_beat_width;
+    }
+
     void set_time_signature (int bpb, int bw);
 
     /**
@@ -1304,6 +1458,7 @@ public:
     );
 
     bool set_measures (int measures, bool user_change = false);
+    int increment_measures ();
     bool apply_length
     (
         int bpb, int ppqn, int bw,
@@ -1320,6 +1475,15 @@ public:
     midi::pulse get_length () const
     {
         return m_length;
+    }
+
+    midipulse get_length_plus () const
+    {
+        int bpmeas = m_time_beats_per_measure;
+        if (bpmeas == 0)
+            bpmeas = 4;
+
+        return m_length + m_unit_measure / bpmeas;
     }
 
     midi::pulse get_tick () const;
@@ -1364,6 +1528,16 @@ public:
     bool toggle_playing (midi::pulse tick, bool resumenoteons);
     bool toggle_queued ();
 
+    void set_popup (bool flag)
+    {
+        m_has_popup = flag;
+    }
+
+    bool has_popup () const
+    {
+        return m_has_popup;
+    }
+
     bool get_queued () const
     {
         return m_queued;
@@ -1396,17 +1570,22 @@ public:
 
     bool alter_recording () const
     {
-        return /* m_recording && */ m_alter_recording != alteration::none;
+        return m_record_alteration != alteration::none;
     }
 
-    alteration record_mode () const                 /* same name as usr()   */
+    alteration record_alteration () const
     {
-        return m_alter_recording;
+        return m_record_alteration;
+    }
+
+    void record_alteration (alteration a)
+    {
+        m_record_alteration = a;
     }
 
     bool quantized_recording () const
     {
-        return m_alter_recording == alteration::quantize;
+        return m_record_alteration == alteration::quantize;
     }
 
     bool quantizing () const
@@ -1416,7 +1595,7 @@ public:
 
     bool tightened_recording () const
     {
-        return m_alter_recording == alteration::tighten;
+        return m_record_alteration == alteration::tighten;
     }
 
     bool tightening () const
@@ -1426,7 +1605,7 @@ public:
 
     bool notemapped_recording () const
     {
-        return m_alter_recording == alteration::notemap;
+        return m_record_alteration == alteration::notemap;
     }
 
     bool notemapping () const
@@ -1622,8 +1801,23 @@ public:
         midi::pulse tick_s, midi::pulse tick_f,
         int tempo_s, int tempo_f
     );
-    bool add_time_signature (midi::pulse tick, int beats, int width);
-    bool delete_time_signature (midi::pulse tick);
+//  bool add_time_signature (midi::pulse tick, int beats, int width);
+//  bool delete_time_signature (midi::pulse tick);
+    bool log_time_signature
+    (
+        midipulse tick, int beats, int width, bool user_change = false
+    );
+    bool update_time_signature (int bpb, int bw, bool user_change = false);
+    bool add_timesig_event (const event & e, bool main_ts = false);
+    bool add_timesig_event
+    (
+        midipulse t,
+        int bpb = 4, int bw = 4,
+        bool replace = true
+    );
+    bool set_main_time_signature ();
+    bool add_c_timesig (int bpb, int bw, bool main_ts = false);
+    bool delete_time_signature (midipulse tick);
     bool detect_time_signature
     (
         midi::pulse & tstamp, int & numerator, int & denominator,
@@ -1636,9 +1830,12 @@ public:
         midi::pulse tick, midi::byte status,
         midi::byte d0, midi::byte d1, bool repaint = false
     );
+    bool add_event (midi::pulse tick, const midi::bytes & dbytes);
+    bool add_macro (midi::pulse tick, const midimacro & macro);
     bool append_event (const event & er);
     void sort_events ();
     event find_event (const event & e, bool nextmatch = false);
+    note_info find_note (midi::pulse tick, int note);
     bool remove_duplicate_events (midi::pulse tick, int note = (-1));
     void notify_change (bool userchange = true);
     void notify_trigger ();
@@ -1793,15 +1990,18 @@ public:
     bool merge_events (const sequence & source);
     bool selected_box
     (
-        midi::pulse & tick_s, int & note_h, midi::pulse & tick_f, int & note_l
+        midi::pulse & tick_s, int & note_h,
+        midi::pulse & tick_f, int & note_l
     );
     bool onsets_selected_box
     (
-        midi::pulse & tick_s, int & note_h, midi::pulse & tick_f, int & note_l
+        midi::pulse & tick_s, int & note_h,
+        midi::pulse & tick_f, int & note_l
     );
     bool clipboard_box
     (
-        midi::pulse & tick_s, int & note_h, midi::pulse & tick_f, int & note_l
+        midi::pulse & tick_s, int & note_h,
+        midi::pulse & tick_f, int & note_l
     );
     midi::pulse clip_timestamp (midi::pulse ontime, midi::pulse offtime);
     bool move_selected_notes (midi::pulse deltatick, int deltanote);
@@ -1821,17 +2021,17 @@ public:
     );
     void change_event_data_lfo
     (
-        double dcoffset, double range, double speed, double phase,
-        waveform w, midi::byte status, midi::byte cc, bool usemeasure = false
+        const lfoparameters & lp, midibyte status, midibyte cc
     );
     bool fix_pattern (fixparameters & param);   /* for qpatternfix dialog   */
     void increment_selected (midi::byte status, midi::byte /*control*/);
     void decrement_selected (midi::byte status, midi::byte /*control*/);
     bool grow_selected (midi::pulse deltatick);
     bool stretch_selected (midi::pulse deltatick);
-    bool randomize_selected (midi::byte status, int range = -1);
-    bool randomize_selected_notes (int range = -1);
-    bool jitter_notes (int jitter = -1);
+    bool randomize (midibyte status, int range = (-1), bool all = false);
+    bool randomize_note_velocities (int range = (-1), bool all = false);
+    bool randomize_note_pitches (int range = (-1), bool all = false);
+    bool jitter_notes (int jitter = (-1), bool all = false);
     bool mark_selected ();
     void unpaint_all ();
     void verify_and_link (bool wrap = false);
@@ -1986,6 +2186,21 @@ public:
         return dt == sequence::draw::note_on || dt == sequence::draw::note_off;
     }
 
+    bool remove_selected ();
+    bool remove_marked ();                      /* a forwarding function    */
+    bool update_recording (int index);
+    bool remove_orphaned_events ();
+
+private:
+
+    bool flatten (sequence & destseq, bool maketrigger = true);
+    midipulse flatten_trigger
+    (
+        sequence & destseq,
+        const trigger & trig,
+        midipulse prev_timestamp
+    );
+
 protected:
 
     void set_parent (performer * p);
@@ -2002,6 +2217,13 @@ protected:
 
 private:
 
+    midipulse apply_time_factor
+    (
+        double factor,
+        bool savenotelength = false,
+        bool relink = false
+    );
+
     mastermidibus * master_bus ()
     {
         return m_master_bus;
@@ -2017,11 +2239,12 @@ private:
         return m_parent;
     }
 
+    bool check_oneshot_recording ();
     bool quantize_events (midi::byte status, midi::byte cc, int divide);
     bool quantize_notes (int divide);
     bool change_ppqn (int p);
     void put_event_on_bus (const event & ev);
-    void reset_loop ();
+//  void reset_loop ();
     void set_trigger_offset (midi::pulse trigger_offset);
     void adjust_trigger_offsets_to_length (midi::pulse newlen);
     midi::pulse adjust_offset (midi::pulse offset);
@@ -2031,6 +2254,7 @@ private:
         event::buffer::const_iterator & evi
     ) const;
 
+    timesig default_time_signature () const;
     void push_default_time_signature ();
 
 #if defined USE_SEQUENCE_REMOVE_EVENTS
@@ -2039,7 +2263,7 @@ private:
 #endif
 
     bool remove_first_match (const event & e, midi::pulse starttick = 0);
-    void remove_all ();
+    bool remove_all ();
 
     /**
      *  Checks to see if the event's channel matches the sequence's nominal

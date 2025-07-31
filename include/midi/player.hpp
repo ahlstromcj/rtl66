@@ -174,7 +174,7 @@ private:
      *  here.  See the master_bus() accessors below.
      */
 
-    std::unique_ptr<masterbus> m_master_bus;
+    std::unique_ptr<midi::masterbus> m_master_bus;
 
     /**
      *  Supports a single input port and a single output port. A port is used
@@ -204,7 +204,7 @@ private:
      *  to indicate that there is no background sequence.  See track::limit().
      */
 
-    track::number m_track_max;
+    midi::track::number m_track_max;
 
     /**
      *  Indicates the highest-number sequence.  This value starts as -1, to
@@ -218,7 +218,7 @@ private:
      *  when the highest sequence is deleted, though.
      */
 
-    track::number m_track_high;
+    midi::track::number m_track_high;
 
     /**
      *  If true (the default is false, the events in a track are sorted
@@ -274,7 +274,7 @@ private:                            /* key, midi, and op container section  */
      *  playback.
      */
 
-    microsec m_delta_us;
+    midi::microsec m_delta_us;
 
     /**
      *  Holds a bunch of JACK transport settings. Also holds pulse-counting
@@ -383,8 +383,8 @@ public:
 
     virtual bool create_master_bus ();
     virtual bool clear_all (bool clearplaylist = false);
-    virtual bool track_playing_toggle (track::number trkno);
-    virtual bool track_playing_change (track::number trkno, bool on);
+    virtual bool track_playing_toggle (midi::track::number trkno);
+    virtual bool track_playing_change (midi::track::number trkno, bool on);
 
     virtual bool song_mode () const
     {
@@ -421,12 +421,12 @@ public:
         return m_track_count;
     }
 
-    track::number track_high () const
+    midi::track::number track_high () const
     {
         return m_track_high;
     }
 
-    track::number track_max () const
+    midi::track::number track_max () const
     {
         return m_track_max;
     }
@@ -470,17 +470,17 @@ public:
         return transportinfo().tick();
     }
 
-    track::pointer get_track (track::number trk)
+    midi::track::pointer get_track (midi::track::number trk)
     {
         return track_list().at(trk);
     }
 
-    const track::pointer get_track (track::number trk) const
+    const midi::track::pointer get_track (midi::track::number trk) const
     {
         return track_list().at(trk);
     }
 
-    bool is_track_active (track::number trk) const
+    bool is_track_active (midi::track::number trk) const
     {
         return bool(get_track(trk));
     }
@@ -847,23 +847,23 @@ public:
 
 public:
 
-    bool set_track_name (track::ref s, const std::string & name);
-    bool set_midi_bus (track::number trkno, int buss);
-    bool set_midi_channel (track::number trkno, int channel);
+    bool set_track_name (midi::track::ref s, const std::string & name);
+    bool set_midi_bus (midi::track::number trkno, int buss);
+    bool set_midi_channel (midi::track::number trkno, int channel);
     bool set_recording
     (
-        track::ref t, bool recordon,
-        track::record r = track::record::normal,
+        midi::track::ref t, bool recordon,
+        midi::track::record r = midi::track::record::normal,
         bool toggle = false
     );
     bool set_recording
     (
-        track::number trkno, bool recordon,
-        track::record r = track::record::normal,
+        midi::track::number trkno, bool recordon,
+        midi::track::record r = midi::track::record::normal,
         bool toggle = false
     );
-    bool set_thru (track::ref t, bool thruon, bool toggle);
-    bool set_thru (track::number trkno, bool thruon, bool toggle);
+    bool set_thru (midi::track::ref t, bool thruon, bool toggle);
+    bool set_thru (midi::track::number trkno, bool thruon, bool toggle);
 
     bool setup ();
     bool launch ();
@@ -871,13 +871,13 @@ public:
     bool activate ();
     bool new_track
     (
-        track::number & finalseq,
-        track::number seq = track::unassigned()
+        midi::track::number & finalseq,
+        midi::track::number seq = midi::track::unassigned()
     );
 
-    bool request_track (track::number seq = track::unassigned())
+    bool request_track (midi::track::number seq = midi::track::unassigned())
     {
-        static track::number s_dummy;
+        static midi::track::number s_dummy;
         return new_track(s_dummy, seq);
     }
 
@@ -905,7 +905,7 @@ public:
 
     bool install_track
     (
-        track * seq, track::number & trkno, bool fileload = false
+        midi::track * seq, midi::track::number & trkno, bool fileload = false
     );
     void inner_start ();
     void inner_stop (bool midiclock = false);

@@ -298,33 +298,25 @@ file::parse (const std::string & tag)
  *
  *  Format of a MIDI header chunk:
  *
- *      -   MThd. The magic bytes for a MIDI file.
- *          -   Offset 0 relative to the start of the file.
- *          -   4 bytes.
- *      -   Header Length.
- *          -   Offset 4.
- *          -   4 bytes! Always equal to 6.
- *      -   MIDI Format (SMF).
- *          -   Offset 8.
- *          -   2 bytes.
- *          -   Values:
+ *      -   0x00. "MThd". The magic bytes for a MIDI file. 4 bytes.
+ *      -   0x04. Header Length. 4 bytes! Always equal to 6.
+ *      -   0x08. MIDI Format (SMF). 2 bytes.
+ *          -   SMF Values:
  *              -   0.  File contains one multi-channel track.
  *              -   1.  File contains one or more simultaneous tracks.
  *              -   2.  File contains one or more independent single-track
  *                      patterns.
- *      -   Number of Tracks.
- *          -   Offset A (10 dec).
- *          -   2 bytes. Always 1 for SMF 0.
- *      -   Division.
- *          -   Offset C (12 dec)
- *          -   2 bytes.
+ *      -   0x0A. Number of Tracks. 2 bytes. Always 1 for SMF 0.
+ *          -   Offset 10 dec.
+ *      -   0x0C. Divisions (PPQN). 2 bytes.
+ *          -   Offset 12 dec.
  *          -   The very first bit is either 0 or 1 to indicate the following:
  *              -   0.  Ticks (pulses) per quarter-note (PPQN). The highest
  *                      value is 0x7FFF = 32767. Is 24 the lowest allowed?
  *              -   1.  Negative SMPTE format (MSB) and Ticks per frame
  *                      (LSB). Not supported in Rtl66 at this time.
  *
- *      After the header, at offset E (14 dec), the first track starts.
+ *      After the header, at offset 0x0E (14 dec), the first track starts.
  *      See the parse_smf_1() function's banner for some details.
  *
  * \return
@@ -416,6 +408,7 @@ file::parse_smf_0 ()
                  * trk->set_color(palette_to_int(cyan));
                  */
 
+                trkptr->track_midi_channel(null_channel());
                 coordinator().smf_format(0);
             }
         }

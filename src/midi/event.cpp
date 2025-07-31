@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-07-29
+ * \updates       2025-07-31
  * \license       GNU GPLv2 or above
  *
  *  A MIDI event (i.e. "track event") is encapsulated by the midi::event
@@ -430,7 +430,7 @@ event::match (const event & target) const
     {
         result =
         (
-            status() == target.status() &&
+            status_byte() == target.status_byte() &&
             channel() == target.channel()
         );
         if (result && ! is_meta())
@@ -486,10 +486,10 @@ event::is_desired (midi::byte s, midi::byte cc, midi::byte data) const
     }
     else
     {
-        result = midi::match_status(s, status());
+        result = midi::match_status(s, status_byte());
         if (result && (midi::is_controller_msg(s)))
         {
-            result = status() == cc;
+            result = status_byte() == cc;
             if (result)
                 result = is_data_in_handle_range(data); /* check d0/d1()    */
         }
@@ -1148,7 +1148,7 @@ event::to_string () const
         (void) snprintf
         (
             tmp, sizeof tmp, "event 0x%02X %s 0x%02X d0=%d d1=%d\n",
-            unsigned(status()), label, unsigned(m_channel),
+            unsigned(status_byte()), label, unsigned(m_channel),
             int(m_message[0]), int(m_message[1])
         );
         result += tmp;
@@ -1203,7 +1203,7 @@ event::get_rank () const
     }
     else
     {
-        midi::byte eventcode = mask_status(status());
+        midi::byte eventcode = mask_status(status_byte());
         midi::status s = to_status(eventcode);
         switch (s)
         {

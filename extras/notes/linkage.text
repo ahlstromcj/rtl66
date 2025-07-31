@@ -34,6 +34,8 @@ Installed:
 
             CALL IT 'play', not 'midi'.
 
+            Add the namespace name to the guard macros.
+
         xpc66:
 
             xpc: automutex, condition, daemonizing, shellexecute, timing, other

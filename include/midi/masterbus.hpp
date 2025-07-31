@@ -383,7 +383,7 @@ protected:  // API implementations
     virtual void api_init_clock (midi::pulse);
     virtual void api_stop ();
     virtual void api_port_start (int /* client */, int /* port */);
-    virtual bool api_get_midi_event (event * inev) ; //= 0;
+    virtual bool api_get_midi_event (midi::event * inev) ; //= 0;
 #endif
 
     /*

@@ -65,14 +65,14 @@ private:
      *  MIDI busses here.
      */
 
-    bool m_smf0_channels[c_channel_max];
+    bool m_smf0_channels[midi::c_channel_max];
 
     /**
      *  Provides support for SMF 0, points to the initial SMF 0 track, from
      *  which the single-channel tracks will be created.
      */
 
-    track * m_smf0_main_track;
+    midi::track * m_smf0_main_track;
 
     /**
      *  Provides support for SMF 0, holds the prospective sequence number of
@@ -80,7 +80,7 @@ private:
      *  last, for easier and cleaner removal of that sequence by the user.
      */
 
-    track::number m_smf0_main_number;
+    midi::track::number m_smf0_main_number;
 
 public:
 
@@ -93,8 +93,8 @@ public:
 
     void initialize ();
     void increment (int channel);
-    bool log_main_events (track & trk, track::number trkno);
-    bool split (player & p);
+    bool log_main_events (midi::track & trk, midi::track::number trkno);
+    bool split (midi::player & p);
 
     virtual void log_color ()
     {
@@ -129,17 +129,17 @@ protected:
 
     virtual void make_track_settings
     (
-        const player & p,
-        track & trk,
+        const midi::player & p,
+        midi::track & trk,
         const std::string & name,
-        track::number chan
+        midi::track::number chan
     );
 
     bool split_channel
     (
-        const player & p,
-        const track & maintrk,
-        track & trk,
+        const midi::player & p,
+        const midi::track & maintrk,
+        midi::track & trk,
         int channel
     );
 

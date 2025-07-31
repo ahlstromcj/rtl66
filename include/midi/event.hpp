@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-07-29
+ * \updates       2025-07-31
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -147,7 +147,7 @@ private:
      *  value is unusable: null_buss() from the midi::bytes.hpp module.
      */
 
-    bussbyte m_input_buss;
+    midi::bussbyte m_input_buss;
 
     /**
      *  Provides the MIDI timestamp in ticks, otherwise known as the "pulses"
@@ -297,13 +297,13 @@ public:
     bool match (const event & target) const;
     void prep_for_send (midi::pulse tick, const event & source);
 
-    void set_input_bus (bussbyte b)
+    void set_input_bus (midi::bussbyte b)
     {
         if (is_good_buss(b))
             m_input_buss = b;
     }
 
-    bussbyte input_bus () const
+    midi::bussbyte input_bus () const
     {
         return m_input_buss;
     }
@@ -341,7 +341,7 @@ public:
             m_timestamp %= modtick;
     }
 
-    void set_status (status s)
+    void set_status (midi::status s)
     {
         m_message[0] = midi::to_byte(s);
     }
@@ -376,29 +376,33 @@ public:
      *  the channel stripped, for channel messages.
      */
 
-    midi::byte status () const
+    midi::byte status_byte () const
     {
         return m_message[0];
     }
 
+    /*
+     *  This function may strip the channel nybble.
+     */
+
     midi::byte normalized_status () const
     {
-        return midi::normalized_status(status());   /* may strip ch. nybble */
+        return midi::normalized_status(status_byte());
     }
 
     midi::byte get_status (midi::byte channel) const
     {
-        return midi::mask_status(status()) | channel;
+        return midi::mask_status(status_byte()) | channel;
     }
 
     midi::byte get_meta_status () const
     {
-        return midi::is_meta_msg(status()) ? channel() : 0 ;
+        return midi::is_meta_msg(status_byte()) ? channel() : 0 ;
     }
 
     bool valid_status () const
     {
-        return midi::is_status_msg(status());
+        return midi::is_status_msg(status_byte());
     }
 
     /**
@@ -416,7 +420,7 @@ public:
     bool match_status (midi::byte s) const
     {
         return (has_channel() ?
-            midi::mask_status(status()) : status()) == s;
+            midi::mask_status(status_byte()) : status_byte()) == s;
     }
 
     /**
@@ -858,22 +862,22 @@ public:
 
     bool is_note () const
     {
-        return midi::is_note_msg(status());
+        return midi::is_note_msg(status_byte());
     }
 
     bool is_note_on () const
     {
-        return midi::is_note_on_msg(status());
+        return midi::is_note_on_msg(status_byte());
     }
 
     bool is_note_off () const
     {
-        return midi::is_note_off_msg(status());
+        return midi::is_note_off_msg(status_byte());
     }
 
     bool is_strict_note () const
     {
-        return midi::is_strict_note_msg(status());
+        return midi::is_strict_note_msg(status_byte());
     }
 
     bool is_selected_note () const
@@ -888,23 +892,23 @@ public:
 
     bool is_controller () const
     {
-        return midi::is_controller_msg(status());
+        return midi::is_controller_msg(status_byte());
     }
 
     bool is_pitchbend () const
     {
-        return midi::is_pitchbend_msg(status());
+        return midi::is_pitchbend_msg(status_byte());
     }
 
     bool is_playable () const
     {
-        return midi::is_playable_msg(status()) || is_tempo();
+        return midi::is_playable_msg(status_byte()) || is_tempo();
     }
 
     bool is_selected_status (midi::byte s) const
     {
         return is_selected() &&
-            midi::mask_status(status()) == midi::mask_status(s);
+            midi::mask_status(status_byte()) == midi::mask_status(s);
     }
 
     bool is_desired (midi::byte status, midi::byte cc) const;
@@ -922,37 +926,37 @@ public:
 
     bool is_note_off_recorded () const
     {
-        return is_note_off_velocity(status(), m_message[2]);
+        return is_note_off_velocity(status_byte(), m_message[2]);
     }
 
     bool is_midi_start () const
     {
-        return midi::is_midi_start_msg(status());
+        return midi::is_midi_start_msg(status_byte());
     }
 
     bool is_midi_continue () const
     {
-        return midi::is_midi_continue_msg(status());
+        return midi::is_midi_continue_msg(status_byte());
     }
 
     bool is_midi_stop () const
     {
-        return midi::is_midi_stop_msg(status());
+        return midi::is_midi_stop_msg(status_byte());
     }
 
     bool is_midi_clock () const
     {
-        return midi::is_midi_clock_msg(status());
+        return midi::is_midi_clock_msg(status_byte());
     }
 
     bool is_midi_song_pos () const
     {
-        return midi::is_midi_song_pos_msg(status());
+        return midi::is_midi_song_pos_msg(status_byte());
     }
 
     bool has_channel () const
     {
-        return midi::is_channel_msg(status());
+        return midi::is_channel_msg(status_byte());
     }
 
     /**
@@ -963,7 +967,7 @@ public:
 
     bool is_one_byte () const
     {
-        return midi::is_one_byte_msg(status());
+        return midi::is_one_byte_msg(status_byte());
     }
 
     /**
@@ -974,12 +978,12 @@ public:
 
     bool is_two_bytes () const
     {
-        return midi::is_two_byte_msg(status());
+        return midi::is_two_byte_msg(status_byte());
     }
 
     bool is_program_change () const
     {
-        return midi::is_program_change_msg(status());
+        return midi::is_program_change_msg(status_byte());
     }
 
     /**
@@ -990,7 +994,7 @@ public:
 
     bool is_continuous_event () const
     {
-        return midi::is_continuous_event_msg(status());
+        return midi::is_continuous_event_msg(status_byte());
     }
 
     /**
@@ -1001,12 +1005,12 @@ public:
 
     bool is_sysex () const
     {
-        return midi::is_sysex_msg(status());
+        return midi::is_sysex_msg(status_byte());
     }
 
     bool is_below_sysex () const
     {
-        return midi::is_below_sysex_msg(status());
+        return midi::is_below_sysex_msg(status_byte());
     }
 
     /**
@@ -1016,7 +1020,7 @@ public:
 
     bool is_sense_reset ()
     {
-        return midi::is_sense_or_reset_msg(status());
+        return midi::is_sense_or_reset_msg(status_byte());
     }
 
     /**
@@ -1026,7 +1030,7 @@ public:
 
     bool is_meta () const
     {
-        return midi::is_meta_msg(status());
+        return midi::is_meta_msg(status_byte());
     }
 
     bool is_meta_text () const
@@ -1036,7 +1040,7 @@ public:
 
     bool is_seq_spec () const
     {
-        return midi::is_meta_seq_spec(status());
+        return midi::is_meta_seq_spec(status_byte());
     }
 
     /**
@@ -1046,12 +1050,12 @@ public:
 
     bool is_ex_data () const
     {
-        return midi::is_ex_data_msg(status());
+        return midi::is_ex_data_msg(status_byte());
     }
 
     bool is_system () const
     {
-        return midi::is_system_msg(status());
+        return midi::is_system_msg(status_byte());
     }
 
     /**

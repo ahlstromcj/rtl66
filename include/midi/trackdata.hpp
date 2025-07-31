@@ -391,10 +391,10 @@ public:
     void put_meta_track_end (midi::pulse deltatime);
 #endif
 
-    bool put_track_events (/*const*/ track & trk);
+    bool put_track_events (/*const*/ midi::track & trk);
     bool put_track
     (
-        /*const*/ track & trk,
+        /*const*/ midi::track & trk,
         int tempotrack = 0,
         bool doseqspec = true
     );
@@ -444,46 +444,46 @@ protected:
      * "extract" functions
      *---------------------------------------------------------------------*/
 
-    virtual bool extract_seq_spec (track & trk, event & e, size_t len)
+    virtual bool extract_seq_spec (midi::track & trk, midi::event & e, size_t len)
     {
         return extract_generic_meta(trk, e, midi::meta::seq_spec, len);
     }
 
-    bool extract_meta_msg (track & trk, event & e);
+    bool extract_meta_msg (midi::track & trk, midi::event & e);
     bool extract_generic_meta
     (
-        track & trk, event & e,
+        midi::track & trk, midi::event & e,
         midi::meta metatype, size_t len
     );
-    bool extract_track_number (track & trk, event & e, size_t len);
-    bool extract_track_name (track & trk, event & e, size_t len);
+    bool extract_track_number (midi::track & trk, midi::event & e, size_t len);
+    bool extract_track_name (midi::track & trk, midi::event & e, size_t len);
     bool extract_text_event
     (
-        track & trk, event & e,
+        midi::track & trk, midi::event & e,
         midi::meta metatype, size_t len
     );
-    bool extract_end_of_track (track & trk, event & e);
-    bool extract_tempo (track & trk, event & e);
-    bool extract_time_signature (track & trk, event & e);
-    bool extract_key_signature (track & trk, event & e);
+    bool extract_end_of_track (midi::track & trk, midi::event & e);
+    bool extract_tempo (midi::track & trk, midi::event & e);
+    bool extract_time_signature (midi::track & trk, midi::event & e);
+    bool extract_key_signature (midi::track & trk, midi::event & e);
     size_t parse_track              /* put_track() is the "inverse" */
     (
-        track & trk,
+        midi::track & trk,
         const util::bytevector & data,
         size_t offset, size_t len
     );
 
-    eventlist & events ()
+    midi::eventlist & events ()
     {
         return m_events;
     }
 
-    const eventlist & events () const
+    const midi::eventlist & events () const
     {
         return m_events;
     }
 
-    bool append_event (const event & e)
+    bool append_event (const midi::event & e)
     {
         return events().append(e);
     }

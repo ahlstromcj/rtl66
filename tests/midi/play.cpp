@@ -39,7 +39,7 @@
  *
  *  This module is still very much a work in progress.
  *
- *  It assume it is run from the top-level directory of the rtl66 project.
+ *  It assumes it is run from the top-level directory of the rtl66 project.
  */
 
 #include <iostream>
@@ -178,7 +178,7 @@ main (int argc, char * argv [])
             if (can_run)
             {
                 /*
-                 * Later we will add the PPQN and BPM parqmeters.
+                 * Later we will add the PPQN and BPM parameters.
                  */
 
                 /*

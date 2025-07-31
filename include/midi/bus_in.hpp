@@ -56,7 +56,7 @@ class bus_in final : public midi::bus
      *  The master MIDI bus sets up the buss.
      */
 
-    friend class masterbus;
+    friend class midi::masterbus;
 
 private:
 
@@ -86,7 +86,7 @@ public:
     virtual int get_in_port_info () override;
     virtual bool init_input (bool inputing) override;
     virtual int poll_for_midi () override;
-    virtual bool get_midi_event (event * inev) override;
+    virtual bool get_midi_event (midi::event * inev) override;
 
 };          // class bus_in
 

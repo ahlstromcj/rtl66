@@ -223,7 +223,7 @@ extern const int * scales_down (int scale, int key = 0);
 extern double midi_note_frequency (midi::byte note);
 extern int analyze_notes
 (
-    const eventlist & evlist,
+    const midi::eventlist & evlist,
     std::vector<keys> & outkey,
     std::vector<scales> & outscale
 );

@@ -56,7 +56,7 @@ private:
      * using container = std::map<int, track::pointer>;
      */
 
-    using container = std::vector<track::pointer>;
+    using container = std::vector<midi::track::pointer>;
 
     /**
      *  Contains the ordered lists of track pointers.  These can
@@ -97,7 +97,7 @@ public:
     virtual void unmodify (lib66::notification n = lib66::notification::no);
 
     bool modified () const;
-    bool add (track::number trkno, track * trk);
+    bool add (midi::track::number trkno, midi::track * trk);
     void sort ();
 
     size_t size () const
@@ -113,8 +113,8 @@ public:
         tracks().clear();
     }
 
-    track::pointer at (track::number trkno);
-    const track::pointer at (track::number trkno) const;
+    midi::track::pointer at (midi::track::number trkno);
+    const midi::track::pointer at (midi::track::number trkno) const;
 
     container & tracks ()
     {

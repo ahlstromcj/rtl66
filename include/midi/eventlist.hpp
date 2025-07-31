@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2025-07-29
+ * \updates       2025-07-31
  * \license       GNU GPLv2 or above
  *
  *  This module extracts the event-list functionality from the sequencer
@@ -160,7 +160,7 @@ private:
      *  Note that it is std::vector<event>.
      */
 
-    event::buffer m_events;
+    midi::event::buffer m_events;
 
     /**
      *  Eventually we want to be able to move through events of a given type,
@@ -168,7 +168,7 @@ private:
      */
 
     bool m_match_iterating;
-    event::iterator m_match_iterator;
+    midi::event::iterator m_match_iterator;
 
     /**
      *  Provides an atomic flag to raise while sorting(), which can invalidate
@@ -261,22 +261,22 @@ public:
      * and sequence classes.
      */
 
-    event::iterator begin ()
+    midi::event::iterator begin ()
     {
         return m_events.begin();
     }
 
-    event::const_iterator cbegin () const
+    midi::event::const_iterator cbegin () const
     {
         return m_events.cbegin();
     }
 
-    event::iterator end ()
+    midi::event::iterator end ()
     {
         return m_events.end();
     }
 
-    event::const_iterator cend () const
+    midi::event::const_iterator cend () const
     {
         return m_events.cend();
     }
@@ -296,8 +296,8 @@ public:
     bool is_playable () const;
     midi::pulse get_min_timestamp () const;
     midi::pulse get_max_timestamp () const;
-    bool add (const event & e);
-    bool append (const event & e);
+    bool add (const midi::event & e);
+    bool append (const midi::event & e);
     void scan_meta_events ();
 
     bool empty () const
@@ -359,9 +359,9 @@ public:
      *      is now empty.
      */
 
-    event::iterator remove (event::iterator ie)
+    midi::event::iterator remove (midi::event::iterator ie)
     {
-        event::iterator result = m_events.erase(ie);
+        midi::event::iterator result = m_events.erase(ie);
         m_is_modified = true;
         return result;
     }
@@ -382,7 +382,7 @@ public:
      *      Provides the iterator to the event to which to get a reference.
      */
 
-    static event & dref (event::iterator ie)
+    static midi::event & dref (midi::event::iterator ie)
     {
         return *ie;
     }
@@ -394,15 +394,15 @@ public:
      *      Provides the iterator to the event to which to get a reference.
      */
 
-    static const event & cdref (event::const_iterator ie)
+    static const midi::event & cdref (midi::event::const_iterator ie)
     {
         return *ie;
     }
 
 private:                                /* internal quantization functions  */
 
-    bool add (event::buffer & evlist, const event & e);
-    void merge (const event::buffer & evlist);
+    bool add (midi::event::buffer & evlist, const midi::event & e);
+    void merge (const midi::event::buffer & evlist);
 
 private:                                /* functions for friend sequence    */
 
@@ -412,7 +412,7 @@ private:                                /* functions for friend sequence    */
      */
 
     bool link_new (bool wrap = false);
-    bool link_notes (event::iterator eon, event::iterator eoff);
+    bool link_notes (midi::event::iterator eon, midi::event::iterator eoff);
     bool clear_links ();
 #if defined RTL66_LINK_TEMPOS
     void link_tempos ();
@@ -436,8 +436,8 @@ private:                                /* functions for friend sequence    */
     );
     bool quantize_events (int snap, int divide, bool all = false);
     bool quantize_notes (int snap, int divide, bool all = false);
-    midi::pulse adjust_timestamp (event & er, midi::pulse deltatick);
-    void scale_note_off (event & noteoff, double factor);
+    midi::pulse adjust_timestamp (midi::event & er, midi::pulse deltatick);
+    void scale_note_off (midi::event & noteoff, double factor);
     midi::pulse apply_time_factor
     (
         double factor,
@@ -449,7 +449,7 @@ private:                                /* functions for friend sequence    */
     bool move_selected_events (midi::pulse delta_tick);
     bool align_left (bool relink = false);
     bool align_right (bool relink = false);
-    bool randomize (midi::byte status, int range, bool all = false);
+    bool randomize (midi::byte statusbyte, int range, bool all = false);
     bool randomize_note_velocities (int range, bool all = false);
     bool randomize_note_pitches
     (
@@ -465,17 +465,17 @@ private:                                /* functions for friend sequence    */
     void mark_all ();
     void unmark_all ();
 #endif
-    bool remove_event (event & e);
-    event::iterator find_first_match
+    bool remove_event (midi::event & e);
+    midi::event::iterator find_first_match
     (
-        const event & e,
+        const midi::event & e,
         midi::pulse starttick = 0
     );
-    event::iterator find_next_match (const event & e);
+    midi::event::iterator find_next_match (const midi::event & e);
     bool remove_time_signature (midi::pulse target);
     bool remove_first_match
     (
-        const event & e,
+        const midi::event & e,
         midi::pulse starttick = 0
     );
     bool remove_marked ();                  /* deprecated   */
@@ -512,7 +512,7 @@ private:                                /* functions for friend sequence    */
     );
     bool event_in_range
     (
-        const event & e, midi::byte status,
+        const midi::event & e, midi::byte status,
         midi::pulse tick_s, midi::pulse tick_f
     ) const;
     bool get_selected_events_interval
@@ -533,7 +533,7 @@ private:                                /* functions for friend sequence    */
     std::string to_string () const;
     void print_notes (const std::string & tag = "in list") const;
 
-    const event::buffer & events () const
+    const midi::event::buffer & events () const
     {
         return m_events;
     }

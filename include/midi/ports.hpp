@@ -83,7 +83,7 @@ private:
 
 #if defined USE_SEQ66_PORTLIST_VALUES       // thinking about this....
 
-    using container = std::map<bussbyte, io>;
+    using container = std::map<midi::bussbyte, io>;
 
     /**
      *  Indicates if the list is to be used.  It will always be saved and read,
@@ -95,7 +95,7 @@ private:
     bool m_is_active;
 
 #else
-    using container = std::vector<port>;
+    using container = std::vector<midi::port>;
 #endif
 
     /**
@@ -119,15 +119,15 @@ public:
     ports & operator = (ports &&) = default;
     ~ports () = default;
 
-    bool add (const port & p);
+    bool add (const midi::port & p);
     bool add
     (
         int bussnumber,                   // buss number/ID
         const std::string & bussname,     // buss name
         int portnumber,
         const std::string & portname,
-        port::io iotype,
-        port::kind porttype,
+        midi::port::io iotype,
+        midi::port::kind porttype,
         int queuenumber             = (-1),
         const std::string & alias   = ""    // not always available
     );
@@ -153,7 +153,7 @@ public:
         return m_port_count;
     }
 
-    bussbyte get_port_index (int bussnumber, int port) const;
+    midi::bussbyte get_port_index (int bussnumber, int port) const;
     std::string to_string (const std::string & tagmsg = "") const;
 
     int get_bus_id (int index) const
@@ -199,12 +199,12 @@ public:
     bool get_input (int index) const
     {
         if (index < get_port_count())
-            return m_port_container[index].m_io_type == port::io::input;
+            return m_port_container[index].m_io_type == midi::port::io::input;
         else
             return false;
     }
 
-    port::kind get_port_type (int index) const
+    midi::port::kind get_port_type (int index) const
     {
         if (index < 0 || index >= get_port_count())
             index = 0;
@@ -219,7 +219,8 @@ public:
     bool get_virtual (int index) const
     {
         if (index < get_port_count())
-            return m_port_container[index].m_port_type == port::kind::manual;
+            return m_port_container[index].m_port_type ==
+                midi::port::kind::manual;
         else
             return false;
     }
@@ -227,7 +228,8 @@ public:
     bool get_system (int index) const
     {
         if (index < get_port_count())
-            return m_port_container[index].m_port_type == port::kind::system;
+            return m_port_container[index].m_port_type ==
+                midi::port::kind::system;
         else
             return false;
     }

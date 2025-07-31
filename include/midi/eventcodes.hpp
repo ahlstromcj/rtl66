@@ -63,20 +63,20 @@ namespace midi
  *  status bytes range from 0x80 to 0xFF.
  */
 
-const byte status_null          = 0x00;     // a Seq66 value
-const byte status_bit           = 0x80;     // a status-detection mask
-const byte realtime             = 0xf0;     // 0xFn when masked
-const byte sysex_continue       = 0xf7;     // redundant, see below
+const midi::byte status_null          = 0x00;     // a Seq66 value
+const midi::byte status_bit           = 0x80;     // a status-detection mask
+const midi::byte realtime             = 0xf0;     // 0xFn when masked
+const midi::byte sysex_continue       = 0xf7;     // redundant, see below
 
 /**
  *  These file masks are used to obtain (or mask off) the channel data and
  *  status portion from an (incoming) status byte.
  */
 
-const byte chan_mask_nybble     = 0x0f;     // mask for the channel nybble
-const byte status_mask_nybble   = 0xf0;     // mask for the status nybble
-const byte data_mask_byte       = 0x7f;     // mask for data values
-const byte data_max             = 0x7f;     // mask for data values
+const midi::byte chan_mask_nybble     = 0x0f;     // mask for the channel nybble
+const midi::byte status_mask_nybble   = 0xf0;     // mask for the status nybble
+const midi::byte data_mask_byte       = 0x7f;     // mask for data values
+const midi::byte data_max             = 0x7f;     // mask for data values
 
 /**
  *  Defines the MIDI status status bytes, from 0x80 to 0xff.  For 0x80 to
@@ -86,7 +86,7 @@ const byte data_max             = 0x7f;     // mask for data values
  *  See eventcodes.cpp for more documentation.
  */
 
-enum class status : byte
+enum class status : midi::byte
 {
     note_off            = 0x80, // 0kkkkkkk 0vvvvvvv (Middle C = 60 dec)
     note_on             = 0x90, // 0kkkkkkk 0vvvvvvv (Middle C = 0x3C)
@@ -117,16 +117,16 @@ enum class status : byte
     erroneous           = 0x00  // somehow got out of synch, MIDI file error
 };
 
-inline byte
-to_byte (status s)
+inline midi::byte
+to_byte (midi::status s)
 {
-    return static_cast<byte>(s);
+    return static_cast<midi::byte>(s);
 }
 
-inline status
-to_status (byte b)
+inline midi::status
+to_status (midi::byte b)
 {
-    return static_cast<status>(b);
+    return static_cast<midi::status>(b);
 }
 
 /**
@@ -136,7 +136,7 @@ to_status (byte b)
  */
 
 inline bool
-any_event (byte b)
+any_event (midi::byte b)
 {
     return b == 0x00;
 }
@@ -156,7 +156,7 @@ any_event (byte b)
  */
 
 inline bool
-is_channel_msg (byte m)
+is_channel_msg (midi::byte m)
 {
     return m >= 0x80 && m < realtime;       /* between Note Off and 0xF0    */
 }
@@ -169,7 +169,7 @@ is_channel_msg (byte m)
  *  See the cpp file for their formats and sizes.
  */
 
-enum class meta : byte
+enum class meta : midi::byte
 {
     seq_number          = 0x00,
     text_event          = 0x01,
@@ -192,28 +192,28 @@ enum class meta : byte
     meta_byte           = 0xFF          /* illegal; needed to detect meta   */
 };
 
-inline byte
-to_byte (meta m)
+inline midi::byte
+to_byte (midi::meta m)
 {
-    return static_cast<byte>(m);
+    return static_cast<midi::byte>(m);
 }
 
-inline meta
-to_meta (byte b)
+inline midi::meta
+to_meta (midi::byte b)
 {
-    return static_cast<meta>(b);
-}
-
-inline bool
-is_meta (byte b)
-{
-    return to_status(b) == status::meta_msg;
+    return static_cast<midi::meta>(b);
 }
 
 inline bool
-is_meta_seq_spec (byte b)
+is_meta (midi::byte b)
 {
-    return to_meta(b) == meta::seq_spec;
+    return to_status(b) == midi::status::meta_msg;
+}
+
+inline bool
+is_meta_seq_spec (midi::byte b)
+{
+    return to_meta(b) == midi::meta::seq_spec;
 }
 
 /**
@@ -223,9 +223,10 @@ is_meta_seq_spec (byte b)
  */
 
 inline bool
-is_meta_text_msg (byte b)
+is_meta_text_msg (midi::byte b)
 {
-    return b >= to_byte(meta::text_event) && b <= to_byte(meta::cue_point);
+    return b >= to_byte(midi::meta::text_event) &&
+        b <= to_byte(midi::meta::cue_point);
 }
 
 /**
@@ -237,7 +238,7 @@ is_meta_text_msg (byte b)
  *  Copped from seq66/libseq66/include/midi/controllers.hpp.
  */
 
-enum class ctrl : byte
+enum class ctrl : midi::byte
 {
     bank_select       =   0, /**< Switches patch bank;16,384 patches/chann.  */
     modulation        =   1, /**< Patch vibrato (pitch/loudness/brightness). */
@@ -319,56 +320,56 @@ enum class ctrl : byte
     poly_on           = 127  /**< device mode to Polyphonic.                 */
 };
 
-inline byte
+inline midi::byte
 to_byte (ctrl c)
 {
-    return static_cast<byte>(c);
+    return static_cast<midi::byte>(c);
 }
 
 inline ctrl
-to_ctrl (byte b)
+to_ctrl (midi::byte b)
 {
     return static_cast<ctrl>(b);
 }
 
-inline byte
-mask_channel (byte m)
+inline midi::byte
+mask_channel (midi::byte m)
 {
     return m & chan_mask_nybble;
 }
 
-inline byte
-mask_status (byte m)
+inline midi::byte
+mask_status (midi::byte m)
 {
     return m & status_mask_nybble;
 }
 
-inline status
-mask_status (status s)
+inline midi::status
+mask_status (midi::status s)
 {
-    return status(byte(s) & status_mask_nybble);
+    return midi::status(midi::byte(s) & status_mask_nybble);
 }
 
 inline bool
-match_status (byte m, byte s)
+match_status (midi::byte m, midi::byte s)
 {
     return m == s;
 }
 
 inline bool
-match_status (byte m, status s)
+match_status (midi::byte m, midi::status s)
 {
     return m == to_byte(s);
 }
 
-inline byte
-mask_data (byte m)
+inline midi::byte
+mask_data (midi::byte m)
 {
     return m & data_mask_byte;
 }
 
-inline byte
-add_channel (byte bstatus, byte channel)
+inline midi::byte
+add_channel (midi::byte bstatus, midi::byte channel)
 {
     return mask_status(bstatus) | channel;
 }
@@ -382,7 +383,7 @@ add_channel (byte bstatus, byte channel)
  */
 
 inline bool
-is_data_msg (byte m)
+is_data_msg (midi::byte m)
 {
     return (m & status_bit) == 0;
 }
@@ -396,7 +397,7 @@ is_data_msg (byte m)
  */
 
 inline bool
-is_status_msg (byte m)
+is_status_msg (midi::byte m)
 {
     return (m & status_bit) != 0;
 }
@@ -409,8 +410,8 @@ is_status_msg (byte m)
  *      Provides a midi::status byte value.
  */
 
-inline byte
-normalized_status (byte s)
+inline midi::byte
+normalized_status (midi::byte s)
 {
     return is_channel_msg(s) ? mask_status(s) : s ;
 }
@@ -421,9 +422,9 @@ normalized_status (byte s)
  */
 
 inline bool
-is_system_msg (byte m)
+is_system_msg (midi::byte m)
 {
-    return m >= to_byte(status::sysex);
+    return m >= to_byte(midi::status::sysex);
 }
 
 /**
@@ -434,9 +435,9 @@ is_system_msg (byte m)
  */
 
 inline bool
-is_meta_msg (byte m)
+is_meta_msg (midi::byte m)
 {
-    return m == to_byte(meta::meta_byte);
+    return m == to_byte(midi::meta::meta_byte);
 }
 
 /**
@@ -445,7 +446,7 @@ is_meta_msg (byte m)
  */
 
 inline bool
-is_meta_msg (byte m, meta mmsg)
+is_meta_msg (midi::byte m, midi::meta mmsg)
 {
     return m == to_byte(mmsg);
 }
@@ -457,9 +458,10 @@ is_meta_msg (byte m, meta mmsg)
  */
 
 inline bool
-is_ex_data_msg (byte m)
+is_ex_data_msg (midi::byte m)
 {
-    return m == to_byte(meta::meta_byte) || m == to_byte(status::sysex);
+    return m == to_byte(midi::meta::meta_byte) ||
+        m == to_byte(midi::status::sysex);
 }
 
 /**
@@ -467,9 +469,9 @@ is_ex_data_msg (byte m)
  */
 
 inline bool
-is_pitchbend_msg (byte m)
+is_pitchbend_msg (midi::byte m)
 {
-    return mask_status(m) == to_byte(status::pitch_wheel);
+    return mask_status(m) == to_byte(midi::status::pitch_wheel);
 }
 
 /**
@@ -477,9 +479,9 @@ is_pitchbend_msg (byte m)
  */
 
 inline bool
-is_controller_msg (byte m)
+is_controller_msg (midi::byte m)
 {
-    return mask_status(m) == to_byte(status::control_change);
+    return mask_status(m) == to_byte(midi::status::control_change);
 }
 
 /**
@@ -489,9 +491,10 @@ is_controller_msg (byte m)
  */
 
 inline bool
-is_playable_msg (byte m)
+is_playable_msg (midi::byte m)
 {
-    return m != to_byte(meta::meta_byte) && m != to_byte(status::sysex);
+    return m != to_byte(midi::meta::meta_byte) &&
+        m != to_byte(midi::status::sysex);
 }
 
 /*
@@ -515,7 +518,7 @@ is_playable_msg (byte m)
  */
 
 inline bool
-is_one_byte_msg (byte m)
+is_one_byte_msg (midi::byte m)
 {
     m = mask_status(m);
     return m == 0xC0 || 0xD0;
@@ -536,7 +539,7 @@ is_one_byte_msg (byte m)
  */
 
 inline bool
-is_two_byte_msg (byte s)
+is_two_byte_msg (midi::byte s)
 {
     return (s >= 0x80 && s < 0xC0) || (mask_status(s) == 0xE0);
 }
@@ -554,19 +557,19 @@ is_two_byte_msg (byte s)
  */
 
 inline bool
-is_note_msg (byte m)
+is_note_msg (midi::byte m)
 {
     return m >= 0x80 && m < 0xB0;       /* twixt Note Off & Control Change  */
 }
 
 inline bool
-is_note_off_msg (byte m)
+is_note_off_msg (midi::byte m)
 {
     return m >= 0x80 && m < 0x90;       /* twixt Note Off & Note On         */
 }
 
 inline bool
-is_note_on_msg (byte m)
+is_note_on_msg (midi::byte m)
 {
     return m >= 0x90 && m < 0xA0;       /* twixt Note On & Aftertouch       */
 }
@@ -584,7 +587,7 @@ is_note_on_msg (byte m)
  */
 
 inline bool
-is_strict_note_msg (byte m)
+is_strict_note_msg (midi::byte m)
 {
     return m >= 0x80 && m < 0xA0;       /* twixt Note Off & Aftertouch      */
 }
@@ -601,19 +604,19 @@ is_strict_note_msg (byte m)
  */
 
 inline bool
-is_note_off_velocity (byte status, byte vel)
+is_note_off_velocity (midi::byte statusbyte, midi::byte vel)
 {
-    return mask_status(status) == 0x90 && vel == 0;
+    return mask_status(statusbyte) == 0x90 && vel == 0;
 }
 
 inline bool
-is_program_change_msg (byte m)
+is_program_change_msg (midi::byte m)
 {
     return mask_status(m) == 0xC0;
 }
 
 inline bool
-is_below_sysex_msg (byte m)
+is_below_sysex_msg (midi::byte m)
 {
     return m < 0xF0;
 }
@@ -624,19 +627,19 @@ is_below_sysex_msg (byte m)
  */
 
 inline bool
-is_system_common_msg (byte m)
+is_system_common_msg (midi::byte m)
 {
     return m >= 0xF0 && m < 0xF8;   /* enum class status sysex to clock     */
 }
 
 inline bool
-is_sysex_msg (byte m)
+is_sysex_msg (midi::byte m)
 {
     return m == 0xF0 || m == 0xF7;  /* sysex or sysex_continue status byte  */
 }
 
 inline bool
-is_sysex_end_msg (byte m)
+is_sysex_end_msg (midi::byte m)
 {
     return m == 0xF7;
 }
@@ -652,19 +655,19 @@ is_sysex_end_msg (byte m)
  */
 
 inline bool
-is_sysex_special_id (byte ch)
+is_sysex_special_id (midi::byte ch)
 {
     return ch >= 0x7D && ch <= 0x7F;
 }
 
 inline bool
-is_quarter_frame_msg (byte m)
+is_quarter_frame_msg (midi::byte m)
 {
     return m == 0xF1;
 }
 
 inline bool
-is_midi_song_pos_msg (byte m)
+is_midi_song_pos_msg (midi::byte m)
 {
     return m == 0xF2;
 }
@@ -678,31 +681,31 @@ is_midi_song_pos_msg (byte m)
  */
 
 inline bool
-is_realtime_msg (byte m)
+is_realtime_msg (midi::byte m)
 {
     return m >= 0xF8;
 }
 
 inline bool
-is_midi_clock_msg (byte m)
+is_midi_clock_msg (midi::byte m)
 {
     return m == 0xF8;
 }
 
 inline bool
-is_midi_start_msg (byte m)
+is_midi_start_msg (midi::byte m)
 {
     return m == 0xFA;
 }
 
 inline bool
-is_midi_continue_msg (byte m)
+is_midi_continue_msg (midi::byte m)
 {
     return m == 0xFB;
 }
 
 inline bool
-is_midi_stop_msg (byte m)
+is_midi_stop_msg (midi::byte m)
 {
     return m == 0xFC;
 }
@@ -712,13 +715,13 @@ is_midi_stop_msg (byte m)
  */
 
 inline bool
-is_sense_or_reset_msg (byte m)
+is_sense_or_reset_msg (midi::byte m)
 {
     return m == 0xFE || m == 0xFF;
 }
 
 inline bool
-is_sense_msg (byte m)
+is_sense_msg (midi::byte m)
 {
     return m == 0xFE;
 }
@@ -728,19 +731,19 @@ is_sense_msg (byte m)
  */
 
 inline bool
-is_tempo_msg (byte m)
+is_tempo_msg (midi::byte m)
 {
     return m == 0x51;
 }
 
 inline bool
-is_time_signature_msg (byte m)
+is_time_signature_msg (midi::byte m)
 {
     return m == 0x58;
 }
 
 inline bool
-is_key_signature_msg (byte m)
+is_key_signature_msg (midi::byte m)
 {
     return m == 0x59;
 }
@@ -752,7 +755,7 @@ is_key_signature_msg (byte m)
  */
 
 inline bool
-is_continuous_event_msg (byte m)
+is_continuous_event_msg (midi::byte m)
 {
     return ! is_program_change_msg(m) && ! is_meta_msg(m);
 }
@@ -778,13 +781,13 @@ is_continuous_event_msg (byte m)
  */
 
 inline bool
-is_desired_cc_or_not_cc (byte m, byte cc, byte datum)
+is_desired_cc_or_not_cc (midi::byte m, midi::byte cc, midi::byte datum)
 {
     return (mask_status(m) != 0xB0) || (datum == cc);
 }
 
 inline bool
-has_channel (byte m)
+has_channel (midi::byte m)
 {
     return is_channel_msg(m);
 }
@@ -806,11 +809,11 @@ has_channel (byte m)
 extern std::string midi_controller_name (int index);
 extern std::string gm_program_name (int index);
 extern std::string gm_percussion_name (int index);
-extern int status_msg_size (byte s);
-extern int meta_msg_size (byte m);
-extern std::string status_label (byte m);
-extern std::string meta_text_label (byte m);
-extern std::string meta_label (byte m);
+extern int status_msg_size (midi::byte s);
+extern int meta_msg_size (midi::byte m);
+extern std::string status_label (midi::byte m);
+extern std::string meta_text_label (midi::byte m);
+extern std::string meta_label (midi::byte m);
 extern std::string rpn_name (int index);
 extern bool rpn_number_to_bytes (short rpnn, midi::byte out [2]);
 extern short bytes_to_rpn_number (const midi::byte in [2]);

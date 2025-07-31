@@ -86,13 +86,16 @@ public:
     virtual ~bus_out ();
 
     virtual int get_out_port_info () override;
-    virtual bool init_clock (pulse tick) override;
-    virtual bool send_event (const event * e24, midi::byte channel) override;
-    virtual bool send_sysex (const event * e24) override;
+    virtual bool init_clock (midi::pulse tick) override;
+    virtual bool send_event
+    (
+        const midi::event * e24, midi::byte channel
+    ) override;
+    virtual bool send_sysex (const midi::event * e24) override;
     virtual bool clock_start () override;
     virtual bool clock_stop () override;
-    virtual bool clock_send (pulse tick) override;
-    virtual bool clock_continue (pulse tick) override;
+    virtual bool clock_send (midi::pulse tick) override;
+    virtual bool clock_continue (midi::pulse tick) override;
 
 };          // class bus_out
 

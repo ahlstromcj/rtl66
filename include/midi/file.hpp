@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-01-16
+ * \updates       2025-07-31
  * \license       GNU GPLv2 or above
  *
  *  This version is very basic, and does not include any Seq66 features.
@@ -61,7 +61,7 @@ private:
      *  MIDI file.
      */
 
-    player & m_coordinator;
+    midi::player & m_coordinator;
 
     /**
      *  Potential new.
@@ -137,7 +137,7 @@ public:
     file
     (
         const std::string & filespec,
-        player & p,
+        midi::player & p,
         bool smf0split = true                   /* applies only to reading  */
     );
     file (const file &) = delete;
@@ -194,15 +194,15 @@ public:
 
 protected:
 
-    virtual track * create_track ();
-    virtual bool finalize_track (track * trk, int trkno);
+    virtual midi::track * create_track ();
+    virtual bool finalize_track (midi::track * trk, int trkno);
 
-    player & coordinator ()
+    midi::player & coordinator ()
     {
         return m_coordinator;
     }
 
-    const player & coordinator () const
+    const midi::player & coordinator () const
     {
         return m_coordinator;
     }
@@ -323,19 +323,19 @@ protected:
 
 extern file * make_midi_file_object
 (
-    player & p,
+    midi::player & p,
     const std::string & filespec,
     bool smf0split = true
 );
 extern bool read_midi_file
 (
-    player & p,
+    midi::player & p,
     const std::string & fn,
     std::string & errmsg
 );
 extern bool write_midi_file
 (
-    player & p,
+    midi::player & p,
     const std::string & fn,
     std::string & errmsg,
     bool eventsonly = true

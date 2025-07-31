@@ -170,12 +170,16 @@ using bpm = double;
 
 using ppqn = short;
 
+#if 0
+
 /*
  *  Container types.  The next few type are common enough to warrant aliasing
  *  in this file.
  */
 
 using string = std::basic_string<byte>;         /* remember, midi::string   */
+
+#endif
 
 /**
  *  Provides a convenient way to package a number of booleans, such as
@@ -383,13 +387,13 @@ null_channel ()
 inline bool
 is_good_channel (byte c)
 {
-    return c < c_channel_max;                       /* 0 to 15 are good */
+    return c < c_channel_max;                           /* 0 to 15 are good */
 }
 
 inline bool
 is_good_channel (int c)
 {
-    return c >= 0 && c < c_channel_max;             /* 0 to 15 are good */
+    return c >= 0 && c < c_channel_max;                 /* 0 to 15 are good */
 }
 
 inline bool

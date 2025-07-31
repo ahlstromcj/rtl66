@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2024-05-26
+ * \updates       2025-07-30
  * \license       GNU GPLv2 or above
  *
  *  This class is meant to hold the bytes that represent MIDI events and other
@@ -134,7 +134,7 @@ private:
      *  This list holds the current track events.  Now inherited or contained
      *  via midi::trackdata, along with a midi::bytes vectory.
      *
-     *      eventlist m_events;
+     *      midi::eventlist m_events;
      */
 
     /**
@@ -461,12 +461,12 @@ public:
         data().manufacturer_id(manufid);
     }
 
-    eventlist & events ()
+    midi::eventlist & events ()
     {
         return data().events();
     }
 
-    const eventlist & events () const
+    const midi::eventlist & events () const
     {
         return data().m_events;
     }
@@ -532,12 +532,17 @@ public:
         return m_midi_channel;
     }
 
+    void track_midi_channel (midi::byte c)
+    {
+        m_midi_channel = c;
+    }
+
     bool free_channel () const
     {
         return m_free_channel;
     }
 
-    void copy_events (const eventlist & evlist)
+    void copy_events (const midi::eventlist & evlist)
     {
         events() = evlist;
     }
@@ -791,12 +796,12 @@ protected:
         return m_master_bus;
     }
 
-    const player * parent () const
+    const midi::player * parent () const
     {
         return m_parent;
     }
 
-    player * parent ()
+    midi::player * parent ()
     {
         return m_parent;
     }
@@ -815,7 +820,7 @@ protected:
 
     size_t parse_track
     (
-        const util::bytevector & datavec,
+        const util::bytevector & datavec,       // midi::bytes !!!!
         size_t offset, size_t len
     )
     {
@@ -843,11 +848,11 @@ protected:
 
 protected:
 
-    bool add_event (const event & er);
-    bool append_event (const event & er);
+    bool add_event (const midi::event & er);
+    bool append_event (const midi::event & er);
     void sort_events ();
     void verify_and_link (bool wrap = false);
-    void put_event_on_bus (const event & ev);
+    void put_event_on_bus (const midi::event & ev);
 
 #if defined MOVE_THIS_TO_DERIVED_CLASS
     midi::pulse song_put_seq_event...
