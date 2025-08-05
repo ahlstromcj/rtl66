@@ -988,7 +988,7 @@ event::append_sysex (const midi::byte * data, size_t dsize)
 /**
  *  This function appends Meta-event data from a vector to a new buffer.
  *
- *      0xff mm len data...
+ *      0xff mm len data..., mm = meta type
  *
  *  Appends Meta-event data to a new buffer.  Similar to append_sysex(), but
  *  useful for holding the data for a Meta event.  Please note that Meta

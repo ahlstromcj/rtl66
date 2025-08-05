@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-01-31
+ * \updates       2025-08-05
  * \license       GNU GPLv2 or above
  *
  */
@@ -33,6 +33,7 @@
 
 #include "c_macros.h"                   /* not_nullptr macro                */
 #include "midi/calculations.hpp"        /* midi::tempo_us_from_bpm()        */
+#include "midi/clientinfo.hpp"          /* midi::clientinfo global          */
 #include "midi/file.hpp"                /* midi::read_midi_file()           */
 #include "midi/player.hpp"              /* midi::player, this class         */
 #include "rtl/midi/find_midi_api.hpp"   /* rtl::find_midi_api() etc.        */
@@ -95,6 +96,7 @@ static const int c_thread_priority = 1;
  */
 
 player::player (int out_portnumber, int in_portnumber) :
+//     m_client_info           (),
     m_manufacturer_id       {0},                /* 1 to 4 bytes             */
     m_master_bus            (),                 /* unique pointer           */
     m_in_portnumber         (in_portnumber),
@@ -571,7 +573,7 @@ bool
 player::create_master_bus ()
 {
     bool result = bool(m_master_bus);
-    if (! result)                       /* no master buss yet?  */
+    if (! result)                               /* no master buss yet?      */
     {
         /*
          *  Find an available API.  Here, we rely on finding the fallback API,
@@ -580,7 +582,7 @@ player::create_master_bus ()
          *      rtl::rtmidi::api midiapi = rtl::rtmidi::selected(api);
          */
 
-         rtl::rtmidi::api midiapi = rtl::find_midi_api();
+        rtl::rtmidi::api midiapi = rtl::find_midi_api();
         if (midiapi != rtl::rtmidi::api::unspecified)
         {
             /*
@@ -593,19 +595,21 @@ player::create_master_bus ()
 
             m_master_bus.reset
             (
-                // new (std::nothrow) midi::masterbus(rtmidi::api, m_ppqn, m_bpm)
-
-                new (std::nothrow) midi::masterbus(midiapi) /* TODO */
+                new (std::nothrow) midi::masterbus(midiapi)
             );
             if (m_master_bus)
             {
-#if DERIVED_CLASS
+                midi::clientinfo & ci = midi::global_client_info();
                 midi::masterbus * mmb = m_master_bus.get();
-                mmb->filter_by_channel(m_filter_by_channel);
-                mmb->set_port_statuses(m_clocks, m_inputs);
-                midi_control_out().set_master_bus(mmb);
+                if (mmb->client_info_reset(ci))
+                {
+#if DERIVED_CLASS
+                    mmb->filter_by_channel(m_filter_by_channel);
+                    mmb->set_port_statuses(m_clocks, m_inputs);
+                    midi_control_out().set_master_bus(mmb);
 #endif
-                result = true;
+                    result = true;
+                }
             }
         }
     }
@@ -2165,6 +2169,24 @@ player::play (midi::pulse tick)
                 trk->play_queue(tick, songmode, resume_note_ons());
             else
                 append_error_message("play() on null track");
+        }
+        m_master_bus->flush();                          /* flush MIDI buss  */
+    }
+    return true;
+}
+
+bool
+player::simple_play (midi::pulse tick)
+{
+    if (tick != transportinfo().tick() || tick == 0)    /* avoid replays    */
+    {
+        set_tick(tick);
+        for (const auto & trk : track_list().tracks())
+        {
+            if (trk)
+                trk->simple_play(tick);
+            else
+                append_error_message("simple_play() on null track");
         }
         m_master_bus->flush();                          /* flush MIDI buss  */
     }

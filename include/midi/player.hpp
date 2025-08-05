@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-10
- * \updates       2024-06-01
+ * \updates       2025-08-05
  * \license       GNU GPLv2 or above
  *
  *  The player class is a severely cut-down version of seq66::performer, with
@@ -39,7 +39,7 @@
  *      -   Playing all the tracks in the file to the single port.
  *      -   Recording to a designated track via a single port.
  *
- *  It leaves out the following performer concepts:
+ *  It leaves out the following Seq66 performer concepts:
  *
  *      -   Play-lists
  *      -   Mute-groups.
@@ -70,6 +70,7 @@
 #include <thread>                           /* std::thread                  */
 
 #include "xpc/condition.hpp"                /* xpc::condition/synchronizer  */
+// #include "midi/clientinfo.hpp"              /* midi::clientinfo             */
 #include "midi/masterbus.hpp"               /* access to all MIDI busses    */
 #include "midi/ports.hpp"                   /* access to MIDI ports         */
 #include "midi/tracklist.hpp"               /* provides a set of tracks     */
@@ -157,6 +158,12 @@ public:
 #endif
 
 private:
+
+    /**
+     *  Holds client application and ports that were discovered.
+
+    clientinfo m_client_info;
+     */
 
     /**
      *  Holds the "manufacturer ID" for the current application. Usually it is
@@ -885,7 +892,8 @@ public:
     bool auto_stop ();
     bool auto_pause ();
     bool auto_play ();
-    bool play (midi::pulse tick);
+    bool play (midi::pulse tick = 0);
+    bool simple_play (midi::pulse tick = 0);
     void all_notes_off ();
 
     bool panic ();                                      /* from kepler43    */

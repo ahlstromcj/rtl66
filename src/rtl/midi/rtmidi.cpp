@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-01-20
+ * \updates       2025-08-05
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -941,39 +941,17 @@ rtmidi::send_message (const midi::message & msg)
  *  Simply provides some common code for the rtmidi-derived constructors.
  */
 
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
-
 rtmidi::api
 rtmidi::ctor_common_setup (rtmidi::api rapi, const std::string & clientname)
 {
-    std::string cname = clientname;
-    if (cname.empty())                                      // NOT it!
-        cname = midi::global_client_info().client_name();   // REMOVE
-    else
-       midi::global_client_info().client_name(cname);      // IFFY
-
     if (rapi == rtmidi::api::unspecified)
         rapi = fallback_api();
 
-    return rapi;
-}
-
-#else
-
-rtmidi::api
-rtmidi::ctor_common_setup
-(
-    rtmidi::api rapi,
-    const std::string & // clientname
-)
-{
-    if (rapi == rtmidi::api::unspecified)
-        rapi = fallback_api();
+    if (! clientname.empty())
+       midi::global_client_info().client_name(clientname);
 
     return rapi;
 }
-
-#endif
 
 }           // namespace rtl
 

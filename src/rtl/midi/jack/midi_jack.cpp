@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-01-30
+ * \updates       2025-08-05
  * \license       See above.
  *
  *  Engine candidates:
@@ -185,8 +185,6 @@ detect_jack (bool forcecheck)
     return result;
 }
 
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
-
 void
 set_jack_version ()
 {
@@ -202,16 +200,6 @@ set_jack_version ()
     midi::global_client_info().api_version(jv);
 #endif
 }
-
-#else
-
-void
-set_jack_version ()
-{
-    // no code
-}
-
-#endif
 
 /**
  *  This function merely eats the string passed as a parameter. This

@@ -1545,9 +1545,11 @@ trackdata::parse_track
 )
 {
     int evcount = 0;                        /* for sanity checking          */
+
 //  TODO
 //  bool timesig_set = false;               /* first time-sig wins          */
-    bool error_reported = false;            /* for handling message         */
+//  bool error_reported = false;            /* for handling message         */
+//  TODO
 
     size_t result = offset + trklength;     /* presumed next track offset   */
     midi::pulse runningtime = 0;            /* reset timestamp accumulator  */

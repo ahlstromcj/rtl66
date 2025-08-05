@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-07-01
- * \updates       2024-06-01
+ * \updates       2025-08-05
  * \license       See above.
  *
  *      Simple program to test MIDI input and retrieval from the queue.
@@ -36,7 +36,7 @@
 #include <memory>                       /* std::unique_ptr<>                */
 #include <signal.h>                     /* is there a C++ version?          */
 
-#include "midi/clientinfo.hpp"          /* midi::global_client_info()       */
+#include "midi/clientinfo.hpp"          /* midi::clientinfo class           */
 #include "midi/message.hpp"             /* midi::message class              */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
@@ -50,27 +50,33 @@ finish (int /*ignore*/)
     s_is_done = true;
 }
 
+/**
+ *  This function sets the global clientinfo object via rt_simple_cli().
+ *
+ *  The midi::global_client_info() accessor provides initial setup
+ *  information and then current port information, application-wide.
+ */
+
 int
 main (int argc, char * argv[])
 {
-    bool can_run = rt_simple_cli("midiout", argc, argv);
+    bool can_run = rt_simple_cli("qmidiin", argc, argv);
     if (can_run)
     {
         std::unique_ptr<rtl::rtmidi_in> midiin;
-        midi::message message;
+        midi::message msg;
         int nbytes, i;
         double stamp;
         try
         {
             rtl::rtmidi::api rapi = rtl::rtmidi::desired_api(); /* static */
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
             midiin.reset
             (
-                new rtl::rtmidi_in(rapi, midi::global_client_info().client_name())
+                new rtl::rtmidi_in
+                (
+                    rapi, midi::global_client_info().client_name()
+                )
             );
-#else
-            midiin.reset(new rtl::rtmidi_in(rapi, "qmidiin"));
-#endif
 
             /*
              * Check available ports vs. specified.
@@ -110,11 +116,11 @@ main (int argc, char * argv[])
                             ;
                         while (! s_is_done)
                         {
-                            stamp = midiin->get_message(message);
-                            nbytes = message.size();
+                            stamp = midiin->get_message(msg);
+                            nbytes = msg.size();
                             for (i = 0; i < nbytes; ++i)
                                 std::cout << "Byte " << i << " = "
-                                    << int(message[i]) << "; " ;
+                                    << int(msg[i]) << "; " ;
 
                             if (nbytes > 0)
                                 std::cout << "timestamp = " << stamp << std::endl;

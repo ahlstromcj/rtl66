@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2025-07-30
+ * \updates       2025-08-05
  * \license       GNU GPLv2 or above
  *
  *  This class is meant to hold the bytes that represent MIDI events and other
@@ -635,6 +635,7 @@ public:
     (
         midi::pulse tick, bool playback_mode = false, bool resume = false
     );
+    virtual void simple_play (midi::pulse tick);
     virtual bool set_recording
     (
         bool recordon, record r = record::normal, bool toggler = false

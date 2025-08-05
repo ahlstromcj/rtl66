@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2024-05-14
+ * \updates       2025-08-05
  * \license       See above.
  *
  * To do:
@@ -98,8 +98,6 @@ detect_alsa (bool checkports)
  * This might be goofy!
  */
 
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
-
 void
 set_alsa_version ()
 {
@@ -108,16 +106,6 @@ set_alsa_version ()
     midi::global_client_info().api_version(jv);
 #endif
 }
-
-#else
-
-void
-set_alsa_version ()
-{
-    // no code
-}
-
-#endif
 
 /**
  *  The ALSA Sequencer API is based on the use of a callback function for MIDI
@@ -970,11 +958,9 @@ midi_alsa::initialize (const std::string & clientname)
         if (is_input())
         {
 #if ! defined RTL66_ALSA_AVOID_TIMESTAMPING
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
             midi::bpm bp = midi::global_client_info().global_bpm();
             midi::ppqn ppq = midi::global_client_info().global_ppqn();
             (void) set_seq_tempo_ppqn(data.alsa_client(), bp, ppq);
-#endif
 #endif
             input_data().api_data(reinterpret_cast<void *>(&data));
         }
@@ -1021,20 +1007,14 @@ bool
 midi_alsa::set_seq_tempo_ppqn
 (
     snd_seq_t * seq, midi::bpm bp,
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
     midi::ppqn /* ppq */
-#else
-    midi::ppqn ppq
-#endif
 )
 {
     bool result = not_nullptr(seq);
     if (result)
     {
         unsigned tempo_us = unsigned(midi::tempo_us_from_bpm(bp));
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
         midi::ppqn ppq = midi::global_client_info().global_ppqn();
-#endif
         midi_alsa_data & data = alsa_data();
         data.queue_id(snd_seq_alloc_named_queue(seq, "rtmidi queue"));
 

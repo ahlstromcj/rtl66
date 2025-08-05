@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2024-06-01
+ * \updates       2025-08-05
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -74,9 +74,10 @@
  *  is no masterbus to provide one?
  *
  *  We think the answer is "yes", especially to support the rtl "C" code.
+ *  So now it is implicitly defined.
+ *
+ *  #define RTL66_USE_GLOBAL_CLIENTINFO
  */
-
-#define RTL66_USE_GLOBAL_CLIENTINFO
 
 /**
  *  A potential future feature, macroed to avoid issues until it is perfected.
@@ -101,20 +102,20 @@ namespace midi
  *  bool, in) so that the default constructor provides non-random values.
  */
 
-class clientinfo
+struct client_defaults
 {
     /**
      *  Provides the rtl (not RtMidi) API version string.
      */
 
-    std::string m_api_version;
+    std::string cd_api_version { RTL66_VERSION };
 
     /**
      *  Provides the name of the client for display in a JACK connection graph
      *  (for example).  Examples are "seq66" or "seq66v2".
      */
 
-    std::string m_client_name;
+    std::string cd_client_name { "rtl66" };
 
     /**
      *  Holds this value for passing along, to reduce the number of arguments
@@ -122,41 +123,41 @@ class clientinfo
      *  ./configure time(e.g. qseq66v2).
      */
 
-    std::string m_app_name;
+    std::string cd_app_name { "rtl66" };
 
     /**
      *  Provides the preference of using JACK (versus other MIDI engines).
      *  If JACK is not found, we want to fall back to ALSA.
      */
 
-    bool m_jack_midi {false};
+    bool cd_jack_midi { false };
 
     /**
      *  Indicates that the application will use virtual (manually-connected)
      *  ports.
      */
 
-    bool m_virtual_ports {false};
+    bool cd_virtual_ports { false };
 
     /**
      *  Indicates that the application will try to auto-connect to MIDI ports
      *  already existing in the system.  Cannot be used by virtual ports.
      */
 
-    bool m_auto_connect {false};
+    bool cd_auto_connect { false };
 
     /**
      *  Always false until this feature is complete.
      */
 
-    bool m_port_refresh {false};
+    bool cd_port_refresh { false };
 
     /**
      *  Holds the global PPQN value.  This is an addition to the RtMidi
      *  interface. Some MIDI engines can use this information.
      */
 
-    midi::ppqn m_global_ppqn {0};
+    midi::ppqn cd_global_ppqn { RTL66_DEFAULT_PPQN };
 
     /**
      *  Holds the global BPM (beats per minute) value, which is a double to
@@ -166,9 +167,56 @@ class clientinfo
      *  per measure.
      */
 
-    midi::bpm m_global_bpm {0};
+    midi::bpm cd_global_bpm { RTL66_DEFAULT_BPM };
+
+    /**
+     *  A kludge to indicate if this object is meant for output or input
+     *  ports. Compare it to the boolean parameter of the "impl_xxx() member
+     *  functions (e.g. in midi_jack and midi_alsa).
+     */
+
+    port::io cd_port_type { port::io::duplex };
+
+    /**
+     *  The input port number.  If equal to -1, then (in the future)
+     *  will work with all ports.
+     */
+
+    int cd_input_portnumber { -1 };
+
+    /**
+     *  The output port number.  If equal to -1, then (in the future)
+     *  will work with all ports.
+     */
+
+    int cd_output_portnumber { -1 };
+
+};          // client_defaults
+
+/**
+ *  The class for holding basic information on the MIDI input and output ports
+ *  currently present in the system.
+ *
+ *  Note that we now provide initializers for the non-class members (e.g.
+ *  bool, in) so that the default constructor provides non-random values.
+ */
+
+class clientinfo
+{
 
 private:
+
+    /**
+     *  Default settings desired by the client.
+     */
+
+    client_defaults m_cd;
+
+    /**
+     *  The ID of the ALSA MIDI queue. A la Seq66's mastermidibase class.
+     */
+
+    int m_global_queue { c_bad_id };
 
 #if defined RTL66_JACK_PORT_REFRESH
 
@@ -190,45 +238,17 @@ private:
     ports m_io_ports[2];
 
     /**
-     *  The input port number.  If equal to -1, then (in the future)
-     *  will work with all ports. Currently 0 by default.
-     */
-
-    int m_input_portnumber {-1};
-
-    /**
-     *  The output port number.  If equal to -1, then (in the future)
-     *  will work with all ports. Currently 0 by default.
-     */
-
-    int m_output_portnumber {-1};
-
-    /**
-     *  The ID of the ALSA MIDI queue.
-     */
-
-    int m_global_queue {-1};
-
-    /**
      *  Provides a handle to the main ALSA or JACK implementation object.
      *  Created by the class derived from midi::clientinfo.
      */
 
-    void * m_midi_handle {nullptr};
-
-    /**
-     *  A kludge to indicate if this object is meant for output or input
-     *  ports. Compare it to the boolean parameter of the "impl_xxx() member
-     *  functions (e.g. in midi_jack and midi_alsa).
-     */
-
-    port::io m_port_type {port::io::duplex};
+    void * m_midi_handle { nullptr };
 
     /**
      *  True if the handle has been obtained.
      */
 
-    bool m_is_connected {false};
+    bool m_is_connected { false };
 
 protected:
 
@@ -236,17 +256,19 @@ protected:
      *  Error string for the midi::clientinfo interface.
      */
 
-    std::string m_error_string;
+    std::string m_error_string { };
 
 public:
 
     /*
      * Beware! In GNU C++, the default constructor leaves many members
-     * with "random" values.
+     * with "random" values. The in-class assignments made above fix
+     * that issue.
      */
 
     clientinfo () = default;
     clientinfo (midi::port::io iodirection);
+    clientinfo (const client_defaults &);
     clientinfo (const clientinfo &) = default;
     clientinfo (clientinfo &&) = default;
     clientinfo & operator = (const clientinfo &) = default;
@@ -270,32 +292,32 @@ public:
 
     void api_version (const std::string & v)
     {
-        m_api_version = v;
+        m_cd.cd_api_version = v;
     }
 
     const std::string & api_version () const
     {
-        return m_api_version;
+        return m_cd.cd_api_version;
     }
 
     void client_name (const std::string & cname)
     {
-        m_client_name = cname;
+        m_cd.cd_client_name = cname;
     }
 
     const std::string & client_name () const
     {
-        return m_client_name;
+        return m_cd.cd_client_name;
     }
 
     void app_name (const std::string & aname)
     {
-        m_app_name = aname;
+        m_cd.cd_app_name = aname;
     }
 
     const std::string & app_name () const
     {
-        return m_app_name;
+        return m_cd.cd_app_name;
     }
 
     static bool all_ports (int portnumber)
@@ -305,30 +327,30 @@ public:
 
     int input_portnumber () const
     {
-        return m_input_portnumber;
+        return m_cd.cd_input_portnumber;
     }
 
     void input_portnumber (int p)
     {
         if (p >= (-1))
-            m_input_portnumber = p;
+            m_cd.cd_input_portnumber = p;
     }
 
     int output_portnumber () const
     {
-        return m_output_portnumber;
+        return m_cd.cd_output_portnumber;
     }
 
     void output_portnumber (int p)
     {
         if (p >= (-1))
-            m_output_portnumber = p;
+            m_cd.cd_output_portnumber = p;
     }
 
     bool jack_midi () const
     {
 #if defined RTL66_BUILD_JACK
-        return m_jack_midi;
+        return m_cd.cd_jack_midi;
 #else
         return false;
 #endif
@@ -336,57 +358,57 @@ public:
 
     void jack_midi (bool flag)
     {
-        m_jack_midi = flag;
+        m_cd.cd_jack_midi = flag;
     }
 
     bool virtual_ports () const
     {
-        return m_virtual_ports;
+        return m_cd.cd_virtual_ports;
     }
 
     void virtual_ports (bool flag)
     {
-        m_virtual_ports = flag;
+        m_cd.cd_virtual_ports = flag;
     }
 
     bool auto_connect () const
     {
-        return m_auto_connect;
+        return m_cd.cd_auto_connect;
     }
 
     void auto_connect (bool flag)
     {
-        m_auto_connect = flag;
+        m_cd.cd_auto_connect = flag;
     }
 
     bool port_refresh () const
     {
-        return m_port_refresh;
+        return m_cd.cd_port_refresh;
     }
 
     void port_refresh (bool flag)
     {
-        m_port_refresh = flag;
+        m_cd.cd_port_refresh = flag;
     }
 
     midi::ppqn global_ppqn () const
     {
-        return m_global_ppqn;
+        return m_cd.cd_global_ppqn;
     }
 
     void global_ppqn (midi::ppqn p)
     {
-        m_global_ppqn = p;     /* no validation yet    */
+        m_cd.cd_global_ppqn = p;     /* no validation yet    */
     }
 
     midi::bpm global_bpm () const
     {
-        return m_global_bpm;
+        return m_cd.cd_global_bpm;
     }
 
     void global_bpm (midi::bpm  b)
     {
-        m_global_bpm = b;      /* no validation yet    */
+        m_cd.cd_global_bpm = b;      /* no validation yet    */
     }
 
     /*
@@ -395,7 +417,7 @@ public:
 
     unsigned global_tempo_us () const
     {
-        return unsigned(std::nearbyint(m_global_bpm));
+        return unsigned(std::nearbyint(m_cd.cd_global_bpm));
     }
 
     /*
@@ -409,29 +431,29 @@ public:
 
     port::io port_type () const
     {
-        return m_port_type;
+        return m_cd.cd_port_type;
     }
 
     bool is_output () const
     {
-        return m_port_type == port::io::output;
+        return m_cd.cd_port_type == port::io::output;
     }
 
     // DEPRECATED
     bool is_input () const
     {
-        return m_port_type == port::io::input;
+        return m_cd.cd_port_type == port::io::input;
     }
 
     // DEPRECATED
     bool is_engine () const
     {
-        return m_port_type == port::io::engine;
+        return m_cd.cd_port_type == port::io::engine;
     }
 
     bool is_duplex () const
     {
-        return m_port_type == port::io::duplex;
+        return m_cd.cd_port_type == port::io::duplex;
     }
 
     bool is_connected () const
@@ -584,16 +606,13 @@ protected:
  * Free functions
  *------------------------------------------------------------------------*/
 
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
-
 extern clientinfo & global_client_info ();
 extern bool get_global_port_info
 (
     rtl::rtmidi::api rapi = rtl::rtmidi::api::unspecified
 );
-
-#endif
-
+extern bool init_global_client_info (const clientinfo & ci);
+extern bool get_global_client_info (clientinfo & ci);
 extern bool get_all_port_info
 (
     midi::clientinfo & cinfo,

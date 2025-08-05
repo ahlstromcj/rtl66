@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2024-06-05
+ * \updates       2025-08-05
  * \license       See above.
  *
  */
@@ -300,9 +300,7 @@ static void
 set_test_port_in (int portnumber)
 {
     s_test_port_in = portnumber;
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
     midi::global_client_info().input_portnumber(portnumber);
-#endif
 }
 
 int
@@ -315,9 +313,7 @@ static void
 set_test_port_out (int portnumber)
 {
     s_test_port_out = portnumber;
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
     midi::global_client_info().output_portnumber(portnumber);
-#endif
 }
 
 int
@@ -398,6 +394,7 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
     set_test_port_out(-1);
     set_test_port_name("");
     std::cout << "Application: '" << appname << "'" << std::endl;
+    midi::global_client_info().app_name(appname);
     for (int i = 1; i < argc; ++i)
     {
         std::string arg = argv[i];
@@ -431,21 +428,16 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
         else if (arg == "--virtual")
         {
             set_virtual_test_port(true);
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
             midi::global_client_info().virtual_ports(true);
             midi::global_client_info().auto_connect(false);
-#endif
         }
         else if (arg == "--auto-connect")
         {
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
             midi::global_client_info().virtual_ports(false);
             midi::global_client_info().auto_connect(true);
-#endif
         }
         else if (arg == "--ppqn")
         {
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
             if (i + 1 < argc)
             {
                 try
@@ -464,11 +456,9 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
                     std::cerr << "--ppqn argument out-of-range" << std::endl;
                 }
             }
-#endif
         }
         else if (arg == "--bpm")
         {
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
             if (i + 1 < argc)
             {
                 try
@@ -487,17 +477,14 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
                     std::cerr << "--bpm argument out-of-range" << std::endl;
                 }
             }
-#endif
         }
         else if (arg == "--client")
         {
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
             if (i + 1 < argc)
             {
                 std::string value = std::string(argv[i + 1]);
                 midi::global_client_info().client_name(value);
             }
-#endif
         }
         else if (arg == "--length")
         {

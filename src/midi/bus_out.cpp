@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2024-06-09
+ * \updates       2025-08-04
  * \license       GNU GPLv2 or above
  *
  */
@@ -57,7 +57,7 @@ bus_out::bus_out
     m_rtmidi_out
     {
         master.selected_api(),
-        master.client_info()->client_name(),
+        master.client_info_ptr()->client_name(),
     },
     m_last_tick (0)
 {
@@ -83,7 +83,7 @@ int
 bus_out::get_out_port_info ()
 {
     int result = 0;
-    auto mip = master_bus().client_info();
+    auto mip = master_bus().client_info_ptr();
     if (mip)
     {
         result = m_rtmidi_out.get_io_port_info(mip->io_ports(port::io::output));

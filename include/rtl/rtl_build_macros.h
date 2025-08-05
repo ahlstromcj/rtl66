@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-05
- * \updates       2024-06-01
+ * \updates       2025-08-04
  * \license       See above.
  *
  * Introduction:
@@ -39,6 +39,12 @@
  */
 
 #include "platform_macros.h"            /* generic detecting of OS platform */
+
+/**
+ *  Official version number for this library.
+ */
+
+#define RTL66_VERSION           "0.1.0"     /* also set this in README.md   */
 
 /**
  *  This was the version of the RtMidi library from which this

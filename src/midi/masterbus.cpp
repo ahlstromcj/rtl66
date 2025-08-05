@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2023-07-20
+ * \updates       2025-08-04
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -108,6 +108,10 @@ namespace midi
 /**
  *  The masterbus default constructor fills the array with our busses.
  *
+ *  Once constructed, if the caller wants to use the Seq66-derived
+ *  buss feature, the caller should call masterbus::client_info_reset().
+ *  Normally it is a null pointer.
+ *
  * \param rapi
  *      The rtmidi API to use, either already vetted and selected, or
  *      rtl::rtmidi::api::unspecified.
@@ -121,8 +125,6 @@ namespace midi
  * \param bp
  *      Provides the beats per minute value, which defaults to
  *      c_beats_per_minute.
- *
- * TODO: do we need a client name?
  */
 
 masterbus::masterbus
@@ -131,7 +133,7 @@ masterbus::masterbus
     midi::ppqn ppq,
     midi::bpm bp
 ) :
-    m_selected_api      (rtl::rtmidi::api::unspecified),
+    m_selected_api      (rapi),     // rtl::rtmidi::api::unspecified),
     m_rt_api_ptr        (nullptr),
     m_engine            (this, rapi, "mbus"),
     m_mutex             (),
@@ -142,7 +144,54 @@ masterbus::masterbus
     m_ppqn              (ppq),
     m_beats_per_minute  (bp)
 {
-    (void) engine_query();
+    // No code
+}
+
+/**
+ *  Creates a copy of the given clientinfo object. The old clientinfo
+ *  is removed, and a query of the existing ports is made.
+ *
+ *  Use this function to activate (or change) from using the
+ *  original RtMidi API to using our Seq66-derived "midi::bus" API.
+ *
+ *  If the caller wants to see the ports, use the get_client_info()
+ *  function.
+ */
+
+bool
+masterbus::client_info_reset (const clientinfo & cinfo)
+{
+    if (! m_client_info)
+        m_client_info.reset(new midi::clientinfo());
+
+    bool result = bool(m_client_info);
+    if (result)
+    {
+        *m_client_info = cinfo;
+        result = engine_query();
+    }
+    return result;
+}
+
+/**
+ *  Grabs the current status of the masterbus::info member.
+ *
+ * \param cinfo
+ *      Provides the destination for the information.
+ *
+ * \return
+ *      Returns true if there was clientinfo to get. Otherwise do not
+ *      rely on the clientinfo parameter.
+ */
+
+bool
+masterbus::get_client_info (clientinfo & cinfo)
+{
+    bool result = bool(m_client_info);
+    if (result)
+        cinfo = *m_client_info;
+
+    return result;
 }
 
 /**
@@ -175,14 +224,14 @@ masterbus::engine_query ()
     if (! m_client_info)
         m_client_info.reset(new midi::clientinfo(midi::port::io::duplex));
 
-    bool result = bool(client_info());
+    bool result = bool(client_info_ptr());
     if (result)
     {
-        result = get_all_port_info(*client_info(), selected_api());
+        result = get_all_port_info(*client_info_ptr(), selected_api());
         if (result)
         {
 #if defined PLATFORM_DEBUG
-            std::string msg = client_info()->to_string("engine_query()");
+            std::string msg = client_info_ptr()->to_string("engine_query()");
             infoprint(msg.c_str());
 #endif
         }
@@ -710,23 +759,21 @@ masterbus::dump_midi_input (event /*& ev*/)
 
 /**
  *  Dumps a list of the ports.
- *
- *  TODO:  use client_info::port_list() instead???
  */
 
 std::string
 masterbus::port_listing () const
 {
     std::string result;
-    if (client_info())
+    if (client_info_ptr())
     {
-        if (client_info()->empty())
+        if (client_info_ptr()->empty())
         {
             result = "\nPorts: none\n";
         }
         else
         {
-            result = client_info()->port_list();
+            result = client_info_ptr()->port_list();
             result += "\n";
         }
     }

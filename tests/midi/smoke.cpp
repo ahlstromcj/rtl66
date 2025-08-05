@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-11-25
- * \updates       2024-06-05
+ * \updates       2025-07-31
  * \license       See above.
  *
  *      Provides a smoke test for reading and writing a short MIDI file and
@@ -60,10 +60,11 @@
 
 static const std::string s_base_directory{"tests/data/midi"};
 static const std::string s_out_wart{"-out"};
-static const std::vector<std::string> s_test_files
+static const lib66::tokenization s_test_files
 {
-    "smoke.mid",
-    "1Bar.midi",
+    "smoke.mid",                            /* a simple 2-track MIDI file   */
+    "1Bar-export.mid",                      /* a simple standard MIDI file  */
+    "1Bar.midi",                            /* normal track + Seq66 SeqSpec */
     "simpleblast-ch1-8th-notes.midi",
     "simpleblast-ch1-8th-notes-960.midi"
 };

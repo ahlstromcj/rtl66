@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2024-06-01
+ * \updates       2025-08-05
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -59,31 +59,19 @@ namespace midi
  *------------------------------------------------------------------------*/
 
 /**
- *  Principal constructor.
+ *  Principal constructor. There is no initializer list.
+ *  The default values of members are set in-class. See the default
+ *  constructor.
  */
 
-clientinfo::clientinfo (midi::port::io iodirection) :
-    m_api_version       ("TBD"),
-    m_client_name       ("rtl66"),
-    m_app_name          ("rtl66"),
-    m_jack_midi         (false),
-    m_virtual_ports     (false),
-    m_auto_connect      (false),
-    m_port_refresh      (false),
-    m_global_ppqn       (RTL66_DEFAULT_PPQN),
-    m_global_bpm        (RTL66_DEFAULT_BPM),
-#if defined RTL66_MIDI_PORT_REFRESH
-    m_previous_ports    (),                 /* last known ports             */
-#endif
-    m_io_ports          (),                 /* midi::ports[] for ins/outs   */
-    m_input_portnumber  (0),
-    m_output_portnumber (0),
-    m_global_queue      (c_bad_id),         /* a la mastermidibase; created */
-    m_midi_handle       (nullptr),          /* usually looked up or created */
-    m_port_type         (iodirection),      /* I/O, service, or duplex      */
-    m_error_string      ()
+clientinfo::clientinfo (midi::port::io iodirection)
 {
-    // No code
+    m_cd.cd_port_type = iodirection;        /* I/O, service, or duplex      */
+}
+
+clientinfo::clientinfo (const client_defaults & cd)
+{
+    m_cd = cd;
 }
 
 /**
@@ -196,8 +184,6 @@ clientinfo::port_list () const
  * Free functions
  *------------------------------------------------------------------------*/
 
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
-
 clientinfo &
 global_client_info ()
 {
@@ -211,7 +197,21 @@ get_global_port_info (rtl::rtmidi::api rapi)
     return get_all_port_info(global_client_info(), rapi);
 }
 
-#endif
+bool
+init_global_client_info (const clientinfo & ci)
+{
+    clientinfo & gci = global_client_info();
+    gci = ci;
+    return true;
+}
+
+bool
+get_global_client_info (clientinfo & ci)
+{
+    const clientinfo & gci = global_client_info();
+    ci = gci;
+    return true;
+}
 
 /**
  *  Creates temporary rtmidi-in/out objects in order to get information

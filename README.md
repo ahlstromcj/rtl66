@@ -1,4 +1,4 @@
-# README for Library Rtl66 0.1.0 2024-10-28
+# README for Library Rtl66 0.1.0 2025-08-04
 
 __Rtl66__ is a Audio/MIDI API loosely adapted from the __RtAudio__
 and __RtMidi__ projects (https://www.music.mcgill.ca/~gary/rtaudio & rtmidi).
@@ -35,7 +35,7 @@ Support sites (still in progress):
 
     *   The code is a mix of hard-core C++ and C-like functions.
     *   The C++ STL and advanced language features are used as much as
-    *   possible
+        possible.
     *   C++14 is required for some of its features.
     *   The GNU and Clang C++ compilers are supported.
     *   Broken into modules for easier maintenance.
@@ -48,7 +48,7 @@ Support sites (still in progress):
         additional 'extern "C"' functions.
     *   Error-checking has been beefed up.
     *   A ton of clean-up and refactoring.
-    *   Additional API to be supported: PipeWire (wait for it).
+    *   Additional APIs to be supported: PipeWire (wait for it).
 
 ##  Multiple Builds
 

@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2024-06-01
+ * \updates       2025-08-05
  * \license       See above.
  *
  */
@@ -849,8 +849,6 @@ rtmidi_set_selected_api (RtMidiApi rapi)
     return result;
 }
 
-#if defined RTL66_USE_GLOBAL_CLIENTINFO
-
 /*
  * Not included below: use_auto_connect() and use_port_refresh().
  */
@@ -878,8 +876,6 @@ rtmidi_global_bpm (double b)
 {
     midi::global_client_info().global_bpm(static_cast<midi::bpm>(b));
 }
-
-#endif
 
 /*
  * Defined in the test_helpers cpp module, declare here to avoid including

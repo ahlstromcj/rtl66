@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2023-07-20
+ * \updates       2025-08-04
  * \license       See above.
  *
  */
@@ -94,7 +94,7 @@ midi_api::client_info () const
 {
     midi::clientinfo * result = nullptr;
     if (have_master_bus())
-        result = master_bus()->client_info().get();
+        result = master_bus()->client_info_ptr().get();
 
     return result;
 }

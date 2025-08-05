@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2024-06-09
+ * \updates       2025-08-04
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -116,6 +116,32 @@ class masterbus
 private:
 
     /**
+     *  The clientinfo class provides application-specific information,
+     *  some desired settings for the run, the list of existing system
+     *  MIDI ports, a void pointer to a "MIDI handle", etc.
+     *
+     *      using info = std::unique_ptr<midi::clientinfo>;
+     */
+
+     using info = std::shared_ptr<midi::clientinfo>;
+
+    /**
+     *  Seq66 rc() and setup items:
+     *
+     *      -   ppqn
+     *      -   bpm
+     *      -   manual_ports(). Boolean for using virtual ports.
+     *      -   manual_auto_enable(). TO INVESTIGATE.
+     *      -   manual_port_count(). Number of output virtual ports.
+     *      -   manual_in_port_count(). Number of input virtual ports.
+     *      -   midi_master().full_port_count()
+     *      -   midi_master().get_port_count() [mode in or out]
+     *      -   midi_master().selected_api()
+     *      -   with_jack_midi()
+     *      -   app_client_name()
+     */
+
+    /**
      *  The API to use.  For now we will assume some prior code to validate
      *  the API.  We may need to select it here, though.
      */
@@ -125,7 +151,7 @@ private:
     /**
      *  Provides a pointer to the selected API implementation.
      *
-     *  CURRENTLY NOT REALLY USED. See the accessors.`
+     *  CURRENTLY NOT REALLY USED. See the accessors.
      */
 
     rtl::midi_api * m_rt_api_ptr;
@@ -141,13 +167,13 @@ private:
      *  Encapsulates information about the input busses.
      */
 
-    busarray m_inbus_array;
+    midi::busarray m_inbus_array;
 
     /**
      *  Encapsulates information about the output busses.
      */
 
-    busarray m_outbus_array;
+    midi::busarray m_outbus_array;
 
     /**
      *  The locking mutex.  This object is passed to an automutex object that
@@ -183,16 +209,17 @@ private:
      *  existing ports on the system.
      */
 
-    std::shared_ptr<midi::clientinfo> m_client_info;
+    info m_client_info;
 
     /**
-     *  Main resolution in parts per quarter note.
+     *  Main resolution in parts per quarter note. Compare to m_global_ppqn
+     *  in clientinfo.
      */
 
     midi::ppqn m_ppqn;
 
     /**
-     *  BPM (beats per minute).
+     *  BPM (beats per minute). Compare to m_global_bpm in clientinfo.
      */
 
     midi::bpm m_beats_per_minute;
@@ -203,8 +230,8 @@ public:
     masterbus
     (
         rtl::rtmidi::api rapi,
-        midi::ppqn ppq  = 192,
-        midi::bpm bp    = 120.0
+        midi::ppqn ppq  = RTL66_DEFAULT_PPQN,
+        midi::bpm bp    = RTL66_DEFAULT_BPM
     );
     masterbus (const masterbus &) = delete;
     masterbus (masterbus &&) = delete;          /* forced by recmutex :-(   */
@@ -241,15 +268,37 @@ public:
         return m_engine;
     }
 
-    std::shared_ptr<midi::clientinfo> client_info ()
+    /**
+     *  Remember that the "info" type is a shared_ptr. In this usage
+     *  it cannot be a unique_ptr.
+     */
+
+    info client_info_ptr ()
     {
         return m_client_info;
     }
 
-    const std::shared_ptr<midi::clientinfo> client_info () const
+    const info client_info_ptr () const
     {
         return m_client_info;
     }
+
+    bool get_client_info (clientinfo & cinfo);
+
+    /**
+     *  Indicates if the global client handle has been set.
+     */
+
+    bool info_is_connected () const
+    {
+        bool result = bool(m_client_info);
+        if (result)
+            result = m_client_info->is_connected();
+
+        return result;
+    }
+
+    bool client_info_reset (const clientinfo & cinfo);
 
     std::string port_listing () const;
 
@@ -266,19 +315,6 @@ public:
     void client_handle (void * clienthandle)
     {
         m_client_handle = clienthandle;
-    }
-
-    /**
-     *  Indicates if the global client handle has been set.
-     */
-
-    bool info_is_connected () const
-    {
-        bool result = bool(m_client_info);
-        if (result)
-            result = m_client_info->is_connected();
-
-        return result;
     }
 
     int client_id () const
@@ -372,8 +408,8 @@ protected:  // API implementations
     virtual int poll_for_midi () const;
     virtual bool port_start (int client, int port);     // TODO
     virtual bool port_exit (int client, int port);      // TODO
-    virtual bool set_track_input (bool state, track * trk);
-    virtual void dump_midi_input (event ev);
+    virtual bool set_track_input (bool state, midi::track * trk);
+    virtual void dump_midi_input (midi::event ev);
 
 #if defined THIS_CODE_IS_READY
     virtual void api_set_ppqn_and_beats_per_minute (midi::ppqn,  midi::bpm);
@@ -394,10 +430,10 @@ protected:  // API implementations
      *  api_deinit_in()
      *  api_deinit_out()
      *
-     *  virtual void api_sysex (const event * ev) = 0;
+     *  virtual void api_sysex (const midi::event * ev) = 0;
      *  virtual void api_play
      *  (
-     *      midi::bussbyte bus, const event * e24, midi::byte channel
+     *      midi::bussbyte bus, const midi::event * e24, midi::byte channel
      *  ) = 0;
      *  virtual void api_set_clock (midi::bussbyte bus, clocking clocktype) = 0;
      *  virtual void api_get_clock (midi::bussbyte bus) = 0;

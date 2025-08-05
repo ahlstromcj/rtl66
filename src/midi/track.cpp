@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2025-01-31
+ * \updates       2025-08-05
  * \license       GNU GPLv2 or above
  *
  *  This class is important when writing the MIDI and track data out to a
@@ -590,6 +590,57 @@ track::play
 
                 (void) xpc::microsleep(1);
             }
+        }
+    }
+    m_last_tick = tick + 1;                         /* for next frame       */
+}
+
+/**
+ *  A very simple playback function, used by player. It just
+ *  plays events (except for tempo), with no check of armed status.
+ */
+
+void
+track::simple_play (midi::pulse tick)
+{
+    xpc::automutex locker(m_mutex);
+    midi::pulse start_tick = m_last_tick;
+    midi::pulse len = length() > 0 ?
+        length() : parent()->get_ppqn() ;
+
+    midi::pulse offset = len;
+    midi::pulse start_tick_offset = start_tick + offset;
+    midi::pulse end_tick_offset = tick + offset;
+    midi::pulse times_played = m_last_tick / len;
+    midi::pulse offset_base = times_played * len;
+    auto e = events().begin();
+    while (e != events().end())
+    {
+        event & er = eventlist::dref(e);
+        midi::pulse ts = er.timestamp();
+        midi::pulse stamp = ts + offset_base;
+        if (stamp >= start_tick_offset && stamp <= end_tick_offset)
+        {
+            if (! er.is_ex_data())
+                put_event_on_bus(er);           /* frame still going    */
+        }
+        else if (stamp > end_tick_offset)
+            break;                              /* frame is done        */
+
+        ++e;                                    /* go to next event     */
+        if (e == events().end())                /* did we hit the end ? */
+        {
+            e = events().begin();               /* yes, start over      */
+            offset_base += len;                 /* for another go at it */
+
+            /*
+             * Putting this sleep here doesn't reduce the total CPU load,
+             * but it does prevent one CPU from being hammered at 100%.
+             * millisleep(1) made the live-grid progress bar jittery when
+             * unmuting shorter patterns, which play() relentlessly.
+             */
+
+            (void) xpc::microsleep(1);
         }
     }
     m_last_tick = tick + 1;                         /* for next frame       */
