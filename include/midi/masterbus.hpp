@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-04
+ * \updates       2025-08-08
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -82,8 +82,6 @@
  * connect_ports (iotype...)
  */
 
-#include <memory>                       /* std::shared_ptr<>, unique_ptr<>  */
-
 #include "rtl/rtl_build_macros.h"       /* RTL_DEFAULT_PPQN, _DEFAULT_BPM   */
 #include "rtl/rt_types.hpp"             /* rtl::rtmidi::api enum class      */
 #include "midi/busarray.hpp"            /* midi::busarray a la Seq66        */
@@ -123,7 +121,7 @@ private:
      *      using info = std::unique_ptr<midi::clientinfo>;
      */
 
-     using info = std::shared_ptr<midi::clientinfo>;
+     using info = midi::clientinfo::pointer;    /* shared_ptr<> */
 
     /**
      *  Seq66 rc() and setup items:
@@ -176,6 +174,22 @@ private:
     midi::busarray m_outbus_array;
 
     /**
+     *  For "dumping" MIDI input to a track for recording.  This value
+     *  is set to true when a sequence editor window is open and the user
+     *  has clicked the "record MIDI" or "thru MIDI" button.  See the
+     *  set_sequence_input() function.
+     */
+
+    bool m_dumping_input;
+
+    /**
+     *  Points to the sequence object.  Set in set_sequence_input().  See that
+     *  function's description.
+     */
+
+    track * m_input_track;
+
+    /**
      *  The locking mutex.  This object is passed to an automutex object that
      *  lends exception-safety to the mutex locking.
      */
@@ -202,6 +216,10 @@ private:
     int m_max_busses;
 
     /**
+     *  This is a midi::clientinfo::pointer (shared pointer).
+     *  But we might consider making it a plain pointer, owned
+     *  only by masterbus.
+     *
      *  Common code access for input and output, especially the MIDI
      *  client handles. If these are not null, that changes the original
      *  RtMidi API to handle our Seq66-style API. These items include
@@ -284,6 +302,9 @@ public:
     }
 
     bool get_client_info (clientinfo & cinfo);
+    bool client_info_reset (const clientinfo & cinfo);
+    std::string port_listing () const;
+    void print () const;                    // redundant?
 
     /**
      *  Indicates if the global client handle has been set.
@@ -298,18 +319,34 @@ public:
         return result;
     }
 
-    bool client_info_reset (const clientinfo & cinfo);
+    const midi::busarray & inbus_array () const
+    {
+        return m_inbus_array;
+    }
 
-    std::string port_listing () const;
+    midi::busarray & inbus_array ()
+    {
+        return m_inbus_array;
+    }
+
+    const midi::busarray & outbus_array () const
+    {
+        return m_outbus_array;
+    }
+
+    midi::busarray & outbus_array ()
+    {
+        return m_outbus_array;
+    }
 
     int get_num_out_buses () const
     {
-        return m_outbus_array.count();
+        return outbus_array().count();
     }
 
     int get_num_in_buses () const
     {
-        return m_inbus_array.count();
+        return inbus_array().count();
     }
 
     void client_handle (void * clienthandle)
@@ -355,10 +392,30 @@ protected:
     }
 
     void play_and_flush (midi::bussbyte bus, event * e24, midi::byte channel);
+
+    /**
+     *  Test the sequencer to see if any more input is pending.  Calls the
+     *  implementation-specific API function.
+     *
+     *  Note that the ALSA implementation calls a single "input-pending" function,
+     *  while the PortMidi implementation loops through all of the input midibus
+     *  objects, calling the poll_for_midi() function of each.
+     *
+     * \threadsafe
+     *
+     * \return
+     *      Returns true if ALSA is supported, and the returned size is greater
+     *      than 0, or false otherwise.
+     */
+
     bool is_more_input () const
     {
         return poll_for_midi() > 0;
     }
+
+protected:
+
+    bool activate ();
 
 public:     // used in a test application
 
@@ -367,6 +424,7 @@ public:     // used in a test application
         midi::ppqn ppq  = RTL66_DEFAULT_PPQN,
         midi::bpm bp    = RTL66_DEFAULT_BPM
     );
+    virtual bool engine_initialize (const clientinfo & ci);
     virtual bool engine_query ();
 
 protected:  // API pass-alongs
@@ -380,9 +438,15 @@ protected:  // API pass-alongs
 
 protected:  // API implementations
 
+
+    /*
+     * This function replaces start(), continue_from(), etc.
+     */
+
+    virtual bool handle_clock (midi::clock::action act, midi::pulse ts = 0);
+
     virtual bool PPQN (midi::ppqn ppq);
     virtual bool BPM (midi::bpm bp);
-    virtual bool handle_clock (midi::clock::action act, midi::pulse ts = 0);
     virtual bool flush ();
     virtual bool panic (int displaybuss = (-1));
     virtual bool sysex (midi::bussbyte bus, const event * ev);

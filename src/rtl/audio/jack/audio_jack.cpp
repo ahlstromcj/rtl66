@@ -35,7 +35,7 @@
 
 #include <stdint.h>                     /* std::uint64_t                    */
 #include <cstring>                      /* std::strlen                      */
-#include <jack/audioport.h>              /* ::jack_audio_get_event_count()    */
+#include <jack/audioport.h>             /* ::jack_audio_get_event_count()   */
 #include <pthread.h>                    /* the pthreads API                 */
 
 #include "rtl66-config.h"               /* RTL66_HAVE_JACK_PORT_RENAME      */

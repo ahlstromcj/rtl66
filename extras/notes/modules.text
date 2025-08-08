@@ -1,36 +1,101 @@
 Modules/Classes of the Rtl66 library
 Chris Ahlstrom
-2024-05-24 to 2024-05-24
+2024-05-24 to 2025-08-07
 
 midi: namespace midi
 
     - bus. Holds client/port information, index, mutex, masterbus access.
-    - bus_in. A mixin class derived rtl::rtmidi_in and bus.
-    - bus_out. A mixin class derived rtl::rtmidi_out and bus.
-    - calcuations. Seq66-derived enums, MIDI calculations.
-    - clientinfo. App info: names, ports, PPQN, BPM, ... Useful?
-    - clocking. midi::clock enums from Seq66 plus access functions.
+
+        pointer = std::unique_ptr<bus>
+        rtl::midi_api * m_midi_api_ptr
+        masterbus & m_master_bus
+
+    - bus_in. A mixin class derived from bus. Functions to get port info
+      and MIDI polling.
+
+        rtl::rtmidi_in m_rtmidi_in
+
+    - bus_out. A mixin class derived from bus.
+
+        rtl::rtmidi_out m_rtmidi_out
+        pulse m_last_tick
+
+    - calculations. Seq66-derived enums, MIDI calculations, more.
+
+    - clientinfo. App info: names, ports, PPQN, BPM, and can be filled
+      with port data.
+
+        ports m_io_ports[2]
+        void * m_midi_handle
+        bool m_is_connected
+
+    - clock::clocking. midi::clock enums from Seq66 plus access functions.
+
+        enum class action
+        enum class clocking
+
     - eventcodes. Types, enums, access functions for MIDI meta, status....
     - event. The Seq66 class refactored to use midi::message.
     - eventlist. Uses the event::buffer vector to hold/access MIDI events.
     - file. Juggles midi::player, tracklist, & MIDI file parsing/writing.
+
     - masterbus. Acces to rtl::midi_api, rtmidi_engine, mutex, client....
-    - measures. A class holding bars, beats, and divisions (B:B:T)..
+
+        info = midi::clientinfo::pointer
+        rtl::rtmidi::api m_selected_api
+        rtl::midi_api * m_rt_api_ptr
+        rtl::rtmidi_engine m_engine
+        midi::busarray m_inbus_array
+        midi::busarray m_outbus_array
+        mutable xpc::recmutex m_mutex
+        void * m_client_handle
+        info m_client_info
+
+    - measures. A class holding bars, beats, and divisions (B:B:T).
     - message. Holds the timestamp and raw bytes for a midi::event.
     - midibytes. Type definitions & functions in the midi namespace.
+
     - player. A cut-down performer to coordinating playback/record.
+
+        std::unique_ptr<midi::masterbus> m_master_bus
+        tracklist m_track_list
+        rtl::iothread m_out_thread
+        rtl::iothread m_in_thread
+        transport::jack::scratchpad m_jack_pad
+        transport::clock::info m_clock_info
+        transport::info m_transport_info
+        transport::jack::transport m_jack_transport     Hmmmmm.
+        std::string m_error_messages;
+
     - portnaming. Enum plus functions for extracting port name information.
+
     - port. Holds client & port number, name, type, alias, etc.
+
+        enum class io
+        enum class kind
+
     - ports. Holds a list of ports and functions to access ports by index.
+
+        container = std::vector<midi::port>;
+        container m_port_container;
+
     - splitter. Splits an SMF 0 track; needs work.
+
     - timing. Holds BPM, beats/measure, beat width, and PPQN.
+
+        enum class rsaction
+
     - trackdata. Holds the eventlist and raw data in util::bytevector.
     - trackdataex. Seq66 extensions to trackdata. REFACTOR into seq66 directory.
     - track. A cutdown version of seq66::sequence. Mutex, trackdata, trackinfo.
     - trackinfo. Classes for tempo, time-sig, key-sig, and all track info.
     - tracklist. Manages a vector of track pointers.
 
-rtl: namespace rtl
+        enum class rsaction
+        midi::eventlist m_events;
+        mutable util::bytevector m_data;
+
+rtl:    namespace rtl
 
     - api_base. Facilities common to rtl audio and MIDI APIs; error messaging.
     - iothread. Housekeeping for I/O threads launched to run a functor.
@@ -41,7 +106,8 @@ rtl: namespace rtl
 
 rtl/audio: namespace rtl
 
-    - Classes for audio support in ALSA and JACK. MORE TO COME.
+    - Classes for audio support in ALSA and JACK.
+    - MORE TO COME.
 
 rtl/midi: namespace rtl
 
@@ -50,11 +116,36 @@ rtl/midi: namespace rtl
     - midi_dummy. A fallback class based on midi_api.
     - midi_queue. Provides a queue (ringbuffer?) of midi::messages.
     - rtmidi_c. A C functional interface to the original RtMidi code for Rtl16.
-    - rtmidi_engine. Extends rtl::rtmidi for opening an Rtl66 MIDI API.
+
     - rtmidi. Base class. Extensive! SEE BELOW.
+
+        enum class api
+        api_list = std::vector<api>;
+        static rtmidi::api sm_desired_api;
+        static rtmidi::api sm_selected_api;
+        midi_api * m_rt_api_ptr;
+
+    - rtmidi_engine. Extends rtl::rtmidi for opening an Rtl66 MIDI API.
+
+        midi::masterbus * m_master_bus;
+
     - rtmidi_in_data. Flags, input callback, midi_queue, user data, and more.
-    - rtmidi_in. Extends rtmidi. Handles opening a port and midi_api.
+
+    - rtmidi_in. Extends rtmidi. Handles opening a port and midi_api. Lots
+      of virtual function overrides:
+
+        virtual bool open_port ()
+        virtual bool open_virtual_port ()
+        virtual bool open_midi_api ()
+        void set_input_callback
+        void ignore_midi_types
+        double get_message (midi::message & msg)
+
     - rtmidi_out. Extends rtmidi. Opening a port and midi_api, send_message().
+      Similar virtual function overrides plus:
+
+        bool send_message (const midi::message & msg);
+
     - rt_midi_types. Currently EMPTY.
     - 
 
@@ -67,9 +158,9 @@ rtl/midi: namespace rtl
             - midi::masterbus * master_bus ()
             - void * api_data ()
             - virtual void * engine_connect()/disconnect.
-            - virtual bool connect () = 0;
-            - virtual bool initialize (const std::string & clientname ) = 0;
-            - virtual bool open_port (...) = 0;
+            - virtual bool connect () = 0
+            - virtual bool initialize (const std::string & clientname ) = 0
+            - virtual bool open_port (...) = 0
             - Various pure-virtual name functions.
 
         - Extensions:
@@ -78,7 +169,7 @@ rtl/midi: namespace rtl
             - virtual std::string get_port_alias (const std::string & /*name*/)
             - bool send_status (midi::status evstatus)
             - Various clock functions.
-            - virtual bool send_message (const midi::message & message) = 0;
+            - virtual bool send_message (const midi::message & message) = 0
             - And more.
 
     - rtmidi extended description. It includes a few virtual functions, non-
@@ -91,7 +182,6 @@ rtl/midi: namespace rtl
         - Static functions to get API information,
         - Functions for accessing midi_api objects.
         - Free functions for detecting each API.
-
 
 rtl/midi/alsa:
 
@@ -120,6 +210,14 @@ seq66/session:
 session:
 
 transport:
+
+    -   info. Holds timebase, running status, time signature, BPM,
+        PPQN, and other MIDI timing information. Also holds various
+        tick values and a looping flag.
+
+            enum class timebase
+            timebase m_timebase { timebase::none };
+            bool m_resolution_change { true };
 
 
 

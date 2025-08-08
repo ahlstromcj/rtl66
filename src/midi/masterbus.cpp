@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-04
+ * \updates       2025-08-08
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -133,9 +133,13 @@ masterbus::masterbus
     midi::ppqn ppq,
     midi::bpm bp
 ) :
-    m_selected_api      (rapi),     // rtl::rtmidi::api::unspecified),
+    m_selected_api      (rapi),         /* rtl::rtmidi::api::unspecified)   */
     m_rt_api_ptr        (nullptr),
-    m_engine            (this, rapi, "mbus"),
+    m_engine            (this, rapi),   /* "mbus", don't change client name */
+    m_inbus_array       (),
+    m_outbus_array      (),
+    m_dumping_input     (false),
+    m_input_track       (nullptr),
     m_mutex             (),
     m_client_handle     (nullptr),
     m_client_id         (0),
@@ -251,6 +255,9 @@ masterbus::engine_connect ()
  *  Set the PPQN value (parts per quarter note). Then call the
  *  implementation-specific API function to complete the PPQN setting.
  *
+ *  TODO: do we want to use choose_ppwn(). Compare to
+ *        mastermidibase::set_ppqn().
+ *
  * \threadsafe
  *
  * \param ppqn
@@ -293,6 +300,24 @@ masterbus::BPM (midi::bpm bp)
     return result;
 }
 
+/**
+ *  Initializes and activates the busses, in a partly API-dependent manner.
+ *  Currently re-implemented only in the rtmidi JACK API.
+ */
+
+bool
+masterbus::activate ()
+{
+    bool result = inbus_array().initialize();
+    if (result)
+        result = outbus_array().initialize();
+
+    if (result)
+        set_client_id(outbus_array().client_id(0));
+
+    return result;
+}
+
 bool
 masterbus::flush ()
 {
@@ -323,7 +348,7 @@ masterbus::panic (int displaybuss)
             for (int note = 0; note < c_byte_data_max; ++note)
             {
                 event e(0, midi::status::note_off, channel, note, 0);
-    //              m_outbus_array.play(bus, &e, channel);
+                // m_outbus_array.play(bus, &e, channel);
             }
         }
     }
@@ -387,7 +412,7 @@ masterbus::play_and_flush (midi::bussbyte bus, event * ev, midi::byte channel)
 {
     xpc::automutex locker(m_mutex);
     play(bus, ev, channel);
-    flush();
+    (void) flush();
 }
 
 /**
@@ -426,8 +451,10 @@ masterbus::set_clock (midi::bussbyte /*bus*/, midi::clocking /*clocktype*/)
 /**
  *  Saves the given clock value.
  *
+ *  Compare to mastermidibase::save_clock().
+ *
  * \param bus
- *      Provides the desired buss to be set.  This must be an actual system
+ *      Provides the desired buss to be set. This must be an actual system
  *      buss, not a buss number from the output-port-map.
  *
  * \param clock
@@ -441,6 +468,23 @@ bool
 masterbus::save_clock (midi::bussbyte /*bus*/, midi::clocking /*clk*/)
 {
     // return m_master_clocks.set(bus, cl);
+#if 0
+    bool result = m_master_clocks.set(bus, clock);
+    if (! result)
+    {
+        int currentcount = m_master_clocks.count();
+        errprint("mmb::save_clock(): missing bus");
+        for (int i = currentcount; i <= bus; ++i)
+        {
+            e_clock value = e_clock::disabled;
+            if (i == int(bus))
+            {
+                value = clock;
+                m_master_clocks.add(i, false, value, "Null clock");
+            }
+        }
+    }
+#endif
     return false;
 }
 
@@ -463,6 +507,14 @@ masterbus::get_clock (midi::bussbyte /*bus*/) const
     // return m_outbus_array.get_clock(bus);
     return midi::clocking::max;             // TODO. An illegal value
 }
+
+// TODO: perhaps implement:
+//
+// mastermidibase::copy_io_busses ()
+// mastermidibase::get_port_statuses()
+// mastermidibase::get_out_port_statuses()
+// mastermidibase::get_in_port_statuses()
+//      
 
 /**
  *  Set the status of the given input buss, if a legal buss number.
@@ -488,8 +540,9 @@ masterbus::set_input (midi::bussbyte /*bus*/, bool /*inputing*/)
     bool result = m_inbus_array.set_input(bus, inputing);
     if (result)
     {
-        flush();
-        result = save_input(bus, inputing);     /* save into the vector */
+        result = flush();
+        if (result)
+            result = save_input(bus, inputing);     /* save into the vector */
     }
     return result;
 #else
@@ -559,6 +612,12 @@ masterbus::get_input (midi::bussbyte /*bus*/) const
     return false;
 }
 
+// TODO:
+//
+// mastermidibase::is_input_system_port (bussbyte bus) const
+// mastermidibase::is_port_unavailable (bussbyte bus, midibase::io iotype) const
+// mastermidibase::is_port_locked (bussbyte bus, midibase::io iotype) const
+
 /**
  *  Get the MIDI input/output buss name for the given (legal) buss number.
  *  This function is used for display purposes, and is also written to the
@@ -581,7 +640,11 @@ masterbus::get_input (midi::bussbyte /*bus*/) const
  */
 
 std::string
-masterbus::get_midi_bus_name (midi::bussbyte /*bus*/, midi::port::io /*iotype*/) const
+masterbus::get_midi_bus_name
+(
+    midi::bussbyte /*bus*/,
+    midi::port::io /*iotype*/
+) const
 {
 #if 0
     std::string result;
@@ -595,6 +658,17 @@ masterbus::get_midi_bus_name (midi::bussbyte /*bus*/, midi::port::io /*iotype*/)
 #else
     return std::string("");
 #endif
+}
+
+/**
+ *  Print some information about the available MIDI input and output busses.
+ */
+
+void
+masterbus::print () const
+{
+//    m_inbus_array.print();
+//    m_outbus_array.print();
 }
 
 /**
@@ -616,8 +690,18 @@ masterbus::poll_for_midi () const
     xpc::automutex locker(m_mutex);
 
     // return api_poll_for_midi();
-
-    (void) xpc::microsleep(xpc::std_sleep_us());
+#if 0
+    int result = m_inbus_array.poll_for_midi();
+    if (result > 0)
+    {
+        if (result <= 2)
+            (void) xpc::microsleep(std_sleep_us()); /* is this sensible?    */
+    }
+    else
+    {
+        (void) xpc::microsleep(std_sleep_us());
+    }
+#endif
     return 0;
 }
 
@@ -683,8 +767,8 @@ masterbus::port_exit (int /*client*/, int /*port*/)
  *  Set the input sequence object, and set the m_dumping_input value to
  *  the given state.
  *
- *  The portmidi version only sets m_seq and m_dumping_input, but it seems
- *  like all the code below would apply to any masterbus.
+ *  The portmidi version only sets m_input_track and m_dumping_input,
+ *  but it seems like all the code below would apply to any masterbus.
  *
  *  -   qseqeditframe64::toggle_midi_rec() and _thru()
  *  -   sequence::set_input_recording() and _thru()
@@ -707,10 +791,35 @@ masterbus::port_exit (int /*client*/, int /*port*/)
  */
 
 bool
-masterbus::set_track_input (bool /*state*/, track * trk)
+masterbus::set_track_input (bool state, track * trk)
 {
     xpc::automutex locker(m_mutex);
     bool result = not_nullptr(trk);
+    if (result)
+    {
+        /*
+         * See mastermidbase for extenstion to this function.
+         */
+
+        if (state)
+        {
+            if (not_nullptr(m_input_track))
+            {
+                if (trk != m_input_track)
+                    result = false;     /* We already got one! Is very nice */
+            }
+            else
+            {
+                m_dumping_input = state;
+                m_input_track = trk;
+            }
+        }
+        else
+        {
+            m_dumping_input = false;
+            m_input_track = nullptr;
+        }
+    }
     return result;
 }
 
@@ -842,6 +951,19 @@ masterbus::engine_initialize (midi::ppqn ppq, midi::bpm bp)
 
     return true;        // TODO
 }
+bool
+masterbus::engine_initialize (const clientinfo & ci)
+{
+    PPQN(ci.global_ppqn());
+    BPM(ci.global_bpm());
+    if (ci.virtual_ports())
+    {
+    }
+    else
+    {
+    }
+    return true;        // TODO
+}
 
 /**
  *  Creates the bus objects based on the I/O port numbers.  This base class
@@ -897,30 +1019,31 @@ masterbus::handle_clock (midi::clock::action act, midi::pulse ts)
             case midi::clock::action::init:
 
 //              api_init_clock(tick);
-//              m_outbus_array.init_clock(tick);
+                m_outbus_array.init_clock(ts);
                 break;
 
             case midi::clock::action::start:
 
 //              api_start();
-//              m_outbus_array.start();
+                m_outbus_array.clock_start();
                 break;
 
             case midi::clock::action::continue_from:
 
 //              api_continue_from(tick);
-//              m_outbus_array.continue_from(tick);
+                m_outbus_array.clock_continue(ts);
                 break;
 
             case midi::clock::action::stop:
 
-//              m_outbus_array.stop();
 //              api_stop();
+                m_outbus_array.clock_stop();
                 break;
 
             case midi::clock::action::emit:
 
-//              m_outbus_array.clock(tick);
+                // TODO
+                // m_outbus_array.clock(tick);
                 break;
 
             default:
@@ -928,7 +1051,6 @@ masterbus::handle_clock (midi::clock::action act, midi::pulse ts)
                 result = false;
                 break;
         }
-
     }
     return result;
 }
@@ -940,4 +1062,3 @@ masterbus::handle_clock (midi::clock::action act, midi::pulse ts)
  *
  * vim: sw=4 ts=4 wm=4 et ft=cpp
  */
-

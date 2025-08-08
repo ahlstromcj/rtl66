@@ -1,5 +1,5 @@
-#if ! defined RTL66_RTL_MIDI_MIDI_TYPES_HPP
-#define RTL66_RTL_MIDI_MIDI_TYPES_HPP
+#if ! defined RTL66_RTL_MIDI_TYPES_HPP
+#define RTL66_RTL_MIDI_TYPES_HPP
 
 /*
  *  This file is part of rtl66.
@@ -47,7 +47,7 @@ namespace rtl
 
 }           // namespace rtl
 
-#endif      // RTL66_RTL_MIDI_MIDI_TYPES_HPP
+#endif      // RTL66_RTL_MIDI_TYPES_HPP
 
 /*
  * rt_midi_types.hpp

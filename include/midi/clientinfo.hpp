@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2025-08-05
+ * \updates       2025-08-06
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -64,6 +64,7 @@
  */
 
 #include <cmath>                        /* std::nearbyint()                 */
+#include <memory>                       /* std::shared_ptr<>, unique_ptr<>  */
 
 #include "midi/midibytes.hpp"           /* midi::ppqn, midi::bpm            */
 #include "midi/ports.hpp"               /* midi::ports, etc.                */
@@ -138,6 +139,8 @@ struct client_defaults
      */
 
     bool cd_virtual_ports { false };
+    int cd_virtual_ports_in { 0 };
+    int cd_virtual_ports_out { 0 };
 
     /**
      *  Indicates that the application will try to auto-connect to MIDI ports
@@ -151,6 +154,13 @@ struct client_defaults
      */
 
     bool cd_port_refresh { false };
+
+    /**
+     *  Time signature values
+     */
+
+    int cd_global_beat_width { RTL66_DEFAULT_BEAT_WIDTH };
+    int cd_global_beats_per_bar { RTL66_DEFAULT_BEATS };
 
     /**
      *  Holds the global PPQN value.  This is an addition to the RtMidi
@@ -203,6 +213,10 @@ struct client_defaults
 
 class clientinfo
 {
+
+public:
+
+    using pointer = std::shared_ptr<clientinfo>;
 
 private:
 
@@ -389,6 +403,16 @@ public:
     void port_refresh (bool flag)
     {
         m_cd.cd_port_refresh = flag;
+    }
+
+    int global_beat_width () const
+    {
+        return m_cd.cd_global_beat_width;
+    }
+
+    int global_beats_per_bar () const
+    {
+        return m_cd.cd_global_beats_per_bar;
     }
 
     midi::ppqn global_ppqn () const

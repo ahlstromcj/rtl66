@@ -22,17 +22,17 @@
 /**
  * \file          rtl_build_macros.h
  *
- *  Macros that depend upon the build platform.
+ *  Macros that depend upon the build platform and developer desires.
  *
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-05
- * \updates       2025-08-04
+ * \updates       2025-08-06
  * \license       See above.
  *
  * Introduction:
  *
- *      We have two ways of configuring the build for the rtl66 library.  This
+ *      We have two ways of configuring the build for the rtl66 library. This
  *      file presents features that depend upon the build platform, and
  *      build options that might be considered permanent, such as the option
  *      to pick from various JACK-processing callbacks.
@@ -110,9 +110,13 @@
  *  Default values for the most common parameters.
  */
 
-#define RTL66_DEFAULT_PPQN      384             /* pulses per quarter note  */
-#define RTL66_DEFAULT_BPM       120.0           /* beats per minute         */
-#define RTL66_DEFAULT_Q_SIZE    100             /* input queue sie          */
+#define RTL66_DEFAULT_PPQN          384         /* pulses per quarter note  */
+#define RTL66_DEFAULT_BPM           120.0       /* beats per minute         */
+#define RTL66_DEFAULT_Q_SIZE        100         /* input queue size         */
+#define RTL66_DEFAULT_BEATS           4         /* beats per bar            */
+#define RTL66_DEFAULT_BEAT_WIDTH      4         /* quarter note             */
+#define RTL66_DEFAULT_METRO_CLOCKS   24         /* clocks per metronome     */
+#define RTL66_DEFAULT_32NDS_PER_Q     8         /* 32nds per quarter        */
 
 /**
  *  What Platform APIS to build? A few notes:

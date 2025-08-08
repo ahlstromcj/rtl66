@@ -103,7 +103,6 @@ private:
 
     mutable util::bytevector m_data;
 
-
     /**
      *  Holds the value for how to handle mistakes in running status.
      */

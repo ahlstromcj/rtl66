@@ -1,5 +1,5 @@
-#if ! defined RTL66_RTL_MIDI_RTMIDI_HPP
-#define RTL66_RTL_MIDI_RTMIDI_HPP
+#if ! defined RTL66_RTL_RTMIDI_HPP
+#define RTL66_RTL_RTMIDI_HPP
 
 /*
  *  This file is part of rtl66.
@@ -421,7 +421,7 @@ extern bool detect_dummy ();
 
 }           // namespace rtl
 
-#endif      // RTL66_RTL_MIDI_RTMIDI_HPP
+#endif      // RTL66_RTL_RTMIDI_HPP
 
 /*
  * rtmidi.hpp

@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-11-07
- * \updates       2025-07-29
+ * \updates       2025-08-06
  * \license       GNU GPLv2 or above
  *
  *  These items were moved from the globals.h module so that only the modules
@@ -306,10 +306,10 @@ rescale_tick (midi::pulse tick, int newppqn, int oldppqn)
  *      returned.
  */
 
-inline double
+inline midi::microsec
 tempo_us_from_bpm (midi::bpm bp)
 {
-    return bp > 0.009999999 ? (60000000.0 / bp) : 0.0 ;
+    return midi::microsec(bp > 0.009999999 ? (60000000.0 / bp) : 0.0);
 }
 
 /**

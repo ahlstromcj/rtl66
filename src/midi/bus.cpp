@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2024-06-12
+ * \updates       2025-08-06
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -178,7 +178,7 @@ bus::set_midi_api_ptr (rtl::midi_api * rmap)
  */
 
 void
-bus::get_port_items (std::shared_ptr<clientinfo> mip, port::io iotype)
+bus::get_port_items (clientinfo::pointer mip, port::io iotype)
 {
     if (mip)
     {

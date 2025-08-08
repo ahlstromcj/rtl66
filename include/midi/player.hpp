@@ -70,7 +70,6 @@
 #include <thread>                           /* std::thread                  */
 
 #include "xpc/condition.hpp"                /* xpc::condition/synchronizer  */
-// #include "midi/clientinfo.hpp"              /* midi::clientinfo             */
 #include "midi/masterbus.hpp"               /* access to all MIDI busses    */
 #include "midi/ports.hpp"                   /* access to MIDI ports         */
 #include "midi/tracklist.hpp"               /* provides a set of tracks     */
@@ -158,12 +157,6 @@ public:
 #endif
 
 private:
-
-    /**
-     *  Holds client application and ports that were discovered.
-
-    clientinfo m_client_info;
-     */
 
     /**
      *  Holds the "manufacturer ID" for the current application. Usually it is

@@ -58,7 +58,6 @@ namespace clock
  *
  * \var emit
  *      Emit MIDI clock at the given tick.
- *
  */
 
 enum class action
@@ -121,7 +120,7 @@ enum class clocking
     unavailable = -2,
     disabled    = -1,
     none        = 0,
-    input       = 0,
+    input       = 0,                    /* a somewhat tricky enum value     */
     pos,
     mod,
     max

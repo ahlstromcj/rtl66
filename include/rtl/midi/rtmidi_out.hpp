@@ -1,5 +1,5 @@
-#if ! defined RTL66_RTL_MIDI_RTMIDI_OUT_HPP
-#define RTL66_RTL_MIDI_RTMIDI_OUT_HPP
+#if ! defined RTL66_RTL_RTMIDI_OUT_HPP
+#define RTL66_RTL_RTMIDI_OUT_HPP
 
 /*
  *  This file is part of rtl66.
@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2023-07-20
+ * \updates       2025-08-08
  * \license       See above.
  *
  */
@@ -52,12 +52,12 @@ namespace rtl
 
 /**
  *  A realtime MIDI output class.  This class provides a common,
- *  platform-independent API for MIDI output.  It allows one to probe available
- *  MIDI output ports, to connect to one such port, and to send MIDI bytes
- *  immediately over the connection.  Create multiple instances of this class to
- *  connect to more than one MIDI device at the same time.  With the OS-X, Linux
- *  ALSA and JACK MIDI APIs, it is also possible to open a virtual port to which
- *  other MIDI software clients can connect.
+ *  platform-independent API for MIDI output.  It allows one to probe
+ *  available MIDI output ports, to connect to one such port, and to send MIDI
+ *  bytes immediately over the connection.  Create multiple instances of this
+ *  class to connect to more than one MIDI device at the same time.  With the
+ *  OS-X, Linux ALSA and JACK MIDI APIs, it is also possible to open a virtual
+ *  port to which other MIDI software clients can connect.
  */
 
 class RTL66_DLL_PUBLIC rtmidi_out : public rtmidi
@@ -67,10 +67,10 @@ public:
 
     /**
      *  Default constructor that allows an optional client name.
-     *  An exception will be thrown if a MIDI system initialization error occurs.
-     *  If no API argument is specified and multiple API support has been
-     *  compiled, the default order of use is ALSA, JACK (Linux) and CORE,
-     *  JACK (OS-X).
+     *  An exception will be thrown if a MIDI system initialization error
+     *  occurs.  If no API argument is specified and multiple API support has
+     *  been compiled, the default order of use is ALSA, JACK (Linux) and
+     *  CORE, JACK (OS-X).
      */
 
     rtmidi_out
@@ -114,7 +114,7 @@ protected:
 
 }           // namespace rtl
 
-#endif      // RTL66_RTL_MIDI_RTMIDI_OUT_HPP
+#endif      // RTL66_RTL_RTMIDI_OUT_HPP
 
 /*
  * rtmidi_out.hpp

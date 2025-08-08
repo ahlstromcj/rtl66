@@ -1,11 +1,13 @@
 TODO for the rtl66 library
 Chris Ahlstrom
-2022-07-23 to 2024-06-07
+2022-07-23 to 2025-08-05
 
 Hot bugs:
 
     -   Seq66: why does 1Bar show the first track being track 2?
     -   Seq66: handle SeqSpec like a track somehow.
+    -   player.cpp#667: PPQN and BPM are using the defaults instead
+        of the settings in the global clientinfo.
 
 This file documents the next (few) thing(s) to be done.
 
@@ -28,7 +30,7 @@ This file documents the next (few) thing(s) to be done.
 
 Completion Matrix:
 
-    X = yes, x = partial
+    X = yes, p = partial
 
    -----------------------------------------------------------------
   | Feature          |  File/Directory        |  Drafted |  Tested  |

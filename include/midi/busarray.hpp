@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2024-06-09
+ * \updates       2025-08-06
  * \license       GNU GPLv2 or above
  *
  *  The busarray module defines the busarray and busarray classes so that we can
@@ -68,7 +68,11 @@ private:
 public:
 
     busarray ();
-    ~busarray ();
+    busarray (busarray &&) = delete;
+    busarray (const busarray &) = default;
+    busarray & operator = (busarray &&) = delete;
+    busarray & operator = (const busarray &) = default;
+    ~busarray () = default;
 
     bool add (bus * b, clocking clock);
 

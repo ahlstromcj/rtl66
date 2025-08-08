@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-08-05
+ * \updates       2025-08-06
  * \license       GNU GPLv2 or above
  *
  */
@@ -96,7 +96,6 @@ static const int c_thread_priority = 1;
  */
 
 player::player (int out_portnumber, int in_portnumber) :
-//     m_client_info           (),
     m_manufacturer_id       {0},                /* 1 to 4 bytes             */
     m_master_bus            (),                 /* unique pointer           */
     m_in_portnumber         (in_portnumber),
@@ -117,7 +116,7 @@ player::player (int out_portnumber, int in_portnumber) :
     m_dont_reset_ticks      (false),            /* support for pausing      */
     m_condition_var         (*this),            /* private access via cv()  */
     m_clock_info            (),
-    m_transport_info        (),                 /* a reference or pointer?  */
+    m_transport_info        (),
 #if defined RTL66_BUILD_JACK
     m_jack_transport                // TODO: use transportinfo() as a parameter.
     (
@@ -608,6 +607,14 @@ player::create_master_bus ()
                     mmb->set_port_statuses(m_clocks, m_inputs);
                     midi_control_out().set_master_bus(mmb);
 #endif
+                    m_transport_info.time_signature
+                    (
+                        ci.global_beat_width(), ci.global_beats_per_bar()
+                    );
+                    m_transport_info.time_resolution
+                    (
+                        ci.global_ppqn(), ci.global_bpm()
+                    );
                     result = true;
                 }
             }
@@ -629,6 +636,11 @@ player::done () const
 /**
  *  Creates the master MIDI buss. At the end of this function, the
  *  caller can display the ports that were found and enable/disable them.
+ *
+ *  [1] These values start out as the values in the midi::clientinfo object,
+ *      but are copied to the transport::info object. The former is normally
+ *      unchanged, the later might change during song composition and
+ *      playback.
  */
 
 bool
@@ -637,7 +649,14 @@ player::setup ()
     bool result = create_master_bus();      /* creates m_master_bus         */
     if (result)
     {
-        /* TODO? */
+        result = init_transport();
+        if (result)
+        {
+            result = m_master_bus->engine_initialize
+            (
+                get_ppqn(), beats_per_minute()                  /* note [1] */
+            );
+        }
     }
     return result;
 }
@@ -655,23 +674,10 @@ player::setup ()
 bool
 player::launch ()
 {
-    bool result =  bool(m_master_bus);
-    if (! result)
-        result = setup();
-
+    bool result = setup();
     if (result)
     {
-        result = init_transport();
-        if (result)
-        {
-            result = m_master_bus->engine_initialize
-            (
-                get_ppqn(), transportinfo().beats_per_minute()
-            );
-        }
-        if (result)
-            result = activate();
-
+        result = activate();
         if (result)
         {
             /*
@@ -889,6 +895,7 @@ player::finish ()
  * ca 2021-07-14 Move this. Why doing it even if no JACK transport specified?
  *
  *  Also, can we "activate" the I/O threads here?
+ *  What about masterbus::activate()?
  */
 
 bool
@@ -1249,9 +1256,11 @@ player::jack_transport () const
 bool
 player::init_transport ()
 {
+#if defined RTL66_BUILD_JACK
     if (jack_transport())
         return m_jack_transport.init();
     else
+#endif
         return true;
 }
 
@@ -1269,9 +1278,11 @@ player::init_transport ()
 bool
 player::deinit_transport ()
 {
+#if defined RTL66_BUILD_JACK
     if (jack_transport())
         return m_jack_transport.deinit();
     else
+#endif
         return true;
 }
 

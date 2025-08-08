@@ -24,7 +24,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2022-11-10
- * \updates       2022-12-01
+ * \updates       2025-08-06
  * \license       See above.
  *
  *  GitHub issue #165: enabled a build and run with no JACK support.
@@ -38,60 +38,38 @@ namespace transport
 
 /**
  * \ctor info
+ *
+ *  We're doing in-class initialization, so no full initializer list here,
+ *  just the members being altered by the parameters.
  */
-
-info::info () :
-    m_timebase              (timebase::none),
-    m_is_running            (false),
-    m_beat_width            (4),
-    m_beats_per_bar         (4),
-    m_beats_per_minute      (120.0),
-    m_ppqn                  (192),
-    m_resolution_change     (true),
-    m_ticks_per_beat        (192),
-    m_pulse_time_us         (0),
-    m_clocks_per_metronome  (24),
-    m_32nds_per_quarter     (8),
-    m_us_per_quarter_note   (midi::tempo_us_from_bpm(m_beats_per_minute)),
-    m_one_measure           (0),
-    m_reposition            (false),
-    m_start_tick            (0),
-    m_tick                  (0),
-    m_left_tick             (0),
-    m_right_tick            (0),
-    m_looping               (false)
-{
-    // Empty body
-}
 
 info::info
 (
-    int beatwidth,
-    int beatsperbar,
-    midi::bpm beatspermin,
+    int bw,
+    int bpb,
+    midi::bpm bpmin,
     midi::ppqn ppq
 ) :
-    m_timebase              (timebase::none),
-    m_is_running            (false),
-    m_beat_width            (beatwidth),
-    m_beats_per_bar         (beatsperbar),
-    m_beats_per_minute      (beatspermin),
-    m_ppqn                  (ppq),
-    m_resolution_change     (true),
-    m_ticks_per_beat        (ppq),
-    m_pulse_time_us         (0),
-    m_clocks_per_metronome  (24),
-    m_32nds_per_quarter     (8),
-    m_us_per_quarter_note   (midi::tempo_us_from_bpm(m_beats_per_minute)),
-    m_one_measure           (0),
-    m_reposition            (false),
-    m_start_tick            (0),
-    m_tick                  (0),
-    m_left_tick             (0),
-    m_right_tick            (0),
-    m_looping               (false)
+    m_beats_per_bar         (bpb),
+    m_beat_width            (bw),
+    m_beats_per_minute      (bpmin),
+    m_ppqn                  (ppq)
 {
-    // Empty body
+    // no other code
+}
+
+void
+info::time_signature (int bw, int bpb)
+{
+    beat_width(bw);
+    beats_per_bar(bpb);
+}
+
+void
+info::time_resolution (midi::bpm bpmin, midi::ppqn ppq)
+{
+    beats_per_minute(bpmin);
+    set_ppqn(ppq);
 }
 
 unsigned

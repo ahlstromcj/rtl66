@@ -1,5 +1,5 @@
-#if ! defined RTL66_RTL_MIDI_FIND_MIDI_API_HPP
-#define RTL66_RTL_MIDI_FIND_MIDI_API_HPP
+#if ! defined RTL66_RTL_FIND_MIDI_API_HPP
+#define RTL66_RTL_FIND_MIDI_API_HPP
 
 /*
  *  This file is part of rtl66.
@@ -54,7 +54,7 @@ extern midi_api * try_open_midi_api
 
 }           // namespace rtl
 
-#endif      // RTL66_RTL_MIDI_FIND_MIDI_API_HPP
+#endif      // RTL66_RTL_FIND_MIDI_API_HPP
 
 /*
  * find_midi_api.hpp

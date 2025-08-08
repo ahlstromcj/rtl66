@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-08-05
+ * \updates       2025-08-08
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -42,7 +42,7 @@
  *  It assumes it is run from the top-level directory of the rtl66 project.
  */
 
-#include <iostream>
+#include <iostream>                     /* std::cout and std::cerr          */
 
 #include "cfg/appinfo.hpp"              /* cfg::set_client_name()           */
 #include "midi/player.hpp"              /* midi::player class               */
@@ -61,8 +61,12 @@ midi::client_defaults s_clientinfo_defaults =
     "play",                             /* client name                      */
     false,                              /* JACK MIDI                        */
     false,                              /* virtual ports                    */
+    0,                                  /* no virtual input ports           */
+    0,                                  /* no virtual output ports          */
     false,                              /* auto connect                     */
     false,                              /* port refresh                     */
+    4,                                  /* the default global beat width    */
+    4,                                  /* the default global beats per bar */
     384,                                /* global PPQN, not 192             */
     148,                                /* global BPM, not 120              */
     midi::port::io::duplex,             /* MIDI port type                   */
@@ -184,6 +188,11 @@ main (int argc, char * argv [])
             }
             else
             {
+                /*
+                 * We get port info here, into a local object, purely for
+                 * showing port information.
+                 */
+
                 midi::clientinfo cinfo;
                 can_run = midi::get_all_port_info(cinfo, rapi);
                 if (can_run)
@@ -205,7 +214,6 @@ main (int argc, char * argv [])
                  * Later we will add the PPQN and BPM parameters.
                  */
 
-                midi::player p(out_port);
                 can_run = midi::init_global_client_info(s_clientinfo);
 
                 /*
@@ -226,20 +234,24 @@ main (int argc, char * argv [])
                  */
 
                 if (can_run)
-                    can_run = p.launch();
-
-                if (can_run)
                 {
-                    std::string tag = rtl::rtmidi::selected_api_display_name();
-                    std::cout << "Running with " << tag << std::endl;
-                    rcode = EXIT_SUCCESS;
-                    for (const auto & file : s_test_files)
+                    midi::player p(out_port);
+                    can_run = p.launch();
+                    if (can_run)
                     {
-                        bool success = play_test(p, file);
-                        if (! success)
+                        std::string tag =
+                            rtl::rtmidi::selected_api_display_name();
+
+                        std::cout << "Running with " << tag << std::endl;
+                        rcode = EXIT_SUCCESS;
+                        for (const auto & file : s_test_files)
                         {
-                            rcode = EXIT_FAILURE;
-                            break;
+                            bool success = play_test(p, file);
+                            if (! success)
+                            {
+                                rcode = EXIT_FAILURE;
+                                break;
+                            }
                         }
                     }
                 }

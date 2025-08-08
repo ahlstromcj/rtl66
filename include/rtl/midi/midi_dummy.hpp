@@ -1,5 +1,5 @@
-#if ! defined RTL66_RTL_MIDI_MIDI_DUMMY_HPP
-#define RTL66_RTL_MIDI_MIDI_DUMMY_HPP
+#if ! defined RTL66_RTL_MIDI_DUMMY_HPP
+#define RTL66_RTL_MIDI_DUMMY_HPP
 
 /*
  *  This file is part of rtl66.
@@ -180,7 +180,7 @@ protected:
 
 #endif      // defined RTL66_BUILD_DUMMY
 
-#endif      // RTL66_RTL_MIDI_MIDI_DUMMY_HPP
+#endif      // RTL66_RTL_MIDI_DUMMY_HPP
 
 /*
  * midi_dummy.hpp

@@ -1,5 +1,5 @@
-#if ! defined RTL66_RTL_MIDI_MIDI_QUEUE_HPP
-#define RTL66_RTL_MIDI_MIDI_QUEUE_HPP
+#if ! defined RTL66_RTL_MIDI_QUEUE_HPP
+#define RTL66_RTL_MIDI_QUEUE_HPP
 
 /*
  *  This file is part of rtl66.
@@ -101,7 +101,7 @@ public:
 
 }           // namespace rtl
 
-#endif      // RTL66_RTL_MIDI_MIDI_QUEUE_HPP
+#endif      // RTL66_RTL_MIDI_QUEUE_HPP
 
 /*
  * midi_queue.hpp

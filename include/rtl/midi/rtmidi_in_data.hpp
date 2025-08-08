@@ -1,5 +1,5 @@
-#if ! defined RTL66_RTL_MIDI_RTMIDI_IN_DATA_HPP
-#define RTL66_RTL_MIDI_RTMIDI_IN_DATA_HPP
+#if ! defined RTL66_RTL_RTMIDI_IN_DATA_HPP
+#define RTL66_RTL_RTMIDI_IN_DATA_HPP
 
 /*
  *  This file is part of rtl66.
@@ -308,7 +308,7 @@ private:
 
 #endif          // defined __cplusplus : do not expose to C code
 
-#endif          // RTL66_RTL_MIDI_RTMIDI_IN_DATA_HPP
+#endif          // RTL66_RTL_RTMIDI_IN_DATA_HPP
 
 /*
  * rtmidi_in_data.hpp

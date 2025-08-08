@@ -1,5 +1,5 @@
-#if ! defined RTL66_RTL_MIDI_RTMIDI_IN_HPP
-#define RTL66_RTL_MIDI_RTMIDI_IN_HPP
+#if ! defined RTL66_RTL_RTMIDI_IN_HPP
+#define RTL66_RTL_RTMIDI_IN_HPP
 
 /*
  *  This file is part of rtl66.
@@ -116,7 +116,7 @@ protected:
 
 }           // namespace rtl
 
-#endif      // RTL66_RTL_MIDI_RTMIDI_IN_HPP
+#endif      // RTL66_RTL_RTMIDI_IN_HPP
 
 /*
  * rtmidi_in.hpp

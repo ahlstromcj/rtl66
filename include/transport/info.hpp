@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2017-11-10
- * \updates       2024-05-30
+ * \updates       2025-08-06
  * \license       See above.
  */
 
@@ -35,6 +35,8 @@
 #include <atomic>                       /* std::atomic template             */
 #endif
 
+#include "rtl/rtl_build_macros.h"       /* PPQN, BPM, and other macros      */
+#include "midi/calculations.hpp"        /* midi::tempo_us_from_bpm()        */
 #include "midi/midibytes.hpp"           /* rtl66::midibyte, other aliases   */
 
 namespace transport
@@ -86,7 +88,7 @@ class info
      *  What role is transport playing?
      */
 
-    timebase m_timebase;
+    timebase m_timebase { timebase::none };
 
     /**
      *  Indicates that transport is running.
@@ -94,28 +96,28 @@ class info
      *  What about if the timebase is "non"?
      */
 
-    bool m_is_running;
-
-    /**
-     *  Holds the beat width value as obtained from the MIDI file.  The default
-     *  value is 4.  Also called "beat length" or "beat type".
-     */
-
-    int m_beat_width;
+    bool m_is_running { false };
 
     /**
      *  Holds the beats/bar value as obtained from the MIDI file.
      *  The default value is 4. Also called "beats per measure".
      */
 
-    int m_beats_per_bar;
+    int m_beats_per_bar { RTL66_DEFAULT_BEATS };                /* 4        */
+
+    /**
+     *  Holds the beat width value as obtained from the MIDI file.  The default
+     *  value is 4.  Also called "beat length" or "beat type".
+     */
+
+    int m_beat_width { RTL66_DEFAULT_BEAT_WIDTH };              /* 4        */
 
     /**
      *  Holds the current BPM for the song (beats per minute).
      *  ALSA and JACK can use this value internally.
      */
 
-    midi::bpm m_beats_per_minute;
+    midi::bpm m_beats_per_minute { RTL66_DEFAULT_BPM };         /* 120.0    */
 
     /**
      *  Holds the current PPQN (pulses per quarternote) for usage in various
@@ -123,7 +125,7 @@ class info
      *  if provided. ALSA and JACK can use this value internally.
      */
 
-    midi::ppqn m_ppqn;
+    midi::ppqn m_ppqn { RTL66_DEFAULT_PPQN };                   /* 192      */
 
     /**
      *  Indicates if the BPM or PPQN value has changed, for internal handling in
@@ -133,9 +135,9 @@ class info
      */
 
 #if defined USE_ATOMIC_RESOLUTION_CHANGE_FLAG
-    std::atomic<bool> m_resolution_change;
+    std::atomic<bool> m_resolution_change { true };
 #else
-    bool m_resolution_change;
+    bool m_resolution_change { true };
 #endif
 
     /**
@@ -143,13 +145,13 @@ class info
      *  precise as MIDI ticks. 1.0 for ALSA or 10.0 * PPQN for JACK.
      */
 
-    double m_ticks_per_beat;
+    double m_ticks_per_beat { RTL66_DEFAULT_PPQN };             /* 192      */
 
     /**
      *  Holds the current duration of a MIDI pulse, in microseconds.
      */
 
-    midi::microsec m_pulse_time_us;
+    midi::microsec m_pulse_time_us { 0 };
 
     /**
      *  Augments the beats/bar and beat-width with the additional values
@@ -159,7 +161,7 @@ class info
      *  our hymne.mid example.
      */
 
-    int m_clocks_per_metronome;
+    int m_clocks_per_metronome { RTL66_DEFAULT_METRO_CLOCKS };  /* 24       */
 
     /**
      *  Augments the beats/bar and beat-width with the additional values
@@ -167,7 +169,7 @@ class info
      *  duplicate of the same member in the sequence class.
      */
 
-    int m_32nds_per_quarter;
+    int m_32nds_per_quarter{ RTL66_DEFAULT_32NDS_PER_Q };       /* 8        */
 
     /**
      *  The duration of a quarter note (or beat as well?) in microseconds.
@@ -176,7 +178,10 @@ class info
      *  same member in the sequence class.
      */
 
-    midi::microsec m_us_per_quarter_note;
+    midi::microsec m_us_per_quarter_note
+    {
+        midi::tempo_us_from_bpm(m_beats_per_minute)
+    };
 
     /**
      *  Holds the "one measure's worth" of pulses (ticks), which is normally
@@ -185,14 +190,14 @@ class info
      *  simply four quarter notes.
      */
 
-    midi::pulse m_one_measure;
+    midi::pulse m_one_measure { 0 };
 
     /**
      *  It seems that this member, if true, forces a repositioning to the left
      *  (L) tick marker.
      */
 
-    bool m_reposition;
+    bool m_reposition { false };
 
     /**
      *  Holds the starting tick for playing.  By default, this value is always
@@ -201,7 +206,7 @@ class info
      *  functionality. Note that "tick" is actually "pulses".
      */
 
-    mutable midi::pulse m_start_tick;   /* for starting playback            */
+    mutable midi::pulse m_start_tick { 0 };         /* to start playback    */
 
     /**
      *  The m_tick member holds the tick to be used in
@@ -210,14 +215,14 @@ class info
      *  functionality.
      */
 
-    mutable midi::pulse m_tick;         /* current tick (MIDI pulse)        */
-    mutable midi::pulse m_left_tick;    /* for looping                      */
-    mutable midi::pulse m_right_tick;   /* for looping                      */
-    mutable bool m_looping;
+    mutable midi::pulse m_tick { 0 };               /* current MIDI pulse   */
+    mutable midi::pulse m_left_tick { 0 };          /* for looping          */
+    mutable midi::pulse m_right_tick { 0 };         /* for looping          */
+    mutable bool m_looping { false };
 
 public:
 
-    info ();
+    info () = default;
     info (int bw, int bpb, midi::bpm bpmin, midi::ppqn ppq);
     info (info &&) = delete;
     info (const info &) = default;
@@ -367,6 +372,9 @@ public:
      * TODO: validation or sanity checks.
      */
 
+    void time_signature (int bw, int bpb);
+    void time_resolution (midi::bpm bpmin, midi::ppqn ppq);
+
     /*
      * Simple setter. for the one that iterates over patterns, see
      * set_beat_length().
@@ -375,7 +383,7 @@ public:
     void beat_width (int bw)
     {
         m_beat_width = bw;
-#if defined RTL66_BUILD_JACK_ISREADY
+#if defined RTL66_BUILD_JACK_HERE
         m_jack_transport.set_beat_width(bw);
 #endif
     }
@@ -388,7 +396,7 @@ public:
     void beats_per_bar (int bpb)
     {
         m_beats_per_bar = bpb;
-#if defined RTL66_BUILD_JACK_ISREADY
+#if defined RTL66_BUILD_JACK_HERE
         m_jack_transport.set_beats_per_measure(bpb);
 #endif
     }

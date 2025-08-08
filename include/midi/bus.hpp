@@ -31,7 +31,7 @@
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
- *  of the bus module.  There is enough commonality to be worth creating a
+ *  of the bus module. There is enough commonality to be worth creating a
  *  base class for all such classes.
  *
  *  The bus is an rtmidi_in or rtmidi_out, plus a reference to its owning
@@ -317,7 +317,7 @@ public:
 
     void get_port_items
     (
-        std::shared_ptr<clientinfo> mip,
+        clientinfo::pointer mip,
         port::io iotype
     );
 

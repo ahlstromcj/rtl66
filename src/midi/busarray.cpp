@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2024-06-12
+ * \updates       2025-08-06
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -50,28 +50,14 @@ namespace midi
  *  access than using arrays of booleans and pointers.
  */
 
-busarray::busarray () : m_container{}
+busarray::busarray () : m_container ()
 {
     // Empty body
 }
 
 /**
- *  Removes components from the container.
- *
- * \question
- *  However, now that we swap containers, we cannot call this functionality,
- *  because it deletes the bus's midi::bus pointer and nullifies it.
- *  But we do call it, and it seems to work.
- */
-
-busarray::~busarray ()
-{
-    // no need to explicity remove the unique_ptrs for busses.
-}
-
-/**
  *  Creates and adds a new midi::bus object to the list.  Then the clock value
- *  is set.  This function is meant for output ports.
+ *  is set. This function is meant for output ports.
  *
  *  We need to belay the initialization until later, when we know the
  *  configured clock settings for the output ports.  So initialization has

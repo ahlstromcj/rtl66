@@ -1,5 +1,5 @@
-#if ! defined RTL66_RTL_MIDI_RTMIDI_ENGINE_HPP
-#define RTL66_RTL_MIDI_RTMIDI_ENGINE_HPP
+#if ! defined RTL66_RTL_RTMIDI_ENGINE_HPP
+#define RTL66_RTL_RTMIDI_ENGINE_HPP
 
 /*
  *  This file is part of rtl66.
@@ -95,7 +95,7 @@ protected:
 
 }           // namespace rtl
 
-#endif      // RTL66_RTL_MIDI_RTMIDI_ENGINE_HPP
+#endif      // RTL66_RTL_RTMIDI_ENGINE_HPP
 
 /*
  * rtmidi_engine.hpp

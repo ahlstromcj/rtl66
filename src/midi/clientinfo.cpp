@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-08-05
+ * \updates       2025-08-06
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -117,14 +117,15 @@ clientinfo::to_string (const std::string & tagmsg) const
         << "Port refresh:  " << bool_to_yesno(port_refresh()) << "\n"
         << "Global PPQN:   " << std::to_string(int(global_ppqn())) << "\n"
         << "Global BPM:    " << std::to_string(int(global_bpm())) << "\n"
+        << "Global BW:     " <<
+            std::to_string(int(global_beat_width())) << "\n"
+        << "Global BPB:    " <<
+            std::to_string(int(global_beats_per_bar())) << "\n"
         << ports_in
         << ports_out
         << "I/O ports #s:  " << std::to_string(input_portnumber())
         << "/" << std::to_string(output_portnumber()) << "\n"
         ;
-
-    // TODO: global queue, MIDI handle, port type, and is-connected
-
     return os.str();
 }
 
