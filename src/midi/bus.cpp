@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-08-06
+ * \updates       2025-08-09
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -114,11 +114,14 @@ int bus::m_clock_mod = 16 * 4;
  *      validates the index and returns the value.
  *
  * \param master
- *      Provides a reference to midi::masterbus.
+ *      Provides a reference to the midi::masterbus. This object should
+ *      have lists of the input and output ports, for data and display
+ *      purposes and for lookup of port information to pass to this midi::bus
+ *      object.
  *
  * \param index
- *      Provides the ordinal of this buss/port, for display purposes and for
- *      more portable lists of ports.
+ *      Provides the ordinal of this buss/port, for data and display purposes
+ *      and for more portable lists of ports.
  *
  *  TODO: do we need a mutex?
  */
@@ -127,24 +130,52 @@ bus::bus
 (
     masterbus & master,
     int index,
-    port::io io_type
+    port::io iotype
 ) :
-    m_midi_api_ptr      (nullptr),
     m_master_bus        (master),
+    m_midi_api_ptr      (master.rt_api_ptr()),
     m_initialized       (false),
     m_bus_index         (index),
-    m_bus_id            (-1),
-    m_port_id           (-1),
-    m_clock_type        (clocking::none),
+    m_bus_id            (-1),                   /* see the ctor body        */
+    m_port_id           (-1),                   /* see the ctor body        */
+    m_clock_type        (clocking::none),       /* masterbus::set_clock()   */
     m_io_active         (false),
     m_display_name      (),
-    m_bus_name          (), // (busname),
-    m_port_name         (), // (portname),
-    m_port_alias        (), // (portalias),
-    m_io_type           (io_type),
-    m_port_type         ()  // (porttype),
+    m_bus_name          (),                     /* see the ctor body        */
+    m_port_name         (),                     /* see the ctor body        */
+    m_port_alias        (),                     /* see the ctor body        */
+    m_io_type           (iotype),
+    m_port_type         ()                      /* see the ctor body        */
 {
-    // no code (yet)
+    if (iotype == midi::port::io::input || iotype == midi::port::io::output)
+    {
+        masterbus::info ciptr { master.client_info_ptr() };
+        if (ciptr)
+        {
+            const midi::ports & portlist { ciptr->io_ports(iotype) };
+            m_bus_id = portlist.get_bus_id(index);
+            m_port_id = portlist.get_port_id(index);
+            m_bus_name = portlist.get_bus_name(index);
+            m_port_name = portlist.get_port_name(index);
+            m_port_alias = portlist.get_port_alias(index);
+            m_port_type = portlist.get_port_type(index);
+#if defined PLATFORM_DEBUG
+            printf
+            (
+                "Bus info:\n"
+                "  Bus ID: %d '%s'\n"
+                "  Port ID: %d '%s', alias '%s'\n"
+                "  Port I/O: '%s'\n"
+                "  Port Kind: '%s'\n"
+                ,
+                m_bus_id, m_bus_name.c_str(),
+                m_port_id, m_port_name.c_str(), m_port_alias.c_str(),
+                io_to_string(m_io_type).c_str(),
+                kind_to_string(m_port_type).c_str()
+            );
+#endif
+        }
+    }
 }
 
 /**

@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24
- * \updates       2024-10-28
+ * \updates       2025-08-09
  * \license       See above.
  *
  *  midi::port. A class holding data about a port.  This class is meant to
@@ -40,40 +40,6 @@
 
 namespace midi
 {
-
-/*------------------------------------------------------------------------
- * port static functions
- *------------------------------------------------------------------------*/
-
-static std::string
-io_to_string (port::io iotype)
-{
-    std::string result;
-    if (iotype == port::io::input)
-        result = std::string("input");
-    else if (iotype == port::io::output)
-        result = std::string("output");
-    else if (iotype == port::io::duplex)
-        result = std::string("duplex");
-    else if (iotype == port::io::engine)
-        result = std::string("engine");
-
-    return result;
-}
-
-static std::string
-port_to_string (port::kind ptype)
-{
-    std::string result;
-    if (ptype == port::kind::normal)
-        result = std::string("normal");
-    else if (ptype == port::kind::manual)
-        result = std::string("virtual");
-    else if (ptype == port::kind::system)
-        result = std::string("system");
-
-    return result;
-}
 
 /*------------------------------------------------------------------------
  * port
@@ -125,7 +91,7 @@ port::to_string () const
         << "Port '" << m_buss_name << "': "
         << m_buss_number << ":" << m_port_number
         << " '" << m_port_name << "' "
-        << io_to_string(m_io_type) << "/" << port_to_string(m_port_type)
+        << io_to_string(m_io_type) << "/" << kind_to_string(m_port_type)
         ;
 
     if (! m_port_alias.empty())
@@ -133,6 +99,40 @@ port::to_string () const
 
     os << std::endl;
     return os.str();
+}
+
+/*------------------------------------------------------------------------
+ * port free functions
+ *------------------------------------------------------------------------*/
+
+std::string
+io_to_string (port::io iotype)
+{
+    std::string result;
+    if (iotype == port::io::input)
+        result = std::string("input");
+    else if (iotype == port::io::output)
+        result = std::string("output");
+    else if (iotype == port::io::duplex)
+        result = std::string("duplex");
+    else if (iotype == port::io::engine)
+        result = std::string("engine");
+
+    return result;
+}
+
+std::string
+kind_to_string (port::kind ptype)
+{
+    std::string result;
+    if (ptype == port::kind::normal)
+        result = std::string("normal");
+    else if (ptype == port::kind::manual)
+        result = std::string("virtual");
+    else if (ptype == port::kind::system)
+        result = std::string("system");
+
+    return result;
 }
 
 }           // namespace midi

@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2025-08-06
+ * \updates       2025-08-08
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -224,7 +224,7 @@ private:
      *  Default settings desired by the client.
      */
 
-    client_defaults m_cd;
+    client_defaults m_cd { };
 
     /**
      *  The ID of the ALSA MIDI queue. A la Seq66's mastermidibase class.
@@ -232,24 +232,22 @@ private:
 
     int m_global_queue { c_bad_id };
 
-#if defined RTL66_JACK_PORT_REFRESH
+    /**
+     *  Holds data on the ALSA/JACK/Core/WinMM inputs, outputs, or both,
+     *  depending on m_port_type. Element 0 is input, element 1 is output.
+     *  Use midi::io_to_int() or port::for_input and port::for_output.
+     */
+
+    ports m_io_ports[2];
 
     /**
      *  Stores that last port configuration, used when port-registration or
      *  port-unregistration is detected.
+     *
+     *  Not yet processed. See macro RTL66_JACK_PORT_REFRESH above.
      */
 
     ports m_previous_ports[2];
-
-#endif  //  RTL66_JACK_PORT_REFRESH
-
-    /**
-     *  Holds data on the ALSA/JACK/Core/WinMM inputs, outputs, or both,
-     *  depending on m_port_type. Element 0 is input, element 1 is output.
-     *  Use midi::io_to_int().
-     */
-
-    ports m_io_ports[2];
 
     /**
      *  Provides a handle to the main ALSA or JACK implementation object.
@@ -259,7 +257,13 @@ private:
     void * m_midi_handle { nullptr };
 
     /**
-     *  True if the handle has been obtained.
+     *  True if ports have been queried.
+     */
+
+    bool m_ports_queried { false };
+
+    /**
+     *  True if the handle has been obtained. Is this useful?
      */
 
     bool m_is_connected { false };
@@ -485,6 +489,16 @@ public:
         return m_is_connected;
     }
 
+    bool ports_queried () const
+    {
+        return m_ports_queried;
+    }
+
+    void ports_queried (bool flag)
+    {
+        m_ports_queried = flag;
+    }
+
     ports & io_ports (port::io iotype)
     {
         return m_io_ports[element(iotype)];
@@ -495,17 +509,15 @@ public:
         return m_io_ports[element(iotype)];
     }
 
-#if defined RTL66_JACK_PORT_REFRESH
-    ports & previous_ports ()
+    ports & previous_ports (port::io iotype)
     {
-        return m_previous_ports;
+        return m_previous_ports[element(iotype)];
     }
-#endif
 
     void clear ()
     {
-        m_io_ports[0].clear();
-        m_io_ports[1].clear();
+        m_io_ports[midi::input_port_index].clear();
+        m_io_ports[midi::output_port_index].clear();
     }
 
     bool empty () const
@@ -608,8 +620,8 @@ protected:
     int element (port::io iotype) const
     {
         int result = io_to_int(iotype);
-        if (result > 1)
-            result = 0;                  /* for safety reasons   */
+        if (result > midi::output_port_index)
+            result = midi::input_port_index;        /* for safety reasons   */
 
         return result;
     }

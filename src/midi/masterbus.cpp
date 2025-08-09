@@ -134,7 +134,9 @@ masterbus::masterbus
     midi::bpm bp
 ) :
     m_selected_api      (rapi),         /* rtl::rtmidi::api::unspecified)   */
+#if 0
     m_rt_api_ptr        (nullptr),
+#endif
     m_engine            (this, rapi),   /* "mbus", don't change client name */
     m_inbus_array       (),
     m_outbus_array      (),
@@ -951,18 +953,50 @@ masterbus::engine_initialize (midi::ppqn ppq, midi::bpm bp)
 
     return true;        // TODO
 }
+
+/**
+ *  The port::io enum value can be input, output, duplex (the default),
+ *  engine, and dummy. The masterbus requires duplex. OR ENGINE???
+ *
+ *  Should we also call client_info_reset() here?
+ */
+
 bool
 masterbus::engine_initialize (const clientinfo & ci)
 {
-    PPQN(ci.global_ppqn());
-    BPM(ci.global_bpm());
-    if (ci.virtual_ports())
+    bool result { ci.port_type() == port::io::duplex };
+    if (result)
     {
+        PPQN(ci.global_ppqn());
+        BPM(ci.global_bpm());
+        if (ci.virtual_ports())
+        {
+            // TODO
+        }
+        else
+        {
+            result = ci.ports_queried();
+            if (result)
+            {
+                bool swap_io
+                {
+                    rtl::rtmidi::selected_api() == rtl::rtmidi::api::jack
+                };
+                bool isinput { ! swap_io };
+                port::io iotype
+                {
+                    isinput ? port::io::input : port::io::output
+                };
+                int pcount { ci.port_count(iotype) };
+
+                // TODO
+                // TODO
+                // TODO
+                // TODO
+            }
+        }
     }
-    else
-    {
-    }
-    return true;        // TODO
+    return result;
 }
 
 /**
@@ -988,16 +1022,28 @@ masterbus::engine_initialize (const clientinfo & ci)
  */
 
 bool
-masterbus::engine_make_busses (bool autoconnect, int inputport, int outputport)
+masterbus::engine_make_busses (bool is_input, bool is_virtual)
 {
-    bool result = ! autoconnect && outputport >= 0;
+    bool result = false;
     if (result)
     {
-        if (inputport >= 0)
+        if (is_virtual)
         {
+            if (is_input)
+            {
+            }
+            else
+            {
+            }
         }
-        if (outputport >= 0)
+        else
         {
+            if (is_input)
+            {
+            }
+            else
+            {
+            }
         }
     }
     return result;

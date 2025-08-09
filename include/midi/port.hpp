@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24        (seq66::midi_port_info)
- * \updates       2024-10-28
+ * \updates       2025-08-09
  * \license       See above.
  *
  *  Contains information about a single MIDI port, as determined by
@@ -36,28 +36,16 @@
 
 #include <cstdint>                      /* uint32_t and other types         */
 #include <string>                       /* std::string class                */
-#include <vector>                       /* std::vector class                */
 
 namespace midi
 {
 
 /**
- *  In the latest versions of JACK, 0xFFFE is the macro "NO_PORT".  Although
- *  krufty, we can use this value in Seq66 no matter the version of JACK, or
- *  even what API is used.
+ *  Constants for a common usage. See port::io below.
  */
 
-inline uint32_t
-null_system_port_id ()
-{
-    return 0xFFFE;
-}
-
-inline bool
-is_null_system_port_id (uint32_t portid)
-{
-    return portid == null_system_port_id();
-}
+const int input_port_index { 0 };
+const int output_port_index { 1 };
 
 /**
  *  A structure for hold basic information about a single (MIDI) port.
@@ -193,11 +181,32 @@ public:
  * Free functions for port
  *------------------------------------------------------------------------*/
 
+/**
+ *  In the latest versions of JACK, 0xFFFE is the macro "NO_PORT".  Although
+ *  krufty, we can use this value in Seq66 no matter the version of JACK, or
+ *  even what API is used.
+ */
+
+inline uint32_t
+null_system_port_id ()
+{
+    return 0xFFFE;
+}
+
+inline bool
+is_null_system_port_id (uint32_t portid)
+{
+    return portid == null_system_port_id();
+}
+
 inline int
 io_to_int (port::io iotype)
 {
     return static_cast<int>(iotype);
 }
+
+extern std::string io_to_string (port::io iotype);
+extern std::string kind_to_string (port::kind ptype);
 
 }           // namespace midi
 

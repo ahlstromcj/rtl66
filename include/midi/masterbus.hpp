@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-08
+ * \updates       2025-08-09
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -111,7 +111,7 @@ class masterbus
 {
     friend class player;
 
-private:
+public:
 
     /**
      *  The clientinfo class provides application-specific information,
@@ -122,6 +122,8 @@ private:
      */
 
      using info = midi::clientinfo::pointer;    /* shared_ptr<> */
+
+private:
 
     /**
      *  Seq66 rc() and setup items:
@@ -148,11 +150,11 @@ private:
 
     /**
      *  Provides a pointer to the selected API implementation.
+     *  See the accessors. However, we can get this from the
+     *  rtmidi_engine.
      *
-     *  CURRENTLY NOT REALLY USED. See the accessors.
+     *      rtl::midi_api * m_rt_api_ptr;
      */
-
-    rtl::midi_api * m_rt_api_ptr;
 
     /**
      *  Provides access to the selected API in order to hook up to the desired
@@ -369,22 +371,29 @@ public:
         return m_ppqn;
     }
 
-protected:
+    /*
+     * These rt_api_ptr() functions are duplicates of those in the
+     * rtmidi class.
+     */
 
     rtl::midi_api * rt_api_ptr ()
     {
-        return m_rt_api_ptr;
+        return m_engine.rt_api_ptr();
     }
 
     const rtl::midi_api * rt_api_ptr () const
     {
-        return m_rt_api_ptr;
+        return m_engine.rt_api_ptr();
     }
 
+protected:
+
+#if 0
     void rt_api_ptr (rtl::midi_api * p)
     {
         m_rt_api_ptr = p;
     }
+#endif
 
     void set_client_id (int id)
     {
@@ -431,10 +440,8 @@ protected:  // API pass-alongs
 
     virtual bool engine_activate ();
     virtual bool engine_connect ();
-    virtual bool engine_make_busses
-    (
-        bool autoconnect, int inputport, int outputport
-    );
+    virtual bool engine_make_busses (bool is_input, bool is_virtual = false);
+//      bool autoconnect, int inputport, int outputport
 
 protected:  // API implementations
 

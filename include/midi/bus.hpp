@@ -146,18 +146,18 @@ private:
     static int m_clock_mod;
 
     /**
-     *  Holds the midi_api pointer for quicker access.
-     */
-
-    rtl::midi_api * m_midi_api_ptr;
-
-    /**
      *  The "parent" of this bus.  It's lifetime always completely contains
      *  that of a bus. We want to handle ports/busses coming and going as
      *  devices are plugged in/out of the computer.
      */
 
     masterbus & m_master_bus;
+
+    /**
+     *  Holds the midi_api pointer for quicker access.
+     */
+
+    rtl::midi_api * m_midi_api_ptr;
 
     /**
      *  Set to true if the bus has been successfully initialized.
