@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-08-06
+ * \updates       2025-08-12
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -33,6 +33,7 @@
  *  buss classes.
  */
 
+#include "midi/bus.hpp"                 /* midi::bus, clocking              */
 #include "midi/busarray.hpp"            /* rtl66::busarray class            */
 #include "midi/event.hpp"               /* rtl66::event class               */
 
@@ -41,18 +42,226 @@ namespace midi
 
 /*
  * -------------------------------------------------------------------------
+ * class busarray::container
+ * -------------------------------------------------------------------------
+ */
+
+class busarray::container
+{
+
+private:
+
+    /**
+     *  The bus::pointer is a unique_ptr<> defined in the bus.hpp module.
+     */
+
+    using busses = std::vector<midi::bus::pointer>;
+
+    /**
+     *  The container of bus pointers.
+     */
+
+    busses m_bus_container;
+
+public:
+
+    container () : m_bus_container ()
+    {
+        // no code
+    }
+
+    ~container ()
+    {
+        // no code
+    }
+
+    int count () const
+    {
+        return int(m_bus_container.size());
+    }
+
+    /**
+     *  This container takes ownership of the pointer provided by the
+     *  caller. We need to be careful of lifetimes here.
+     */
+
+    bool add (midi::bus * b, midi::clocking /*clk*/)
+    {
+        bool result = not_nullptr(b);
+        if (result)
+        {
+            bus::pointer bp { b };
+            m_bus_container.push_back(std::move(bp));
+        }
+        return result;
+    }
+
+    bool bus_valid (midi::bussbyte b) const
+    {
+        return b < midi::bussbyte(m_bus_container.size());
+    }
+
+    midi::bus * bus_ptr (midi::bussbyte b)
+    {
+        return bus_valid(b) ? m_bus_container[b].get() : nullptr ;
+    }
+
+    const midi::bus * bus_ptr (midi::bussbyte b) const
+    {
+        return bus_valid (b) ? m_bus_container[b].get() : nullptr ;
+    }
+
+    bool initialize ()
+    {
+        bool result = true;
+        for (auto & buss : m_bus_container)
+        {
+            if (! buss->initialize())
+                result = false;
+        }
+        return result;
+    }
+
+    void clock_start ()
+    {
+        for (auto & buss : m_bus_container)
+            buss->clock_start();
+    }
+
+    void clock_stop ()
+    {
+        for (auto & buss : m_bus_container)
+            buss->clock_start();
+    }
+
+    void clock_continue (pulse tick)
+    {
+        for (auto & buss : m_bus_container)
+            buss->clock_continue(tick);
+    }
+
+    void init_clock (pulse tick)
+    {
+        for (auto & buss : m_bus_container)
+            buss->init_clock(tick);
+    }
+
+    void set_clock (clocking clocktype)
+    {
+        for (auto & buss : m_bus_container)
+            buss->set_clock(clocktype);
+    }
+
+    void print () const
+    {
+        for (const auto & buss : m_bus_container)
+            buss->print();
+    }
+
+    void port_exit (int client, int p)
+    {
+        for (auto & buss : m_bus_container)
+        {
+            if (buss->match(client, p))
+               buss->deactivate();
+        }
+    }
+
+    void set_all_inputs (bool inputing)
+    {
+        for (auto & buss : m_bus_container)
+            buss->init_input(inputing);
+    }
+
+    int poll_for_midi ()
+    {
+        int result = 0;
+        for (auto & buss : m_bus_container)
+        {
+            result = buss->poll_for_midi();
+            if (result > 0)
+                break;
+        }
+        return result;
+    }
+
+    bool get_midi_event (event * inev)
+    {
+        for (auto & buss : m_bus_container)
+        {
+            if (buss->get_midi_event(inev))
+            {
+                bussbyte b = bussbyte(buss->bus_index());
+                inev->set_input_bus(b);
+#if defined PLATFORM_DEBUG_TMI
+                printf("[rtl66] input event on bus %d\n", int(b));
+#endif
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int replacement_port (int b, int p)
+    {
+        int result = -1;
+        int counter = 0;
+        for (auto & buss : m_bus_container)
+        {
+            if (buss->match(b, p) && ! buss->active())
+            {
+                result = counter;
+                if (bool(buss))
+                {
+                    // TODO
+                    // /* deletes m_bus as well */
+                    // (void) m_bus_container.erase(bi);
+                    errprintf("port_start(): bus out %d not null\n", result);
+                }
+                break;
+            }
+            ++counter;
+        }
+        return result;
+    }
+
+};          // class busarray::container
+
+/*
+ * -------------------------------------------------------------------------
  * class busarray
  * -------------------------------------------------------------------------
  */
+
+/**
+ *  Checks that the bus pointer is good and the bus is enabled.
+ */
+
+static bool
+bus_active (midi::bus * bptr)
+{
+    return not_nullptr(bptr) && bptr->port_enabled();
+}
 
 /**
  *  A new class to hold a vector of MIDI busses and flags for more controlled
  *  access than using arrays of booleans and pointers.
  */
 
-busarray::busarray () : m_container ()
+busarray::busarray () :
+    p_impl      { std::make_unique<busarray::container>() }
 {
     // Empty body
+}
+
+/**
+ *  We can't define this destructor in the header because it leads to
+ *  the error "invalid application of ‘sizeof’ to incomplete type"
+ */
+
+busarray::~busarray ()
+{
+    // no code
 }
 
 /**
@@ -75,15 +284,28 @@ busarray::busarray () : m_container ()
  */
 
 bool
-busarray::add (bus * b, clocking /*c*/ )        // FIXME
+busarray::add (midi::bus * b, clocking c)
 {
-    bool result = not_nullptr(b);
-    if (result)
-    {
-        bus::pointer bp{b};
-        m_container.push_back(std::move(bp));
-    }
-    return result;
+    return p_impl->add(b, c);
+}
+
+int
+busarray::client_id (midi::bussbyte b)
+{
+    midi::bus * bptr = p_impl->bus_ptr(b);
+    return not_nullptr(bptr) ? bptr->client_id() : (-1) ;
+}
+
+/**
+ *  Checks that a specific port is enabled. Compare to the static function
+ *  bus_active().
+ */
+
+bool
+busarray::port_active (midi::bussbyte b)
+{
+    midi::bus * bptr = p_impl->bus_ptr(b);
+    return bus_active(bptr);
 }
 
 /**
@@ -97,13 +319,7 @@ busarray::add (bus * b, clocking /*c*/ )        // FIXME
 bool
 busarray::initialize ()
 {
-    bool result = true;
-    for (auto & buss : m_container)
-    {
-        if (! buss->initialize())
-            result = false;
-    }
-    return result;
+    return p_impl->initialize();
 }
 
 /**
@@ -116,8 +332,7 @@ busarray::initialize ()
 void
 busarray::clock_start ()
 {
-    for (auto & buss : m_container)
-        buss->clock_start();
+    p_impl->clock_start();
 }
 
 /**
@@ -128,8 +343,7 @@ busarray::clock_start ()
 void
 busarray::clock_stop ()
 {
-    for (auto & buss : m_container)
-        buss->clock_stop();
+    p_impl->clock_stop();
 }
 
 /**
@@ -143,8 +357,7 @@ busarray::clock_stop ()
 void
 busarray::clock_continue (pulse tick)
 {
-    for (auto & buss : m_container)
-        buss->clock_continue(tick);
+    p_impl->clock_continue(tick);
 }
 
 /**
@@ -158,20 +371,31 @@ busarray::clock_continue (pulse tick)
 void
 busarray::init_clock (pulse tick)
 {
-    for (auto & buss : m_container)
-        buss->init_clock(tick);
+    p_impl->init_clock(tick);
+}
+
+/**
+ *  Sets the clock type for all busses, usually the output buss. Note that
+ *  the settings to apply are added when the add() call is made. This is a
+ *  bit ugly.
+ */
+
+void
+busarray::set_clock (clocking clk)
+{
+    p_impl->set_clock(clk);
 }
 
 /**
  *  Plays an event, if the bus is proper.
  *
  * \param b
- *      The MIDI buss on which to play the event.  The buss number must be
+ *      The MIDI buss on which to play the event. The buss number must be
  *      valid (in range) and the bus must be active.
  *
  * \param e24
- *      A pointer to the event to be played.  Currently we don't bother to check
- *      it!
+ *      A pointer to the event to be played. Currently we don't bother to
+ *      check it!
  *
  * \param channel
  *      The MIDI channel on which to play the event.  Seq66 controls
@@ -182,8 +406,9 @@ busarray::init_clock (pulse tick)
 void
 busarray::send_event (bussbyte b, const event * e24, midi::byte channel)
 {
-    if (port_active(b))
-        m_container[b]->send_event(e24, channel);
+    midi::bus * bptr = p_impl->bus_ptr(b);
+    if (bus_active(bptr))
+        bptr->send_event(e24, channel);
 }
 
 /**
@@ -196,21 +421,9 @@ busarray::send_event (bussbyte b, const event * e24, midi::byte channel)
 void
 busarray::send_sysex (bussbyte b, const event * e24)
 {
-    if (port_active(b))
-        m_container[b]->send_sysex(e24);
-}
-
-/**
- *  Sets the clock type for all busses, usually the output buss.  Note that
- *  the settings to apply are added when the add() call is made.  This is a
- *  bit ugly.
- */
-
-void
-busarray::set_clock (clocking clocktype)
-{
-    for (auto & buss : m_container)
-        buss->set_clock(clocktype);
+    midi::bus * bptr = p_impl->bus_ptr(b);
+    if (bus_active(bptr))
+        bptr->send_sysex(e24);
 }
 
 /**
@@ -220,7 +433,7 @@ busarray::set_clock (clocking clocktype)
  *
  *  Getting the current clock setting is essentially equivalent to:
  *
- *      m_container[bus].bus()->get_clock();
+ *      m_bus_container[bus].bus()->get_clock();
  *
  *  The check for a change in status is commented out because it
  *  can disable setting values for the same item as stored in the portmap.
@@ -240,11 +453,14 @@ bool
 busarray::set_clock (bussbyte b, clocking clocktype)
 {
     clocking current = get_clock(b);
-    bool result = port_active(b) || current == clocking::disabled;
+    midi::bus * bptr = p_impl->bus_ptr(b);
+    bool result = bus_active(bptr);
+    if (! result)
+        result = current == clocking::disabled;
+
     if (result)
-    {
-        m_container[b]->set_clock(clocktype); /* also handles set_clock() */
-    }
+        bptr->set_clock(clocktype);             /* also handles set_clock() */
+
     return result;
 }
 
@@ -266,8 +482,9 @@ busarray::set_clock (bussbyte b, clocking clocktype)
 clocking
 busarray::get_clock (bussbyte b) const
 {
-    return bus_valid(b) ?
-        m_container[b]->clock_type() : clocking::unavailable ;
+    midi::bus * bptr = p_impl->bus_ptr(b);
+    return bus_active(bptr) ?
+        bptr->clock_type() : clocking::unavailable ;
 }
 
 /**
@@ -300,14 +517,14 @@ std::string
 busarray::get_midi_bus_name (int b) const
 {
     std::string result;
-    if (bus_valid(b))
+    const midi::bus * bptr = p_impl->bus_ptr(b);
+    if (not_nullptr(bptr))
     {
-        const bus * buss = m_container[b].get();
-        clocking current = buss->clock_type();
-        if (buss->port_enabled() || current == clocking::disabled)
+        clocking current = bptr->clock_type();
+        if (bptr->port_enabled() || current == clocking::disabled)
         {
-            std::string busname = buss->bus_name();
-            std::string portname = buss->port_name();
+            std::string busname = bptr->bus_name();
+            std::string portname = bptr->port_name();
             std::size_t len = busname.size();
             int test = busname.compare(0, len, portname, 0, len);
             if (test == 0)
@@ -316,12 +533,12 @@ busarray::get_midi_bus_name (int b) const
                 snprintf
                 (
                     tmp, sizeof tmp, "[%d] %d:%d %s",
-                    b, buss->bus_id(), buss->port_id(), portname.c_str()
+                    b, bptr->bus_id(), bptr->port_id(), portname.c_str()
                 );
                 result = tmp;
             }
             else
-                result = buss->display_name();
+                result = bptr->display_name();
         }
         else
         {
@@ -330,7 +547,7 @@ busarray::get_midi_bus_name (int b) const
              * here.
              */
 
-            result = buss->display_name();
+            result = bptr->display_name();
         }
     }
     return result;
@@ -341,16 +558,14 @@ busarray::get_midi_bus_name (int b) const
  *  (normally "rtl66") out of the 'rc' input and clock sections.
  */
 
-
 std::string
 busarray::get_midi_port_name (int b) const
 {
     std::string result;
-    if (bus_valid(b))
-    {
-        const bus * buss = m_container[b].get();
-        result = buss->port_name();
-    }
+    const midi::bus * bptr = p_impl->bus_ptr(b);
+    if (not_nullptr(bptr))
+        result = bptr->port_name();
+
     return result;
 }
 
@@ -365,11 +580,10 @@ std::string
 busarray::get_midi_alias (int b) const
 {
     std::string result;
-    if (bus_valid(b))
-    {
-        const bus * buss = m_container[b].get();
-        result = buss->port_alias();
-    }
+    const midi::bus * bptr = p_impl->bus_ptr(b);
+    if (not_nullptr(bptr))
+        result = bptr->port_alias();
+
     return result;
 }
 
@@ -381,8 +595,7 @@ void
 busarray::print () const
 {
     printf("Available busses:\n");
-    for (const auto & buss : m_container)
-        buss->print();
+    p_impl->print();
 }
 
 /**
@@ -406,11 +619,7 @@ busarray::print () const
 void
 busarray::port_exit (int client, int p)
 {
-    for (auto & buss : m_container)
-    {
-        if (buss->match(client, p))
-           buss->deactivate();
-    }
+    p_impl->port_exit(client, p);
 }
 
 /**
@@ -428,9 +637,7 @@ busarray::port_exit (int client, int p)
  *
  *  This function should be used only for the input busarray, obviously.
  *
- * ca  2023-05-18
- *
- *  The check for a change in status is commented out because it
+ *  The check for a change in status is not done because it
  *  can disable setting values for the same item as stored in the portmap.
  *  Need to investigate this at some point.
  *
@@ -450,11 +657,11 @@ busarray::port_exit (int client, int p)
 bool
 busarray::set_input (bussbyte b, bool inputing)
 {
-    bool result = bus_valid(b);
+    midi::bus * bptr = p_impl->bus_ptr(b);
+    bool result = not_nullptr(bptr);
     if (result)
     {
         bool current = get_input(b);                          /* see below    */
-        bus * buss = m_container[b].get();
 
         /*
          *  The init_input() call here first sets the m_init_input flag in
@@ -463,9 +670,9 @@ busarray::set_input (bussbyte b, bool inputing)
          *  status has changed.
          */
 
-        result = buss->active() || ! current;
+        result = bptr->active() || ! current;
         if (result)
-            buss->init_input(inputing);
+            bptr->init_input(inputing);
     }
     return result;
 }
@@ -481,8 +688,7 @@ busarray::set_input (bussbyte b, bool inputing)
 void
 busarray::set_all_inputs (bool inputing)
 {
-    for (auto & buss : m_container)
-        buss->init_input(inputing);
+    p_impl->set_all_inputs(inputing);
 }
 
 /**
@@ -502,12 +708,12 @@ busarray::set_all_inputs (bool inputing)
 bool
 busarray::get_input (bussbyte b) const
 {
-    bool result = bus_valid(b);
+    const midi::bus * bptr = p_impl->bus_ptr(b);
+    bool result = not_nullptr(bptr);
     if (result)
     {
-        const bus * buss = m_container[b].get();
-        if (buss->active())
-            result = buss->is_system_port() ? true : buss->port_enabled();
+        if (bptr->active())
+            result = bptr->is_system_port() ? true : bptr->port_enabled();
     }
     return result;
 }
@@ -526,12 +732,12 @@ busarray::get_input (bussbyte b) const
 bool
 busarray::is_system_port (bussbyte b) const
 {
-    bool result = bus_valid(b);
+    const midi::bus * bptr = p_impl->bus_ptr(b);
+    bool result = not_nullptr(bptr);
     if (result)
     {
-        const bus * buss = m_container[b].get();
-        if (buss->active())
-            result = buss->is_system_port();
+        if (bptr->active())
+            result = bptr->is_system_port();
     }
     return result;
 }
@@ -540,11 +746,10 @@ bool
 busarray::is_port_unavailable (bussbyte b) const
 {
     bool result = true;
-    if (bus_valid(b))
-    {
-        const bus * buss = m_container[b].get();
-        result = buss->port_unavailable();
-    }
+    const midi::bus * bptr = p_impl->bus_ptr(b);
+    if (not_nullptr(bptr))
+        result = bptr->port_unavailable();
+
     return result;
 }
 
@@ -560,12 +765,11 @@ busarray::is_port_unavailable (bussbyte b) const
 bool
 busarray::is_port_locked (bussbyte b) const
 {
-    bool result = bus_valid(b);
+    const midi::bus * bptr = p_impl->bus_ptr(b);
+    bool result = not_nullptr(bptr);
     if (result)
-    {
-        const bus * buss = m_container[b].get();
-        result = buss->is_port_locked();
-    }
+        result = bptr->is_port_locked();
+
     return result;
 }
 
@@ -586,14 +790,7 @@ busarray::is_port_locked (bussbyte b) const
 int
 busarray::poll_for_midi ()
 {
-    int result = 0;
-    for (auto & buss : m_container)
-    {
-        result = buss->poll_for_midi();
-        if (result > 0)
-            break;
-    }
-    return result;
+    return p_impl->poll_for_midi();
 }
 
 /**
@@ -612,19 +809,7 @@ busarray::poll_for_midi ()
 bool
 busarray::get_midi_event (event * inev)
 {
-    for (auto & buss : m_container)               /* vector of busarray copies */
-    {
-        if (buss->get_midi_event(inev))
-        {
-            bussbyte b = bussbyte(buss->bus_index());
-            inev->set_input_bus(b);
-#if defined PLATFORM_DEBUG_TMI
-            printf("[rtl66] input event on bus %d\n", int(b));
-#endif
-            return true;
-        }
-    }
-    return false;
+    return p_impl->get_midi_event(inev);
 }
 
 /**
@@ -648,25 +833,25 @@ busarray::get_midi_event (event * inev)
 int
 busarray::replacement_port (int b, int p)
 {
-    int result = -1;
-    int counter = 0;
-//  for (auto bi = m_container.begin(); bi != m_container.end(); ++bi)
-    for (auto & buss : m_container)
-    {
-        if (buss->match(b, p) && ! buss->active())
-        {
-            result = counter;
-            if (bool(buss))
-            {
-                // TODO
-                // (void) m_container.erase(bi);   /* deletes m_bus as well    */
-                errprintf("port_start(): bus out %d not null\n", result);
-            }
-            break;
-        }
-        ++counter;
-    }
-    return result;
+    return p_impl->replacement_port(b, p);
+}
+
+int
+busarray::count () const
+{
+    return p_impl->count();
+}
+
+bool
+busarray::bus_valid (midi::bussbyte b) const
+{
+    return p_impl->bus_valid(b);
+}
+
+midi::bus *
+busarray::bus_pointer (midi::bussbyte b)
+{
+    return p_impl->bus_ptr(b);
 }
 
 /**
@@ -680,6 +865,7 @@ busarray::replacement_port (int b, int p)
  */
 
 #if defined THIS_CODE_IS_READY
+
 void
 swap (bus & buses0, bus & buses1)
 {
@@ -687,6 +873,7 @@ swap (bus & buses0, bus & buses1)
     buses0 = buses1;
     buses1 = temp;
 }
+
 #endif
 
 }           // namespace midi

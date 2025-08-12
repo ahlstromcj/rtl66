@@ -1,5 +1,5 @@
-#if ! defined RTL66_SCALES_HPP
-#define RTL66_SCALES_HPP
+#if ! defined RTL66_MIDI_SCALES_HPP
+#define RTL66_MIDI_SCALES_HPP
 
 /*
  *  This file is part of rtl66.
@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2018-11-23
- * \updates       2025-07-29
+ * \updates       2025-08-11
  * \license       GNU GPLv2 or above
  *
  *  These values were moved from the Seq64 globals module.  Includes the
@@ -236,7 +236,7 @@ extern bool key_signature_bytes
 
 }           // namespace midi
 
-#endif      // RTL66_SCALES_HPP
+#endif      // RTL66_MIDI_SCALES_HPP
 
 /*
  * scales.hpp

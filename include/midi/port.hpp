@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24        (seq66::midi_port_info)
- * \updates       2025-08-09
+ * \updates       2025-08-12
  * \license       See above.
  *
  *  Contains information about a single MIDI port, as determined by
@@ -37,8 +37,32 @@
 #include <cstdint>                      /* uint32_t and other types         */
 #include <string>                       /* std::string class                */
 
+#include "midi/clocking.hpp"            /* output and input port statuses   */
+
 namespace midi
 {
+
+/*------------------------------------------------------------------------
+ * Inline functions for port
+ *------------------------------------------------------------------------*/
+
+/**
+ *  In the latest versions of JACK, 0xFFFE is the macro "NO_PORT".  Although
+ *  krufty, we can use this value in Seq66 no matter the version of JACK, or
+ *  even what API is used.
+ */
+
+inline uint32_t
+null_system_port_id ()
+{
+    return 0xFFFE;
+}
+
+inline bool
+is_null_system_port_id (uint32_t portid)
+{
+    return portid == null_system_port_id();
+}
 
 /**
  *  Constants for a common usage. See port::io below.
@@ -96,22 +120,34 @@ private:
 
     /*
      *  We provide a default constructor rather than set defaults here.
+     *  Compare this set to the seq66::portslist::io structure. The only
+     *  concept missing here is the "nick-name".
      */
 
-    int m_buss_number;                  /**< Major buss number of the port. */
-    std::string m_buss_name;            /**< System's name for the buss.    */
-    int m_port_number;                  /**< Minor port number of the port. */
-    std::string m_port_name;            /**< System's name for the port.    */
-    int m_queue_number;                 /**< A number used in some APIs.    */
-    io m_io_type;                       /**< Indicates input versus output. */
-    kind m_port_type;                   /**< Flags normal/virt/system port. */
-    std::string m_port_alias;           /**< Non-empty in some JACK setups. */
-    uint32_t m_internal_id;             /**< Internal port number.          */
+    int m_buss_number { -1 };          /**< *Major buss number of the port. */
+    std::string m_buss_name { };       /**< *System's name for the buss.    */
+    int m_port_number { -1 };          /**< *Minor port number of the port. */
+    std::string m_port_name { };       /**< *System's name for the port.    */
+    int m_queue_number { -1 };         /**< xA number used in some APIs.    */
+    io m_io_type { io::dummy };        /**< *Indicates input versus output. */
+    kind m_port_type                   /**< *Flags normal/virt/system port. */
+    {
+        kind::undetermined
+    };
+    std::string m_port_alias { };      /**< *Non-empty in some JACK setups. */
+    uint32_t m_internal_id             /**< xInternal port number.          */
+    {
+        null_system_port_id()
+    };
+    clocking m_io_status               /**< *On, off (disabled), clocking...*/
+    {
+        clocking::none                 /**< Basic flag for "port enabled".  */
+    };
 
 public:
 
-    port ();
-    port
+    port () = default;
+    port                                // TODO add clocking parameter
     (
         int bussnumber,
         const std::string & bussname,
@@ -129,6 +165,8 @@ public:
     ~port () = default;
 
     std::string to_string () const;
+
+public:                                 /* getters                          */
 
     int buss_number () const
     {
@@ -152,7 +190,12 @@ public:
 
     const std::string & port_alias () const
     {
-        return m_port_name;
+        return m_port_alias;
+    }
+
+    int queue_number () const
+    {
+        return m_queue_number;              /* a number used in some APIs.  */
     }
 
     io io_type () const
@@ -170,34 +213,78 @@ public:
         return m_internal_id;
     }
 
+    clocking port_status () const
+    {
+        return m_io_status;
+    }
+
+    bool port_disabled () const
+    {
+        return midi::port_is_disabled(m_io_status);
+    }
+
+public:                                 /* setters                          */
+
+    void buss_number (int b)
+    {
+        m_buss_number = b;
+    }
+
+    void  buss_name (const std::string & bn)
+    {
+        m_buss_name = bn;
+    }
+
+    void port_number (int p)
+    {
+        m_port_number = p;
+    }
+
+    void port_name (const std::string & pn)
+    {
+        m_port_name = pn;
+    }
+
+    void port_alias (const std::string & pa)
+    {
+        m_port_alias = pa;
+    }
+
+    void queue_number (int q)
+    {
+        m_queue_number = q;           /* a number used in some APIs.  */
+    }
+
+    void io_type (io iot)
+    {
+        m_io_type = iot;
+    }
+
+    void port_type (kind k)
+    {
+        m_port_type = k;
+    }
+
     void internal_id (uint32_t id)
     {
         m_internal_id = id;
     }
 
+    void port_status (clocking clk)
+    {
+        m_io_status = clk;
+    }
+
+    void port_disabled (bool flag)
+    {
+        m_io_status = flag ? midi::clocking::none : midi::clocking::disabled ;
+    }
+
 };          // class port
 
 /*------------------------------------------------------------------------
- * Free functions for port
+ * Free and additional inline functions for port
  *------------------------------------------------------------------------*/
-
-/**
- *  In the latest versions of JACK, 0xFFFE is the macro "NO_PORT".  Although
- *  krufty, we can use this value in Seq66 no matter the version of JACK, or
- *  even what API is used.
- */
-
-inline uint32_t
-null_system_port_id ()
-{
-    return 0xFFFE;
-}
-
-inline bool
-is_null_system_port_id (uint32_t portid)
-{
-    return portid == null_system_port_id();
-}
 
 inline int
 io_to_int (port::io iotype)

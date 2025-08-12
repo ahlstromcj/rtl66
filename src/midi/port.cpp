@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24
- * \updates       2025-08-09
+ * \updates       2025-08-10
  * \license       See above.
  *
  *  midi::port. A class holding data about a port.  This class is meant to
@@ -42,22 +42,8 @@ namespace midi
 {
 
 /*------------------------------------------------------------------------
- * port
+ * port. See the in-class member initializations.
  *------------------------------------------------------------------------*/
-
-port::port () :
-    m_buss_number   (-1),
-    m_buss_name     (),
-    m_port_number   (-1),
-    m_port_name     (),
-    m_queue_number  (-1),
-    m_io_type       (io::dummy),
-    m_port_type     (kind::undetermined),
-    m_port_alias    (),
-    m_internal_id   (null_system_port_id())
-{
-    // No other code
-}
 
 port::port
 (
@@ -77,8 +63,12 @@ port::port
     m_queue_number  (queuenumber),
     m_io_type       (iotype),
     m_port_type     (porttype),
-    m_port_alias    (alias),
-    m_internal_id   (null_system_port_id())
+    m_port_alias    (alias)
+
+    /*
+     *  m_internal_id   (null_system_port_id())
+     *  m_io_status     (clocking::none)
+     */
 {
     // No other code
 }

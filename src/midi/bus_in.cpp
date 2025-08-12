@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-08-04
+ * \updates       2025-08-11
  * \license       GNU GPLv2 or above
  *
  */
@@ -33,7 +33,7 @@
 #include "midi/bus_in.hpp"              /* midi::bus and midi::bus_in       */
 #include "midi/clientinfo.hpp"          /* midi::clientinfo class           */
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
-#include "rtl/midi/midi_api.hpp"        /* rtl::midi_api [for rt_api_ptr()] */
+// #include "rtl/midi/midi_api.hpp"        /* rtl::midi_api [for rt_api_ptr()] */
 
 namespace midi
 {
@@ -62,9 +62,11 @@ bus_in::bus_in
         queuesizelimit
     )
 {
+#if 0
     set_midi_api_ptr(m_rtmidi_in.rt_api_ptr());
     if (not_nullptr(midi_api_ptr()))
         midi_api_ptr()->master_bus(&master);
+#endif
 }
 
 /**

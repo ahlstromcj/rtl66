@@ -43,7 +43,10 @@
 #include "rtl/rterror.hpp"              /* rtl::rterror::callback_t         */
 
 /*
- *  Most functions here don't need to be virtual.  Fix after tests.
+ *  Most functions here don't need to be virtual. Polymorphism is used
+ *  via the rt_api_ptr() function in order to support ALSA, JACK, etc.
+ *
+ *  Fix after tests.
  */
 
 #define VIRTUAL

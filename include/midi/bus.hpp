@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2024-06-12
+ * \updates       2025-08-12
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -59,14 +59,17 @@
  *
  *      As time goes on, we will try to make the naming rigorous and
  *      consistent.
+ *
+ *  TODO: use a port object to hold most of the bus data.
  */
 
 #include <memory>                       /* std::shared_ptr<>, unique_ptr<>  */
 
 #include "c_macros.h"                   /* not_nullptr() macro              */
 #include "midi/clientinfo.hpp"          /* midi::clientinfo class           */
-#include "midi/clocking.hpp"            /* midi::clocking                   */
+#include "midi/clocking.hpp"            /* midi::clocking enum class */
 #include "midi/midibytes.hpp"           /* midi::byte alias, etc.           */
+#include "rtl/midi/midi_api.hpp"        /* rtl::rtmidi::midi_api            */
 #include "xpc/automutex.hpp"            /* xpc::recmutex recursive mutex    */
 
 #define RTL66_SHOW_BUS_VALUES
@@ -153,11 +156,13 @@ private:
 
     masterbus & m_master_bus;
 
+#if 0
     /**
      *  Holds the midi_api pointer for quicker access.
      */
 
     rtl::midi_api * m_midi_api_ptr;
+#endif
 
     /**
      *  Set to true if the bus has been successfully initialized.
@@ -187,6 +192,12 @@ private:
     int m_client_id;
 
     /**
+     *  Consolidates a number of previously separate members.
+     */
+
+    midi::port m_port;
+
+    /**
      *  The buss ID of the bus object as determined by the MIDI subsystem
      *  [ALSA, function snd_seq_client_info_get_client()] The buss ID of the
      *  midibase object represents *other* MIDI devices and applications
@@ -195,26 +206,26 @@ private:
      *  and 129 (Yoshimi).
      *
      *  See ports::get_bus_id() and port::m_client_number.
+     *
+     *      int m_bus_id;                   // port::m_buss_number
      */
-
-    int m_bus_id;
 
     /**
      *  The port ID of the bus object. Numbering starts at 0.
      *
      *  See ports::get_port_id() and port::m_port_number.
+     *
+     *      int m_port_id;                  // port::m_port_number
      */
-
-    int m_port_id;
 
     /**
      *  The type of clock to use.  The special value clocking::disabled means
      *  we will not be using the port, so that a failure in setting up the
      *  port is not a "fatal error".  We could have added an "m_outputing"
-     *  boolean as an alternative. However, we can overload m_inputing instead.
+     *  boolean as an alternative.
+     *
+     *      midi::clocking m_clock_type;    // port::m_io_status
      */
-
-    clocking m_clock_type;
 
     /**
      *  This flag indicates if an input or output bus has been selected for
@@ -225,7 +236,7 @@ private:
      *  Setter/getter are port_enabled().
      */
 
-    bool m_io_active;
+    bool m_io_active;                       // port::m_io_status ????
 
     /**
      *  Holds the full display name of the bus, index, ID numbers, and item
@@ -238,25 +249,25 @@ private:
      *  The name of the MIDI buss.  This should be something like a major device
      *  name or the name of a subsystem such as Timidity.
      *  See ports::get_bus_name() and port::m_client_number.
+     *
+     *      std::string m_bus_name;         // port::m_buss_name
      */
-
-    std::string m_bus_name;
 
     /**
      *  The name of the MIDI port.  This should be the name of a specific device
      *  or port on a major device.  This value, for JACK is reconstructed by
      *  set_alt_name() so that it is essentially the "short" port name that JACK
      *  recognizes. See get_port_name() and ports::m_port_name.
+     *
+     *      std::string m_port_name;        // port::m_port_name
      */
-
-    std::string m_port_name;
 
     /**
      *  The alias of the MIDI port.  This item is specific to JACK, and is
      *  empty for other APIs.  See get_port_alias() and ports::m_port_alias.
+     *
+     *      std::string m_port_alias;       // port::m_port_alias
      */
-
-    std::string m_port_alias;
 
     /**
      *  Indicates if the port is to be an input (versus output) port.
@@ -265,9 +276,9 @@ private:
      *  port... one of them will fail.
      *
      *  See port::get_input() and port::m_io_type.
+     *
+     *      midi::port::io m_io_type;       // port::m_io_type
      */
-
-    port::io m_io_type;
 
     /**
      *  Indicates if the port is a system port.  Two examples are the ALSA
@@ -278,9 +289,9 @@ private:
      *
      *  See port::get_port_type(), port::get_virtual(), port::get_system(),
      *  and port::m_port_type.
+     *
+     *      midi::port::kind m_port_type;   // port::m_port_type
      */
-
-    port::kind m_port_type;
 
     /**
      *  Locking mutex. This one is based on std:::recursive_mutex.
@@ -317,7 +328,7 @@ public:
 
     void get_port_items
     (
-        clientinfo::pointer mip,
+        midi::clientinfo::pointer mip,
         port::io iotype
     );
 
@@ -342,7 +353,7 @@ public:
      * ----------------------------------------------------------------------
      */
 
-    bool initialize ()                          /* TODO  VIRTUAL? */  
+    bool initialize ()                      /* TODO  VIRTUAL? */  
     {
         m_initialized = true;
         return true;
@@ -350,17 +361,17 @@ public:
 
     void activate ()
     {
-        m_io_active = true;             // MORE TODO?
+        m_io_active = true;                 // MORE TODO?
     }
 
     void deactivate ()
     {
-        m_io_active = false;            // MORE TODO?
+        m_io_active = false;                // MORE TODO?
     }
 
     bool active () const
     {
-        return m_io_active;             // conflated with port_enabled()
+        return m_io_active;                 // conflated with port_enabled()
     }
 
     /*
@@ -376,17 +387,17 @@ public:
 
     const std::string & bus_name () const
     {
-        return m_bus_name;
+        return m_port.buss_name();          // m_bus_name;
     }
 
     const std::string & port_name () const
     {
-        return m_port_name;
+        return m_port.port_name();          // m_port_name;
     }
 
     const std::string & port_alias () const
     {
-        return m_port_alias;
+        return m_port.port_alias();         // m_port_alias;
     }
 
     std::string connect_name () const;
@@ -403,12 +414,12 @@ public:
 
     int bus_id () const
     {
-        return m_bus_id;
+        return m_port.buss_number();        // was m_bus_id;
     }
 
     int port_id () const
     {
-        return m_port_id;
+        return m_port.port_number();        // was m_port_id;
     }
 
     /**
@@ -417,17 +428,22 @@ public:
 
     bool match (int b, int p)
     {
-        return (m_port_id == p) && (m_bus_id == b);
+        return (port_id() == p) && (bus_id() == b);
     }
 
     port::kind port_type () const
     {
-        return m_port_type;
+        return m_port.port_type();          // m_port_type;
+    }
+
+    void port_type (port::kind pk)
+    {
+        m_port.port_type(pk);
     }
 
     bool is_virtual_port () const
     {
-        return m_port_type == port::kind::manual;
+        return port_type() == port::kind::manual;
     }
 
     /**
@@ -441,50 +457,55 @@ public:
     void is_virtual_port (bool flag)
     {
         if (! is_system_port())
-            m_port_type = flag ? port::kind::manual : port::kind::normal;
+            port_type(flag ? port::kind::manual : port::kind::normal);
     }
 
     port::io io_type () const
     {
-        return m_io_type;
+        return m_port.io_type();                // m_io_type;
+    }
+
+    void io_type (port::io iot)
+    {
+        m_port.io_type(iot);
     }
 
     bool is_input_port () const
     {
-        return m_io_type == port::io::input;
+        return io_type() == port::io::input;
     }
 
     bool is_output_port () const
     {
-        return m_io_type == port::io::output;
+        return io_type() == port::io::output;
     }
 
     void is_input_port (bool flag)
     {
-        m_io_type = flag ? port::io::input : port::io::output ;
+        io_type(flag ? port::io::input : port::io::output);
     }
 
     bool is_system_port () const
     {
-        return m_port_type == port::kind::system;
+        return port_type() == port::kind::system;
     }
 
     bool is_port_connectable () const;
-    bool set_clock (clocking clocktype);
+    bool set_clock (midi::clocking clocktype);
 
     bool is_port_locked () const
     {
         return false;                               /* Windows only FIXME   */
     }
 
-    clocking clock_type () const
+    midi::clocking clock_type () const
     {
-        return m_clock_type;
+        return m_port.port_status();                /* was m_clock_type;    */
     }
 
-    void clock_type (clocking c)
+    void clock_type (midi::clocking c)
     {
-        m_clock_type = c;
+        m_port.port_status(c);
     }
 
     bool port_enabled () const                      /* replaces get_input() */
@@ -494,12 +515,12 @@ public:
 
     bool clock_enabled () const
     {
-        return midi::clock_enabled(m_clock_type);   /* pos and mod enabled  */
+        return midi::clock_is_enabled(m_port.port_status()); /* pos & mod   */
     }
 
     bool port_unavailable () const
     {
-        return m_clock_type == clocking::unavailable;
+        return clock_type() == midi::clocking::unavailable;
     }
 
     void port_enabled (bool flag)                   /* set_io_status(bool)  */
@@ -516,7 +537,7 @@ public:
 
     void set_bus_id (int id)
     {
-        m_bus_id = id;
+        m_port.buss_number(id);
     }
 
     void set_client_id (int id)
@@ -533,12 +554,12 @@ public:
 
     void bus_name (const std::string & name)
     {
-        m_bus_name = name;
+        m_port.buss_name(name);
     }
 
     void port_name (const std::string & name)
     {
-        m_port_name = name;
+        m_port.port_name(name);
     }
 
     /**
@@ -548,7 +569,7 @@ public:
 
     void set_port_id (int id)
     {
-        m_port_id = id;
+        m_port.port_number(id);
     }
 
     void set_name
@@ -699,21 +720,17 @@ public:
 protected:
 
     /*
+     * Hmmmmmmmm.
      * Overridden in bus_in and bus_out to provide, through rtmidi_in or
      * rtmidi_out, the pointer to the instantiated midi_api class.
      */
 
-    rtl::midi_api * midi_api_ptr ()
-    {
-        return m_midi_api_ptr;
-    }
+    rtl::midi_api * midi_api_ptr ();
+    const rtl::midi_api * midi_api_ptr () const;
 
-    const rtl::midi_api * midi_api_ptr () const
-    {
-        return m_midi_api_ptr;
-    }
-
+#if 0
     void set_midi_api_ptr (rtl::midi_api * rmap);
+#endif
 
 };          // class bus
 

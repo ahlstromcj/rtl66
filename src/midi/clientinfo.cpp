@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-08-06
+ * \updates       2025-08-10
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -153,9 +153,9 @@ clientinfo::port_list (port::io iotype) const
     for (int i = 0; i < portcount; ++i)
     {
         std::string annotation;
-        if (get_virtual(iotype, i))
+        if (get_port_is_virtual(iotype, i))
             annotation = "virtual";
-        else if (get_system(iotype, i))
+        else if (get_port_is_system(iotype, i))
             annotation = "system";
 
         os

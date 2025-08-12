@@ -31,6 +31,8 @@
  *  number, buss numbers, and buss names, and hold it for usage (e.g. when
  *  creating midi::bus objects).
  *
+ *  CURRENTLY NOT USED. See clientinfo.
+ *
  */
 
 #include <sstream>                      /* std::ostringstream               */
@@ -54,7 +56,7 @@ stock_in_buss_settings ()
     static port s_stock_port;
     static bussdata s_stock_bussdata
     (
-        0, clocking::input, s_stock_port, "port 0",
+        0, clocking::none, s_stock_port, "port 0",
         256, bussdata::ignore::none
     );
     return s_stock_bussdata;

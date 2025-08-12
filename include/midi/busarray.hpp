@@ -22,27 +22,30 @@
 /**
  * \file          busarray.hpp
  *
- *  This module declares/defines the Master MIDI Bus base class.
+ *  This module declares/defines an array of midi::bus objects.
  *
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-08-06
+ * \updates       2025-08-12
  * \license       GNU GPLv2 or above
  *
- *  The busarray module defines the busarray and busarray classes so that we can
- *  start avoiding arrays and explicit access to them.
+ *  The busarray module defines the busarray and busarray classes so that we
+ *  can start avoiding arrays and explicit access to them.
  *
  *  The busarray class holds a pointer to its midi::bus object.
  */
 
+#include <memory>                       /* std::unique_ptr<>                */
 #include <vector>                       /* for containing the bus objects   */
 
-#include "midi/bus.hpp"                 /* midi::bus, clientinfo, clocking  */
+#include "midi/clocking.hpp"            /* midi::clocking I/O enum class    */
+#include "midi/midibytes.hpp"           /* midi::bussbyte and other types   */
 
 namespace midi
 {
 
+class bus;
 class event;
 
 /**
@@ -52,18 +55,20 @@ class event;
 class busarray
 {
 
-public:
-
-    using container = std::vector<bus::pointer>;    /* see bus.hpp  */
-
 private:
 
     /**
-     *  The full set of busarray objects, only some of which will actually be
-     *  used.
+     *  Got stuck in header madness some how, so trying to hide the
+     *  dependence on midi::bus, which is broken.
      */
 
-    container m_container;
+    class container;
+
+    /**
+     *  The pointer to the actual bus-container implementation.
+     */
+
+    std::unique_ptr<container> p_impl;
 
 public:
 
@@ -72,9 +77,9 @@ public:
     busarray (const busarray &) = default;
     busarray & operator = (busarray &&) = delete;
     busarray & operator = (const busarray &) = default;
-    ~busarray () = default;
+    ~busarray ();
 
-    bool add (bus * b, clocking clock);
+    bool add (midi::bus * b, midi::clocking clock);
 
     /**
      *  Adds a new midi::bus object to the list.  Then the inputing value
@@ -98,37 +103,17 @@ public:
      *      cannot fail.
      */
 
-    bool add (bus * b, bool inputing)
+    bool add (midi::bus * b, bool inputing)
     {
         return add(b, bool_to_clocking(inputing));
     }
 
     bool initialize ();
-
-    int count () const
-    {
-        return int(m_container.size());
-    }
-
-    bool bus_valid (bussbyte b) const
-    {
-        return b < bussbyte(m_container.size());
-    }
-
-    bus * bus_pointer (bussbyte b)
-    {
-        return bus_valid(b) ? m_container[b].get() : nullptr ;
-    }
-
-    int client_id (bussbyte b)
-    {
-        return bus_valid(b) ? m_container[b]->client_id() : 0 ;
-    }
-
-    bool port_active (bussbyte b)
-    {
-        return bus_valid(b) && m_container[b]->port_enabled();
-    }
+    int count () const;
+    bool bus_valid (midi::bussbyte b) const;
+    midi::bus * bus_pointer (midi::bussbyte b);
+    int client_id (midi::bussbyte b);;
+    bool port_active (midi::bussbyte b);
 
     /*
      * Functions called for all busses.
@@ -136,18 +121,19 @@ public:
 
     void clock_start ();
     void clock_stop ();
-    void clock_continue (pulse tick);
-    void init_clock (pulse tick);
-    void set_clock (clocking clocktype);
+    void clock_continue (midi::pulse tick);
+    void init_clock (midi::pulse tick);
+    void set_clock (midi::clocking clocktype);
+    bool set_clock (midi::bussbyte b, midi::clocking clocktype);
+    midi::clocking get_clock (midi::bussbyte b) const;
 
-    /*
-     * Functions called for a specific buss.
-     */
+    // bool save_clock(bussbyte b, clocking clk
 
-    bool set_clock (bussbyte b, clocking clocktype);
-    clocking get_clock (bussbyte b) const;
-    void send_event (bussbyte b, const event * e24, byte channel);
-    void send_sysex (bussbyte b, const event * ev);
+    void send_event
+    (
+        midi::bussbyte b, const midi::event * e24, midi::byte channel
+    );
+    void send_sysex (midi::bussbyte b, const midi::event * ev);
 
     std::string get_midi_bus_name (int b) const;  /* full display name!   */
     std::string get_midi_port_name (int b) const; /* without the client   */
@@ -155,14 +141,14 @@ public:
 
     void print () const;
     void port_exit (int client, int port);
-    bool set_input (bussbyte b, bool inputing);
+    bool set_input (midi::bussbyte b, bool inputing);
     void set_all_inputs (bool inputing);
-    bool get_input (bussbyte b) const;
-    bool is_system_port (bussbyte b) const;
-    bool is_port_unavailable (bussbyte b) const;
-    bool is_port_locked (bussbyte b) const;
+    bool get_input (midi::bussbyte b) const;
+    bool is_system_port (midi::bussbyte b) const;
+    bool is_port_unavailable (midi::bussbyte b) const;
+    bool is_port_locked (midi::bussbyte b) const;
     int poll_for_midi ();
-    bool get_midi_event (event * inev);
+    bool get_midi_event (midi::event * inev);
     int replacement_port (int b, int p);
 
 };          // class busarray
@@ -172,7 +158,7 @@ public:
  */
 
 #if defined THIS_CODE_IS_READY
-extern void swap (bus & buses0, bus & buses1);
+extern void swap (midi::bus & buses0, midi::bus & buses1);
 #endif
 
 }           // namespace midi

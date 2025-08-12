@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05        (seq66::midi_port_info)
- * \updates       2024-06-12
+ * \updates       2025-08-10
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -156,10 +156,20 @@ public:
     midi::bussbyte get_port_index (int bussnumber, int port) const;
     std::string to_string (const std::string & tagmsg = "") const;
 
+    midi::port & portref (int index)
+    {
+        return m_port_container[index];
+    }
+
+    const midi::port & portref (int index) const
+    {
+        return m_port_container[index];
+    }
+
     int get_bus_id (int index) const
     {
         if (index < get_port_count())
-            return m_port_container[index].m_buss_number;
+            return portref(index).buss_number();
         else
             return (-1);
     }
@@ -167,7 +177,7 @@ public:
     std::string get_bus_name (int index) const
     {
         if (index < get_port_count())
-            return m_port_container[index].m_buss_name;
+            return portref(index).buss_name();
         else
             return std::string("");
     }
@@ -175,7 +185,7 @@ public:
     int get_port_id (int index) const
     {
         if (index < get_port_count())
-            return m_port_container[index].m_port_number;
+            return portref(index).port_number();
         else
             return (-1);
     }
@@ -183,7 +193,7 @@ public:
     std::string get_port_name (int index) const
     {
         if (index < get_port_count())
-            return m_port_container[index].m_port_name;
+            return portref(index).port_name();
         else
             return std::string("");
     }
@@ -191,15 +201,15 @@ public:
     std::string get_port_alias (int index) const
     {
         if (index < get_port_count())
-            return m_port_container[index].m_port_alias;
+            return portref(index).port_alias();
         else
             return std::string("");
     }
 
-    bool get_input (int index) const
+    bool get_port_is_input (int index) const
     {
         if (index < get_port_count())
-            return m_port_container[index].m_io_type == midi::port::io::input;
+            return portref(index).io_type() == midi::port::io::input;
         else
             return false;
     }
@@ -209,37 +219,45 @@ public:
         if (index < 0 || index >= get_port_count())
             index = 0;
 
-        return m_port_container[index].m_port_type;
+        return portref(index).port_type();
     }
 
     /*
      * Are the next few functions useful?
      */
 
-    bool get_virtual (int index) const
+    bool get_port_is_virtual (int index) const
     {
         if (index < get_port_count())
-            return m_port_container[index].m_port_type ==
+            return portref(index).port_type() ==
                 midi::port::kind::manual;
         else
             return false;
     }
 
-    bool get_system (int index) const
+    bool get_port_is_system (int index) const
     {
         if (index < get_port_count())
-            return m_port_container[index].m_port_type ==
+            return portref(index).port_type() ==
                 midi::port::kind::system;
         else
             return false;
     }
 
-    int get_queue_number (int index) const
+    int get_port_queue_number (int index) const
     {
         if (index < get_port_count())
-            return m_port_container[index].m_queue_number;
+            return portref(index).queue_number();
         else
             return (-1);
+    }
+
+    midi::clocking get_port_status (int index) const
+    {
+        if (index < get_port_count())
+            return portref(index).port_status();
+        else
+            return midi::clocking::unavailable;
     }
 
     std::string get_connect_name (int index) const;

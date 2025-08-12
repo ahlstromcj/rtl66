@@ -86,6 +86,11 @@
 #     all in in /usr/lib/rtl66-0.1 or /usr/local/lib/rtl66-0.1, rather
 #     than a subdirectory for each of these somewhat related libraries..
 #
+# Build one module only (example):
+#
+#     $ cd build
+#     $ ninja librtl66-0.1.a.p/src_midi_busarray.cpp.o
+#
 # Also see:
 #
 #     "Porting poppler to meson"

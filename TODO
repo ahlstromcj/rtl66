@@ -1,6 +1,6 @@
 TODO for the rtl66 library
 Chris Ahlstrom
-2022-07-23 to 2025-08-05
+2022-07-23 to 2025-08-10
 
 Hot bugs:
 
@@ -27,6 +27,8 @@ This file documents the next (few) thing(s) to be done.
     -   Be rigorous with when connections are to be made.
     -   Write the inverse to trackdata::parse_track(), including
         the track header, size, and footer.
+    -   Use midi::port to hold more of the data in midi::bus.
+        Should changes to bus be forwarded to clientinfo?
 
 Completion Matrix:
 

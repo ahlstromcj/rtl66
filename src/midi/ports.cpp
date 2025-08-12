@@ -92,7 +92,6 @@ ports::add (const port & p)
     return m_port_count == int(count + 1);
 }
 
-
 /**
  *  Adds a set of port information to the port container.
  *

@@ -56,7 +56,7 @@ class bus_out final : public midi::bus
      *  The master MIDI bus sets up the buss.
      */
 
-    friend class masterbus;
+    friend class midi::masterbus;
 
 private:
 
@@ -73,7 +73,7 @@ private:
      *  This value is used in emitting MIDI Clock.
      */
 
-    pulse m_last_tick;
+    midi::pulse m_last_tick;
 
 public:
 

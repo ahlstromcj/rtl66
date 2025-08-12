@@ -28,14 +28,18 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2024-06-12
+ * \updates       2025-08-10
  * \license       GNU GPLv2 or above
  *
- *  Defines some midibus constants and the clock_e enumeration.
+ *  Defines some midibus constants and the clocking enumeration.
  */
 
 namespace midi
 {
+
+/*
+ * Be aware that this namespace contains only one entity.
+ */
 
 namespace clock
 {
@@ -94,10 +98,6 @@ enum class action
  *      which don't support the concept of clocks. For inputs, any other
  *      value is equivalent to "not inputing".
  *
- * \var input
- *      Same as "off", but flags that the port is input, not output, and
- *      that it is enabled.
- *
  * \var pos
  *      Corresponds to the "Pos" selection in the MIDI Clock tab.  With
  *      this setting, MIDI Clock will be sent to this buss, and, if
@@ -117,13 +117,12 @@ enum class action
 
 enum class clocking
 {
-    unavailable = -2,
-    disabled    = -1,
-    none        = 0,
-    input       = 0,                    /* a somewhat tricky enum value     */
-    pos,
-    mod,
-    max
+    unavailable = -2,               /* I/O port is not present on system    */
+    disabled    = -1,               /* I/O is disabled                      */
+    none        = 0,                /* I/O is enabled                       */
+    pos,                            /* send song position, then continue    */
+    mod,                            /* start clocking at the song position  */
+    max                             /* an illegal value                     */
 };
 
 /*
@@ -150,19 +149,19 @@ bool_to_clocking (bool f)
 }
 
 inline bool
-clock_enabled (clocking c)
+clock_is_enabled (clocking c)
 {
     return c == clocking::pos || c == clocking::mod;
 }
 
 inline bool
-clock_mod (clocking c)
+clock_is_mod (clocking c)
 {
     return c == clocking::mod;
 }
 
 inline bool
-clock_pos (clocking c)
+clock_is_pos (clocking c)
 {
     return c == clocking::pos;
 }
@@ -172,21 +171,27 @@ clock_pos (clocking c)
  */
 
 inline bool
-inputing_enabled (clocking ce)
+inputing_is_enabled (clocking c)
 {
-    return ce == clocking::input;     /* tricky, same as "none"   */
+    return c == clocking::none;
 }
 
 inline bool
-port_unavailable (clocking ce)
+output_is_enabled (clocking c)
 {
-    return ce == clocking::unavailable;
+    return c == clocking::none || c == clocking::pos || c == clocking::mod;
 }
 
 inline bool
-port_disabled (clocking ce)
+port_is_unavailable (clocking c)
 {
-    return ce == clocking::disabled;
+    return c == clocking::unavailable;
+}
+
+inline bool
+port_is_disabled (clocking c)
+{
+    return c == clocking::disabled;
 }
 
 }           // namespace midi

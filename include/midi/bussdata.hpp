@@ -37,6 +37,8 @@
  *
  *  Don't confuse midi::bussdata with midi::bus. The former is data, the
  *  latter is created in part based on that data.
+ *
+ *  CURRENTLY NOT USED. See clientinfo.
  */
 
 #include "clocking.hpp"                 /* midi::clocking                   */

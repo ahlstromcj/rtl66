@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-08-09
+ * \updates       2025-08-11
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -55,7 +55,6 @@
 #include "rtl/midi/midi_api.hpp"        /* rtl::midi_api base class         */
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
 #include "midi/bus.hpp"                 /* midi::bus class                  */
-#include "rtl/rterror.hpp"              /* rtl::rterror for null pointer    */
 
 namespace midi
 {
@@ -130,36 +129,46 @@ bus::bus
 (
     masterbus & master,
     int index,
-    port::io iotype
+    midi::port::io iotype
 ) :
     m_master_bus        (master),
+#if 0
     m_midi_api_ptr      (master.rt_api_ptr()),
+#endif
     m_initialized       (false),
     m_bus_index         (index),
-    m_bus_id            (-1),                   /* see the ctor body        */
-    m_port_id           (-1),                   /* see the ctor body        */
-    m_clock_type        (clocking::none),       /* masterbus::set_clock()   */
+    m_port              (),
+//  m_bus_id            (-1),                   /* see the ctor body        */
+//  m_port_id           (-1),                   /* see the ctor body        */
+//  m_clock_type        (midi::clocking::none),
     m_io_active         (false),
-    m_display_name      (),
-    m_bus_name          (),                     /* see the ctor body        */
-    m_port_name         (),                     /* see the ctor body        */
-    m_port_alias        (),                     /* see the ctor body        */
-    m_io_type           (iotype),
-    m_port_type         ()                      /* see the ctor body        */
+    m_display_name      ()
+//  m_bus_name          (),                     /* see the ctor body        */
+//  m_port_name         (),                     /* see the ctor body        */
+//  m_port_alias        (),                     /* see the ctor body        */
+//  m_io_type           (iotype),
+//  m_port_type         ()                      /* see the ctor body        */
 {
     if (iotype == midi::port::io::input || iotype == midi::port::io::output)
     {
-        masterbus::info ciptr { master.client_info_ptr() };
+        masterbus::info ciptr { master_bus().client_info_ptr() };
         if (ciptr)
         {
             const midi::ports & portlist { ciptr->io_ports(iotype) };
+            const midi::port & p = portlist.portref(index);
+#if 0
             m_bus_id = portlist.get_bus_id(index);
             m_port_id = portlist.get_port_id(index);
+            m_clock_type
             m_bus_name = portlist.get_bus_name(index);
             m_port_name = portlist.get_port_name(index);
             m_port_alias = portlist.get_port_alias(index);
+            m_io_type
             m_port_type = portlist.get_port_type(index);
-#if defined PLATFORM_DEBUG
+#else
+            m_port = p;
+#endif
+#if defined PLATFORM_DEBUG   // TODO add clocking
             printf
             (
                 "Bus info:\n"
@@ -168,10 +177,10 @@ bus::bus
                 "  Port I/O: '%s'\n"
                 "  Port Kind: '%s'\n"
                 ,
-                m_bus_id, m_bus_name.c_str(),
-                m_port_id, m_port_name.c_str(), m_port_alias.c_str(),
-                io_to_string(m_io_type).c_str(),
-                kind_to_string(m_port_type).c_str()
+                bus_id(), bus_name().c_str(),
+                port_id(), port_name().c_str(), port_alias().c_str(),
+                io_to_string(io_type()).c_str(),
+                kind_to_string(port_type()).c_str()
             );
 #endif
         }
@@ -186,6 +195,20 @@ bus::~bus()
 {
     // empty body
 }
+
+rtl::midi_api *
+bus::midi_api_ptr ()
+{
+    return master_bus().rt_api_ptr();
+}
+
+const rtl::midi_api *
+bus::midi_api_ptr () const
+{
+    return master_bus().rt_api_ptr();
+}
+
+#if 0
 
 /**
  *  Sets the pointer to the midi_api. If null, an error is thrown to bugger
@@ -203,22 +226,36 @@ bus::set_midi_api_ptr (rtl::midi_api * rmap)
     }
 }
 
+#endif
+
 /**
  *  Retrieve MIDI I/O setting from a clientinfo pointer, assumed to be
  *  properly filled already.
  */
 
 void
-bus::get_port_items (clientinfo::pointer mip, port::io iotype)
+bus::get_port_items (clientinfo::pointer mip, midi::port::io iotype)
 {
     if (mip)
     {
-        int index = m_bus_index;
-        m_bus_id = mip->get_bus_id(iotype, index);
-        m_port_id = mip->get_port_id(iotype, index);
-        m_port_name = mip->get_port_name(iotype, index);
-        m_port_alias = mip->get_port_alias(iotype, index);
-        m_port_type = mip->get_port_type(iotype, index);
+        masterbus::info ciptr { master_bus().client_info_ptr() };
+        if (ciptr)
+        {
+            int index = m_bus_index;
+#if 0
+            m_bus_id = mip->get_bus_id(iotype, index);
+            m_port_id = mip->get_port_id(iotype, index);
+            m_clock
+            m_port_name = mip->get_port_name(iotype, index);
+            m_port_alias = mip->get_port_alias(iotype, index);
+            m_io_type
+            m_port_type = mip->get_port_type(iotype, index);
+#else
+            const midi::ports & portlist { ciptr->io_ports(iotype) };
+            const midi::port & p = portlist.portref(index);
+            m_port = p;
+#endif
+        }
     }
 }
 
@@ -389,11 +426,11 @@ bus::set_alt_name
 std::string
 bus::connect_name () const
 {
-    std::string result = m_bus_name;
-    if (! result.empty() && ! m_port_name.empty())
+    std::string result = bus_name();
+    if (! result.empty() && ! port_name().empty())
     {
         result += ":";
-        result += m_port_name;
+        result += port_name();
     }
     return result;
 }
@@ -421,7 +458,7 @@ bus::is_port_connectable () const
 void
 bus::print ()
 {
-    printf("%s:%s", m_bus_name.c_str(), m_port_name.c_str());
+    printf("%s:%s", bus_name().c_str(), port_name().c_str());
 }
 
 midi::ppqn
@@ -447,11 +484,11 @@ bus::BPM () const
  */
 
 bool
-bus::set_clock (clocking clocktype)
+bus::set_clock (midi::clocking clk)
 {
-    m_clock_type = clocktype;
-    m_io_active = clocktype != clocking::disabled &&
-        clocktype != clocking::unavailable;
+    m_port.port_status(clk);
+    m_io_active = clk != midi::clocking::disabled &&
+        clk != midi::clocking::unavailable;
 
     return true;
 }
@@ -494,7 +531,7 @@ bus::connect ()
  */
 
 void
-bus::show_clock (const std::string & context, pulse tick)
+bus::show_clock (const std::string & context, midi::pulse tick)
 {
     printf("%s clock [%ld]", context.c_str(), tick);
 }
@@ -522,7 +559,7 @@ bus::show_bus_values ()
         ,
         client_id(), bus_id(), port_id(),
         display_name().c_str(), connect_name().c_str(),
-        m_bus_name.c_str(), m_port_name.c_str(),
+        bus_name().c_str(), port_name().c_str(),
         vport, iport, sport,
         int(get_clock_mod()), port_enabled() ? "yes" : "no"
     );

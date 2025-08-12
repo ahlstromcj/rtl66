@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-08
+ * \updates       2025-08-11
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -96,6 +96,8 @@
 
 #include "midi/event.hpp"               /* midi::event class                */
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
+#include "midi/bus_in.hpp"              /* midi::bus_in class               */
+#include "midi/bus_out.hpp"             /* midi::bus_out class              */
 #include "midi/track.hpp"               /* midi::track class                */
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in port              */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out port             */
@@ -134,9 +136,6 @@ masterbus::masterbus
     midi::bpm bp
 ) :
     m_selected_api      (rapi),         /* rtl::rtmidi::api::unspecified)   */
-#if 0
-    m_rt_api_ptr        (nullptr),
-#endif
     m_engine            (this, rapi),   /* "mbus", don't change client name */
     m_inbus_array       (),
     m_outbus_array      (),
@@ -434,25 +433,22 @@ masterbus::play_and_flush (midi::bussbyte bus, event * ev, midi::byte channel)
  */
 
 bool
-masterbus::set_clock (midi::bussbyte /*bus*/, midi::clocking /*clocktype*/)
+masterbus::set_clock (midi::bussbyte b, midi::clocking clocktype)
 {
     xpc::automutex locker(m_mutex);
-#if 0
-    bool result = m_outbus_array.set_clock(bus, clocktype);
+    bool result = m_outbus_array.set_clock(b, clocktype);
     if (result)
     {
         flush();
-        result = save_clock(bus, clocktype);    /* save into the vector */
+        result = save_clock(b, clocktype);          /* save into the vector */
     }
     return result;
-#else
-    return false;
-#endif
 }
 
 /**
- *  Saves the given clock value.
- *
+ *  Saves the given clock value. This is a Seq66 concept, the clockslist,
+ *  used in port-mapping, and is not implemented here yet. Instead,
+ *  we modify the midi::port objects in the midi::ports class.
  *  Compare to mastermidibase::save_clock().
  *
  * \param bus
@@ -467,19 +463,18 @@ masterbus::set_clock (midi::bussbyte /*bus*/, midi::clocking /*clocktype*/)
  */
 
 bool
-masterbus::save_clock (midi::bussbyte /*bus*/, midi::clocking /*clk*/)
+masterbus::save_clock (midi::bussbyte /*b*/, midi::clocking /*clk*/)
 {
-    // return m_master_clocks.set(bus, cl);
 #if 0
-    bool result = m_master_clocks.set(bus, clock);
+    bool result = m_master_clocks.set(b, clk);
     if (! result)
     {
         int currentcount = m_master_clocks.count();
         errprint("mmb::save_clock(): missing bus");
-        for (int i = currentcount; i <= bus; ++i)
+        for (int i = currentcount; i <= b; ++i)
         {
-            e_clock value = e_clock::disabled;
-            if (i == int(bus))
+            clocking value = clocking::disabled;
+            if (i == int(b))
             {
                 value = clock;
                 m_master_clocks.add(i, false, value, "Null clock");
@@ -487,15 +482,13 @@ masterbus::save_clock (midi::bussbyte /*bus*/, midi::clocking /*clk*/)
         }
     }
 #endif
-    return false;
+    return true;
 }
 
 /**
  *  Gets the clock setting for the given (legal) buss number.
  *
- *  There's currently no implementation-specific API function here.
- *
- * \param bus
+ * \param b
  *      Provides an actual system buss number to read.  Checked before usage.
  *
  * \return
@@ -504,10 +497,9 @@ masterbus::save_clock (midi::bussbyte /*bus*/, midi::clocking /*clk*/)
  */
 
 midi::clocking
-masterbus::get_clock (midi::bussbyte /*bus*/) const
+masterbus::get_clock (midi::bussbyte b) const
 {
-    // return m_outbus_array.get_clock(bus);
-    return midi::clocking::max;             // TODO. An illegal value
+    return m_outbus_array.get_clock(b);
 }
 
 // TODO: perhaps implement:
@@ -535,16 +527,16 @@ masterbus::get_clock (midi::bussbyte /*bus*/) const
  */
 
 bool
-masterbus::set_input (midi::bussbyte /*bus*/, bool /*inputing*/)
+masterbus::set_input (midi::bussbyte /*b*/, bool /*inputing*/)
 {
     xpc::automutex locker(m_mutex);
 #if 0
-    bool result = m_inbus_array.set_input(bus, inputing);
+    bool result = m_inbus_array.set_input(b, inputing);
     if (result)
     {
         result = flush();
         if (result)
-            result = save_input(bus, inputing);     /* save into the vector */
+            result = save_input(b, inputing);     /* save into the vector */
     }
     return result;
 #else
@@ -959,6 +951,8 @@ masterbus::engine_initialize (midi::ppqn ppq, midi::bpm bp)
  *  engine, and dummy. The masterbus requires duplex. OR ENGINE???
  *
  *  Should we also call client_info_reset() here?
+ *
+ *  Compare to mastermidibus::api_init (ppqn, bpm).
  */
 
 bool
@@ -972,6 +966,11 @@ masterbus::engine_initialize (const clientinfo & ci)
         if (ci.virtual_ports())
         {
             // TODO
+            //
+            // Perhaps we should just add virtual port's information
+            // to clientinfo at setup time. Also need to create
+            // the set_virtual_name() function, or maybe have
+            // a class virtualbus : public midibus
         }
         else
         {
@@ -988,16 +987,97 @@ masterbus::engine_initialize (const clientinfo & ci)
                     isinput ? port::io::input : port::io::output
                 };
                 int pcount { ci.port_count(iotype) };
+                midi::busarray & busarray_1
+                {
+                    isinput ? inbus_array() : outbus_array()
+                };
+                for (int p = 0; p < pcount; ++p)
+                {
+                    midi::bus * b = make_bus(p, iotype);
+                    if (not_nullptr(b))
+                    {
+                    }
+                    else
+                        break;                      /* error */
+                }
 
-                // TODO
-                // TODO
-                // TODO
+// xxxxxxxxxxxxxxxxxxxxxxxxxx
+
+                isinput = ! isinput;
+                iotype = isinput ? port::io::input : port::io::output;
+                pcount = ci.port_count(iotype);
+                midi::busarray & busarray_2
+                {
+                    isinput ? inbus_array() : outbus_array()
+                };
+                for (int p = 0; p < pcount; ++p)
+                {
+                    midi::bus * b = make_bus(p, iotype);
+                    if (not_nullptr(b))
+                    {
+                    }
+                    else
+                        break;                      /* error */
+                }
+
                 // TODO
             }
         }
     }
     return result;
 }
+
+/**
+ *  Creates a bus object, either midi::bus_in or midi::bus_out, and either
+ *  virtual (manual) or normal. The bus constructors grab a lot of
+ *  information about the ports from the ports list stored in the
+ *  masterbus:
+ *
+ *      -   Bus ID. This is essentially an index number re 0.
+ *      -   Port ID. For ALSA, this is ALSA's number for the port.
+ *          For JACK, this is the same as the index number.
+ *      -   Bus name. The system name for the bus.
+ *      -   Port name The system name for the port.
+ *      -   Port alias. In some recent JACK setups, a shorter port name.
+ *      -   Port kind. Normal, virtual, or system ports.
+ *
+ * \param busno
+ *      An index number re 0 for the bus. A port number, really.
+ *
+ * \param iotype
+ *      Indicates if the bus represent a input port or an output.
+ *      If duplex, engine, or dummy are specified, the bus is not created.
+ *
+ * \param iokind
+ *      Indicates if the bus is a normal port, a manual (virtual) port, or
+ *      a system port.
+ *
+ * \return
+ *      A pointer to the created bus is returned, or a null pointer upon
+ *      error.
+ */
+
+midi::bus *
+masterbus::make_bus
+(
+    int busno,
+    midi::port::io iotype
+)
+{
+    midi::bus * result { nullptr };
+    if (iotype == midi::port::io::input)
+    {
+        const unsigned qsize = 0;                       /* TODO */
+        result = new (std::nothrow) midi::bus_in(*this, busno, qsize);
+    }
+    else if (iotype == midi::port::io::output)
+    {
+        result = new (std::nothrow) midi::bus_out(*this, busno);
+    }
+    return result;
+}
+
+#if 0
 
 /**
  *  Creates the bus objects based on the I/O port numbers.  This base class
@@ -1048,6 +1128,8 @@ masterbus::engine_make_busses (bool is_input, bool is_virtual)
     }
     return result;
 }
+
+#endif
 
 /*---------------------------------------------------------------------------
  * Virtual clock functions

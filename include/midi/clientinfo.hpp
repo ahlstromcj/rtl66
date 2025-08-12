@@ -61,6 +61,13 @@
  *      -   The MIDI client handle. A JACK handle, ALSA handle, etc.
  *      -   Queue number.  ALSA only at present.
  *      -   Error messages.
+ *
+ *  Too much? We have the following parallel class to access port information:
+ *
+ *      -   port.
+ *      -   ports.
+ *      -   clientinfo.
+ *      -   bussdata?
  */
 
 #include <cmath>                        /* std::nearbyint()                 */
@@ -581,24 +588,29 @@ public:
         return io_ports(iotype).get_port_type(index);
     }
 
-    bool get_input (port::io iotype, int index) const
+    bool get_port_is_input (port::io iotype, int index) const
     {
-        return io_ports(iotype).get_input(index);
+        return io_ports(iotype).get_port_is_input(index);
     }
 
-    bool get_virtual (port::io iotype, int index) const
+    bool get_port_is_virtual (port::io iotype, int index) const
     {
-        return io_ports(iotype).get_virtual(index);
+        return io_ports(iotype).get_port_is_virtual(index);
     }
 
-    bool get_system (port::io iotype, int index) const
+    bool get_port_is_system (port::io iotype, int index) const
     {
-        return io_ports(iotype).get_system(index);
+        return io_ports(iotype).get_port_is_system(index);
     }
 
-    int queue_number (port::io iotype, int index) const
+    midi::clocking get_port_status (port::io iotype, int index) const
     {
-        return io_ports(iotype).get_queue_number(index);
+        return io_ports(iotype).get_port_status(index);
+    }
+
+    int port_queue_number (port::io iotype, int index) const
+    {
+        return io_ports(iotype).get_port_queue_number(index);
     }
 
     std::string connect_name (port::io iotype, int index) const

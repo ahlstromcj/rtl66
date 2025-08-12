@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-09
+ * \updates       2025-08-11
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -85,10 +85,12 @@
 #include "rtl/rtl_build_macros.h"       /* RTL_DEFAULT_PPQN, _DEFAULT_BPM   */
 #include "rtl/rt_types.hpp"             /* rtl::rtmidi::api enum class      */
 #include "midi/busarray.hpp"            /* midi::busarray a la Seq66        */
-#include "midi/clientinfo.hpp"          /* midi::clientinfo a la Seq66      */
+#include "midi/clientinfo.hpp"          /* midi::clientinfo::pointer        */
 #include "midi/clocking.hpp"            /* midi::clock::action enumertion   */
 #include "rtl/midi/rtmidi_engine.hpp"   /* rtl::rtmidi_engine class         */
 #include "xpc/recmutex.hpp"             /* xpc::recmutex                    */
+
+#define VIRTUAL
 
 namespace rtl
 {
@@ -258,7 +260,11 @@ public:
     masterbus & operator = (const masterbus &) = delete;
     masterbus & operator = (masterbus &&) = delete;         /* ditto */
 
-    virtual ~masterbus ()
+    /*
+     * We might not need virtual functions at all here!!!
+     */
+
+    VIRTUAL ~masterbus ()
     {
         // No other code needed
     }
@@ -388,13 +394,6 @@ public:
 
 protected:
 
-#if 0
-    void rt_api_ptr (rtl::midi_api * p)
-    {
-        m_rt_api_ptr = p;
-    }
-#endif
-
     void set_client_id (int id)
     {
         m_client_id = id;
@@ -425,22 +424,23 @@ protected:
 protected:
 
     bool activate ();
+    midi::bus * make_bus (int busno, midi::port::io iotype);
 
 public:     // used in a test application
 
-    virtual bool engine_initialize
+    VIRTUAL bool engine_initialize
     (
         midi::ppqn ppq  = RTL66_DEFAULT_PPQN,
         midi::bpm bp    = RTL66_DEFAULT_BPM
     );
-    virtual bool engine_initialize (const clientinfo & ci);
-    virtual bool engine_query ();
+    VIRTUAL bool engine_initialize (const clientinfo & ci);
+    VIRTUAL bool engine_query ();
 
 protected:  // API pass-alongs
 
-    virtual bool engine_activate ();
-    virtual bool engine_connect ();
-    virtual bool engine_make_busses (bool is_input, bool is_virtual = false);
+    VIRTUAL bool engine_activate ();
+    VIRTUAL bool engine_connect ();
+//  VIRTUAL bool engine_make_busses (bool is_input, bool is_virtual = false);
 //      bool autoconnect, int inputport, int outputport
 
 protected:  // API implementations
@@ -450,17 +450,17 @@ protected:  // API implementations
      * This function replaces start(), continue_from(), etc.
      */
 
-    virtual bool handle_clock (midi::clock::action act, midi::pulse ts = 0);
+    VIRTUAL bool handle_clock (midi::clock::action act, midi::pulse ts = 0);
 
-    virtual bool PPQN (midi::ppqn ppq);
-    virtual bool BPM (midi::bpm bp);
-    virtual bool flush ();
-    virtual bool panic (int displaybuss = (-1));
-    virtual bool sysex (midi::bussbyte bus, const event * ev);
-    virtual void play (midi::bussbyte bus, event * e24, midi::byte channel);
-    virtual bool set_clock (midi::bussbyte bus, midi::clocking clocktype);
-    virtual bool save_clock (midi::bussbyte bus, midi::clocking clock);
-    virtual midi::clocking get_clock (midi::bussbyte bus) const;
+    VIRTUAL bool PPQN (midi::ppqn ppq);
+    VIRTUAL bool BPM (midi::bpm bp);
+    VIRTUAL bool flush ();
+    VIRTUAL bool panic (int displaybuss = (-1));
+    VIRTUAL bool sysex (midi::bussbyte bus, const event * ev);
+    VIRTUAL void play (midi::bussbyte bus, event * e24, midi::byte channel);
+    VIRTUAL bool set_clock (midi::bussbyte bus, midi::clocking clocktype);
+    VIRTUAL bool save_clock (midi::bussbyte bus, midi::clocking clock);
+    VIRTUAL midi::clocking get_clock (midi::bussbyte bus) const;
 
     // TODO or derived classes
     //
@@ -469,28 +469,28 @@ protected:  // API implementations
     // void get_out_port_statuses (clockslist & outs);
     // void get_in_port_statuses (inputslist & ins);
 
-    virtual bool save_input (midi::bussbyte bus, bool inputing);
-    virtual bool set_input (midi::bussbyte bus, bool inputing);
-    virtual bool get_input (midi::bussbyte bus) const;
-    virtual std::string get_midi_bus_name
+    VIRTUAL bool save_input (midi::bussbyte bus, bool inputing);
+    VIRTUAL bool set_input (midi::bussbyte bus, bool inputing);
+    VIRTUAL bool get_input (midi::bussbyte bus) const;
+    VIRTUAL std::string get_midi_bus_name
     (
         midi::bussbyte bus, midi::port::io iotype
     ) const;
-    virtual int poll_for_midi () const;
-    virtual bool port_start (int client, int port);     // TODO
-    virtual bool port_exit (int client, int port);      // TODO
-    virtual bool set_track_input (bool state, midi::track * trk);
-    virtual void dump_midi_input (midi::event ev);
+    VIRTUAL int poll_for_midi () const;
+    VIRTUAL bool port_start (int client, int port);     // TODO
+    VIRTUAL bool port_exit (int client, int port);      // TODO
+    VIRTUAL bool set_track_input (bool state, midi::track * trk);
+    VIRTUAL void dump_midi_input (midi::event ev);
 
 #if defined THIS_CODE_IS_READY
-    virtual void api_set_ppqn_and_beats_per_minute (midi::ppqn,  midi::bpm);
-    virtual void api_init (midi::ppqn, midi::bpm); // = 0;
-    virtual void api_start ();
-    virtual void api_continue_from (midi::pulse);
-    virtual void api_init_clock (midi::pulse);
-    virtual void api_stop ();
-    virtual void api_port_start (int /* client */, int /* port */);
-    virtual bool api_get_midi_event (midi::event * inev) ; //= 0;
+    VIRTUAL void api_set_ppqn_and_beats_per_minute (midi::ppqn,  midi::bpm);
+    VIRTUAL void api_init (midi::ppqn, midi::bpm); // = 0;
+    VIRTUAL void api_start ();
+    VIRTUAL void api_continue_from (midi::pulse);
+    VIRTUAL void api_init_clock (midi::pulse);
+    VIRTUAL void api_stop ();
+    VIRTUAL void api_port_start (int /* client */, int /* port */);
+    VIRTUAL bool api_get_midi_event (midi::event * inev) ; //= 0;
 #endif
 
     /*
@@ -501,15 +501,15 @@ protected:  // API implementations
      *  api_deinit_in()
      *  api_deinit_out()
      *
-     *  virtual void api_sysex (const midi::event * ev) = 0;
-     *  virtual void api_play
+     *  VIRTUAL void api_sysex (const midi::event * ev) = 0;
+     *  VIRTUAL void api_play
      *  (
      *      midi::bussbyte bus, const midi::event * e24, midi::byte channel
      *  ) = 0;
-     *  virtual void api_set_clock (midi::bussbyte bus, clocking clocktype) = 0;
-     *  virtual void api_get_clock (midi::bussbyte bus) = 0;
-     *  virtual void api_set_input (midi::bussbyte bus, bool inputting) = 0;
-     *  virtual void api_get_input (midi::bussbyte bus) = 0;
+     *  VIRTUAL void api_set_clock (midi::bussbyte bus, clocking clocktype) = 0;
+     *  VIRTUAL void api_get_clock (midi::bussbyte bus) = 0;
+     *  VIRTUAL void api_set_input (midi::bussbyte bus, bool inputting) = 0;
+     *  VIRTUAL void api_get_input (midi::bussbyte bus) = 0;
      */
 
 };          // class masterbus

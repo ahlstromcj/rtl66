@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-08-04
+ * \updates       2025-08-11
  * \license       GNU GPLv2 or above
  *
  */
@@ -33,7 +33,7 @@
 #include "midi/bus_out.hpp"             /* midi::bus and midi::bus_out      */
 #include "midi/clientinfo.hpp"          /* midi::clientinfo class           */
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
-#include "rtl/midi/midi_api.hpp"        /* rtl::rtmidi::midi_api            */
+//#include "rtl/midi/midi_api.hpp"        /* rtl::rtmidi::midi_api            */
 
 namespace midi
 {
@@ -61,9 +61,11 @@ bus_out::bus_out
     },
     m_last_tick (0)
 {
+#if 0
     set_midi_api_ptr(m_rtmidi_out.rt_api_ptr());
     if (not_nullptr(midi_api_ptr()))
         midi_api_ptr()->master_bus(&master);
+#endif
 }
 
 /**
@@ -112,11 +114,11 @@ bus_out::init_clock (pulse tick)
     bool result = port_enabled();
     if (result)
     {
-        if (clock_pos(clock_type()) && tick != 0)
+        if (clock_is_pos(clock_type()) && tick != 0)
         {
             clock_continue(tick);
         }
-        else if (clock_mod(clock_type()) || tick == 0)
+        else if (clock_is_mod(clock_type()) || tick == 0)
         {
             clock_start();
 
