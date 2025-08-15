@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-08-12
+ * \updates       2025-08-15
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -173,7 +173,7 @@ public:
             buss->init_input(inputing);
     }
 
-    int poll_for_midi ()
+    int poll_for_midi () const
     {
         int result = 0;
         for (auto & buss : m_bus_container)
@@ -287,6 +287,35 @@ bool
 busarray::add (midi::bus * b, clocking c)
 {
     return p_impl->add(b, c);
+}
+
+/**
+ *  Adds a new midi::bus object to the list.  Then the inputing value
+ *  is set.  This function is meant for input ports.
+ *
+ *  We need to belay the initialization until later, when we know the
+ *  configured inputing settings for the input ports.  So initialization
+ *  has been removed from the constructor and moved to the initialize()
+ *  function. However, now we know the configured status and can apply
+ *  it right away.
+ *
+ * \param b
+ *      The midi::bus to be hooked into the array of busses.
+ *
+ * \param inputing
+ *      The input flag value for the bus.  If true, this value indicates that
+ *      the user has selected this bus to be the input MIDI bus.
+ *
+ * \return
+ *      Returns true if the bus was added successfully, though, really, it
+ *      cannot fail.
+ */
+
+bool
+busarray::add (midi::bus * b, bool inputing)
+{
+    clocking c = bool_to_clocking(inputing);
+    return add(b, c);
 }
 
 int
@@ -788,7 +817,7 @@ busarray::is_port_locked (bussbyte b) const
  */
 
 int
-busarray::poll_for_midi ()
+busarray::poll_for_midi () const
 {
     return p_impl->poll_for_midi();
 }

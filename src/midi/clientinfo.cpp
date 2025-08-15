@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-08-10
+ * \updates       2025-08-15
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -93,6 +93,25 @@ clientinfo::port_count (port::io iotype) const
 
     return result;
 }
+
+#if defined THIS_CODE_IS_READY
+
+bool
+clientinfo::setup_virtual_ports (int incount, int outcount)
+{
+    bool result = false;
+    if (incount > 0)
+    {
+        m_io_ports[element(port::io::input)].clear();
+    }
+    if (outcount > 0)
+    {
+        m_io_ports[element(port::io::output)].clear();
+    }
+    return result;
+}
+
+#endif
 
 static std::string
 bool_to_yesno (bool flag)
@@ -254,6 +273,7 @@ get_all_port_info (midi::clientinfo & cinfo, rtl::rtmidi::api rapi)
             // anything to do with the output port info?
         }
         result = incount > 0 || outcount > 0;
+        cinfo.ports_queried(true);
     }
     catch (rtl::rterror & error)
     {

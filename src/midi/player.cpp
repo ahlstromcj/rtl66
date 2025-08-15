@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-08-06
+ * \updates       2025-08-14
  * \license       GNU GPLv2 or above
  *
  */
@@ -639,7 +639,7 @@ player::done () const
  *
  *  [1] These values start out as the values in the midi::clientinfo object,
  *      but are copied to the transport::info object. The former is normally
- *      unchanged, the later might change during song composition and
+ *      unchanged, the latter might change during song composition and
  *      playback.
  */
 
@@ -652,10 +652,8 @@ player::setup ()
         result = init_transport();
         if (result)
         {
-            result = m_master_bus->engine_initialize
-            (
-                get_ppqn(), beats_per_minute()                  /* note [1] */
-            );
+            midi::clientinfo & ci = midi::global_client_info();
+            result = m_master_bus->engine_initialize(ci);       /* note [1] */
         }
     }
     return result;

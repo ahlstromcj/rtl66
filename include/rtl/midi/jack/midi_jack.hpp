@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-01-20
+ * \updates       2025-08-13
  * \license       See above.
  *
  */
@@ -147,6 +147,11 @@ public:
         return m_jack_data;
     }
 
+    const midi_jack_data & jack_data () const
+    {
+        return m_jack_data;
+    }
+
     void client_name (const std::string & cname)
     {
         m_client_name = cname;
@@ -239,7 +244,7 @@ protected:
     virtual bool clock_send (midi::pulse tick) override;
     virtual bool clock_stop () override;
     virtual bool clock_continue (midi::pulse tick, midi::pulse beats) override;
-    virtual int poll_for_midi () override;
+    virtual int poll_for_midi () const override;
     virtual bool get_midi_event (midi::event * inev) override;
     virtual bool send_event
     (

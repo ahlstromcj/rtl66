@@ -166,7 +166,7 @@ protected:
     virtual bool set_port_name (const std::string & name) override;
     virtual int get_port_count () override;
     virtual std::string get_port_name (int number) override;
-    virtual bool flush_port () override;
+    virtual bool flush () override;
     virtual bool send_message (const midi::byte * message, size_t sz) override;
     virtual bool send_message (const midi::message & message) override
     {

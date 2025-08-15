@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-05
+ * \updates       2025-08-14
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -628,16 +628,31 @@ rtmidi::set_port_name (const std::string & portname)
 }
 
 /**
+ *  Flush an open MIDI *client* connection to ensure the events are
+ *  emptied. Normatlly for output. Supported by ALSA, but no JACK.
+ */
+
+bool
+rtmidi::flush ()
+{
+    bool result = not_nullptr(rt_api_ptr());
+    if (result)
+        result = rt_api_ptr()->flush();
+
+    return result;
+}
+
+/**
  *  Flush an open MIDI connection to ensure the events are emptied.
  *  Normatlly for output.
  */
 
 bool
-rtmidi::flush_port ()
+rtmidi::flush_port (midi::bussbyte b)
 {
     bool result = not_nullptr(rt_api_ptr());
     if (result)
-        result = rt_api_ptr()->flush_port();
+        result = rt_api_ptr()->flush_port(b);
 
     return result;
 }
@@ -886,7 +901,7 @@ rtmidi::clock_continue (midi::pulse tick, int beats)
 }
 
 int
-rtmidi::poll_for_midi ()
+rtmidi::poll_for_midi () const
 {
     int result = 0;
     if (not_nullptr(rt_api_ptr()))

@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-08-11
+ * \updates       2025-08-13
  * \license       GNU GPLv2 or above
  *
  */
@@ -33,7 +33,6 @@
 #include "midi/bus_out.hpp"             /* midi::bus and midi::bus_out      */
 #include "midi/clientinfo.hpp"          /* midi::clientinfo class           */
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
-//#include "rtl/midi/midi_api.hpp"        /* rtl::rtmidi::midi_api            */
 
 namespace midi
 {

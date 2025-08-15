@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-08-10
+ * \updates       2025-08-15
  * \license       GNU GPLv2 or above
  *
  *  Defines some midibus constants and the clocking enumeration.
@@ -193,6 +193,12 @@ port_is_disabled (clocking c)
 {
     return c == clocking::disabled;
 }
+
+/*
+ * Free function.
+ */
+
+extern std::string clocking_to_string (midi::clocking e);
 
 }           // namespace midi
 

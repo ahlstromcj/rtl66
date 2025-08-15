@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2024-06-09
+ * \updates       2025-08-14
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -412,7 +412,7 @@ protected:
         return false;
     }
 
-    virtual int poll_for_midi ()
+    virtual int poll_for_midi () const
     {
         return 0;
     }
@@ -481,11 +481,19 @@ protected:
 
     /*
      * ALSA supports flush for output.  JACK does not.  Rather than a raft of
-     * simplistic overrides, provide no functionality by default.
+     * simplistic overrides, provide no functionality by default. Also,
+     * for ALSA, this is a whole-client action. Both provided for
+     * potential usage in other APIs.
      */
 
-    virtual bool flush_port ()
+    virtual bool flush ()
     {
+        return true;
+    }
+
+    virtual bool flush_port (midi::bussbyte b)
+    {
+        (void) b;
         return true;
     }
 

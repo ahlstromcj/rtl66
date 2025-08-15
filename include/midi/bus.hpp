@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-08-12
+ * \updates       2025-08-13
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -636,7 +636,7 @@ public:
         return false;
     }
 
-    virtual int poll_for_midi ()
+    virtual int poll_for_midi () const
     {
         return 0;
     }

@@ -1,4 +1,4 @@
-# README for Library Rtl66 0.1.0 2025-08-04
+# README for Library Rtl66 0.2.0 2025-08-15
 
 __Rtl66__ is a Audio/MIDI API loosely adapted from the __RtAudio__
 and __RtMidi__ projects (https://www.music.mcgill.ca/~gary/rtaudio & rtmidi).
@@ -85,9 +85,14 @@ Support sites (still in progress):
 
 ## Recent Changes
 
+    *   Version 0.2.0:
+        *   Using C++ initialization braces (e.g. "string s { "Hello" })
+        *   Refactoring of the internals of port management.
+        *   Fixing a lot of bugs.
+        *   Trying to get playback to work.
     *   Version 0.1.0:
         *   Usage of meson instead of autotools or cmake.
-        *   Got the code to build (Linux, maybe Windows) and the test programs
-            to work.
+        *   Got the code to build (Linux, maybe Windows) and the test
+            programs to work.
 
 // vim: sw=4 ts=4 wm=2 et ft=markdown

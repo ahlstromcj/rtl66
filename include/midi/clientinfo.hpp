@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2025-08-08
+ * \updates       2025-08-15
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -534,23 +534,8 @@ public:
 
     int port_count (port::io iotype) const;
 
-#if defined USE_THIS_CODE
-
-    /*
-     * We will let the derived API-specific class do the populating of
-     * port information.
-     */
-
-    virtual int get_all_port_info (ports & /*ioports*/)
-    {
-        return 0;
-    }
-
-    int get_all_io_port_info (port::io iotype)
-    {
-        return get_all_port_info(io_ports(iotype));
-    }
-
+#if defined THIS_CODE_IS_READY
+    bool setup_virtual_ports (int incount, int outcount);
 #endif
 
     int get_port_count (port::io iotype) const

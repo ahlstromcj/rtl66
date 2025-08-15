@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-05
+ * \updates       2025-08-15
  * \license       See above.
  *
  * To do:
@@ -1576,8 +1576,14 @@ midi_alsa::set_port_name (const std::string & portname)
  * midi_alsa output-port functions
  *------------------------------------------------------------------------*/
 
+/**
+ *  This function acts on the ALSA client, not on a single port.
+ *
+ *  Note that flush_port() is not supported; see midi_api.hpp.
+ */
+
 bool
-midi_alsa::flush_port ()
+midi_alsa::flush ()
 {
     bool result = true;
     if (is_output() && is_connected())
@@ -1701,15 +1707,19 @@ midi_alsa::send_message (const midi::byte * message, size_t sz)
 int
 midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
 {
-    int result = 0;
-    midi_alsa_data & data = alsa_data();
-    snd_seq_t * seq = data.alsa_client();
+    int result { 0 };
+    midi_alsa_data & data { alsa_data() };
+    snd_seq_t * seq { data.alsa_client() };
     if (preclear)
         ioports.clear();
 
     if (not_nullptr(seq))
     {
-        bool iswriteable = is_output();
+        bool iswriteable { is_output() };
+        midi::port::io iotype
+        {
+            iswriteable ? midi::port::io::output : midi::port::io::input
+        };
         snd_seq_port_info_t * pinfo;
         snd_seq_client_info_t * cinfo;
         snd_seq_client_info_alloca(&cinfo);
@@ -1780,7 +1790,7 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                     ioports.add
                     (
                         client, clientname, portnumber, portname,
-                        midi::port::io::input, midi::port::kind::normal
+                        iotype, midi::port::kind::normal
                     );
                     ++result;
                 }

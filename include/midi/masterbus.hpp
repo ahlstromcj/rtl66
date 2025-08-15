@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-11
+ * \updates       2025-08-14
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -310,6 +310,7 @@ public:
     }
 
     bool get_client_info (clientinfo & cinfo);
+    bool client_info_reset ();
     bool client_info_reset (const clientinfo & cinfo);
     std::string port_listing () const;
     void print () const;                    // redundant?
@@ -428,11 +429,7 @@ protected:
 
 public:     // used in a test application
 
-    VIRTUAL bool engine_initialize
-    (
-        midi::ppqn ppq  = RTL66_DEFAULT_PPQN,
-        midi::bpm bp    = RTL66_DEFAULT_BPM
-    );
+    VIRTUAL bool engine_initialize ();
     VIRTUAL bool engine_initialize (const clientinfo & ci);
     VIRTUAL bool engine_query ();
 
@@ -455,6 +452,7 @@ protected:  // API implementations
     VIRTUAL bool PPQN (midi::ppqn ppq);
     VIRTUAL bool BPM (midi::bpm bp);
     VIRTUAL bool flush ();
+    VIRTUAL bool flush_port (midi::bussbyte b);
     VIRTUAL bool panic (int displaybuss = (-1));
     VIRTUAL bool sysex (midi::bussbyte bus, const event * ev);
     VIRTUAL void play (midi::bussbyte bus, event * e24, midi::byte channel);
@@ -480,7 +478,9 @@ protected:  // API implementations
     VIRTUAL bool port_start (int client, int port);     // TODO
     VIRTUAL bool port_exit (int client, int port);      // TODO
     VIRTUAL bool set_track_input (bool state, midi::track * trk);
+#if 0
     VIRTUAL void dump_midi_input (midi::event ev);
+#endif
 
 #if defined THIS_CODE_IS_READY
     VIRTUAL void api_set_ppqn_and_beats_per_minute (midi::ppqn,  midi::bpm);

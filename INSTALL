@@ -1,6 +1,6 @@
-INSTALL for Rtl66 v. 0.1.0 and above
+INSTALL for Rtl66 v. 0.2.0 and above
 Chris Ahlstrom
-2024-04-15 to 2024-04-28
+2024-04-15 to 2025-08-15
 
 Meson is the build system for the Rtl66 library. Meson 1.1 and above is
 required. The 'meson.options' file replaces 'meson_options.txt'.

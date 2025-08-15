@@ -1,34 +1,30 @@
-NEWS for Rtl66 0.1.0
+NEWS for Rtl66 0.2.0
 Chris Ahlstrom
-2024-04-15 to 2024-04-15
+2024-04-15 to 2025-08-15
+
+Version 0.2.0 is a heavy refactoring of the original code.
 
 # Changelog
+
+## [0.2.0] - 2025-08-15
 
 ## [0.1.0] - 2024-04-15
 
 ### Added
 
-- Added ...
+- Added the whole project, with many source code files, in a testable
+  state.
 
 ### Fixed
 
-- Errors in ...
+- None.
 
 ### Changed
 
-- Moved some ...
+- None.
 
 ### Removed
 
-- Minor cleanup.
-
-## [Unreleased]
-
-    To do.
-
-### Added
-### Fixed
-### Changed
-### Removed
+- None.
 
 # vim: sw=4 ts=4 wm=4 et ft=markdown

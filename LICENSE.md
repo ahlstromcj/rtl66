@@ -1,6 +1,6 @@
-# __Rtl66__ Licensing 0.1.0
+# __Rtl66__ Licensing 0.2.0
 
-## Copyright (c) 2024
+## Copyright (c) 2024-2025
 
    * Chris Ahlstrom <ahlstromcj@gmail.com>
 

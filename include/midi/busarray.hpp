@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-08-12
+ * \updates       2025-08-13
  * \license       GNU GPLv2 or above
  *
  *  The busarray module defines the busarray and busarray classes so that we
@@ -80,34 +80,7 @@ public:
     ~busarray ();
 
     bool add (midi::bus * b, midi::clocking clock);
-
-    /**
-     *  Adds a new midi::bus object to the list.  Then the inputing value
-     *  is set.  This function is meant for input ports.
-     *
-     *  We need to belay the initialization until later, when we know the
-     *  configured inputing settings for the input ports.  So initialization
-     *  has been removed from the constructor and moved to the initialize()
-     *  function. However, now we know the configured status and can apply
-     *  it right away.
-     *
-     * \param b
-     *      The midi::bus to be hooked into the array of busses.
-     *
-     * \param inputing
-     *      The input flag value for the bus.  If true, this value indicates that
-     *      the user has selected this bus to be the input MIDI bus.
-     *
-     * \return
-     *      Returns true if the bus was added successfully, though, really, it
-     *      cannot fail.
-     */
-
-    bool add (midi::bus * b, bool inputing)
-    {
-        return add(b, bool_to_clocking(inputing));
-    }
-
+    bool add (midi::bus * b, bool inputing);
     bool initialize ();
     int count () const;
     bool bus_valid (midi::bussbyte b) const;
@@ -147,7 +120,7 @@ public:
     bool is_system_port (midi::bussbyte b) const;
     bool is_port_unavailable (midi::bussbyte b) const;
     bool is_port_locked (midi::bussbyte b) const;
-    int poll_for_midi ();
+    int poll_for_midi () const;
     bool get_midi_event (midi::event * inev);
     int replacement_port (int b, int p);
 

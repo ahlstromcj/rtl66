@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2017-01-02
- * \updates       2023-07-20
+ * \updates       2025-08-13
  * \license       See above.
  *
  */
@@ -342,7 +342,12 @@ public:
         return m_jack_port;
     }
 
-    rtmidi_in_data * rt_midi_in()
+    rtmidi_in_data * rt_midi_in ()
+    {
+        return m_jack_rtmidiin;
+    }
+
+    const rtmidi_in_data * rt_midi_in () const
     {
         return m_jack_rtmidiin;
     }

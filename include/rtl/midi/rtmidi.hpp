@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-01-30
+ * \updates       2025-08-13
  * \license       See above.
  *
  *      Also contains some additional capabilities.
@@ -253,9 +253,10 @@ public:
     bool engine_deactivate ();
     bool set_client_name (const std::string & clientname);
     bool set_port_name (const std::string & portname);
-    bool flush_port();
-    bool close_port();
-    bool is_port_open() const;
+    bool flush ();
+    bool flush_port (midi::bussbyte b);
+    bool close_port ();
+    bool is_port_open () const;
     int get_port_count ();
     std::string get_port_name (int portnumber = 0);
 
@@ -285,7 +286,7 @@ public:
     bool clock_send (midi::pulse tick);
     bool clock_stop ();
     bool clock_continue (midi::pulse tick, int beats);
-    int poll_for_midi ();
+    int poll_for_midi () const;
     bool get_midi_event (midi::event * inev);
     bool send_event (const midi::event * ev, midi::byte channel);
     bool send_message (const midi::message & msg);

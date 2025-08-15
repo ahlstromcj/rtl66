@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-11
+ * \updates       2025-08-15
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -159,9 +159,20 @@ masterbus::masterbus
  *  Use this function to activate (or change) from using the
  *  original RtMidi API to using our Seq66-derived "midi::bus" API.
  *
+ *  The normal usage of this function is to (1) set up the default
+ *  clientinfo in the constructor or (2) get the global
+ *  clientinfo settings from the application.
+ *
  *  If the caller wants to see the ports, use the get_client_info()
  *  function.
  */
+
+bool
+masterbus::client_info_reset ()
+{
+    const clientinfo & ci { global_client_info() };
+    return client_info_reset(ci);
+}
 
 bool
 masterbus::client_info_reset (const clientinfo & cinfo)
@@ -256,7 +267,7 @@ masterbus::engine_connect ()
  *  Set the PPQN value (parts per quarter note). Then call the
  *  implementation-specific API function to complete the PPQN setting.
  *
- *  TODO: do we want to use choose_ppwn(). Compare to
+ *  TODO: do we want to use choose_ppqn(). Compare to
  *        mastermidibase::set_ppqn().
  *
  * \threadsafe
@@ -272,8 +283,8 @@ masterbus::PPQN (midi::ppqn ppq)
     bool result = m_ppqn != ppq;
     if (result)
     {
-        m_ppqn = ppq;
-        // api_set_ppqn(ppq);
+        if (engine().PPQN(ppq))
+            m_ppqn = ppq;
     }
     return result;
 }
@@ -295,8 +306,8 @@ masterbus::BPM (midi::bpm bp)
     bool result = m_beats_per_minute != bp;
     if (result)
     {
-        m_beats_per_minute = bp;
-        // api_set_beats_per_minute(bp);
+        if (engine().BPM(bp))
+            m_beats_per_minute = bp;
     }
     return result;
 }
@@ -323,9 +334,14 @@ bool
 masterbus::flush ()
 {
     xpc::automutex locker(m_mutex);
-    // api_flush();
+    return engine().flush();
+}
 
-    return true;        // TODO
+bool
+masterbus::flush_port (midi::bussbyte b)
+{
+    xpc::automutex locker(m_mutex);
+    return engine().flush_port(b);
 }
 
 /**
@@ -339,9 +355,9 @@ masterbus::panic (int displaybuss)
 {
     xpc::automutex locker(m_mutex);
     bool result = true;
-    for (int bus = 0; bus < c_busscount_max; ++bus)
+    for (int b = 0; b < c_busscount_max; ++b)
     {
-        if (bus == displaybuss)             /* do not clear the Launchpad   */
+        if (b == displaybuss)             /* do not clear the Launchpad   */
             continue;
 
         for (int channel = 0; channel < c_channel_max; ++channel)
@@ -349,7 +365,7 @@ masterbus::panic (int displaybuss)
             for (int note = 0; note < c_byte_data_max; ++note)
             {
                 event e(0, midi::status::note_off, channel, note, 0);
-                // m_outbus_array.play(bus, &e, channel);
+                m_outbus_array.send_event(b, &e, channel);
             }
         }
     }
@@ -370,13 +386,14 @@ masterbus::panic (int displaybuss)
  */
 
 bool
-masterbus::sysex (midi::bussbyte bus, const event * ev)
+masterbus::sysex (midi::bussbyte b, const event * ev)
 {
     xpc::automutex locker(m_mutex);
-    (void) bus;
-    (void) ev;
-    //  return m_outbus_array.sysex(bus, ev);
-    return false;
+    bool result = not_nullptr(ev);
+    if (result)
+        m_outbus_array.send_sysex(b, ev);
+
+    return result;
 }
 
 /**
@@ -386,7 +403,7 @@ masterbus::sysex (midi::bussbyte bus, const event * ev)
  *
  * \threadsafe
  *
- * \param bus
+ * \param b
  *      The actual system buss to start play on.  The caller is expected to
  *      make sure this buss is the correct buss.
  *
@@ -399,20 +416,17 @@ masterbus::sysex (midi::bussbyte bus, const event * ev)
  */
 
 void
-masterbus::play (midi::bussbyte bus, event * e24, midi::byte channel)
+masterbus::play (midi::bussbyte b, event * e24, midi::byte channel)
 {
     xpc::automutex locker(m_mutex);
-    (void) bus;
-    (void) e24;
-    (void) channel;
-    // m_outbus_array.play(bus, e24, channel);
+    m_outbus_array.send_event(b, e24, channel);
 }
 
 void
-masterbus::play_and_flush (midi::bussbyte bus, event * ev, midi::byte channel)
+masterbus::play_and_flush (midi::bussbyte b, event * ev, midi::byte channel)
 {
     xpc::automutex locker(m_mutex);
-    play(bus, ev, channel);
+    play(b, ev, channel);
     (void) flush();
 }
 
@@ -424,7 +438,7 @@ masterbus::play_and_flush (midi::bussbyte bus, event * ev, midi::byte channel)
  *
  * \threadsafe
  *
- * \param bus
+ * \param b
  *      The actual system buss to start play on.  Checked before usage.
  *
  * \param clocktype
@@ -451,7 +465,7 @@ masterbus::set_clock (midi::bussbyte b, midi::clocking clocktype)
  *  we modify the midi::port objects in the midi::ports class.
  *  Compare to mastermidibase::save_clock().
  *
- * \param bus
+ * \param b
  *      Provides the desired buss to be set. This must be an actual system
  *      buss, not a buss number from the output-port-map.
  *
@@ -515,7 +529,7 @@ masterbus::get_clock (midi::bussbyte b) const
  *
  * \threadsafe
  *
- * \param bus
+ * \param bs
  *      Provides the actual system buss number.
  *
  * \param inputing
@@ -527,10 +541,9 @@ masterbus::get_clock (midi::bussbyte b) const
  */
 
 bool
-masterbus::set_input (midi::bussbyte /*b*/, bool /*inputing*/)
+masterbus::set_input (midi::bussbyte b, bool inputing)
 {
     xpc::automutex locker(m_mutex);
-#if 0
     bool result = m_inbus_array.set_input(b, inputing);
     if (result)
     {
@@ -539,9 +552,6 @@ masterbus::set_input (midi::bussbyte /*b*/, bool /*inputing*/)
             result = save_input(b, inputing);     /* save into the vector */
     }
     return result;
-#else
-    return false;
-#endif
 }
 
 /**
@@ -554,7 +564,7 @@ masterbus::set_input (midi::bussbyte /*b*/, bool /*inputing*/)
  *  Do we also have to adjust the performer's vector?  What about the name of
  *  the buss?
  *
- * \param bus
+ * \param b
  *      Provides the actual system buss number.
  *
  * \param inputing
@@ -565,26 +575,24 @@ masterbus::set_input (midi::bussbyte /*b*/, bool /*inputing*/)
  */
 
 bool
-masterbus::save_input (midi::bussbyte /*bus*/, bool /*inputing*/)
+masterbus::save_input (midi::bussbyte b, bool inputing)
 {
-#if 0
-    int currentcount = m_master_inputs.count();
-    bool result = m_master_inputs.set(bus, inputing);
+    int currentcount = inbus_array().count();
+    bool result = inbus_array().set_input(b, inputing);
     if (! result)
     {
-        for (int i = currentcount; i <= bus; ++i)
+        for (int i = currentcount; i <= b; ++i)
         {
+#if 0
             bool value = false;
-            if (i == int(bus))
+            if (i == int(bs))
                 value = inputing;
 
             m_master_inputs.add(i, value, "Why no name???");
+#endif
         }
     }
     return result;          /* or true ? */
-#else
-    return false;
-#endif
 }
 
 /**
@@ -592,7 +600,7 @@ masterbus::save_input (midi::bussbyte /*bus*/, bool /*inputing*/)
  *
  *  There's currently no implementation-specific API function here.
  *
- * \param bus
+ * \param b
  *      Provides the actual system buss number.
  *
  * \return
@@ -600,10 +608,9 @@ masterbus::save_input (midi::bussbyte /*bus*/, bool /*inputing*/)
  */
 
 bool
-masterbus::get_input (midi::bussbyte /*bus*/) const
+masterbus::get_input (midi::bussbyte b) const
 {
-    // return m_inbus_array.get_input(bus);
-    return false;
+    return m_inbus_array.get_input(b);
 }
 
 // TODO:
@@ -621,7 +628,7 @@ masterbus::get_input (midi::bussbyte /*bus*/) const
  *  needed in the portmidi implementation, but seem generally useful to
  *  support in all implementations.
  *
- * \param bus
+ * \param b
  *      Provides the I/O buss number.
  *
  * \param iotype
@@ -636,21 +643,27 @@ masterbus::get_input (midi::bussbyte /*bus*/) const
 std::string
 masterbus::get_midi_bus_name
 (
-    midi::bussbyte /*bus*/,
-    midi::port::io /*iotype*/
+    midi::bussbyte b,
+    midi::port::io iotype
 ) const
 {
-#if 0
+#if USE_THIS_SEQ66_CODE_FROM_PORTSLIST
     std::string result;
     portname p = rc().port_naming();
     if (iotype == midibase::io::input)
-        result = m_master_inputs.get_display_name(bus, p);
+        result = m_master_inputs.get_display_name(b, p);
     else
-        result = m_master_clocks.get_display_name(bus, p);
+        result = m_master_clocks.get_display_name(b, p);
 
     return result;
 #else
-    return std::string("");
+    std::string result;
+    if (iotype == midi::port::io::input)
+        result = inbus_array().get_midi_bus_name(b);
+    else
+        result = outbus_array().get_midi_bus_name(b);
+
+    return result;
 #endif
 }
 
@@ -661,8 +674,8 @@ masterbus::get_midi_bus_name
 void
 masterbus::print () const
 {
-//    m_inbus_array.print();
-//    m_outbus_array.print();
+    inbus_array().print();
+    outbus_array().print();
 }
 
 /**
@@ -682,24 +695,27 @@ int
 masterbus::poll_for_midi () const
 {
     xpc::automutex locker(m_mutex);
-
-    // return api_poll_for_midi();
-#if 0
-    int result = m_inbus_array.poll_for_midi();
+    int result = inbus_array().poll_for_midi();
     if (result > 0)
     {
         if (result <= 2)
-            (void) xpc::microsleep(std_sleep_us()); /* is this sensible?    */
+            (void) xpc::microsleep(xpc::std_sleep_us());    /* sensible?    */
     }
     else
     {
-        (void) xpc::microsleep(std_sleep_us());
+        (void) xpc::microsleep(xpc::std_sleep_us());
     }
-#endif
-    return 0;
+    return result;
 }
 
 /**
+ * NOTE: In Seq66, we have midi_alsa_info::api_port_start() which gets
+ *       port information and creates a midibus. Undefined for JACK.
+ *
+ *       See midi_alsa::get_midi_event().
+ *
+ *       TODO
+ *
  *  Start the given MIDI port.  This function is called by
  *  api_get_midi_event() when the ALSA event SND_SEQ_EVENT_PORT_START is
  *  received.  Unlike port_exit(), the port_start() function does rely on
@@ -747,13 +763,11 @@ masterbus::port_start (int /*client*/, int /*port*/)
  */
 
 bool
-masterbus::port_exit (int /*client*/, int /*port*/)
+masterbus::port_exit (int client, int port)
 {
     xpc::automutex locker(m_mutex);
-
-    // m_outbus_array.port_exit(client, port);
-    // m_inbus_array.port_exit(client, port);
-
+    m_outbus_array.port_exit(client, port);
+    m_inbus_array.port_exit(client, port);
     return false;
 }
 
@@ -817,6 +831,8 @@ masterbus::set_track_input (bool state, track * trk)
     return result;
 }
 
+#if 0
+
 /**
  *  This function augments the recording functionality by looking for a
  *  sequence that has a matching channel number, logging the event to that
@@ -836,7 +852,6 @@ masterbus::set_track_input (bool state, track * trk)
 void
 masterbus::dump_midi_input (event /*& ev*/)
 {
-#if 0
     size_t sz = m_vector_sequence.size();
     for (size_t i = 0; i < sz; ++i)
     {
@@ -857,8 +872,8 @@ masterbus::dump_midi_input (event /*& ev*/)
                 break;
         }
     }
-#endif
 }
+#endif
 
 /**
  *  Dumps a list of the ports.
@@ -933,17 +948,13 @@ masterbus::engine_activate ()
  */
 
 bool
-masterbus::engine_initialize (midi::ppqn ppq, midi::bpm bp)
+masterbus::engine_initialize ()
 {
-    PPQN(ppq);
-    BPM(bp);
+    bool result = client_info_reset();
+    if (result)
+        result = engine_initialize(*m_client_info);
 
-    /*
-     * Set up I/O virtual/real midi::bus objects. See old mastermidibus ::
-     * api_init().
-     */
-
-    return true;        // TODO
+    return result;
 }
 
 /**
@@ -961,8 +972,8 @@ masterbus::engine_initialize (const clientinfo & ci)
     bool result { ci.port_type() == port::io::duplex };
     if (result)
     {
-        PPQN(ci.global_ppqn());
-        BPM(ci.global_bpm());
+        (void) PPQN(ci.global_ppqn());
+        (void) BPM(ci.global_bpm());
         if (ci.virtual_ports())
         {
             // TODO
@@ -982,9 +993,9 @@ masterbus::engine_initialize (const clientinfo & ci)
                     rtl::rtmidi::selected_api() == rtl::rtmidi::api::jack
                 };
                 bool isinput { ! swap_io };
-                port::io iotype
+                midi::port::io iotype
                 {
-                    isinput ? port::io::input : port::io::output
+                    isinput ? midi::port::io::input : midi::port::io::output
                 };
                 int pcount { ci.port_count(iotype) };
                 midi::busarray & busarray_1
@@ -994,17 +1005,23 @@ masterbus::engine_initialize (const clientinfo & ci)
                 for (int p = 0; p < pcount; ++p)
                 {
                     midi::bus * b = make_bus(p, iotype);
+                    clocking clk { ci.get_port_status(iotype, p) };
                     if (not_nullptr(b))
                     {
+                        bool ok = busarray_1.add(b, clk);
+                        if (! ok)
+                        {
+                            result = false;
+                            break;
+                        }
                     }
                     else
                         break;                      /* error */
                 }
-
-// xxxxxxxxxxxxxxxxxxxxxxxxxx
-
                 isinput = ! isinput;
-                iotype = isinput ? port::io::input : port::io::output;
+                iotype = isinput ?
+                    midi::port::io::input : midi::port::io::output;
+
                 pcount = ci.port_count(iotype);
                 midi::busarray & busarray_2
                 {
@@ -1013,14 +1030,19 @@ masterbus::engine_initialize (const clientinfo & ci)
                 for (int p = 0; p < pcount; ++p)
                 {
                     midi::bus * b = make_bus(p, iotype);
+                    clocking clk { ci.get_port_status(iotype, p) };
                     if (not_nullptr(b))
                     {
+                        bool ok = busarray_2.add(b, clk);
+                        if (! ok)
+                        {
+                            result = false;
+                            break;
+                        }
                     }
                     else
                         break;                      /* error */
                 }
-
-                // TODO
             }
         }
     }
@@ -1146,32 +1168,27 @@ masterbus::handle_clock (midi::clock::action act, midi::pulse ts)
         {
             case midi::clock::action::init:
 
-//              api_init_clock(tick);
                 m_outbus_array.init_clock(ts);
                 break;
 
             case midi::clock::action::start:
 
-//              api_start();
                 m_outbus_array.clock_start();
                 break;
 
             case midi::clock::action::continue_from:
 
-//              api_continue_from(tick);
                 m_outbus_array.clock_continue(ts);
                 break;
 
             case midi::clock::action::stop:
 
-//              api_stop();
                 m_outbus_array.clock_stop();
                 break;
 
             case midi::clock::action::emit:
 
-                // TODO
-                // m_outbus_array.clock(tick);
+                // TODO // m_outbus_array.clock(tick);
                 break;
 
             default:

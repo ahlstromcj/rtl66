@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-05
- * \updates       2025-08-06
+ * \updates       2025-08-15
  * \license       See above.
  *
  * Introduction:
@@ -44,7 +44,7 @@
  *  Official version number for this library.
  */
 
-#define RTL66_VERSION           "0.1.0"     /* also set this in README.md   */
+#define RTL66_VERSION           "0.2.0"     /* also set this in README.md   */
 
 /**
  *  This was the version of the RtMidi library from which this

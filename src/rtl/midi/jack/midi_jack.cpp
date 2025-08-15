@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-05
+ * \updates       2025-08-15
  * \license       See above.
  *
  *  Engine candidates:
@@ -989,9 +989,13 @@ midi_jack::set_client_name (const std::string & /*clientname*/)
 int
 midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
 {
-    int result = 0;
-    bool iswriteable = is_output();
-    midi_jack_data & data = jack_data();
+    int result { 0 };
+    bool iswriteable { is_output() };
+    midi::port::io iotype
+    {
+        iswriteable ? midi::port::io::output : midi::port::io::input
+    };
+    midi_jack_data & data { jack_data() };
     if (preclear)
         ioports.clear();
 
@@ -1000,9 +1004,10 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
 #if defined PLATFORM_DEBUG
         infoprint(iswriteable ? "Writable ports:" : "Readable ports:");
 #endif
-        unsigned long flag = iswriteable ?
-            JackPortIsInput : JackPortIsOutput ;
-
+        unsigned long flag
+        {
+            iswriteable ?  JackPortIsInput : JackPortIsOutput
+        };
         const char ** ports = ::jack_get_ports
         (
             data.jack_client(), NULL, JACK_DEFAULT_MIDI_TYPE, flag
@@ -1057,7 +1062,7 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
                 ioports.add
                 (
                     clientnumber, clientname, count, portname,
-                    midi::port::io::input, midi::port::kind::normal,
+                    iotype, midi::port::kind::normal,
                     0, alias
                 );
                 ++count;
@@ -1352,9 +1357,9 @@ midi_jack::clock_continue (midi::pulse tick, midi::pulse /*beats*/)
  */
 
 int
-midi_jack::poll_for_midi ()         // input
+midi_jack::poll_for_midi () const
 {
-    rtmidi_in_data * rtindata = jack_data().rt_midi_in();
+    const rtmidi_in_data * rtindata = jack_data().rt_midi_in();
     (void) xpc::microsleep(xpc::std_sleep_us());            /* 10 us IIRC   */
     return rtindata->queue().count();
 }

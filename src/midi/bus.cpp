@@ -132,22 +132,11 @@ bus::bus
     midi::port::io iotype
 ) :
     m_master_bus        (master),
-#if 0
-    m_midi_api_ptr      (master.rt_api_ptr()),
-#endif
     m_initialized       (false),
     m_bus_index         (index),
     m_port              (),
-//  m_bus_id            (-1),                   /* see the ctor body        */
-//  m_port_id           (-1),                   /* see the ctor body        */
-//  m_clock_type        (midi::clocking::none),
     m_io_active         (false),
     m_display_name      ()
-//  m_bus_name          (),                     /* see the ctor body        */
-//  m_port_name         (),                     /* see the ctor body        */
-//  m_port_alias        (),                     /* see the ctor body        */
-//  m_io_type           (iotype),
-//  m_port_type         ()                      /* see the ctor body        */
 {
     if (iotype == midi::port::io::input || iotype == midi::port::io::output)
     {
@@ -156,31 +145,23 @@ bus::bus
         {
             const midi::ports & portlist { ciptr->io_ports(iotype) };
             const midi::port & p = portlist.portref(index);
-#if 0
-            m_bus_id = portlist.get_bus_id(index);
-            m_port_id = portlist.get_port_id(index);
-            m_clock_type
-            m_bus_name = portlist.get_bus_name(index);
-            m_port_name = portlist.get_port_name(index);
-            m_port_alias = portlist.get_port_alias(index);
-            m_io_type
-            m_port_type = portlist.get_port_type(index);
-#else
             m_port = p;
-#endif
 #if defined PLATFORM_DEBUG   // TODO add clocking
             printf
             (
-                "Bus info:\n"
+                "Bus #%d:\n"
                 "  Bus ID: %d '%s'\n"
                 "  Port ID: %d '%s', alias '%s'\n"
                 "  Port I/O: '%s'\n"
                 "  Port Kind: '%s'\n"
+                "  I/O Status: '%s'\n"
                 ,
+                index,
                 bus_id(), bus_name().c_str(),
                 port_id(), port_name().c_str(), port_alias().c_str(),
                 io_to_string(io_type()).c_str(),
-                kind_to_string(port_type()).c_str()
+                kind_to_string(port_type()).c_str(),
+                clocking_to_string(clock_type()).c_str()
             );
 #endif
         }
@@ -208,26 +189,6 @@ bus::midi_api_ptr () const
     return master_bus().rt_api_ptr();
 }
 
-#if 0
-
-/**
- *  Sets the pointer to the midi_api. If null, an error is thrown to bugger
- *  out immediately. We don't want to check pointers allatime.
- */
-
-void
-bus::set_midi_api_ptr (rtl::midi_api * rmap)
-{
-    m_midi_api_ptr = rmap;
-    if (is_nullptr(rmap))
-    {
-        std::string msg{"bus::midi_api_ptr(nullptr)"};
-        throw(rtl::rterror(msg, rtl::rterror::kind::invalid_parameter));
-    }
-}
-
-#endif
-
 /**
  *  Retrieve MIDI I/O setting from a clientinfo pointer, assumed to be
  *  properly filled already.
@@ -242,19 +203,9 @@ bus::get_port_items (clientinfo::pointer mip, midi::port::io iotype)
         if (ciptr)
         {
             int index = m_bus_index;
-#if 0
-            m_bus_id = mip->get_bus_id(iotype, index);
-            m_port_id = mip->get_port_id(iotype, index);
-            m_clock
-            m_port_name = mip->get_port_name(iotype, index);
-            m_port_alias = mip->get_port_alias(iotype, index);
-            m_io_type
-            m_port_type = mip->get_port_type(iotype, index);
-#else
             const midi::ports & portlist { ciptr->io_ports(iotype) };
             const midi::port & p = portlist.portref(index);
             m_port = p;
-#endif
         }
     }
 }

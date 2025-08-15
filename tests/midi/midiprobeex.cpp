@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2023-03-06
+ * \updates       2025-08-14
  * \license       See above.
  *
  */
@@ -46,10 +46,30 @@ main (int argc, char * argv [])
     if (can_run)
     {
         midi::masterbus mb(rtl::rtmidi::desired_api());
-        if (mb.engine_initialize())
+        if (mb.client_info_reset())
         {
-            std::string portlist = mb.port_listing();
-            std::cout << portlist;
+            /*
+             * Another option is to simply use the overload of
+             * masterbus::engine_initialize() that has no parameter.
+             * It creates/gets the global clientinfo object and
+             * fills it with MIDI port information and then
+             * uses that to create a midi::bus_in or midi::bus_out
+             * for each port.
+             */
+
+            midi::clientinfo ci;
+            if (mb.get_client_info(ci))
+            {
+                if (mb.engine_initialize(ci))
+                {
+                    std::string portlist = mb.port_listing();
+                    std::cout << portlist;
+                }
+                else
+                    return EXIT_FAILURE;
+            }
+            else
+                return EXIT_FAILURE;
         }
         else
             return EXIT_FAILURE;

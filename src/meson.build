@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-08
-# \updates     2025-07-29
+# \updates     2025-08-15
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the "rtl66" library. See the top-level meson.build
@@ -30,6 +30,7 @@ librtl66_sources += files(
    'midi/bussdata.cpp',
    'midi/calculations.cpp',
    'midi/clientinfo.cpp',
+   'midi/clocking.cpp',
    'midi/event.cpp',
    'midi/eventcodes.cpp',
    'midi/eventlist.cpp',
