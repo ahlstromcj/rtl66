@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-08-15
+ * \updates       2025-08-17
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -67,11 +67,15 @@ namespace midi
 clientinfo::clientinfo (midi::port::io iodirection)
 {
     m_cd.cd_port_type = iodirection;        /* I/O, service, or duplex      */
+    m_io_ports[c_input_port_index].port_io_types(port::io::input);
+    m_io_ports[c_output_port_index].port_io_types(port::io::output);
 }
 
 clientinfo::clientinfo (const client_defaults & cd)
 {
     m_cd = cd;
+    m_io_ports[c_input_port_index].port_io_types(port::io::input);
+    m_io_ports[c_output_port_index].port_io_types(port::io::output);
 }
 
 /**
@@ -218,7 +222,7 @@ get_global_port_info (rtl::rtmidi::api rapi)
 }
 
 bool
-init_global_client_info (const clientinfo & ci)
+set_global_client_info (const clientinfo & ci)
 {
     clientinfo & gci = global_client_info();
     gci = ci;

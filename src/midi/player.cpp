@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-08-14
+ * \updates       2025-08-18
  * \license       GNU GPLv2 or above
  *
  */
@@ -569,7 +569,7 @@ player::reset_tracks (bool p)
  */
 
 bool
-player::create_master_bus ()
+player::create_master_bus (clientinfo & ci)
 {
     bool result = bool(m_master_bus);
     if (! result)                               /* no master buss yet?      */
@@ -598,7 +598,6 @@ player::create_master_bus ()
             );
             if (m_master_bus)
             {
-                midi::clientinfo & ci = midi::global_client_info();
                 midi::masterbus * mmb = m_master_bus.get();
                 if (mmb->client_info_reset(ci))
                 {
@@ -641,38 +640,25 @@ player::done () const
  *      but are copied to the transport::info object. The former is normally
  *      unchanged, the latter might change during song composition and
  *      playback.
+ *
+ *  Calls the MIDI buss and JACK initialization functions and the input/output
+ *  thread-launching functions.  This function is called in main().
+ *  This function must be called after the player constructor and after
+ *  the configuration file and command-line configuration overrides.
  */
 
 bool
-player::setup ()
+player::launch (clientinfo & ci)
 {
-    bool result = create_master_bus();      /* creates m_master_bus         */
+    // TODO: ci is the global, but why not initialized?????
+
+    bool result = create_master_bus(ci);
     if (result)
     {
         result = init_transport();
         if (result)
-        {
-            midi::clientinfo & ci = midi::global_client_info();
             result = m_master_bus->engine_initialize(ci);       /* note [1] */
-        }
     }
-    return result;
-}
-
-/**
- *  Calls the MIDI buss and JACK initialization functions and the input/output
- *  thread-launching functions.  This function is called in main().  We
- *  collected all the calls here as a simplification, and renamed it because
- *  it is more than just initialization.  This function must be called after
- *  the perform constructor and after the configuration file and command-line
- *  configuration overrides.  The original implementation, where the master
- *  buss was an object, was too inflexible to handle a JACK implementation.
- */
-
-bool
-player::launch ()
-{
-    bool result = setup();
     if (result)
     {
         result = activate();
@@ -689,7 +675,7 @@ player::launch ()
              * call stack of create_master_bus().
              */
 
-#if defined USE_MASTER_BUS
+#if defined USE_MASTER_BUS_PORTMAP
 
             /*
              * Not defined in the base class yet.
@@ -899,7 +885,13 @@ player::finish ()
 bool
 player::activate ()
 {
+    /*
+     * Currently just returns true (see midi_api::engine_activate().
+     */
+
     bool result = m_master_bus && m_master_bus->engine_activate();
+    if (result)
+        result = m_master_bus->activate();
 
 #if defined RTL66_BUILD_JACK_ACTIVATE_HERE // init_jack_transport() instead
     if (result)
@@ -941,8 +933,6 @@ player::set_tick (midi::pulse tick, bool dontreset)
  *      tick.
  */
 
-// MOVE JACK STUFF INTO JACK_TRANSPORT_INFO
-// MOVE JACK STUFF INTO JACK_TRANSPORT_INFO
 // MOVE JACK STUFF INTO JACK_TRANSPORT_INFO
 
 void

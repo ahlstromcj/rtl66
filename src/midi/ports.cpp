@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2024-06-12
+ * \updates       2025-08-17
  * \license       See above.
  *
  * Classes defined:
@@ -65,15 +65,9 @@ namespace midi
  *------------------------------------------------------------------------*/
 
 /**
- *  Default constructor.  Instantiated just for visibility.
+ *  Default constructor is declared and its members initialized in the
+ *  declaration.
  */
-
-ports::ports () :
-    m_port_count        (0),
-    m_port_container    ()
-{
-    // Empty body
-}
 
 /**
  *  Add a port to the container.

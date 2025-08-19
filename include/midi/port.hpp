@@ -68,8 +68,8 @@ is_null_system_port_id (uint32_t portid)
  *  Constants for a common usage. See port::io below.
  */
 
-const int input_port_index { 0 };
-const int output_port_index { 1 };
+const int c_input_port_index { 0 };
+const int c_output_port_index { 1 };
 
 /**
  *  A structure for hold basic information about a single (MIDI) port.
@@ -97,7 +97,7 @@ public:
     {
         input,          /**< The port is an input MIDI port.                */
         output,         /**< The port is an output MIDI port.               */
-        duplex,         /**< Input/output port, or covering the engine.     */
+        duplex,         /**< Input or output port.                          */
         engine,         /**< The port can be used by midi::masterbus.       */
         dummy           /**< Use by the midi_dummy class                    */
     };

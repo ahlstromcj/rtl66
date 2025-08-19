@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05        (seq66::midi_port_info)
- * \updates       2025-08-10
+ * \updates       2025-08-17
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -92,7 +92,7 @@ private:
      *  false to indicate that the mapping will not be used.
      */
 
-    bool m_is_active;
+    bool m_is_active { false };
 
 #else
     using container = std::vector<midi::port>;
@@ -102,17 +102,26 @@ private:
      *  Holds the number of ports counted.
      */
 
-    int m_port_count;
+    int m_port_count { 0 };
+
+    /**
+     *  Indicates the kind of ports: input, output, or both.
+     *  Used in lookups such as get_all_port_info() in the
+     *  clientinfo class. The dummy value effectively disables
+     *  the port list.
+     */
+
+    port::io m_port_io_types { port::io::dummy };
 
     /**
      *  Holds information on all of the ports that were "scanned".
      */
 
-    container m_port_container;
+    container m_port_container { };
 
 public:
 
-    ports ();
+    ports () = default;
     ports (const ports &) = default;
     ports (ports &&) = default;
     ports & operator = (const ports &) = default;
@@ -151,6 +160,38 @@ public:
     int get_port_count () const
     {
         return m_port_count;
+    }
+
+    port::io port_io_types () const
+    {
+        return m_port_io_types;
+    }
+
+    void port_io_types (port::io iotype)
+    {
+        m_port_io_types = iotype;
+    }
+
+    /*
+     * The next functions are similar to these functions in midiapi, except
+     * that they apply to this whole list instead of a single port.
+     */
+
+    bool are_input () const
+    {
+        return m_port_io_types == midi::port::io::input ||
+            m_port_io_types == midi::port::io::duplex;
+    }
+
+    bool are_output () const
+    {
+        return m_port_io_types == midi::port::io::output ||
+            m_port_io_types == midi::port::io::duplex;
+    }
+
+    bool are_duplex () const
+    {
+        return m_port_io_types == midi::port::io::duplex;
     }
 
     midi::bussbyte get_port_index (int bussnumber, int port) const;

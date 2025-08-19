@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-08-13
+ * \updates       2025-08-18
  * \license       GNU GPLv2 or above
  *
  *  The busarray module defines the busarray and busarray classes so that we
@@ -79,8 +79,10 @@ public:
     busarray & operator = (const busarray &) = default;
     ~busarray ();
 
-    bool add (midi::bus * b, midi::clocking clock);
+    bool add (midi::bus * b);
+#if 0
     bool add (midi::bus * b, bool inputing);
+#endif
     bool initialize ();
     int count () const;
     bool bus_valid (midi::bussbyte b) const;

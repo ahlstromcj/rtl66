@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-06-25
- * \updates       2023-07-19
+ * \updates       2025-08-16
  * \license       See above.
  *
  *      Tests that the C API for rtl (RtMidi refactored) is working.
@@ -66,13 +66,32 @@ main (int argc, char * argv [])
         try
         {
             /*
-             * Call function to select port.
+             * Call function to select port. It also ends up opening the
+             * port.
              */
 
             rtl::rtmidi_out midiout(rtl::rtmidi::desired_api());
             if (! rt_virtual_test_port())
             {
-                can_run = rt_choose_output_port(midiout);
+                /*
+                 * if (rt_test_port() == (-1))
+                 */
+
+                if (! rt_test_port_valid(rt_test_port()))
+                {
+                    /*
+                     * Compare this setup to that in the play application.
+                     * The function here calls choose_midi_port(), which
+                     * calls rt_choose_port_number and then open_port().
+                     */
+
+                    can_run = rt_choose_output_port(midiout);
+                }
+                else
+                {
+                    int portnumber = rt_test_port();
+                    can_run = midiout.open_port(portnumber);
+                }
             }
             if (can_run)
             {

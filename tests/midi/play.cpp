@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-08-08
+ * \updates       2025-08-18
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -54,7 +54,7 @@
  *  Client info
  */
 
-midi::client_defaults s_clientinfo_defaults =
+midi::client_defaults s_clientinfo_defaults
 {
     RTL66_VERSION,                      /* API version                      */
     "playclient",                       /* client name                      */
@@ -74,13 +74,17 @@ midi::client_defaults s_clientinfo_defaults =
     0                                   /* output port number               */
 };
 
-static const midi::clientinfo s_clientinfo(s_clientinfo_defaults);
+/**
+ *  The port-numbers can be changed, so this item is not const.
+ */
+
+static /* const */ midi::clientinfo s_clientinfo { s_clientinfo_defaults };
 
 /**
  *  Tests of MIDI file parsing and writing for various files.
  */
 
-static const std::string s_base_directory{"tests/data/midi"};
+static const std::string s_base_directory { "tests/data/midi" };
 static const lib66::tokenization s_test_files
 {
     "1Bar-export.mid",                      /* a simple standard MIDI file  */
@@ -97,7 +101,7 @@ static const lib66::tokenization s_test_files
 static
 bool play_it (midi::player & p, std::string & errmsg)
 {
-    bool result = p.simple_play();
+    bool result { p.simple_play() };
     if (! result)
     {
         if (p.error_pending())
@@ -114,11 +118,11 @@ static
 bool play_test (midi::player & p, const std::string & file)
 {
     std::string errmsg;
-    std::string testfile{s_base_directory};
+    std::string testfile { s_base_directory };
     testfile += "/";
     testfile += file;
 
-    bool result = p.read_midi_file(testfile, errmsg, false);
+    bool result { p.read_midi_file(testfile, errmsg, false) };
     if (result)
     {
         result = play_it(p, errmsg);
@@ -157,24 +161,41 @@ bool play_test (midi::player & p, const std::string & file)
 int
 main (int argc, char * argv [])
 {
-    int rcode = EXIT_FAILURE;
-    int out_port = (-1);
-    bool can_run = rt_simple_cli("play", argc, argv);
+    int rcode { EXIT_FAILURE };
+    int out_port = { s_clientinfo.output_portnumber() };    /* --port p     */
+    bool can_run = { rt_simple_cli("play", argc, argv) };
+    cfg::set_client_name("play");
     if (can_run)
     {
-        if (rt_test_port_valid(rt_test_port()))
+        if (! rt_virtual_test_port())
         {
-            out_port = rt_test_port();              /* the --port option    */
+            if (rt_test_port_valid(rt_test_port()))
+            {
+                out_port = rt_test_port();                  /* --port p     */
+                // can_run = midiout.open_port(outport);
+            }
+            else
+            {
+                /*
+                 * Compare this to the midiout test application, which uses
+                 * rt_choose_output_port(midiout), where midiout is
+                 * an rtl::rtmidi_out object that is directly opened
+                 * and used in the midiout test.
+                 */
+
+                out_port = rt_choose_port_number();     /* output port #    */
+            }
         }
-        else
+        can_run = rt_test_port_valid(out_port);
+        if (can_run)
         {
-            out_port = rt_choose_port_number();     /* choose output port # */
-            can_run = rt_test_port_valid(out_port);
+            set_rt_test_port(out_port);                 /* port of interest */
+            s_clientinfo.output_portnumber(out_port);
         }
     }
+#if 0
     if (can_run)
     {
-        cfg::set_client_name("play");
         try
         {
             /*
@@ -206,60 +227,70 @@ main (int argc, char * argv [])
 
                     std::string plist = cinfo.port_list();
                     std::cout << tag << ":\n" << plist << std::endl;
-                }
-            }
-            if (can_run)
-            {
-                /*
-                 * Later we will add the PPQN and BPM parameters.
-                 */
 
-                can_run = midi::init_global_client_info(s_clientinfo);
-
-                /*
-                 * This function:
-                 *
-                 *  -   Creates the player's masterbus, which fills its
-                 *      clientinfo member with port data via engine_query().
-                 *      BUT what about all other members of clientinfo (e.g.
-                 *      ppqn, bpm)?
-                 *  -   Initializes JACK transport optionally.
-                 *  -   calls masterbus::engine_initialize() which uses
-                 *      data from transport/info, some of which is also in
-                 *      clientinfo. Sets PPQN and BPM.
-                 *  -   Activates the masterbus and maybe JACK transport.
-                 *  -   Launches the I/O threads.
-                 *
-                 *  TODO: verify the track-list.
-                 */
-
-                if (can_run)
-                {
-                    midi::player p(out_port);
-                    can_run = p.launch();
-                    if (can_run)
-                    {
-                        std::string tag =
-                            rtl::rtmidi::selected_api_display_name();
-
-                        std::cout << "Running with " << tag << std::endl;
-                        rcode = EXIT_SUCCESS;
-                        for (const auto & file : s_test_files)
-                        {
-                            bool success = play_test(p, file);
-                            if (! success)
-                            {
-                                rcode = EXIT_FAILURE;
-                                break;
-                            }
-                        }
-                    }
+                    rtl::rtmidi_out midiout(rtl::rtmidi::desired_api());
+                    if (rt_test_port() == (-1))
+                        can_run = rt_choose_output_port(midiout);
                 }
             }
         }
         catch (rtl::rterror & error)
         {
             exit(EXIT_FAILURE);     // error.print_message();
+        }
+    }
+#endif
+    if (can_run)
+    {
+        /*
+         * Later we will add the PPQN and BPM parameters.
+         */
+
+        can_run = midi::set_global_client_info(s_clientinfo);
+
+        /*
+         * This function:
+         *
+         *  -   Creates the player's masterbus, which fills its
+         *      clientinfo member with port data via engine_query().
+         *      BUT what about all other members of clientinfo (e.g.
+         *      ppqn, bpm)?
+         *  -   Initializes JACK transport optionally.
+         *  -   calls masterbus::engine_initialize() which uses
+         *      data from transport/info, some of which is also in
+         *      clientinfo. Sets PPQN and BPM.
+         *  -   Activates the masterbus and maybe JACK transport.
+         *  -   Launches the I/O threads.
+         *
+         *  TODO: make sure the port is opened somewhere along
+         *        the line.
+         *  TODO: verify the track-list.
+         */
+
+        if (can_run)
+        {
+            midi::clientinfo & ci { midi::global_client_info() };
+            midi::player p { rt_test_port() };
+            ci.output_portnumber(rt_test_port());
+            can_run = p.launch();
+            if (can_run)
+            {
+                std::string tag
+                {
+                    rtl::rtmidi::selected_api_display_name()
+                };
+                std::cout << "Running with " << tag << std::endl;
+                rcode = EXIT_SUCCESS;
+                for (const auto & file : s_test_files)
+                {
+                    bool success { play_test(p, file) };
+                    if (! success)
+                    {
+                        rcode = EXIT_FAILURE;
+                        break;
+                    }
+                }
+            }
         }
     }
     return rcode;

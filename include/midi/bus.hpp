@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-08-13
+ * \updates       2025-08-18
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -155,14 +155,6 @@ private:
      */
 
     masterbus & m_master_bus;
-
-#if 0
-    /**
-     *  Holds the midi_api pointer for quicker access.
-     */
-
-    rtl::midi_api * m_midi_api_ptr;
-#endif
 
     /**
      *  Set to true if the bus has been successfully initialized.
@@ -326,11 +318,7 @@ public:
 
 #endif
 
-    void get_port_items
-    (
-        midi::clientinfo::pointer mip,
-        port::io iotype
-    );
+    void get_port_items (port::io iotype);
 
     masterbus & master_bus ()
     {
@@ -353,7 +341,7 @@ public:
      * ----------------------------------------------------------------------
      */
 
-    bool initialize ()                      /* TODO  VIRTUAL? */  
+    /*virtual*/ bool initialize ()
     {
         m_initialized = true;
         return true;
@@ -727,10 +715,7 @@ protected:
 
     rtl::midi_api * midi_api_ptr ();
     const rtl::midi_api * midi_api_ptr () const;
-
-#if 0
-    void set_midi_api_ptr (rtl::midi_api * rmap);
-#endif
+//  void set_midi_api_ptr (rtl::midi_api * rmap);
 
 };          // class bus
 

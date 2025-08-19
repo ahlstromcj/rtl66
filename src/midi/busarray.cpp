@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-08-15
+ * \updates       2025-08-18
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -82,10 +82,12 @@ public:
 
     /**
      *  This container takes ownership of the pointer provided by the
-     *  caller. We need to be careful of lifetimes here.
+     *  caller. We need to be careful of lifetimes here. Also note
+     *  that the bus will already have gotten its data from the
+     *  masterbus.
      */
 
-    bool add (midi::bus * b, midi::clocking /*clk*/)
+    bool add (midi::bus * b)
     {
         bool result = not_nullptr(b);
         if (result)
@@ -275,19 +277,18 @@ busarray::~busarray ()
  * \param b
  *      The midi::bus to be hooked into the array of busses.
  *
- * \param clock
- *      The clocking value for the bus.
- *
  * \return
  *      Returns true if the bus was added successfully, though, really, it
  *      cannot fail.
  */
 
 bool
-busarray::add (midi::bus * b, clocking c)
+busarray::add (midi::bus * b)
 {
-    return p_impl->add(b, c);
+    return p_impl->add(b);
 }
+
+#if 0
 
 /**
  *  Adds a new midi::bus object to the list.  Then the inputing value
@@ -317,6 +318,8 @@ busarray::add (midi::bus * b, bool inputing)
     clocking c = bool_to_clocking(inputing);
     return add(b, c);
 }
+
+#endif
 
 int
 busarray::client_id (midi::bussbyte b)

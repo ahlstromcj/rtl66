@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2025-08-15
+ * \updates       2025-08-18
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -113,14 +113,15 @@ namespace midi
 struct client_defaults
 {
     /**
-     *  Provides the rtl (not RtMidi) API version string.
+     *  Provides the rtl (not RtMidi) API version string or the MIDI
+     *  engine API version, if available.
      */
 
     std::string cd_api_version { RTL66_VERSION };
 
     /**
-     *  Provides the name of the client for display in a JACK connection graph
-     *  (for example).  Examples are "seq66" or "seq66v2".
+     *  Provides the name of the client application for display in a JACK
+     *  connection graph (for example). Examples are "seq66" or "seq66v2".
      */
 
     std::string cd_client_name { "rtl66" };
@@ -154,7 +155,7 @@ struct client_defaults
      *  already existing in the system.  Cannot be used by virtual ports.
      */
 
-    bool cd_auto_connect { false };
+    bool cd_auto_connect { true };
 
     /**
      *  Always false until this feature is complete.
@@ -221,9 +222,10 @@ struct client_defaults
 class clientinfo
 {
 
+#if 0
 public:
-
     using pointer = std::shared_ptr<clientinfo>;
+#endif
 
 private:
 
@@ -523,8 +525,9 @@ public:
 
     void clear ()
     {
-        m_io_ports[midi::input_port_index].clear();
-        m_io_ports[midi::output_port_index].clear();
+        m_io_ports[midi::c_input_port_index].clear();
+        m_io_ports[midi::c_output_port_index].clear();
+        ports_queried(false);
     }
 
     bool empty () const
@@ -617,8 +620,8 @@ protected:
     int element (port::io iotype) const
     {
         int result = io_to_int(iotype);
-        if (result > midi::output_port_index)
-            result = midi::input_port_index;        /* for safety reasons   */
+        if (result > midi::c_output_port_index)
+            result = midi::c_input_port_index;        /* for safety reasons   */
 
         return result;
     }
@@ -644,7 +647,7 @@ extern bool get_global_port_info
 (
     rtl::rtmidi::api rapi = rtl::rtmidi::api::unspecified
 );
-extern bool init_global_client_info (const clientinfo & ci);
+extern bool set_global_client_info (const clientinfo & ci);
 extern bool get_global_client_info (clientinfo & ci);
 extern bool get_all_port_info
 (

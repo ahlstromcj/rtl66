@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-08-14
+ * \updates       2025-08-18
  * \license       See above.
  *
  */
@@ -57,16 +57,10 @@ main (int argc, char * argv [])
              * for each port.
              */
 
-            midi::clientinfo ci;
-            if (mb.get_client_info(ci))
+            if (mb.engine_initialize())
             {
-                if (mb.engine_initialize(ci))
-                {
-                    std::string portlist = mb.port_listing();
-                    std::cout << portlist;
-                }
-                else
-                    return EXIT_FAILURE;
+                std::string portlist = mb.port_listing();
+                std::cout << portlist;
             }
             else
                 return EXIT_FAILURE;

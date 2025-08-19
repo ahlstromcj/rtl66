@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-15
+ * \updates       2025-08-16
  * \license       See above.
  *
  * To do:
@@ -458,13 +458,13 @@ midi_alsa_handler (void * ptr)
  * get_port_info() and related functions
  *------------------------------------------------------------------------*/
 
-static const unsigned sm_input_caps =
+static const unsigned sm_input_caps =                           /* 0x21     */
     SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ;
 
-static const unsigned sm_output_caps =
+static const unsigned sm_output_caps =                          /* 0x42     */
     SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE;
 
-static const unsigned sm_generic_caps =
+static const unsigned sm_generic_caps =                         /* 0x100002 */
     SND_SEQ_PORT_TYPE_MIDI_GENERIC | SND_SEQ_PORT_TYPE_APPLICATION;
 
 /*------------------------------------------------------------------------
@@ -713,7 +713,7 @@ get_port_info
 
 midi_alsa::midi_alsa () :
     midi_api        (),
-    m_client_name   (),
+    m_client_name   ("rtl-alsa"),
     m_alsa_data     ()
 {
     (void) initialize(client_name());
@@ -1633,7 +1633,7 @@ midi_alsa::send_message (const midi::byte * message, size_t sz)
         snd_seq_ev_set_source(&ev, apidata->vport());
         snd_seq_ev_set_subs(&ev);
         snd_seq_ev_set_direct(&ev);
-        int rc = snd_midi_event_encode
+        long rc = snd_midi_event_encode
         (
             apidata->event_parser(), apidata->buffer() + offset,
             long(nbytes - offset), &ev
@@ -1657,8 +1657,9 @@ midi_alsa::send_message (const midi::byte * message, size_t sz)
             return false;
         }
         offset += rc;
-        rc = snd_seq_event_output(apidata->alsa_client(), &ev);     /* send */
-        if (rc < 0)
+
+        int ec = snd_seq_event_output(apidata->alsa_client(), &ev);
+        if (ec < 0)
         {
             error
             (
@@ -1677,11 +1678,7 @@ midi_alsa::send_message (const midi::byte * message, size_t sz)
  *------------------------------------------------------------------------*/
 
 /**
- *  It gets information on ALL ports, putting input data into one
- *  midi::clientinfo container, and putting output data into another
- *  midi::clientinfo container.  This function is not present in the original
- *  RtMidi library.
- *
+ *  It gets information on all ports of either input or output type.
  *  This function requires that the MIDI engine client already exist [via
  *  the connect() function].
  *
@@ -1690,9 +1687,11 @@ midi_alsa::send_message (const midi::byte * message, size_t sz)
  *      ports, we want to find all ports with "write" capabilities, such as
  *      FluidSynth.
  *
- * \param [out] ioports
+ * \param [inout] ioports
  *      The list of ports to populate. It will either be a list of input ports
- *      (readable ports) or a list of ouput ports (writeable ports).
+ *      (readable ports) or a list of output ports (writeable ports). Duplex
+ *      ports are both. See the ports::port_io_types() function to determine
+ *      the status.
  *
  * \param preclear
  *      If true (the default), then clear the ports parameter first. This is
@@ -1713,15 +1712,24 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
     if (preclear)
         ioports.clear();
 
+
     if (not_nullptr(seq))
     {
-        bool iswriteable { is_output() };
+        bool iswriteable { is_output() };           /* a midi_api function  */
         midi::port::io iotype
         {
             iswriteable ? midi::port::io::output : midi::port::io::input
         };
         snd_seq_port_info_t * pinfo;
         snd_seq_client_info_t * cinfo;
+
+        bool match { iswriteable && ioports.are_output() };
+        if (! match)
+            match = ! iswriteable && ioports.are_input();
+
+        if (! match)
+            return 0;
+
         snd_seq_client_info_alloca(&cinfo);
         snd_seq_client_info_set_client(cinfo, -1);
         while (snd_seq_query_next_client(seq, cinfo) >= 0)
@@ -1775,8 +1783,8 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                     continue;
 
                 bool can_add = iswriteable ?
-                    (caps & sm_output_caps) == sm_output_caps :
-                    (caps & sm_input_caps) == sm_input_caps ;
+                    (caps & sm_output_caps) == sm_output_caps :     /* 0x42 */
+                    (caps & sm_input_caps) == sm_input_caps ;       /* 0x21 */
 
 #if defined PLATFORM_DEBUG_TMI
                 std::string s = alsa_port_capabilities(caps);

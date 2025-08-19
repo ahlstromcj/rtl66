@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-15
+ * \updates       2025-08-18
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -170,24 +170,23 @@ masterbus::masterbus
 bool
 masterbus::client_info_reset ()
 {
-    const clientinfo & ci { global_client_info() };
+    clientinfo & ci { global_client_info() };
     return client_info_reset(ci);
 }
 
 bool
-masterbus::client_info_reset (const clientinfo & cinfo)
+masterbus::client_info_reset (clientinfo & cinfo)
 {
-    if (! m_client_info)
-        m_client_info.reset(new midi::clientinfo());
+    m_client_info = cinfo;
 
-    bool result = bool(m_client_info);
+    bool result = engine_query();
     if (result)
-    {
-        *m_client_info = cinfo;
-        result = engine_query();
-    }
+        cinfo = m_client_info;                      /* return to the caller */
+
     return result;
 }
+
+#if 0
 
 /**
  *  Grabs the current status of the masterbus::info member.
@@ -209,6 +208,8 @@ masterbus::get_client_info (clientinfo & cinfo)
 
     return result;
 }
+
+#endif
 
 /**
  *  Create the I/O info objects as necessary. Calling this function means
@@ -237,23 +238,17 @@ masterbus::get_client_info (clientinfo & cinfo)
 bool
 masterbus::engine_query ()
 {
-    if (! m_client_info)
-        m_client_info.reset(new midi::clientinfo(midi::port::io::duplex));
-
-    bool result = bool(client_info_ptr());
+    bool result = get_all_port_info(client_info(), selected_api());
     if (result)
     {
-        result = get_all_port_info(*client_info_ptr(), selected_api());
-        if (result)
-        {
 #if defined PLATFORM_DEBUG
-            std::string msg = client_info_ptr()->to_string("engine_query()");
-            infoprint(msg.c_str());
+        std::string msg = client_info().to_string("engine_query()");
+        infoprint(msg.c_str());
 #endif
-        }
-        else
-            errprint("get_all_port_info() failed");
     }
+    else
+        errprint("get_all_port_info() failed");
+
     return result;
 }
 
@@ -883,17 +878,14 @@ std::string
 masterbus::port_listing () const
 {
     std::string result;
-    if (client_info_ptr())
+    if (client_info().empty())
     {
-        if (client_info_ptr()->empty())
-        {
-            result = "\nPorts: none\n";
-        }
-        else
-        {
-            result = client_info_ptr()->port_list();
-            result += "\n";
-        }
+        result = "\nPorts: none\n";
+    }
+    else
+    {
+        result = client_info().port_list();
+        result += "\n";
     }
     return result;
 }
@@ -952,7 +944,7 @@ masterbus::engine_initialize ()
 {
     bool result = client_info_reset();
     if (result)
-        result = engine_initialize(*m_client_info);
+        result = engine_initialize(m_client_info);
 
     return result;
 }
@@ -1005,10 +997,9 @@ masterbus::engine_initialize (const clientinfo & ci)
                 for (int p = 0; p < pcount; ++p)
                 {
                     midi::bus * b = make_bus(p, iotype);
-                    clocking clk { ci.get_port_status(iotype, p) };
                     if (not_nullptr(b))
                     {
-                        bool ok = busarray_1.add(b, clk);
+                        bool ok = busarray_1.add(b);
                         if (! ok)
                         {
                             result = false;
@@ -1030,10 +1021,9 @@ masterbus::engine_initialize (const clientinfo & ci)
                 for (int p = 0; p < pcount; ++p)
                 {
                     midi::bus * b = make_bus(p, iotype);
-                    clocking clk { ci.get_port_status(iotype, p) };
                     if (not_nullptr(b))
                     {
-                        bool ok = busarray_2.add(b, clk);
+                        bool ok = busarray_2.add(b);
                         if (! ok)
                         {
                             result = false;

@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-08-11
+ * \updates       2025-08-18
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -140,10 +140,10 @@ bus::bus
 {
     if (iotype == midi::port::io::input || iotype == midi::port::io::output)
     {
-        masterbus::info ciptr { master_bus().client_info_ptr() };
-        if (ciptr)
+        masterbus::info & ci { master_bus().client_info() };
+        if (ci.ports_queried())
         {
-            const midi::ports & portlist { ciptr->io_ports(iotype) };
+            const midi::ports & portlist { ci.io_ports(iotype) };
             const midi::port & p = portlist.portref(index);
             m_port = p;
 #if defined PLATFORM_DEBUG   // TODO add clocking
@@ -177,6 +177,14 @@ bus::~bus()
     // empty body
 }
 
+/**
+ *  Note that the bus_in object can get this pointer from its
+ *  rtmidi_in object.
+ *
+ *  And Note that the bus_out object can get this pointer from its
+ *  rtmidi_out object.
+ */
+
 rtl::midi_api *
 bus::midi_api_ptr ()
 {
@@ -190,23 +198,22 @@ bus::midi_api_ptr () const
 }
 
 /**
- *  Retrieve MIDI I/O setting from a clientinfo pointer, assumed to be
+ *  Retrieve MIDI I/O setting from a clientinfo object, assumed to be
  *  properly filled already.
+ *
+ *  We could test using clientinfo::ports_queried().
  */
 
 void
-bus::get_port_items (clientinfo::pointer mip, midi::port::io iotype)
+bus::get_port_items (midi::port::io iotype)
 {
-    if (mip)
+    const masterbus::info & ci { master_bus().client_info() };
+    if (ci.ports_queried())
     {
-        masterbus::info ciptr { master_bus().client_info_ptr() };
-        if (ciptr)
-        {
-            int index = m_bus_index;
-            const midi::ports & portlist { ciptr->io_ports(iotype) };
-            const midi::port & p = portlist.portref(index);
-            m_port = p;
-        }
+        int index = m_bus_index;
+        const midi::ports & portlist { ci.io_ports(iotype) };
+        const midi::port & p { portlist.portref(index) };
+        m_port = p;
     }
 }
 

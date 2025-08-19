@@ -1,0 +1,104 @@
+Master Bus Current Processing
+Chris Ahlstrom
+2025-08-19 to 2025-08-19
+
+To try to slim down the code in the play test MIDI application, let us
+see what happens at the present time.
+
+a.  rt_choose_port_number (output)
+        rtmidi_out(alsa, "")
+            open_midi_api(alsa, "")
+                try_open_midi_api(alsa, output, "", 0)
+                    midi_alsa(output, "", 0)
+                        initialize("")
+                            connect()
+                                engine_connect()
+                                    ::snd_seq_open()
+                                
+
+    < here the user picks the output port >
+
+        ~rtmidi_out()
+            ~rtmidi()
+                delete_rt_api_ptr()
+                    ~midi_alsa()
+                        delete_port()
+                            close_port()            < here, no port open >
+                            engine_disconnect()
+                                ::snd_seq_close()
+
+b.  player::launch()
+        create_master_bus (clientinfo)              < includes client name >
+            find_midi_api(alsa, "")
+                try_open_midi_api(alsa, output, "", 0)
+                    midi_alsa(output, "", 0)
+                        initialize("")
+                            connect()
+                                engine_connect()
+                                    ::snd_seq_open()
+
+    < here, the pointer created to find the API is deleted >
+
+                ~midi_alsa()
+                    delete_port()
+                        close_port()                < here, no port open >
+                        engine_disconnect()
+                            ::snd_seq_close()
+
+c.         rtmidi_engine(mbus, alsa)
+                open_midi_api(alsa, "")
+                    try_open_midi_api(alsa, output, "", 0)
+                        midi_alsa(output, "", 0)
+                            initialize("")
+                                connect()
+                                    engine_connect()
+                                        ::snd_seq_open()
+
+d.  player::launch()
+        create_master_bus (clientinfo)              < includes client name >
+            client_info_reset(clientinfo)
+                masterbus::engine_query()
+                    rtmidi_in(alsa, "", 100)
+                        open_midi_api(alsa, "")
+                            try_open_midi_api(alsa, input, "", 0)
+                                midi_alsa(output, "", 0)
+                                    initialize("")
+                                        connect()
+                                            engine_connect()
+                                                ::snd_seq_open()
+                    rtmidi_out(alsa, "", 100)
+                        open_midi_api(alsa, "")
+                            try_open_midi_api(alsa, output, "", 0)
+                                midi_alsa(output, "", 0)
+                                    initialize("")
+                                        connect()
+                                            engine_connect()
+                                                ::snd_seq_open()
+
+        ~rtmidi_out()
+            ~rtmidi()
+                delete_rt_api_ptr()
+                    ~midi_alsa()
+                        delete_port()
+                            close_port()            < here, no port open >
+                            engine_disconnect()
+                                ::snd_seq_close()
+
+        ~rtmidi_in() < same as above >
+
+e.  player::launch()
+        masterbus::engine_initialize()
+            make_bus(0, input)
+                bus_in(0, 0)
+                    rtmidi_in(alsa, "playclient", 100)
+                        open_midi_api(alsa, "playclient", 100)
+                            try_open_midi_api(input, "playclient", 100)
+                                midi_alsa(input, "playclient", 100)
+                            
+    < same for each input port >
+    < similar for each output port >
+
+f.  At the end, all the items seem to be deleted and ::snd_seq_close()
+    called for them all.
+
+# vim: sw=4 ts=4 wm=8 et ft=sh

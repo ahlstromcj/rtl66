@@ -1,11 +1,10 @@
-TO DO for Rtl66 0.1
+TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-08-13
+2019-04-13 to 2025-08-18
 
 Hot:
 
-    -   1Bar.midi, if saved, the header indicates 1 track, and does not
-        count the last SeqSpec track.
+    -   ALSA: make sure snd_seq_open() is always matched by snd_seq_close().
 
 NSM:
 

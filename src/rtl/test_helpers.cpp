@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-08-05
+ * \updates       2025-08-17
  * \license       See above.
  *
  */
@@ -70,6 +70,14 @@ rt_test_sleep (int ms)
 }
 
 #endif
+
+/**
+ *  Note:
+ *
+ *      Once the port is chosen and is valid, the caller should then
+ *      call rt_test_port(result) or whatever is needed to make the
+ *      port number official.
+ */
 
 int
 rt_choose_port_number (bool isoutput)
@@ -128,7 +136,7 @@ rt_choose_port_number (bool isoutput)
                     std::cout << _("Choose a port number") << ": ";
                     std::cin >> p;
 
-                } while (p >= portcount);
+                } while (p < 0 || p >= portcount);
                 result = p;
 
                 /*
@@ -174,24 +182,39 @@ choose_midi_port (RTMIDI_TYPE & rt, bool isoutput)
     }
     else
     {
-        int portnumber = rt_choose_port_number(isoutput);
-        result = portnumber >= 0;
+        int portno = rt_choose_port_number(isoutput);
+        result = portno >= 0;
         if (result)
-            result = rt.open_port(portnumber);
+        {
+            if (isoutput)
+                set_rt_test_port_out(portno);
+            else
+                set_rt_test_port_in(portno);
+
+            result = rt.open_port(portno);
+        }
     }
     return result;
 }
 
+/**
+ *  This function also sets s_test_port_in.
+ */
+
 bool
 rt_choose_input_port (rtl::rtmidi_in & rtin)
 {
-    return choose_midi_port<rtl::rtmidi_in>(rtin, false);  /* input   */
+    return choose_midi_port<rtl::rtmidi_in>(rtin, false);  /* input        */
 }
+
+/**
+ *  This function also sets s_test_port_out.
+ */
 
 bool
 rt_choose_output_port (rtl::rtmidi_out & rtout)
 {
-    return choose_midi_port<rtl::rtmidi_out>(rtout, true); /* output */
+    return choose_midi_port<rtl::rtmidi_out>(rtout, true);  /* output       */
 }
 
 /**
@@ -263,6 +286,11 @@ rt_virtual_test_port ()
 
 /**
  *  Specifies the test port (where applicable).
+ *
+ *      -   s_test_port. This is the main port number for the application,
+ *          whether it is an input or output port.
+ *      -   s_test_port_in. Provides the input port for a two-way test.
+ *      -   s_test_port_out. Provides the output port for a two-way test.
  */
 
 static int s_test_port = (-1);
@@ -284,10 +312,10 @@ string_to_int (const std::string & s)
     return result;
 }
 
-static void
-set_test_port (int portnumber)
+void
+set_rt_test_port (int portno)
 {
-    s_test_port = portnumber;
+    s_test_port = portno;
 }
 
 int
@@ -296,11 +324,11 @@ rt_test_port ()
     return s_test_port;
 }
 
-static void
-set_test_port_in (int portnumber)
+void
+set_rt_test_port_in (int portno)
 {
-    s_test_port_in = portnumber;
-    midi::global_client_info().input_portnumber(portnumber);
+    s_test_port_in = portno;
+    midi::global_client_info().input_portnumber(portno);
 }
 
 int
@@ -309,11 +337,11 @@ rt_test_port_in ()
     return s_test_port_in;
 }
 
-static void
-set_test_port_out (int portnumber)
+void
+set_rt_test_port_out (int portno)
 {
-    s_test_port_out = portnumber;
-    midi::global_client_info().output_portnumber(portnumber);
+    s_test_port_out = portno;
+    midi::global_client_info().output_portnumber(portno);
 }
 
 int
@@ -334,8 +362,8 @@ rt_test_port_valid (int port)
 
 static std::string s_test_port_name;                    /* empty to start   */
 
-static void
-set_test_port_name (const std::string & portname)
+void
+set_rt_test_port_name (const std::string & portname)
 {
     s_test_port_name = portname;
 }
@@ -353,7 +381,7 @@ rt_test_port_name ()
 static int s_test_data_length = (-1);
 
 void
-set_test_data_length (int len)
+set_rt_test_data_length (int len)
 {
     s_test_data_length = len;
 }
@@ -389,10 +417,10 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
 {
     bool can_run = true;
     rtl::rtmidi::api rapi = rtl::rtmidi::api::unspecified;
-    set_test_port(-1);
-    set_test_port_in(-1);
-    set_test_port_out(-1);
-    set_test_port_name("");
+    set_rt_test_port(-1);
+    set_rt_test_port_in(-1);
+    set_rt_test_port_out(-1);
+    set_rt_test_port_name("");
     std::cout << "Application: '" << appname << "'" << std::endl;
     midi::global_client_info().app_name(appname);
     for (int i = 1; i < argc; ++i)
@@ -492,7 +520,7 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
             {
                 std::string value = std::string(argv[i + 1]);
                 int v = string_to_int(value);
-                set_test_data_length(v);
+                set_rt_test_data_length(v);
             }
         }
         else if (arg == "--port")
@@ -501,7 +529,7 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
             {
                 std::string value = std::string(argv[i + 1]);
                 int v = string_to_int(value);
-                set_test_port(v);
+                set_rt_test_port(v);
             }
         }
         else if (arg == "--port-in")
@@ -510,7 +538,7 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
             {
                 std::string value = std::string(argv[i + 1]);
                 int v = string_to_int(value);
-                set_test_port_in(v);
+                set_rt_test_port_in(v);
             }
         }
         else if (arg == "--port-out")
@@ -519,7 +547,7 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
             {
                 std::string value = std::string(argv[i + 1]);
                 int v = string_to_int(value);
-                set_test_port_out(v);
+                set_rt_test_port_out(v);
             }
         }
         else if (arg == "--port-name")
@@ -527,7 +555,7 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
             if (i + 1 < argc)
             {
                 std::string value = std::string(argv[i + 1]);
-                set_test_port_name(value);
+                set_rt_test_port_name(value);
             }
         }
     }

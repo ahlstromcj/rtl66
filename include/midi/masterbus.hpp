@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-14
+ * \updates       2025-08-18
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -85,7 +85,7 @@
 #include "rtl/rtl_build_macros.h"       /* RTL_DEFAULT_PPQN, _DEFAULT_BPM   */
 #include "rtl/rt_types.hpp"             /* rtl::rtmidi::api enum class      */
 #include "midi/busarray.hpp"            /* midi::busarray a la Seq66        */
-#include "midi/clientinfo.hpp"          /* midi::clientinfo::pointer        */
+#include "midi/clientinfo.hpp"          /* midi::clientinfo                 */
 #include "midi/clocking.hpp"            /* midi::clock::action enumertion   */
 #include "rtl/midi/rtmidi_engine.hpp"   /* rtl::rtmidi_engine class         */
 #include "xpc/recmutex.hpp"             /* xpc::recmutex                    */
@@ -112,6 +112,7 @@ namespace midi
 class masterbus
 {
     friend class player;
+    friend class track;
 
 public:
 
@@ -121,9 +122,12 @@ public:
      *  MIDI ports, a void pointer to a "MIDI handle", etc.
      *
      *      using info = std::unique_ptr<midi::clientinfo>;
+     *      using info = midi::clientinfo::pointer;    // shared_ptr<>
+     *
+     *  Do we need a pointer? No.
      */
 
-     using info = midi::clientinfo::pointer;    /* shared_ptr<> */
+     using info = midi::clientinfo;
 
 private:
 
@@ -220,10 +224,7 @@ private:
     int m_max_busses;
 
     /**
-     *  This is a midi::clientinfo::pointer (shared pointer).
-     *  But we might consider making it a plain pointer, owned
-     *  only by masterbus.
-     *
+     *  This is a midi::clientinfo object. No longer a pointer.
      *  Common code access for input and output, especially the MIDI
      *  client handles. If these are not null, that changes the original
      *  RtMidi API to handle our Seq66-style API. These items include
@@ -299,19 +300,21 @@ public:
      *  it cannot be a unique_ptr.
      */
 
-    info client_info_ptr ()
+    info & client_info ()
     {
         return m_client_info;
     }
 
-    const info client_info_ptr () const
+    const info & client_info () const
     {
         return m_client_info;
     }
 
+#if 0
     bool get_client_info (clientinfo & cinfo);
+#endif
     bool client_info_reset ();
-    bool client_info_reset (const clientinfo & cinfo);
+    bool client_info_reset (clientinfo & cinfo);
     std::string port_listing () const;
     void print () const;                    // redundant?
 
@@ -321,11 +324,7 @@ public:
 
     bool info_is_connected () const
     {
-        bool result = bool(m_client_info);
-        if (result)
-            result = m_client_info->is_connected();
-
-        return result;
+        return m_client_info.is_connected();
     }
 
     const midi::busarray & inbus_array () const

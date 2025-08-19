@@ -194,14 +194,14 @@ public:
 
     bool is_input () const
     {
-        return m_port_io_type == midi::port::io::input;
-            // || m_port_io_type == midi::port::io::duplex;
+        return m_port_io_type == midi::port::io::input ||
+            m_port_io_type == midi::port::io::duplex;
     }
 
     bool is_output () const
     {
-        return m_port_io_type == midi::port::io::output;
-            // || m_port_io_type == midi::port::io::duplex;
+        return m_port_io_type == midi::port::io::output ||
+            m_port_io_type == midi::port::io::duplex;
     }
 
     bool is_duplex () const
