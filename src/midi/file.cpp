@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-01-16
+ * \updates       2025-08-20
  * \license       GNU GPLv2 or above
  *
  *  A midi::file is file-header data plus the data in each of the tracks of
@@ -271,7 +271,7 @@ file::~file ()
  *
  * \param tag
  *      Basically an informative string to denote what kind of file is being
- *      opened, "MIDI" or "WRK".
+ *      opened, "MIDI" or "WRK". Or whatever you want.
  *
  * \return
  *      Returns true if the input stream was successfully opend on a good
@@ -850,7 +850,7 @@ read_midi_file
         {
             p.clear_all();                          /* see banner notes     */
             if (result)
-                result = mf->parse();               /* add a tag string?    */
+                result = mf->parse("Read");         /* add a tag string?    */
 
             if (result)
                 util::file_message("Read MIDI file", fn);

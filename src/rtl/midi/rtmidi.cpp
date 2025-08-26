@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-14
+ * \updates       2025-08-25
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -56,7 +56,7 @@ namespace rtl
 const std::string &
 get_rtl_midi_version () noexcept
 {
-    static std::string s_info = RTL66_NAME "-" RTL66_VERSION " " __DATE__ ;
+    static std::string s_info { RTL66_NAME "-" RTL66_VERSION " " __DATE__ };
     return s_info;
 }
 
@@ -68,7 +68,7 @@ get_rtl_midi_version () noexcept
 const std::string &
 get_rtmidi_version () noexcept
 {
-    static const std::string s_version = RTL66_RTMIDI_VERSION;
+    static const std::string s_version { RTL66_RTMIDI_VERSION };
     return s_version;
 }
 
@@ -81,56 +81,38 @@ get_rtmidi_version () noexcept
 const std::string &
 get_rtmidi_patch_version () noexcept
 {
-    static const std::string s_version = RTL66_RTMIDI_PATCHED;
+    static const std::string s_version { RTL66_RTMIDI_PATCHED };
     return s_version;
 }
 
 /*------------------------------------------------------------------------
- * rtl namespace static members
+ * rtl namespace rtmidi static members
  *------------------------------------------------------------------------*/
 
-/*------------------------------------------------------------------------
- * rtmidi static members
- *------------------------------------------------------------------------*/
+rtmidi::api rtmidi::sm_desired_api                      /* use fallback */
+{
+    rtmidi::api::unspecified
+};
+rtmidi::api rtmidi::sm_selected_api                     /* selected one */
+{
+    rtmidi::api::unspecified
+};
 
-rtmidi::api rtmidi::sm_desired_api  = rtmidi::api::unspecified; /* use fallback */
-rtmidi::api rtmidi::sm_selected_api = rtmidi::api::unspecified; /* selected one */
-
-/*------------------------------------------------------------------------
+/*--------------------------------------------------------------------------
  * rtmidi
- *------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------*/
 
-RTL66_DLL_PUBLIC
 rtmidi::rtmidi () :
-    m_rt_api_ptr  (nullptr)                         /* rt_api_ptr() access  */
+    m_rt_api_ptr        (),
+    m_master_api_ptr    (nullptr),
+    m_has_master        (false)
 {
     // No code
 }
 
-/*
- * Make sure these move functions are correct!!!
- */
-
-rtmidi::rtmidi (rtmidi && other) noexcept :
-    m_rt_api_ptr (other.m_rt_api_ptr)
+rtmidi::~rtmidi ()
 {
-    other.m_rt_api_ptr = nullptr;
-}
-
-rtmidi &
-rtmidi::operator = (rtmidi && other) noexcept
-{
-    if (this != &other)
-    {
-        m_rt_api_ptr = other.m_rt_api_ptr;
-        other.m_rt_api_ptr = nullptr;
-    }
-    return *this;
-}
-
-rtmidi::~rtmidi()
-{
-    delete_rt_api_ptr();
+    // No code
 }
 
 /**
@@ -141,23 +123,40 @@ rtmidi::~rtmidi()
 rtmidi::api
 rtmidi::get_current_api () noexcept
 {
-    return not_nullptr(rt_api_ptr()) ?
+    return rt_api_ptr() ?
         rt_api_ptr()->get_current_api() : rtmidi::api::unspecified ;
+}
+
+void
+rtmidi::rt_api_ptr (midi_api * p)
+{
+    m_rt_api_ptr.reset(p);
 }
 
 void
 rtmidi::delete_rt_api_ptr ()
 {
-    if (not_nullptr(m_rt_api_ptr))
-    {
-        delete m_rt_api_ptr;
-        m_rt_api_ptr = nullptr;
-    }
+    if (m_rt_api_ptr)
+        m_rt_api_ptr.reset();
 }
 
-/*------------------------------------------------------------------------
+void
+rtmidi::master_api_ptr (midi_api * p)
+{
+    if (not_nullptr(p))
+    {
+        delete_rt_api_ptr();
+        m_has_master = true;
+    }
+    else
+        m_has_master = false;
+
+    m_master_api_ptr = p;
+}
+
+/*--------------------------------------------------------------------------
  * rtmidi static functions and data
- *------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------*/
 
 /**
  *  Define API names and display names.  Must be in same order as the
@@ -167,7 +166,7 @@ rtmidi::delete_rt_api_ptr ()
  *  They must also be C-linkable to be used in the rtmidi_c module.
  */
 
-static const std::string cs_api_names[][2] =
+static const std::string cs_api_names[][2]
 {
     /*
      *   API name        Display name
@@ -195,30 +194,39 @@ static const std::string cs_api_names[][2] =
 static const rtmidi::api_list cs_compiled_apis
 {
     rtmidi::api::unspecified,
+
 #if defined RTL66_BUILD_PIPEWIRE
     rtmidi::api::pipewire,
 #endif
+
 #if defined RTL66_BUILD_JACK
     rtmidi::api::jack,
 #endif
+
 #if defined RTL66_BUILD_ALSA
     rtmidi::api::alsa,
 #endif
+
 #if defined RTL66_BUILD_MACOSX_CORE
     rtmidi::api::macosx_core,
 #endif
+
 #if defined RTL66_BUILD_WIN_MM
     rtmidi::api::windows_mm,
 #endif
+
 #if defined RTL66_BUILD_WIN_UWP
     rtmidi::api::windows_uwp,               /* Microsoft-deprecated         */
 #endif
+
 #if defined RTL66_BUILD_ANDROID
     rtmidi::api::android_midi,              /* not yet coded at all         */
 #endif
+
 #if defined RTL66_BUILD_WEB_MIDI
     rtmidi::api::web_midi,
 #endif
+
 #if defined RTL66_BUILD_DUMMY
     rtmidi::api::dummy
 #endif
@@ -272,7 +280,7 @@ rtmidi::get_detected_apis (rtmidi::api_list & apis) noexcept
 const rtmidi::api_list &
 rtmidi::detected_apis () noexcept
 {
-    static bool s_uninitialized = true;
+    static bool s_uninitialized { true };
     static rtmidi::api_list s_api_list;
     if (s_uninitialized)
     {
@@ -359,8 +367,8 @@ rtmidi::show_apis (const std::string & tag, const api_list & apis)
 bool
 rtmidi::is_detected_api (rtmidi::api rapi)
 {
-    bool result = false;
-    const rtmidi::api_list & apilist = rtmidi::detected_apis();
+    bool result { false };
+    const rtmidi::api_list & apilist { rtmidi::detected_apis() };
     for (rtmidi::api a : apilist)
     {
         if (a == rapi)
@@ -389,8 +397,8 @@ rtmidi::is_detected_api (rtmidi::api rapi)
 rtmidi::api
 rtmidi::fallback_api ()
 {
-    rtmidi::api result = rtmidi::api::max;
-    const rtmidi::api_list & apilist = rtmidi::detected_apis();
+    rtmidi::api result { rtmidi::api::max };
+    const rtmidi::api_list & apilist { rtmidi::detected_apis() };
     if (! apilist.empty())
         result = apilist[0];
 
@@ -465,7 +473,7 @@ rtmidi::selected_api_display_name ()
 rtmidi::api
 rtmidi::api_by_name (const std::string & name)
 {
-    const rtmidi::api_list & available_apis = cs_compiled_apis;
+    const rtmidi::api_list & available_apis { cs_compiled_apis };
     for (auto a : available_apis)
     {
         if (name == cs_api_names[midiapi_to_int(a)][0])
@@ -486,7 +494,7 @@ rtmidi::silence_messages (bool silent)      /* static */
 
 #if defined RTL66_BUILD_JACK
 
-static bool s_start_jack = false;
+static bool s_start_jack { false };
 
 void
 rtmidi::start_jack (bool flag)
@@ -502,23 +510,23 @@ rtmidi::start_jack ()
 
 #endif
 
-/*------------------------------------------------------------------------
+/*--------------------------------------------------------------------------
  * rtmidi virtual base-class functions
- *------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------*/
 
 bool
 rtmidi::open_port (int portnumber, const std::string & portname)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
     {
-        std::string pn = portname;
+        std::string pn { portname };
         if (portnumber >= 0)
         {
             pn += " ";
             pn += std::to_string(portnumber);
         }
-        result = rt_api_ptr()->open_port(portnumber, portname);
+        result = rt_api_ptr()->open_port(portnumber, pn);
     }
     return result;
 }
@@ -526,16 +534,16 @@ rtmidi::open_port (int portnumber, const std::string & portname)
 bool
 rtmidi::open_virtual_port (int portnumber, const std::string & portname)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
     {
-        std::string pn = portname;
+        std::string pn { portname };
         if (portnumber >= 0)
         {
             pn += " ";
             pn += std::to_string(portnumber);
         }
-        result = rt_api_ptr()->open_virtual_port(portname);
+        result = rt_api_ptr()->open_virtual_port(pn);
     }
     return result;
 }
@@ -543,7 +551,7 @@ rtmidi::open_virtual_port (int portnumber, const std::string & portname)
 bool
 rtmidi::open_virtual_port (const std::string & portname)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->open_virtual_port(portname);
 
@@ -559,7 +567,7 @@ rtmidi::open_virtual_port (const std::string & portname)
 void *
 rtmidi::engine_connect ()
 {
-    void * result = nullptr;
+    void * result { nullptr };
     if (not_nullptr(rt_api_ptr()))
         result = rt_api_ptr()->engine_connect();
 
@@ -583,7 +591,7 @@ rtmidi::engine_disconnect ()
 bool
 rtmidi::engine_activate ()
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->engine_activate();
 
@@ -600,7 +608,7 @@ rtmidi::engine_activate ()
 bool
 rtmidi::engine_deactivate ()
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->engine_activate();
 
@@ -610,7 +618,7 @@ rtmidi::engine_deactivate ()
 bool
 rtmidi::set_client_name (const std::string & clientname)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->set_client_name(clientname);
 
@@ -620,7 +628,7 @@ rtmidi::set_client_name (const std::string & clientname)
 bool
 rtmidi::set_port_name (const std::string & portname)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->set_port_name(portname);
 
@@ -635,7 +643,7 @@ rtmidi::set_port_name (const std::string & portname)
 bool
 rtmidi::flush ()
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->flush();
 
@@ -650,7 +658,7 @@ rtmidi::flush ()
 bool
 rtmidi::flush_port (midi::bussbyte b)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { rt_api_ptr() };
     if (result)
         result = rt_api_ptr()->flush_port(b);
 
@@ -664,7 +672,7 @@ rtmidi::flush_port (midi::bussbyte b)
 bool
 rtmidi::close_port ()
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { rt_api_ptr() };
     if (result)
         result = rt_api_ptr()->close_port();
 
@@ -674,7 +682,7 @@ rtmidi::close_port ()
 bool
 rtmidi::is_port_open () const
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->is_port_open();
 
@@ -684,8 +692,8 @@ rtmidi::is_port_open () const
 int
 rtmidi::get_port_count ()
 {
-    int result = not_nullptr(rt_api_ptr());
-    if (result)
+    int result { 0 };
+    if (not_nullptr(rt_api_ptr()))
         result = rt_api_ptr()->get_port_count();
 
     return result;
@@ -717,7 +725,7 @@ rtmidi::get_port_name (int portnumber)
 int
 rtmidi::get_io_port_info (midi::ports & ports, bool preclear)
 {
-    int result = 0;
+    int result { 0 };
     if (not_nullptr(rt_api_ptr()))
         result = rt_api_ptr()->get_io_port_info(ports, preclear);
 
@@ -749,7 +757,7 @@ rtmidi::get_port_alias (const std::string & portname)
 bool
 rtmidi::PPQN (midi::ppqn ppq)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->PPQN(ppq);
 
@@ -770,7 +778,7 @@ rtmidi::PPQN () const
 bool
 rtmidi::BPM (midi::bpm bp)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->BPM(bp);
 
@@ -795,16 +803,6 @@ rtmidi::set_error_callback (rterror::callback_t cb, void * userdata)
 {
     if (not_nullptr(rt_api_ptr()))
         rt_api_ptr()->set_error_callback(cb, userdata);
-}
-
-bool
-rtmidi::send_byte (midi::byte evbyte)
-{
-    bool result = not_nullptr(rt_api_ptr());
-    if (result)
-        result = rt_api_ptr()->send_byte(evbyte);
-
-    return result;
 }
 
 /**
@@ -847,7 +845,7 @@ rtmidi::send_byte (midi::byte evbyte)
 bool
 rtmidi::clock_start ()
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         rt_api_ptr()->clock_start();
 
@@ -865,7 +863,7 @@ rtmidi::clock_start ()
 bool
 rtmidi::clock_send (midi::pulse tick)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         rt_api_ptr()->clock_send(tick);
 
@@ -879,7 +877,7 @@ rtmidi::clock_send (midi::pulse tick)
 bool
 rtmidi::clock_stop ()
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         rt_api_ptr()->clock_stop();
 
@@ -893,7 +891,7 @@ rtmidi::clock_stop ()
 bool
 rtmidi::clock_continue (midi::pulse tick, int beats)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->clock_continue(tick, beats);
 
@@ -903,7 +901,7 @@ rtmidi::clock_continue (midi::pulse tick, int beats)
 int
 rtmidi::poll_for_midi () const
 {
-    int result = 0;
+    int result { 0 };
     if (not_nullptr(rt_api_ptr()))
         result = rt_api_ptr()->poll_for_midi();
 
@@ -913,7 +911,7 @@ rtmidi::poll_for_midi () const
 bool
 rtmidi::get_midi_event (midi::event * inev)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->get_midi_event(inev);
 
@@ -921,9 +919,19 @@ rtmidi::get_midi_event (midi::event * inev)
 }
 
 bool
+rtmidi::send_byte (midi::byte evbyte)
+{
+    bool result { not_nullptr(rt_api_ptr()) };
+    if (result)
+        result = rt_api_ptr()->send_byte(evbyte);
+
+    return result;
+}
+
+bool
 rtmidi::send_event (const midi::event * ev, midi::byte channel)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->send_event(ev, channel);
 
@@ -931,21 +939,31 @@ rtmidi::send_event (const midi::event * ev, midi::byte channel)
 }
 
 bool
-rtmidi::send_message (const midi::byte * msg, size_t sz)
+rtmidi::send_message (const midi::message & msg)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
-        result = rt_api_ptr()->send_message(msg, sz);
+        result = rt_api_ptr()->send_message(msg);
 
     return result;
 }
 
 bool
-rtmidi::send_message (const midi::message & msg)
+rtmidi::send_message (const midi::bytes & msg)
 {
-    bool result = not_nullptr(rt_api_ptr());
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
-        result = rt_api_ptr()->send_message(msg);
+        result = rt_api_ptr()->send_message(msg.data(), msg.size());
+
+    return result;
+}
+
+bool
+rtmidi::send_message (const midi::byte * msg, size_t sz)
+{
+    bool result { not_nullptr(rt_api_ptr()) };
+    if (result)
+        result = rt_api_ptr()->send_message(msg, sz);
 
     return result;
 }

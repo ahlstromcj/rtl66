@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-08-18
+ * \updates       2025-08-25
  * \license       GNU GPLv2 or above
  *
  */
@@ -38,10 +38,24 @@ namespace midi
 {
 
 /**
- *  Creates a normal MIDI input port.
+ *  Creates a normal MIDI input port. However, rtl::rtmidi::api::none
+ *  makes the rtmidi_out object not open a MIDI API (midi_api) client
+ *  pointer for JACK, ALSA, etc., and not set the client name. Instead,
+ *  the masterbus's API pointer is shared. Some items that can be
+ *  obtained via the masterbus:
+ *
+ *      -   selected_api()
+ *      -   client_handle()
+ *      -   void_handle()
+ *      -   engine() [rtl::rtmidi::engine reference]
+ *      -   client_info()
+ *      -   In and Out busarrays and their busses
  *
  * \param master
- *      Provides a reference to midi::masterbus.
+ *      Provides a reference to midi::masterbus. It's address is passed
+ *      to the midi_api-derived object to activate the masterbus paradigm,
+ *      where the masterbus's client pointer is used, instead of creating
+ *      a client pointer for each port.
  *
  * \param index
  *      Provides the ordinal of this buss/port, mostly for display purposes.
@@ -55,21 +69,28 @@ bus_out::bus_out
     midi::bus (master, index, midi::port::io::output),
     m_rtmidi_out
     {
-        master.selected_api(),
+        rtl::rtmidi::api::none,                 /* master.selected_api()    */
         master.client_info().client_name(),
     },
     m_last_tick (0)
 {
-//  set_midi_api_ptr(m_rtmidi_out.rt_api_ptr());
-    if (not_nullptr(midi_api_ptr()))
+    if (not_nullptr(midi_api_ptr()))            /* masterbus's API pointer? */
+    {
+        /*
+         * Set up the masterbus paradigm for the input, then
+         * wire in the masterbus's API pointer.
+         */
+
         midi_api_ptr()->master_bus(&master);
+        m_rtmidi_out.master_api_ptr(midi_api_ptr());
+    }
 }
 
 /**
- *  A rote empty destructor.
+ *  A rote empty destructor. It avoids issues with unique_ptr.
  */
 
-bus_out::~bus_out()
+bus_out::~bus_out ()
 {
     // empty body
 }
@@ -81,8 +102,11 @@ bus_out::~bus_out()
 int
 bus_out::get_out_port_info ()
 {
-    auto & ci = master_bus().client_info();
-    int result = m_rtmidi_out.get_io_port_info(ci.io_ports(port::io::output));
+    auto & ci { master_bus().client_info() };
+    int result
+    {
+        m_rtmidi_out.get_io_port_info(ci.io_ports(port::io::output))
+    };
     if (result >= 0)
         get_port_items(port::io::output);
 
@@ -105,7 +129,7 @@ bus_out::get_out_port_info ()
 bool
 bus_out::init_clock (pulse tick)
 {
-    bool result = port_enabled();
+    bool result { port_enabled() };
     if (result)
     {
         if (clock_is_pos(clock_type()) && tick != 0)
@@ -122,9 +146,9 @@ bus_out::init_clock (pulse tick)
              * If any left-overs, wait for next beat (16th note) to clock.
              */
 
-            pulse clock_mod_ticks = (PPQN() / 4) * get_clock_mod();
-            pulse leftover = (tick % clock_mod_ticks);
-            pulse starting_tick = tick - leftover;
+            pulse clock_mod_ticks { (PPQN() / 4) * get_clock_mod() };
+            pulse leftover { (tick % clock_mod_ticks) };
+            pulse starting_tick { tick - leftover };
             if (leftover > 0)
                 starting_tick += clock_mod_ticks;
 
@@ -141,7 +165,7 @@ bus_out::init_clock (pulse tick)
 bool
 bus_out::send_event (const event * e24, midi::byte channel)
 {
-    bool result = not_nullptr(midi_api_ptr());
+    bool result { not_nullptr(midi_api_ptr()) };
     if (result)
         midi_api_ptr()->send_event(e24, channel);
 
@@ -151,7 +175,7 @@ bus_out::send_event (const event * e24, midi::byte channel)
 bool
 bus_out::send_sysex (const event * e24)
 {
-    bool result = not_nullptr(midi_api_ptr());
+    bool result { not_nullptr(midi_api_ptr()) };
     if (result)
         midi_api_ptr()->send_sysex(e24);
 
@@ -161,7 +185,7 @@ bus_out::send_sysex (const event * e24)
 bool
 bus_out::clock_start ()
 {
-    bool result = not_nullptr(midi_api_ptr());
+    bool result { not_nullptr(midi_api_ptr()) };
     if (result)
         midi_api_ptr()->clock_start();
 
@@ -171,7 +195,7 @@ bus_out::clock_start ()
 bool
 bus_out::clock_stop ()
 {
-    bool result = not_nullptr(midi_api_ptr());
+    bool result { not_nullptr(midi_api_ptr()) };
     if (result)
         midi_api_ptr()->clock_stop();
 
@@ -181,7 +205,7 @@ bus_out::clock_stop ()
 bool
 bus_out::clock_send (pulse tick)
 {
-    bool result = not_nullptr(midi_api_ptr());
+    bool result { not_nullptr(midi_api_ptr()) };
     if (result)
         midi_api_ptr()->clock_send(tick);
 
@@ -196,7 +220,7 @@ bus_out::clock_send (pulse tick)
 bool
 bus_out::clock_continue (pulse tick)
 {
-    bool result = not_nullptr(midi_api_ptr());
+    bool result { not_nullptr(midi_api_ptr()) };
     if (result)
         midi_api_ptr()->clock_continue(tick);
 

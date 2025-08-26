@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-08-18
+ * \updates       2025-08-21
  * \license       GNU GPLv2 or above
  *
  */
@@ -608,7 +608,8 @@ player::create_master_bus (clientinfo & ci)
 #endif
                     m_transport_info.time_signature
                     (
-                        ci.global_beat_width(), ci.global_beats_per_bar()
+                        ci.global_beats_per_bar(),
+                        ci.global_beat_width()
                     );
                     m_transport_info.time_resolution
                     (
@@ -1038,14 +1039,51 @@ player::right_tick_snap (midi::pulse tick, midi::pulse snap)
     }
 }
 
+/**
+ *  Sets the output buss for a track.
+ *
+ * \param b
+ *      Provides the buss number.
+ *
+ * \return
+ *      Returns true if the track was found and the buss number
+ *      was valid.
+ */
+
 bool
-player::set_midi_bus (track::number trkno, int buss)
+player::set_midi_bus (track::number trkno, int b)
 {
     track::pointer tp = get_track(trkno);
     bool result = bool(tp);
     if (result)
-        result = tp->midi_bus(buss, true);              /* a user change    */
+        result = tp->midi_bus(b, true);                 /* a user change    */
 
+    return result;
+}
+
+/**
+ *  Set the MIDI buss number for all tracks. See the usage in the
+ *  test MIDI application "play".
+ */
+
+bool
+player::set_midi_bus (int b)
+{
+    bool result = false;
+    for (auto & trk : track_list().tracks())
+    {
+        if (trk)
+        {
+            result = trk->midi_bus(b, true);            /* a user change    */
+        }
+        else
+        {
+            append_error_message("set_midi_bus() on null track");
+            result = false;
+        }
+        if (! result)
+            break;
+    }
     return result;
 }
 
@@ -2373,6 +2411,28 @@ player::write_midi_file
         // to do?
     }
     return result;
+}
+
+void
+player::print_tracks (const std::string & tag)
+{
+    if (tag.empty())
+        printf("player tracks:\n");
+    else
+        printf("player tracks %s:\n", tag.c_str());
+
+    for (const auto & trk : track_list().tracks())
+    {
+        if (trk)
+        {
+            std::string trkstring {trk->to_string() };
+            printf("%s\n", trkstring.c_str());
+        }
+        else
+        {
+            printf("Bad track\n");
+        }
+    }
 }
 
 }           // namespace midi

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2024-05-14
+ * \updates       2025-08-26
  * \license       See above.
  *
  */
@@ -167,13 +167,10 @@ protected:
     virtual int get_port_count () override;
     virtual std::string get_port_name (int number) override;
     virtual bool flush () override;
-    virtual bool send_message (const midi::byte * message, size_t sz) override;
-    virtual bool send_message (const midi::message & message) override
-    {
-        return send_message(message.data_ptr(), message.size());
-    }
 
-private:
+public:
+
+#if defined RTL66_MIDI_EXTENSIONS       // defined in Linux, FIXME
 
     /*--------------------------------------------------------------------
      * Extensions
@@ -188,11 +185,8 @@ private:
      * virtual std::string get_port_alias (const std::string & name) override;
      */
 
-#if defined RTL66_MIDI_EXTENSIONS       // defined in Linux, FIXME
-
     virtual bool PPQN (midi::ppqn ppq) override;
     virtual bool BPM (midi::bpm bp) override;
-    virtual bool send_byte (midi::byte evbyte) override;
     virtual bool clock_start () override;
     virtual bool clock_send (midi::pulse tick) override;
     virtual bool clock_stop () override;
@@ -207,10 +201,39 @@ private:
      */
 
     virtual bool get_midi_event (midi::event * inev) override;
+
+    /*
+     * Strictly speaking, we could implement some of these functions directly
+     * in the midi_api base class. But let's wait to see if there are any
+     * API-dependent wrinkles.
+     */
+
+    virtual bool send_byte (midi::byte evbyte) override
+    {
+        return send_message(&evbyte, 1);
+    }
+
     virtual bool send_event
     (
-        const midi::event * ev, midi::byte channel
+        const midi::event * ev, midi::byte channel = midi::null_channel()
     ) override;
+
+    virtual bool send_message (const midi::message & msg) override
+    {
+        return send_message(msg.data_ptr(), msg.size());
+    }
+
+    virtual bool send_message (const midi::bytes & msg) override
+    {
+        return send_message(msg.data(), msg.size());
+    }
+
+    virtual bool send_message (const midi::byte * msg, size_t sz) override;
+
+    virtual bool send_sysex (const midi::event * ev) override
+    {
+        return send_event(ev);
+    }
 
 #if defined RTL66_ALSA_REMOVE_QUEUED_ON_EVENTS
     void remove_queued_on_events (int tag);

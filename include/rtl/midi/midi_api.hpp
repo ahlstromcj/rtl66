@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-14
+ * \updates       2025-08-26
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -360,7 +360,7 @@ protected:
 #if defined RTL66_MIDI_EXTENSIONS       // defined in Linux, FIXME
 
     /*
-     * Not virtual [send_byte() is virtual]
+     * Not virtual because send_byte() is virtual.
      */
 
     bool send_status (midi::status evstatus)
@@ -371,28 +371,25 @@ protected:
     virtual bool PPQN (midi::ppqn ppq) = 0;
     virtual bool BPM (midi::bpm bp) = 0;
 
-    virtual bool send_byte (midi::byte /*evbyte*/)
-    {
-        return false;
-    }
-
-    virtual bool send_event (const midi::event * /*ev*/, midi::byte /*channel*/)
-    {
-        return false;
-    }
-
-    virtual bool send_sysex (const midi::event * /*ev*/)
-    {
-        return false;
-    }
+    virtual bool send_byte (midi::byte evbyte) = 0;
+    virtual bool send_event
+    (
+        const midi::event * ev,
+        midi::byte channel = midi::null_channel()
+    ) = 0;
+    virtual bool send_message (const midi::message & msg) = 0;
+    virtual bool send_message (const midi::bytes & msg) = 0;
+    virtual bool send_message (const midi::byte * msg, size_t sz) = 0;
+    virtual bool send_sysex (const midi::event * ev) = 0;
 
     virtual bool clock_start ()
     {
         return false;
     }
 
-    virtual bool clock_send (midi::pulse /*tick*/)
+    virtual bool clock_send (midi::pulse tick)
     {
+        (void) tick;
         return false;
     }
 
@@ -471,13 +468,6 @@ protected:
     double get_message (midi::message & message);
 
 protected:
-
-    /*
-     * Functions to support output ports.  See above for input.
-     */
-
-    virtual bool send_message (const midi::byte * msg, size_t sz) = 0;
-    virtual bool send_message (const midi::message & msg) = 0;
 
     /*
      * ALSA supports flush for output.  JACK does not.  Rather than a raft of

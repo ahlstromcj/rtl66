@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2017-11-10
- * \updates       2025-08-06
+ * \updates       2025-08-20
  * \license       See above.
  */
 
@@ -372,8 +372,8 @@ public:
      * TODO: validation or sanity checks.
      */
 
-    void time_signature (int bw, int bpb);
-    void time_resolution (midi::bpm bpmin, midi::ppqn ppq);
+    void time_signature (int bpb, int bw);
+    void time_resolution (midi::ppqn ppq, midi::bpm bpmin);
 
     /*
      * Simple setter. for the one that iterates over patterns, see

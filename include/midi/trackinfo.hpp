@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2024-05-26
+ * \updates       2025-08-21
  * \license       GNU GPLv2 or above
  *
  *  In addition, this version contains some information from the performer and
@@ -189,8 +189,8 @@ public:
     timesiginfo & operator = (const timesiginfo &) = default;
     timesiginfo & operator = (timesiginfo &&) = default;
 
-    std::string timesig_to_string ();
-    std::string timesiginfo_labelled ();
+    std::string timesig_to_string () const;
+    std::string timesiginfo_labelled () const;
 
     int beats_per_bar () const
     {
@@ -304,6 +304,8 @@ public:
     {
         m_keysig_name = n;
     }
+
+    std::string to_string () const;
 
     void sharp_flat_count (int sf);
     void is_minor_scale (bool isminor);
@@ -482,6 +484,8 @@ public:
     {
         m_channel = b;
     }
+
+    std::string to_string () const;
 
 };          // class trackinfo
 

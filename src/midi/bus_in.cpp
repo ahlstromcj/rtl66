@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-08-18
+ * \updates       2025-08-25
  * \license       GNU GPLv2 or above
  *
  */
@@ -38,7 +38,8 @@ namespace midi
 {
 
 /**
- *  Creates a normal MIDI input port.
+ *  Creates a normal MIDI input port. See the banner for the bus_out
+ *  constructor for information about the "masterbus paradigm".
  *
  * \param master
  *      Provides a reference to midi::masterbus.
@@ -56,18 +57,25 @@ bus_in::bus_in
     midi::bus (master, index, midi::port::io::input),
     m_rtmidi_in
     (
-        master.selected_api(),
+        rtl::rtmidi::api::none,                 /* master.selected_api()    */
         master.client_info().client_name(),
         queuesizelimit
     )
 {
-//  set_midi_api_ptr(m_rtmidi_in.rt_api_ptr());
-    if (not_nullptr(midi_api_ptr()))
+    if (not_nullptr(midi_api_ptr()))            /* masterbus's API pointer? */
+    {
+        /*
+         * Set up the masterbus paradigm for the input, then
+         * wire in the masterbus's API pointer.
+         */
+
         midi_api_ptr()->master_bus(&master);
+        m_rtmidi_in.master_api_ptr(midi_api_ptr());
+    }
 }
 
 /**
- *  A rote empty destructor.
+ *  A rote empty destructor. It avoids issues with unique_ptr.
  */
 
 bus_in::~bus_in()
@@ -82,8 +90,8 @@ bus_in::~bus_in()
 int
 bus_in::get_in_port_info ()
 {
-    masterbus::info & ci = master_bus().client_info();
-    int result = m_rtmidi_in.get_io_port_info(ci.io_ports(port::io::input));
+    masterbus::info & ci { master_bus().client_info() };
+    int result { m_rtmidi_in.get_io_port_info(ci.io_ports(port::io::input)) };
     if (result >= 0)
         get_port_items(port::io::input);
 
@@ -105,7 +113,7 @@ bus_in::get_in_port_info ()
 bool
 bus_in::init_input (bool inputing)
 {
-    bool result = false;
+    bool result { false };
     if (is_system_port())
     {
         activate();

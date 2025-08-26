@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-12-15
- * \updates       2023-07-20
+ * \updates       2025-08-25
  * \license       See above.
  *
  */
@@ -50,7 +50,6 @@ namespace rtl
  *      the ports that are created by the application.
  */
 
-RTL66_DLL_PUBLIC
 rtmidi_engine::rtmidi_engine
 (
     midi::masterbus * mbus,

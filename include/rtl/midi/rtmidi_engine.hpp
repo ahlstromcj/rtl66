@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-12-15
- * \updates       2023-07-20
+ * \updates       2025-08-25
  * \license       See above.
  *
  */
@@ -61,26 +61,27 @@ class RTL66_DLL_PUBLIC rtmidi_engine : public rtmidi
     /**
      *  Holds a pointer to the owner of this object.  Only the rtmidi_engine
      *  can reference a masterbus.  Used in the open_midi_api() override.
+     *  Note that we don't own the masterbus... it owns us.
      */
 
     midi::masterbus * m_master_bus;   /* note: not rtl::rtmidi! */
 
 public:
 
+    rtmidi_engine () = delete;
     rtmidi_engine
     (
         midi::masterbus * mbus,
         rtmidi::api rapi                = rtmidi::api::unspecified,
         const std::string & clientname  = ""
     );
+    rtmidi_engine (rtmidi_engine & other) = delete;
+    rtmidi_engine & operator = (rtmidi_engine & other) = delete;
 
-    rtmidi_engine (rtmidi_engine && other) noexcept :
-        rtmidi  (std::move(other))
-    {
-        // No code
-    }
+    rtmidi_engine (rtmidi_engine && other) = default;
+    rtmidi_engine & operator = (rtmidi_engine && other) = default;
 
-    virtual ~rtmidi_engine () noexcept;
+    virtual ~rtmidi_engine ();
 
 protected:
 

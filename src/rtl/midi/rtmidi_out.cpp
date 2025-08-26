@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2024-06-07
+ * \updates       2025-08-26
  * \license       See above.
  *
  */
@@ -47,19 +47,21 @@ namespace rtl
  *  See the banner for the rtmidi_in constructor for more information.
  */
 
-RTL66_DLL_PUBLIC
 rtmidi_out::rtmidi_out (rtmidi::api rapi, const std::string & clientname) :
     rtmidi  ()
 {
-    rapi = ctor_common_setup(rapi, clientname);
-    if (is_midiapi_valid(rapi))
+    if (rapi != rtmidi::api::none)
     {
-        if (open_midi_api(rapi, clientname))
-            rtmidi::selected_api(rapi);
+        rapi = ctor_common_setup(rapi, clientname);
+        if (is_midiapi_valid(rapi))
+        {
+            if (open_midi_api(rapi, clientname))
+                rtmidi::selected_api(rapi);
+        }
     }
 }
 
-rtmidi_out::~rtmidi_out() noexcept
+rtmidi_out::~rtmidi_out()
 {
     // No code needed
 }
@@ -121,6 +123,8 @@ rtmidi_out::open_virtual_port (const std::string & portname)
     return rtmidi::open_virtual_port(pname);
 }
 
+#if 0
+
 /**
  *  An override.  More convenient.
  */
@@ -152,6 +156,8 @@ rtmidi_out::send_message (const midi::byte * message, size_t sz)
 
     return result;
 }
+
+#endif      // 0
 
 }           // namespace rtl
 

@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2024-05-06
+ * \updates       2025-08-21
  * \license       GNU GPLv2 or above
  *
  *  This container now can indicate if certain Meta events (time-signaure or
@@ -36,6 +36,7 @@
 #include <map>                          /* std::map                         */
 
 #include "midi/calculations.hpp"        /* midi::tempo_us_from_bpm()        */
+#include "midi/scales.hpp"              /* midi::key_signature_string()     */
 #include "midi/trackinfo.hpp"           /* Various MIDI data structures     */
 
 namespace midi
@@ -165,7 +166,7 @@ timesiginfo::timesiginfo
 }
 
 std::string
-timesiginfo::timesig_to_string ()
+timesiginfo::timesig_to_string () const
 {
     char tmp[32];
     snprintf(tmp, sizeof tmp, "%d/%d", beats_per_bar(), beat_width());
@@ -173,12 +174,12 @@ timesiginfo::timesig_to_string ()
 }
 
 std::string
-timesiginfo::timesiginfo_labelled ()
+timesiginfo::timesiginfo_labelled () const
 {
     char tmp[32];
     snprintf
     (
-        tmp, sizeof tmp, " %d clocks/metro %d 32s/qn",
+        tmp, sizeof tmp, " %d clocks/metro %d 32nds/qn ",
         clocks_per_metronome(), thirtyseconds_per_qn()
     );
     return timesig_to_string() + std::string(tmp);
@@ -241,6 +242,28 @@ keysiginfo::is_minor_scale (bool isminor)
 {
     m_is_minor_scale = isminor;
     m_keysig_name = key_name();
+}
+
+/**
+ *  Returns the key-signature string.
+ *
+ *  sharp_flat_count():
+ *
+ *      Provides the sharp/flat count, rangine from -7 to 7.
+ *
+ *  is_minor_scale():
+ *
+ *      If true, the scale is minor, otherwise it is major.
+ *
+ * \return
+ *      Returns the string via a fast lookup. It is empty if
+ *      the sharp/flat count is out of range.
+ */
+
+std::string
+keysiginfo::to_string () const
+{
+    return midi::key_signature_string(sharp_flat_count(), is_minor_scale());
 }
 
 /*
@@ -380,6 +403,22 @@ trackinfo::trackinfo
     m_channel       (midi::null_channel())
 {
     // No code needed
+}
+
+std::string
+trackinfo::to_string () const
+{
+    std::string result = "Time Sig ";
+    result += timesig_info().timesiginfo_labelled();
+    result += "\n";
+    result += tempo_info().bpm_labelled();
+    result += "\n";
+    result += tempo_info().usperqn_labelled();
+    result += "\n";
+    result += "Key ";
+    result += keysig_info().to_string();
+    result += "\n";
+    return result;
 }
 
 /*------------------------------------------------------------------------

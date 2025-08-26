@@ -65,7 +65,7 @@ namespace rtl
 bool
 detect_alsa (bool checkports)
 {
-    bool result = false;
+    bool result { false };
     snd_seq_t * alsaman;
     int rc = ::snd_seq_open
     (
@@ -75,7 +75,10 @@ detect_alsa (bool checkports)
     {
         if (checkports)
         {
-            // TODO
+            /*
+             * Do we need to make the effort to check for
+             * ports?
+             */
         }
         result = true;
         rc = ::snd_seq_close(alsaman);
@@ -102,7 +105,7 @@ void
 set_alsa_version ()
 {
 #if defined SND_LIB_VERSION_STR
-    std::string jv{SND_LIB_VERSION_STR};
+    std::string jv { SND_LIB_VERSION_STR };
     midi::global_client_info().api_version(jv);
 #endif
 }
@@ -153,13 +156,13 @@ calculate_time
 {
     if (x.tv_nsec < y.tv_nsec)
     {
-        int nsec = int(y.tv_nsec - x.tv_nsec) / 1000000000 + 1;
+        int nsec { int(y.tv_nsec - x.tv_nsec) / 1000000000 + 1 };
         y.tv_nsec -= 1000000000 * nsec;
         y.tv_sec += nsec;
     }
     if (x.tv_nsec - y.tv_nsec > 1000000000)
     {
-        int nsec = int(x.tv_nsec - y.tv_nsec) / 1000000000;
+        int nsec { int(x.tv_nsec - y.tv_nsec) / 1000000000 };
         y.tv_nsec += 1000000000 * nsec;
         y.tv_sec -= nsec;
     }
@@ -218,11 +221,14 @@ calculate_time
 void *
 midi_alsa_handler (void * ptr)
 {
-    rtmidi_in_data * rtidata = midi_api::static_in_data_cast(ptr);
-    midi_alsa_data * apidata = midi_alsa::static_data_cast(rtidata->api_data());
+    rtmidi_in_data * rtidata { midi_api::static_in_data_cast(ptr) };
+    midi_alsa_data * apidata
+    {
+        midi_alsa::static_data_cast(rtidata->api_data())
+    };
     double time;
-    bool moresysex = false;
-    bool dodecode = false;
+    bool moresysex { false };
+    bool dodecode { false };
     midi::message message;
     int poll_fd_count;
     struct pollfd * poll_fds;
@@ -232,15 +238,18 @@ midi_alsa_handler (void * ptr)
      * Why 0? That's the buffer size.  RtMidi does this, too.
      */
 
-    int rc = ::snd_midi_event_new(0, apidata->event_address());
+    int rc { ::snd_midi_event_new(0, apidata->event_address()) };
     if (rc < 0)
     {
         rtidata->do_input(false);
-        error_print ("midi_alsa_handler", "error init'ing MIDI event parser");
+        error_print("midi_alsa_handler", "error init'ing MIDI event parser");
         return nullptr;
     }
 
-    midi::byte * buffer = new (std::nothrow) midi::byte[apidata->buffer_size()];
+    midi::byte * buffer
+    {
+        new (std::nothrow) midi::byte[apidata->buffer_size()]
+    };
     if (is_nullptr(buffer))
     {
         rtidata->do_input(false);
@@ -288,7 +297,7 @@ midi_alsa_handler (void * ptr)
 
         // If here, there should be data.
 
-        int rc = ::snd_seq_event_input(apidata->alsa_client(), &ev);
+        rc = ::snd_seq_event_input(apidata->alsa_client(), &ev);
         if (rc == -ENOSPC)
         {
             error_print("midi_alsa::midi_alsa_handler", "MIDI input overrun");
@@ -379,10 +388,14 @@ midi_alsa_handler (void * ptr)
         }
         if (dodecode)
         {
-            long nbytes = snd_midi_event_decode
-            (
-                apidata->event_parser(), buffer, apidata->buffer_size(), ev
-            );
+            long nbytes
+            {
+                snd_midi_event_decode
+                (
+                    apidata->event_parser(), buffer,
+                    apidata->buffer_size(), ev
+                )
+            };
             if (nbytes > 0)                 // see banner
             {
                 if (! moresysex)
@@ -458,14 +471,20 @@ midi_alsa_handler (void * ptr)
  * get_port_info() and related functions
  *------------------------------------------------------------------------*/
 
-static const unsigned sm_input_caps =                           /* 0x21     */
-    SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ;
+static const unsigned sm_input_caps                             /* 0x21     */
+{
+    SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ
+};
 
-static const unsigned sm_output_caps =                          /* 0x42     */
-    SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE;
+static const unsigned sm_output_caps                            /* 0x42     */
+{
+    SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE
+};
 
-static const unsigned sm_generic_caps =                         /* 0x100002 */
-    SND_SEQ_PORT_TYPE_MIDI_GENERIC | SND_SEQ_PORT_TYPE_APPLICATION;
+static const unsigned sm_generic_caps                           /* 0x100002 */
+{
+    SND_SEQ_PORT_TYPE_MIDI_GENERIC | SND_SEQ_PORT_TYPE_APPLICATION
+};
 
 /*------------------------------------------------------------------------
  * ALSA port capability strings (for troubleshooting)
@@ -490,7 +509,7 @@ static const unsigned sm_generic_caps =                         /* 0x100002 */
 static std::string
 alsa_port_capabilities (unsigned bitmask)
 {
-    std::string result = "ALSA caps: ";
+    std::string result { "ALSA caps: " };
     if ((bitmask & SND_SEQ_PORT_CAP_READ) != 0)
         result += "read ";
 
@@ -551,7 +570,7 @@ alsa_port_capabilities (unsigned bitmask)
 static bool
 check_port_type (snd_seq_port_info_t * pinfo)
 {
-    unsigned alsatype = snd_seq_port_info_get_type(pinfo);
+    unsigned alsatype { snd_seq_port_info_get_type(pinfo) };
     return
     (
         ((alsatype & SND_SEQ_PORT_TYPE_MIDI_GENERIC) == 0) &&
@@ -657,7 +676,7 @@ get_port_info
     int portnumber
 )
 {
-    int count = 0;
+    int count { 0 };
     if (not_nullptr_2(seq, pinfo))
     {
         snd_seq_client_info_t * cinfo;
@@ -665,7 +684,7 @@ get_port_info
         snd_seq_client_info_set_client(cinfo, -1);          /* all clients  */
         while (::snd_seq_query_next_client(seq, cinfo) >= 0)
         {
-            int client = ::snd_seq_client_info_get_client(cinfo);
+            int client = { ::snd_seq_client_info_get_client(cinfo) };
             if (client == SND_SEQ_CLIENT_SYSTEM)            /* client == 0  */
             {
                 continue;       /* skip ALSA "announce" or "timer" clients  */
@@ -674,13 +693,13 @@ get_port_info
             ::snd_seq_port_info_set_port(pinfo, -1);          /* all ports    */
             while (::snd_seq_query_next_port(seq, pinfo) >= 0)
             {
-                unsigned ptype = ::snd_seq_port_info_get_type(pinfo);
+                unsigned ptype { ::snd_seq_port_info_get_type(pinfo) };
                 if (not_a_midi_client(ptype))
                     continue;
 
-                unsigned caps = ::snd_seq_port_info_get_capability(pinfo);
+                unsigned caps { ::snd_seq_port_info_get_capability(pinfo) };
 #if defined PLATFORM_DEBUG_TMI
-                std::string s = alsa_port_capabilities(caps);
+                std::string s { alsa_port_capabilities(caps) };
                 s += ": port ";
                 s += std::to_string(count);
                 infoprint(s.c_str());
@@ -747,23 +766,24 @@ midi_alsa::~midi_alsa ()
  *  -   Opens the ALSA client:
  *      -   Input: opened in duplex (input/output), non-blocking mode.
  *      -   Output: opened in output, non-blocking mode.
- *      , and saves
- *      the snd_seq_t client handle in the midi_alsa_data structure held
- *      by this class instance.
  *  -   The desired client name is retrieved and set.
+ *
+ *  Where is this done: save the snd_seq_t client handle in the
+ *  midi_alsa_data structure held by this class instance? In the
+ *  connect() function.
  */
 
 void *
 midi_alsa::engine_connect ()
 {
-    void * result = nullptr;
+    void * result { nullptr };
+    int streams = { is_output() ? SND_SEQ_OPEN_OUTPUT : SND_SEQ_OPEN_DUPLEX };
+    int mode { SND_SEQ_NONBLOCK };
     snd_seq_t * seq;
-    int streams = is_output() ? SND_SEQ_OPEN_OUTPUT : SND_SEQ_OPEN_DUPLEX;
-    int mode = SND_SEQ_NONBLOCK;
-    int rc = ::snd_seq_open(&seq, "default", streams, mode);
+    int rc { ::snd_seq_open(&seq, "default", streams, mode) };
     if (rc == 0)
     {
-        bool ok = set_seq_client_name(seq, client_name());
+        bool ok { set_seq_client_name(seq, client_name()) };
         if (ok)
             result = reinterpret_cast<void *>(seq);
         else
@@ -771,6 +791,8 @@ midi_alsa::engine_connect ()
     }
     return result;
 }
+
+// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 void
 midi_alsa::engine_disconnect ()
@@ -861,9 +883,8 @@ midi_alsa::close_input_triggers ()
  *  -   Opens the ALSA client:
  *      -   Input: opened in duplex (input/output), non-blocking mode.
  *      -   Output: opened in output, non-blocking mode.
- *      , and saves
- *      the snd_seq_t client handle in the midi_alsa_data structure held
- *      by this class instance.
+ *      -   Saves the snd_seq_t client handle in the midi_alsa_data
+ *          structure held by this class instance.
  *  -   The desired client name is retrieved and set.
  */
 
@@ -879,7 +900,6 @@ midi_alsa::connect ()
     if (not_nullptr(c))
     {
         size_t buffersize = input_data().buffer_size();
-//      result = data.initialize(c, is_input(), buffersize);  // ????
         result = data.initialize(c, port_io_type(), buffersize);  // ????
         if (result)
         {
@@ -1903,13 +1923,6 @@ midi_alsa::BPM (midi::bpm bp)
             result = false;
     }
     return result;
-}
-
-bool
-midi_alsa::send_byte (midi::byte evbyte)
-{
-    (void) evbyte;
-    return false;       // TODO
 }
 
 /**

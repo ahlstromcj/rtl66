@@ -132,12 +132,12 @@ public:
         return m_queue;
     }
 
-    const midi::message & message () const
+    const midi::message & midi_msg () const
     {
         return m_message;
     }
 
-    midi::message & message ()
+    midi::message & midi_msg ()
     {
         return m_message;
     }

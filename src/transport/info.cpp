@@ -24,7 +24,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2022-11-10
- * \updates       2025-08-06
+ * \updates       2025-08-20
  * \license       See above.
  *
  *  GitHub issue #165: enabled a build and run with no JACK support.
@@ -59,17 +59,17 @@ info::info
 }
 
 void
-info::time_signature (int bw, int bpb)
+info::time_signature (int bpb, int bw)
 {
-    beat_width(bw);
     beats_per_bar(bpb);
+    beat_width(bw);
 }
 
 void
-info::time_resolution (midi::bpm bpmin, midi::ppqn ppq)
+info::time_resolution (midi::ppqn ppq, midi::bpm bpmin)
 {
-    beats_per_minute(bpmin);
     set_ppqn(ppq);
+    beats_per_minute(bpmin);
 }
 
 unsigned

@@ -87,7 +87,7 @@ enum class seqspec : midi::ulong
  * Free functions
  *------------------------------------------------------------------------*/
 
-extern std::string to_string (seqspec sp);
+extern std::string seq66_seqspec_to_string (seqspec sp);
 
 }           // namespace seq66
 

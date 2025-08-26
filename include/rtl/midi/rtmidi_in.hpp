@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2023-07-19
+ * \updates       2025-08-25
  * \license       See above.
  *
  */
@@ -62,20 +62,20 @@ class RTL66_DLL_PUBLIC rtmidi_in : public rtmidi
 
 public:
 
-    rtmidi_in
+    rtmidi_in                           /* default & principal constructor   */
     (
         api rapi                        = api::unspecified,
         const std::string & clientname  = "",
         unsigned queuesizelimit         = 0
     );
 
-    rtmidi_in (rtmidi_in && other) noexcept :
-        rtmidi  (std::move(other))
-    {
-        // No code
-    }
+    rtmidi_in (const rtmidi_in & other) = delete;
+    rtmidi_in & operator = (rtmidi_in & other) = delete;
 
-    virtual ~rtmidi_in () noexcept;
+    rtmidi_in (rtmidi_in && other) = default;
+    rtmidi_in & operator = (rtmidi_in && other) = default;
+
+    virtual ~rtmidi_in ();
 
     /*
      * Defined in rtmidi now:  virtual api get_current_api () noexcept;

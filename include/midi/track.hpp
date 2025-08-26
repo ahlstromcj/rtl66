@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2025-08-05
+ * \updates       2025-08-20
  * \license       GNU GPLv2 or above
  *
  *  This class is meant to hold the bytes that represent MIDI events and other
@@ -314,6 +314,8 @@ private:
      *  Contains the nominal output MIDI bus number for this sequence/pattern.
      *  This number is saved in the sequence/pattern. If port-mapping is in
      *  place, this number is used only to look up the true output buss.
+     *  Currently, port-mapping is left to a derived class (seq66::sequence),
+     *  so the nominal bus is the same as the true buss.
      */
 
     midi::bussbyte m_nominal_bus;
@@ -475,6 +477,16 @@ public:
      * track
      *-----------------------------------------------------------------------*/
 
+    midi::bussbyte nominal_bus () const
+    {
+        return m_nominal_bus;
+    }
+
+    midi::bussbyte true_bus () const
+    {
+        return m_true_bus;
+    }
+
     number track_number () const
     {
         return m_track_number;
@@ -545,6 +557,11 @@ public:
     void copy_events (const midi::eventlist & evlist)
     {
         events() = evlist;
+    }
+
+    midi::byte play_channel (const midi::event & ev)
+    {
+        return free_channel() ? ev.channel() : track_midi_channel() ;
     }
 
     /**
@@ -789,6 +806,8 @@ public:
     {
         m_is_dirty = flag;
     }
+
+    std::string to_string () const;
 
 protected:
 

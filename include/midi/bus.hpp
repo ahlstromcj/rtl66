@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-08-18
+ * \updates       2025-08-26
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -92,7 +92,7 @@ namespace midi
  *  large.
  */
 
-const int c_midibus_output_size = 0x100000;     // 1048576
+const int c_midibus_output_size { 0x100000 };   // 1048576
 
 /**
  *  The c_midibus_input_size value is passed, in midi::masterbus,  to
@@ -100,13 +100,13 @@ const int c_midibus_output_size = 0x100000;     // 1048576
  *  large.
  */
 
-const int c_midibus_input_size  = 0x100000;     // 1048576
+const int c_midibus_input_size  { 0x100000 };   // 1048576
 
 /**
  *  Controls the amount a SysEx data sent at one time, in the midibus module.
  */
 
-const int c_midibus_sysex_chunk = 0x100;        // 256
+const int c_midibus_sysex_chunk { 0x100 };      // 256
 
 /*--------------------------------------------------------------------------
  * midi::bus base class
@@ -295,6 +295,7 @@ public:
 
     /*
      * The default ctor wouldn't initialize the masterbus reference.
+     * Same with the assignment operator.
      */
 
     bus () = delete;
@@ -305,9 +306,9 @@ public:
         port::io io_type
     );
     bus (const bus &) = delete;
-    bus (bus &&) = delete;
+    bus (bus &&) = default;
     bus & operator = (const bus &) = delete;
-    bus & operator = (bus &&) = delete;
+    bus & operator = (bus &&) = default;
     virtual ~bus ();
 
 #if defined RTL66_SHOW_BUS_VALUES
@@ -344,6 +345,7 @@ public:
     /*virtual*/ bool initialize ()
     {
         m_initialized = true;
+        activate();
         return true;
     }
 
@@ -362,6 +364,16 @@ public:
         return m_io_active;                 // conflated with port_enabled()
     }
 
+    midi::port & midi_port ()
+    {
+        return m_port;
+    }
+
+    const midi::port & midi_port () const
+    {
+        return m_port;
+    }
+
     /*
      * ----------------------------------------------------------------------
      *  Start of TODOs (from businfo).
@@ -375,17 +387,17 @@ public:
 
     const std::string & bus_name () const
     {
-        return m_port.buss_name();          // m_bus_name;
+        return midi_port().buss_name();
     }
 
     const std::string & port_name () const
     {
-        return m_port.port_name();          // m_port_name;
+        return midi_port().port_name();
     }
 
     const std::string & port_alias () const
     {
-        return m_port.port_alias();         // m_port_alias;
+        return midi_port().port_alias();
     }
 
     std::string connect_name () const;
@@ -402,12 +414,12 @@ public:
 
     int bus_id () const
     {
-        return m_port.buss_number();        // was m_bus_id;
+        return midi_port().buss_number();
     }
 
     int port_id () const
     {
-        return m_port.port_number();        // was m_port_id;
+        return midi_port().port_number();
     }
 
     /**
@@ -421,12 +433,12 @@ public:
 
     port::kind port_type () const
     {
-        return m_port.port_type();          // m_port_type;
+        return midi_port().port_type();
     }
 
     void port_type (port::kind pk)
     {
-        m_port.port_type(pk);
+        midi_port().port_type(pk);
     }
 
     bool is_virtual_port () const
@@ -450,12 +462,12 @@ public:
 
     port::io io_type () const
     {
-        return m_port.io_type();                // m_io_type;
+        return midi_port().io_type();
     }
 
     void io_type (port::io iot)
     {
-        m_port.io_type(iot);
+        midi_port().io_type(iot);
     }
 
     bool is_input_port () const
@@ -488,22 +500,22 @@ public:
 
     midi::clocking clock_type () const
     {
-        return m_port.port_status();                /* was m_clock_type;    */
+        return midi_port().port_status();           /* was m_clock_type;    */
     }
 
     void clock_type (midi::clocking c)
     {
-        m_port.port_status(c);
+        midi_port().port_status(c);
     }
 
     bool port_enabled () const                      /* replaces get_input() */
     {
-        return m_io_active;
+        return active();
     }
 
     bool clock_enabled () const
     {
-        return midi::clock_is_enabled(m_port.port_status()); /* pos & mod   */
+        return midi::clock_is_enabled(midi_port().port_status());
     }
 
     bool port_unavailable () const
@@ -525,7 +537,7 @@ public:
 
     void set_bus_id (int id)
     {
-        m_port.buss_number(id);
+        midi_port().buss_number(id);
     }
 
     void set_client_id (int id)
@@ -542,12 +554,12 @@ public:
 
     void bus_name (const std::string & name)
     {
-        m_port.buss_name(name);
+        midi_port().buss_name(name);
     }
 
     void port_name (const std::string & name)
     {
-        m_port.port_name(name);
+        midi_port().port_name(name);
     }
 
     /**
@@ -557,7 +569,7 @@ public:
 
     void set_port_id (int id)
     {
-        m_port.port_number(id);
+        midi_port().port_number(id);
     }
 
     void set_name
@@ -644,16 +656,36 @@ public:
         return 0;
     }
 
-    virtual bool init_clock (pulse tick)            /* coded in bus_out     */
+    virtual bool init_clock (midi::pulse tick)      /* coded in bus_out     */
     {
         (void) tick;
         return false;
     }
 
-    virtual bool send_event (const event * e24, midi::byte channel)
+    virtual bool send_message  (const midi::message & msg)
     {
-        (void) e24;
-        (void) channel;
+        (void) msg;
+        return false;
+    }
+
+    virtual bool send_message (const midi::bytes & msg)
+    {
+        (void) msg;
+        return false;
+    }
+
+    virtual bool send_message (const midi::byte * msg, size_t sz)
+    {
+        (void) msg; (void) sz;
+        return false;
+    }
+
+    virtual bool send_event
+    (
+        const event * e24, midi::byte channel = null_channel()
+    )
+    {
+        (void) e24; (void) channel;
         return false;
     }
 
@@ -708,14 +740,12 @@ public:
 protected:
 
     /*
-     * Hmmmmmmmm.
-     * Overridden in bus_in and bus_out to provide, through rtmidi_in or
-     * rtmidi_out, the pointer to the instantiated midi_api class.
+     * This pointer points to the singular MIDI API pointer owned by
+     * the masterbus.
      */
 
     rtl::midi_api * midi_api_ptr ();
     const rtl::midi_api * midi_api_ptr () const;
-//  void set_midi_api_ptr (rtl::midi_api * rmap);
 
 };          // class bus
 

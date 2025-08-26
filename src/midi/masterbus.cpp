@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-18
+ * \updates       2025-08-24
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -163,8 +163,8 @@ masterbus::masterbus
  *  clientinfo in the constructor or (2) get the global
  *  clientinfo settings from the application.
  *
- *  If the caller wants to see the ports, use the get_client_info()
- *  function.
+ *  If the caller wants to see the ports, use the info reference
+ *  returned by the client_info() function.
  */
 
 bool
@@ -179,37 +179,12 @@ masterbus::client_info_reset (clientinfo & cinfo)
 {
     m_client_info = cinfo;
 
-    bool result = engine_query();
+    bool result { engine_query() };
     if (result)
         cinfo = m_client_info;                      /* return to the caller */
 
     return result;
 }
-
-#if 0
-
-/**
- *  Grabs the current status of the masterbus::info member.
- *
- * \param cinfo
- *      Provides the destination for the information.
- *
- * \return
- *      Returns true if there was clientinfo to get. Otherwise do not
- *      rely on the clientinfo parameter.
- */
-
-bool
-masterbus::get_client_info (clientinfo & cinfo)
-{
-    bool result = bool(m_client_info);
-    if (result)
-        cinfo = *m_client_info;
-
-    return result;
-}
-
-#endif
 
 /**
  *  Create the I/O info objects as necessary. Calling this function means

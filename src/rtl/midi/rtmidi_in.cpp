@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2024-06-07
+ * \updates       2025-08-24
  * \license       See above.
  *
  */
@@ -68,7 +68,6 @@ namespace rtl
  *      is 100.
  */
 
-RTL66_DLL_PUBLIC
 rtmidi_in::rtmidi_in
 (
     rtmidi::api rapi,
@@ -80,11 +79,14 @@ rtmidi_in::rtmidi_in
     if (qsize == 0)
         qsize = RTL66_DEFAULT_Q_SIZE;
 
-    rapi = ctor_common_setup(rapi, clientname);
-    if (is_midiapi_valid(rapi))
+    if (rapi != rtmidi::api::none)
     {
-        if (open_midi_api(rapi, clientname, qsize))
-            rtmidi::selected_api(rapi);
+        rapi = ctor_common_setup(rapi, clientname);
+        if (is_midiapi_valid(rapi))
+        {
+            if (open_midi_api(rapi, clientname, qsize))
+                rtmidi::selected_api(rapi);
+        }
     }
 }
 
@@ -92,7 +94,7 @@ rtmidi_in::rtmidi_in
  *  If a MIDI connection is still open, it will be closed by the destructor.
  */
 
-rtmidi_in::~rtmidi_in () noexcept
+rtmidi_in::~rtmidi_in ()
 {
     // No code needed
 }
@@ -118,7 +120,7 @@ rtmidi_in::open_midi_api
     unsigned qsize
 )
 {
-    bool result = rapi != rtmidi::api::max;
+    bool result { rapi != rtmidi::api::max };
     delete_rt_api_ptr();                    /* remove and nullify pointer   */
     if (result)
     {
@@ -146,7 +148,7 @@ rtmidi_in::open_midi_api
 bool
 rtmidi_in::open_port (int portnumber, const std::string & portname)
 {
-    std::string pname = portname;
+    std::string pname { portname };
     if (pname.empty())
         pname = "rtl66 midi in";
 
@@ -171,7 +173,7 @@ rtmidi_in::open_port (int portnumber, const std::string & portname)
 bool
 rtmidi_in::open_virtual_port (const std::string & portname)
 {
-    std::string pname = portname;
+    std::string pname { portname };
     if (pname.empty())
         pname = "rtl66 midi vin";
 

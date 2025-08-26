@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2024-06-09
+ * \updates       2025-08-24
  * \license       See above.
  *
  *  The JACK callbacks have been moved into a separate file for better
@@ -374,7 +374,7 @@ jack_process_in (jack_nframes_t framect, void * arg)
     int evcount = ::jack_midi_get_event_count(buff);
     for (int j = 0; j < evcount; ++j)           /* MIDI events in buffer    */
     {
-        midi::message & message = rtdata->message();
+        midi::message & message = rtdata->midi_msg();
         jack_midi_event_t event;
         int rc = ::jack_midi_event_get(&event, buff, j);
         if (rc == ENODATA)

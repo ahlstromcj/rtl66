@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-07-31
+ * \updates       2025-08-22
  * \license       GNU GPLv2 or above
  *
  *  A MIDI event (i.e. "track event") is encapsulated by the midi::event
@@ -1130,7 +1130,7 @@ event::to_string () const
         result += is_marked() ? "M" : " ";
         result += is_selected() ? "S" : " ";
         result += is_midi_clock() ? "C" : " ";
-        result += ") ";
+        result += " ) ";
     }
     if (is_sysex())
     {
@@ -1144,11 +1144,10 @@ event::to_string () const
     }
     else
     {
-        const char * label = is_meta() ? "type" : "channel" ;
         (void) snprintf
         (
-            tmp, sizeof tmp, "event 0x%02X %s 0x%02X d0=%d d1=%d\n",
-            unsigned(status_byte()), label, unsigned(m_channel),
+            tmp, sizeof tmp, "Event 0x%02X Ch. 0x%02X d0=%d d1=%d\n",
+            unsigned(status_byte()), unsigned(m_channel),
             int(m_message[0]), int(m_message[1])
         );
         result += tmp;

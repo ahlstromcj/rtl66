@@ -57,17 +57,17 @@ class RTL66_DLL_PUBLIC midi_alsa_data
 
 private:
 
-    snd_seq_t * m_seq;
-    int m_portnum;
-    int m_vport;
-    snd_seq_port_subscribe_t * m_subscription;
-    snd_midi_event_t * m_event_parser;
-    size_t m_buffer_size;
-    midi::byte * m_buffer;
-    pthread_t m_thread;
-    pthread_t m_dummy_thread_id;
-    snd_seq_real_time_t m_last_time;
-    int m_queue_id;       // input queue needed to get timestamped events
+    snd_seq_t * m_alsa_client { nullptr };
+    int m_portnum { -1 };
+    int m_vport { -1 };
+    snd_seq_port_subscribe_t * m_subscription { nullptr };
+    snd_midi_event_t * m_event_parser { nullptr };
+    size_t m_buffer_size { 32 };
+    midi::byte * m_buffer { nullptr };
+    pthread_t m_thread { };
+    pthread_t m_dummy_thread_id { };
+    snd_seq_real_time_t m_last_time { };
+    int m_queue_id { -1 };       /* input queue to get timestamped events   */
     int m_trigger_fds[2];
 
 public:
@@ -93,7 +93,7 @@ public:
 
     snd_seq_t * alsa_client ()
     {
-        return m_seq;
+        return m_alsa_client;
     }
 
     int port_number () const
@@ -170,7 +170,7 @@ public:
 
     void alsa_client (snd_seq_t * c)
     {
-        m_seq = c;
+        m_alsa_client = c;
     }
 
     void port_number (int p)

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2024-05-26
+ * \updates       2025-08-21
  * \license       GNU GPLv2 or above
  *
  *  This class is meant to hold the bytes that represent MIDI events and other
@@ -435,6 +435,11 @@ public:
     long track_end_size () const
     {
         return 3;
+    }
+
+    std::string to_string () const
+    {
+        return events().to_string();
     }
 
 protected:

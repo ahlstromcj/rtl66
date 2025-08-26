@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-08-18
+ * \updates       2025-08-21
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -63,7 +63,7 @@ midi::client_defaults s_clientinfo_defaults
     false,                              /* virtual ports                    */
     0,                                  /* no virtual input ports           */
     0,                                  /* no virtual output ports          */
-    false,                              /* auto connect                     */
+    true,                               /* auto connect                     */
     false,                              /* port refresh                     */
     4,                                  /* the default global beat width    */
     4,                                  /* the default global beats per bar */
@@ -78,7 +78,7 @@ midi::client_defaults s_clientinfo_defaults
  *  The port-numbers can be changed, so this item is not const.
  */
 
-static /* const */ midi::clientinfo s_clientinfo { s_clientinfo_defaults };
+static midi::clientinfo s_clientinfo { s_clientinfo_defaults };
 
 /**
  *  Tests of MIDI file parsing and writing for various files.
@@ -101,7 +101,11 @@ static const lib66::tokenization s_test_files
 static
 bool play_it (midi::player & p, std::string & errmsg)
 {
-    bool result { p.simple_play() };
+#if defined PLATFORM_DEBUG_TMI
+     p.print_tracks("Play");                /* show all events in tracks    */
+#endif
+
+    bool result = { p.simple_play() };
     if (! result)
     {
         if (p.error_pending())
@@ -125,7 +129,10 @@ bool play_test (midi::player & p, const std::string & file)
     bool result { p.read_midi_file(testfile, errmsg, false) };
     if (result)
     {
-        result = play_it(p, errmsg);
+        result = p.set_midi_bus(rt_test_port());
+        if (result)
+            result = play_it(p, errmsg);
+
         if (result)
         {
             std::cout << "Success for " << testfile << std::endl;
@@ -172,7 +179,6 @@ main (int argc, char * argv [])
             if (rt_test_port_valid(rt_test_port()))
             {
                 out_port = rt_test_port();                  /* --port p     */
-                // can_run = midiout.open_port(outport);
             }
             else
             {

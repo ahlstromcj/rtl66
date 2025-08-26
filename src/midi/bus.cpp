@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-08-18
+ * \updates       2025-08-24
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -63,7 +63,7 @@ namespace midi
  *  Initialize this static member.
  */
 
-int bus::m_clock_mod = 16 * 4;
+int bus::m_clock_mod { 16 * 4 };
 
 /**
  *  Creates a MIDI port, which will correspond to an existing system
@@ -210,7 +210,7 @@ bus::get_port_items (midi::port::io iotype)
     const masterbus::info & ci { master_bus().client_info() };
     if (ci.ports_queried())
     {
-        int index = m_bus_index;
+        int index { m_bus_index };
         const midi::ports & portlist { ci.io_ports(iotype) };
         const midi::port & p { portlist.portref(index) };
         m_port = p;
@@ -260,7 +260,7 @@ bus::set_name
          * as well.
          */
 
-        std::string bname = "TODO";              // usr().bus_name(m_bus_index);
+        std::string bname { "TODO" };            // usr().bus_name(m_bus_index);
         if (is_output_port() && ! bname.empty())
         {
             snprintf
@@ -290,7 +290,7 @@ bus::set_name
          */
 
         char alias[80];                                     /* was 128  */
-        std::string bname = "TODO";         // usr().bus_name(m_bus_index);
+        std::string bname { "TODO" };       // usr().bus_name(m_bus_index);
         if (is_output_port() && ! bname.empty())
         {
             snprintf
@@ -353,15 +353,15 @@ bus::set_alt_name
     const std::string & busname
 )
 {
-    std::string portname = connect_name();
+    std::string portname { connect_name() };
     if (is_virtual_port())
     {
         set_name(appname, busname, portname);
     }
     else
     {
-        std::string bname = busname;
-        std::string pname = portname;
+        std::string bname { busname };
+        std::string pname { portname };
         char alias[128];
         snprintf                            /* copy the client name parts */
         (
@@ -384,7 +384,7 @@ bus::set_alt_name
 std::string
 bus::connect_name () const
 {
-    std::string result = bus_name();
+    std::string result { bus_name() };
     if (! result.empty() && ! port_name().empty())
     {
         result += ":";
@@ -401,7 +401,7 @@ bus::connect_name () const
 bool
 bus::is_port_connectable () const
 {
-    bool result = ! is_virtual_port();
+    bool result { ! is_virtual_port() };
     if (result)
         result = port_enabled();        //  || rc().init_disabled_ports();
 
@@ -458,7 +458,7 @@ bus::set_clock (midi::clocking clk)
 bool
 bus::connect ()
 {
-    bool result = not_nullptr(midi_api_ptr());
+    bool result { not_nullptr(midi_api_ptr()) };
     if (result)
     {
         result = midi_api_ptr()->connect();
@@ -501,9 +501,9 @@ bus::show_clock (const std::string & context, midi::pulse tick)
 void
 bus::show_bus_values ()
 {
-    const char * vport = is_virtual_port() ? "virtual" : "non-virtual" ;
-    const char * iport = is_input_port() ? "input" : "output" ;
-    const char * sport = is_system_port() ? "system" : "device" ;
+    const char * vport { is_virtual_port() ? "virtual" : "non-virtual" };
+    const char * iport { is_input_port() ? "input" : "output" };
+    const char * sport { is_system_port() ? "system" : "device" };
     printf
     (
         "client id:         %d\n"

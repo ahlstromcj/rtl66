@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2023-03-07
- * \updates       2025-01-20
+ * \updates       2025-08-25
  * \license       See above.
  *
  */
@@ -90,7 +90,6 @@ rtaudio::api rtaudio::sm_selected_api = rtaudio::api::unspecified; /* selected *
  * rtaudio
  *------------------------------------------------------------------------*/
 
-RTL66_DLL_PUBLIC
 rtaudio::rtaudio () :
     m_rt_api_ptr  (nullptr)                         /* rt_api_ptr() access  */
 {

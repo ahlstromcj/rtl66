@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-13
+ * \updates       2025-08-26
  * \license       See above.
  *
  */
@@ -39,6 +39,7 @@
 #include <string>                       /* std::string class                */
 #include <jack/jack.h>                  /* JACK API functions, etc.         */
 
+#include "midi/message.hpp"             /* midi::message                    */
 #include "midi/ports.hpp"               /* midi::port etc. enums            */
 #include "rtl/midi/midi_api.hpp"        /* rtl::midi_in/out_api classes     */
 #include "rtl/midi/jack/midi_jack_data.hpp"  /* rtl::midi_jack_data class   */
@@ -203,8 +204,6 @@ protected:
     virtual bool close_port () override;
     virtual bool set_client_name (const std::string & clientname) override;
     virtual bool set_port_name (const std::string & portname) override;
-    virtual bool send_message (const midi::byte * message, size_t sz) override;
-    virtual bool send_message (const midi::message & message) override;
 
 protected:
 
@@ -239,19 +238,35 @@ protected:
 
     virtual bool PPQN (midi::ppqn ppq) override;
     virtual bool BPM (midi::bpm bp) override;
-    virtual bool send_byte (midi::byte evbyte) override;
     virtual bool clock_start () override;
     virtual bool clock_send (midi::pulse tick) override;
     virtual bool clock_stop () override;
     virtual bool clock_continue (midi::pulse tick, midi::pulse beats) override;
     virtual int poll_for_midi () const override;
     virtual bool get_midi_event (midi::event * inev) override;
+
+    /*
+     * Strictly speaking, we could implement some of these functions directly
+     * in the midi_api base class. But let's wait to see if there are any
+     * API-dependent wrinkles.
+     */
+
+    virtual bool send_byte (midi::byte evbyte) override;
     virtual bool send_event
     (
-        const midi::event * ev, midi::byte channel
+        const midi::event * ev,
+        midi::byte channel = midi::null_channel()
     ) override;
+    virtual bool send_message (const midi::message & msg) override;
 
-    bool send_sysex (const midi::event * ev) override;
+    virtual bool send_message (const midi::bytes & msg) override
+    {
+        return send_message(msg.data(), msg.size());
+    }
+
+    virtual bool send_message (const midi::byte * msg, size_t sz) override;
+    virtual bool send_sysex (const midi::event * ev) override;
+
     bool connect_ports
     (
         midi::port::io iotype,

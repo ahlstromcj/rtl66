@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2024-06-01
+ * \updates       2025-08-26
  * \license       See above.
  *
  */
@@ -161,16 +161,43 @@ protected:
         return true;
     }
 
-    virtual bool send_message
-    (
-        const midi::byte * /*msg*/, size_t /*sz*/
-    ) override
+    virtual bool send_byte (midi::byte evbyte) override
     {
+        (void) evbyte;
         return true;
     }
 
-    virtual bool send_message (const midi::message & /*msg*/) override
+    virtual bool send_event
+    (
+        const midi::event * ev,
+        midi::byte channel = midi::null_channel()
+    ) override
     {
+        (void) ev; (void) channel;
+        return true;
+    }
+
+    virtual bool send_message (const midi::message & msg) override
+    {
+        (void) msg;
+        return true;
+    }
+
+    virtual bool send_message (const midi::bytes & msg) override
+    {
+        (void) msg;
+        return true;
+    }
+
+    virtual bool send_message (const midi::byte * msg, size_t sz) override
+    {
+        (void) msg; (void) sz;
+        return true;
+    }
+
+    virtual bool send_sysex (const midi::event * ev) override
+    {
+        (void) ev;
         return true;
     }
 

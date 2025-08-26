@@ -28,12 +28,13 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-13
+ * \updates       2025-08-26
  * \license       See above.
  *
  *      Also contains some additional capabilities.
  */
 
+#include <memory>                       /* std::unique_ptr<> template class */
 #include <string>                       /* omnipresent std::string class    */
 
 #include "c_macros.h"                   /* is_nullptr() macro               */
@@ -44,15 +45,12 @@
 
 /*
  *  Most functions here don't need to be virtual. Polymorphism is used
- *  via the rt_api_ptr() function in order to support ALSA, JACK, etc.
- *
- *  Fix after tests.
+ *  via the rt_api_ptr() [midi_api] functions in order to support ALSA,
+ *  JACK, etc.
  */
 
-#define VIRTUAL
-
 /*
- * Note the support for the namespaces of midi and rtl::midi.
+ * Note the support for the namespaces of midi and rtl.
  */
 
 namespace midi
@@ -103,6 +101,7 @@ public:
         android_midi,       /**< Android MIDI API (not yet supported here). */
         web_midi,           /**< The Web MIDI API.                          */
         dummy,              /**< A compilable but non-functional API.       */
+        none,               /**< Indicates to *not* call open_midi_api().   */
         max                 /**< A count of APIs; an erroneous value.       */
     };
 
@@ -138,32 +137,45 @@ private:
 
     /**
      *  Provides a pointer to the selected API implementation, such as
-     *  midi_alsa or midi_jack.
+     *  midi_alsa or midi_jack. This item is separately-owned by the
+     *  rtmidi in, out, or engine classes. However, it is not used if
+     *  the midi::masterbus is supplying the API pointer.
      */
 
-    midi_api * m_rt_api_ptr;
+    std::unique_ptr<midi_api> m_rt_api_ptr;
 
-public:
+    /**
+     *  The masterbus's API pointer, if not null.
+     */
 
-    rtmidi (rtmidi && other) noexcept;
-    rtmidi & operator = (rtmidi && other) noexcept;
+    midi_api * m_master_api_ptr;
+
+    /**
+     *  Do we have a master API pointer?
+     */
+
+    bool m_has_master;
 
 protected:
 
     rtmidi ();
 
     /*
-     * Make the class non-copyable
+     * Make the class non-copyable, but it is still moveable.
      */
 
-    rtmidi (rtmidi & other) = delete;
+    rtmidi (const rtmidi & other) = delete;
     rtmidi & operator = (rtmidi & other) = delete;
+
+    rtmidi (rtmidi && other) = default;
+    rtmidi & operator = (rtmidi && other) = default;
 
 public:
 
     /*
      * Must be public to use base-class pointer. See the usage of
-     * std::unique_ptr<> in the test_helpers.cpp module.
+     * std::unique_ptr<> in the test_helpers.cpp module. It cannot
+     * be set to the "default" destructor because of some deleter issue.
      */
 
     virtual ~rtmidi ();
@@ -192,12 +204,12 @@ public:
     static bool start_jack ();
 #endif
 
-    static rtmidi::api & desired_api ()
+    static rtmidi::api desired_api ()
     {
         return sm_desired_api;
     }
 
-    static rtmidi::api & selected_api ()
+    static rtmidi::api selected_api ()
     {
         return sm_selected_api;
     }
@@ -228,7 +240,7 @@ public:
      * they perform a test of the MIDI API pointer before calling the API
      * function. Note that some of these functions do not need to be virtual
      * because the polymorphism is implemented in the midi_api-based classes.
-     * But we have some slightly tailoring for input vs. output.
+     * But we have some slight tailoring for input vs output.
      */
 
     virtual bool open_port
@@ -281,22 +293,29 @@ public:
         rterror::callback_t cb,
         void * userdata = nullptr
     );
-    bool send_byte (midi::byte evbyte);
     bool clock_start ();
     bool clock_send (midi::pulse tick);
     bool clock_stop ();
     bool clock_continue (midi::pulse tick, int beats);
     int poll_for_midi () const;
     bool get_midi_event (midi::event * inev);
-    bool send_event (const midi::event * ev, midi::byte channel);
+
+    bool send_byte (midi::byte evbyte);
+    bool send_event
+    (
+        const midi::event * ev,
+        midi::byte channel = midi::null_channel()
+    );
     bool send_message (const midi::message & msg);
+    bool send_message (const midi::bytes & msg);
     bool send_message (const midi::byte * msg, size_t sz);
+    bool send_sysex (const midi::event * ev);
 
 #endif  // defined RTL66_MIDI_EXTENSIONS
 
 #if defined ADDITIONAL_FUNCTIONS_ARE_READY
 
-    VIRTUAL bool play (const event * inev, midi::byte channel) = 0;
+    bool play (const event * inev, midi::byte channel) = 0;
 
     // Utilities:
     //
@@ -309,22 +328,25 @@ public:
 
 public:
 
+    void rt_api_ptr (midi_api * p);
+    void master_api_ptr (midi_api * p);
+
+    bool has_master () const
+    {
+        return m_has_master;
+    }
+
     midi_api * rt_api_ptr ()
     {
-        return m_rt_api_ptr;
+        return has_master() ?  m_master_api_ptr : m_rt_api_ptr.get() ;
     }
 
     const midi_api * rt_api_ptr () const
     {
-        return m_rt_api_ptr;
+        return m_rt_api_ptr.get();
     }
 
 protected:
-
-    void rt_api_ptr (midi_api * p)
-    {
-        m_rt_api_ptr = p;
-    }
 
     void delete_rt_api_ptr ();
 

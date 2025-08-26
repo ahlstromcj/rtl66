@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-10
- * \updates       2025-08-16
+ * \updates       2025-08-20
  * \license       GNU GPLv2 or above
  *
  *  The player class is a severely cut-down version of seq66::performer, with
@@ -433,6 +433,8 @@ public:
     {
         return m_track_max;
     }
+
+    void print_tracks (const std::string & tag = "");
 
     /*
      * Transport Information functions.  Some have inline wrappers for
@@ -851,7 +853,8 @@ public:
 public:
 
     bool set_track_name (midi::track::ref s, const std::string & name);
-    bool set_midi_bus (midi::track::number trkno, int buss);
+    bool set_midi_bus (midi::track::number trkno, int b);
+    bool set_midi_bus (int b);
     bool set_midi_channel (midi::track::number trkno, int channel);
     bool set_recording
     (

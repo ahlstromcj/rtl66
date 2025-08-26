@@ -36,8 +36,10 @@
 namespace rtl
 {
 
-midi_alsa_data::midi_alsa_data () :
-    m_seq               (nullptr),
+midi_alsa_data::midi_alsa_data ()
+ :
+#if 0
+    m_alsa_client       (nullptr),
     m_portnum           (-1),
     m_vport             (-1),
     m_subscription      (nullptr),
@@ -48,6 +50,7 @@ midi_alsa_data::midi_alsa_data () :
     m_dummy_thread_id   (0),
     m_last_time         (),
     m_queue_id          (-1),
+#endif
     m_trigger_fds       ()          // two-element array
 {
     // Empty body
@@ -61,8 +64,8 @@ midi_alsa_data::initialize
     size_t buffersize
 )
 {
-    bool result = true;
-    m_seq = seq;
+    bool result { true };
+    m_alsa_client = seq;
     m_portnum = m_vport = (-1);
 
     /*
@@ -79,7 +82,7 @@ midi_alsa_data::initialize
         m_thread = m_dummy_thread_id;
         m_trigger_fds[0] = m_trigger_fds[1] = (-1);
 
-        int rc = pipe(m_trigger_fds);
+        int rc { pipe(m_trigger_fds) };
         result = rc == 0;
         if (! result)
         {
@@ -90,7 +93,7 @@ midi_alsa_data::initialize
     {
         m_event_parser = nullptr;
 
-        int rc = snd_midi_event_new(buffersize, &m_event_parser);
+        int rc { snd_midi_event_new(buffersize, &m_event_parser) };
         result = rc == 0;
         if (result)
         {

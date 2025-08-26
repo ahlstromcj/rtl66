@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-08
+ * \updates       2025-08-26
  * \license       See above.
  *
  */
@@ -73,19 +73,19 @@ public:
      *  CORE, JACK (OS-X).
      */
 
-    rtmidi_out
+    rtmidi_out                          /* default & principal constructor   */
     (
         api rapi                        = api::unspecified,
         const std::string & clientname  = ""
     );
 
-    rtmidi_out (rtmidi_out && other) noexcept :
-        rtmidi(std::move(other))
-    {
-        // no code
-    }
+    rtmidi_out (const rtmidi_out & other) = delete;
+    rtmidi_out & operator = (rtmidi_out & other) = delete;
 
-    virtual ~rtmidi_out() noexcept;
+    rtmidi_out (rtmidi_out && other) = default;
+    rtmidi_out & operator = (rtmidi_out && other) = default;
+
+    virtual ~rtmidi_out ();
 
     /*
      * Defined in rtmidi:  virtual api get_current_api () noexcept;
@@ -98,8 +98,14 @@ public:
     ) override;
     virtual bool open_virtual_port (const std::string & portname = "") override;
 
-    bool send_message (const midi::byte * msg, size_t sz);
+#if 0
+    bool send_byte (midi::byte evbyte);
+    bool send_event (const midi::event * e24, midi::byte channel = null_channel());
     bool send_message (const midi::message & msg);
+    bool send_message (const midi::bytes & msg);
+    bool send_message (const midi::byte * msg, size_t sz);
+    bool send_sysex (const midi::event * ev);
+#endif
 
 protected:
 

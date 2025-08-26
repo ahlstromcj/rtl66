@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2025-08-18
+ * \updates       2025-08-20
  * \license       GNU GPLv2 or above
  *
  *  This class is important when writing the MIDI and track data out to a
@@ -220,11 +220,10 @@ void
 track::play_note_on (int note)
 {
     xpc::automutex locker(m_mutex);
-    midi::byte channel = 0;                 // midi_channel(e)
+    midi::byte channel = track_midi_channel();
     midi::byte nvalue = midi::byte(note);
     event e(0, midi::status::note_on, channel, nvalue, m_note_on_velocity);
-    // TODO
-    // master_bus()->play_and_flush(m_true_bus, &e, midi_channel(e));
+    master_bus()->play_and_flush(true_bus(), &e, play_channel(e));
 }
 
 /**
@@ -242,11 +241,10 @@ void
 track::play_note_off (int note)
 {
     xpc::automutex locker(m_mutex);
-    midi::byte channel = 0;                 // midi_channel(e)
+    midi::byte channel = track_midi_channel();
     midi::byte nvalue = midi::byte(note);
     event e(0, midi::status::note_off, channel, nvalue, m_note_off_velocity);
-    // TODO
-    // master_bus()->play_and_flush(m_true_bus, &e, midi_channel(e));
+    master_bus()->play_and_flush(m_true_bus, &e, play_channel(e));
 }
 
 /**
@@ -598,42 +596,49 @@ track::play
 /**
  *  A very simple playback function, used by player. It just
  *  plays events (except for tempo), with no check of armed status.
+ *  Only plays one time.
  */
 
 void
 track::simple_play (midi::pulse tick)
 {
-    xpc::automutex locker(m_mutex);
-    midi::pulse start_tick = m_last_tick;
-    midi::pulse len = length() > 0 ?
-        length() : parent()->get_ppqn() ;
+    xpc::automutex locker {m_mutex };
+    midi::pulse start_tick { m_last_tick };
+    midi::pulse len
+    {
+        length() > 0 ?  length() : parent()->get_ppqn()
+    };
 
-    midi::pulse offset = len;
-    midi::pulse start_tick_offset = start_tick + offset;
-    midi::pulse end_tick_offset = tick + offset;
-    midi::pulse times_played = m_last_tick / len;
-    midi::pulse offset_base = times_played * len;
+    midi::pulse end_tick_offset { tick + len };
     auto e = events().begin();
+#if defined PLATFORM_DEBUG
+    int count { events().count() };
+    int playcount { events().playable_count() };
+    printf
+    (
+        "Track #%d event count: %d (%d playable)\n",
+        track_number(), count, playcount
+    );
+#endif
     while (e != events().end())
     {
-        event & er = eventlist::dref(e);
-        midi::pulse ts = er.timestamp();
-        midi::pulse stamp = ts + offset_base;
-        if (stamp >= start_tick_offset && stamp <= end_tick_offset)
+        event & er { eventlist::dref(e) };
+        midi::pulse ts { er.timestamp() };
+        if (ts >= start_tick && ts <= end_tick_offset)
         {
             if (! er.is_ex_data())
                 put_event_on_bus(er);           /* frame still going    */
         }
-        else if (stamp > end_tick_offset)
+        else if (ts > end_tick_offset)
             break;                              /* frame is done        */
 
         ++e;                                    /* go to next event     */
         if (e == events().end())                /* did we hit the end ? */
         {
-            e = events().begin();               /* yes, start over      */
-            offset_base += len;                 /* for another go at it */
 
             /*
+             *  e = events().begin();           // yes, start over      //
+             *
              * Putting this sleep here doesn't reduce the total CPU load,
              * but it does prevent one CPU from being hammered at 100%.
              * millisleep(1) made the live-grid progress bar jittery when
@@ -682,8 +687,8 @@ track::set_parent (player * p, lib66::toggler sorting)
 {
     if (not_nullptr(p))
     {
-        midi::pulse ppnote = 4 * p->get_ppqn() / beat_width();
-        midi::pulse barlength = ppnote * beats_per_bar();
+        midi::pulse ppnote { 4 * p->get_ppqn() / beat_width() };
+        midi::pulse barlength { ppnote * beats_per_bar() };
         m_parent = p;
         manufacturer_id(p->manufacturer_id());
         master_midi_bus(p->master_bus());
@@ -694,7 +699,7 @@ track::set_parent (player * p, lib66::toggler sorting)
         if (length() < barlength)           /* pad sequence to a measure    */
             set_length(barlength, false);
 
-        (void) midi_bus(m_nominal_bus);
+        (void) midi_bus(nominal_bus());     /* but player::set_midi_bus()!  */
         // beats_per_bar(p->get_beats_per_bar());
         // beat_width(p->get_beat_width());
         unmodify();
@@ -747,18 +752,19 @@ bool
 track::midi_bus (midi::bussbyte nominalbus, bool user_change)
 {
     xpc::automutex locker(m_mutex);
-    bool result = nominalbus != m_nominal_bus && is_good_buss(nominalbus);
+    bool result { nominalbus != m_nominal_bus && is_good_buss(nominalbus) };
     if (result)
     {
         off_playing_notes();                /* off notes except initial     */
         m_nominal_bus = nominalbus;
         if (not_nullptr(parent()))
         {
-            m_true_bus = nominalbus;
+            m_nominal_bus = m_true_bus = nominalbus;
         }
         else
-            m_true_bus = null_buss();       /* provides an invalid value    */
-
+        {
+            m_nominal_bus = m_true_bus = null_buss();   /* invalid value    */
+        }
         if (user_change)
             modify();                       /* no easy way to undo this     */
 
@@ -790,7 +796,7 @@ bool
 track::midi_channel (midi::byte ch, bool user_change)
 {
     xpc::automutex locker(m_mutex);
-    bool result = ch != m_midi_channel;
+    bool result { ch != m_midi_channel };
     if (result)
         result = is_valid_channel(ch);      /* 0 to 15 or null_channel()    */
 
@@ -854,10 +860,10 @@ bool
 track::set_length (midi::pulse len, bool verify)
 {
     xpc::automutex locker(m_mutex);
-    bool result = len != m_length;
+    bool result { len != m_length };
     if (result)
     {
-        bool was_playing = armed();             /* was it armed?            */
+        bool was_playing { armed() };           /* was it armed?            */
         set_armed(false);                       /* mute the pattern         */
         if (len > 0)
         {
@@ -920,7 +926,7 @@ track::measures_to_ticks (int measures) const
 void
 track::set_measures (int measures)
 {
-    bool modded = set_length(measures * unit_measure(true));
+    bool modded { set_length(measures * unit_measure(true)) };
     if (modded)
         modify();
 }
@@ -951,9 +957,9 @@ track::set_measures (int measures)
 int
 track::get_measures (midi::pulse newlength) const
 {
-    midi::pulse um = unit_measure();
-    midi::pulse len = newlength > 0 ? newlength : length() ;
-    int measures = int(len / um);
+    midi::pulse um { unit_measure() };
+    midi::pulse len { newlength > 0 ? newlength : length() };
+    int measures { int(len / um) };
     if (len % int(um) != 0)
         ++measures;
 
@@ -979,7 +985,7 @@ track::get_measures () const
 int
 track::calculate_measures (bool reset) const
 {
-    midi::pulse um = unit_measure(reset);
+    midi::pulse um { unit_measure(reset) };
     return 1 + (length() - 1) / um;
 }
 
@@ -998,7 +1004,7 @@ void
 track::beats_per_bar (int bpb, bool user_change)
 {
     xpc::automutex locker(m_mutex);
-    bool modded = false;
+    bool modded { false };
     if (bpb != int(m_beats_per_bar))
     {
         m_beats_per_bar = bpb;
@@ -1006,7 +1012,7 @@ track::beats_per_bar (int bpb, bool user_change)
             modded = true;
     }
 
-    int m = get_measures();
+    int m { get_measures() };
     if (m != m_measures)
     {
         m_measures = m;
@@ -1032,7 +1038,7 @@ void
 track::beat_width (int bw, bool user_change)
 {
     xpc::automutex locker(m_mutex);
-    bool modded = false;
+    bool modded { false };
     if (bw != int(m_beat_width))
     {
         m_beat_width = bw;
@@ -1040,7 +1046,7 @@ track::beat_width (int bw, bool user_change)
             modded = true;
     }
 
-    int m = get_measures();
+    int m { get_measures() };
     if (m != m_measures)
     {
         m_measures = m;
@@ -1068,8 +1074,8 @@ track::beat_width (int bw, bool user_change)
 void
 track::put_event_on_bus (const event & ev)
 {
-    midi::byte note = ev.get_note();
-    bool skip = false;
+    midi::byte note { ev.get_note() };
+    bool skip { false };
     if (ev.is_note_on())
     {
         ++m_playing_notes[note];
@@ -1085,10 +1091,7 @@ track::put_event_on_bus (const event & ev)
     {
         event evout;
         evout.prep_for_send(m_parent->tick(), ev);          /* issue #100   */
-        master_bus()->play_and_flush
-        (
-            m_true_bus, &evout, midi_channel(ev.channel())
-        );
+        master_bus()->play_and_flush(true_bus(), &evout, play_channel(evout));
     }
 }
 
@@ -1137,7 +1140,7 @@ track::add_event (const event & er)
      * bool result = events().add(er);  // post/auto-sorts by time & rank
      */
 
-    bool result = events().append(er);      /* no-sort insertion of event   */
+    bool result { events().append(er) };    /* no-sort insertion of event   */
     if (result)
     {
         verify_and_link();                  /* for proper drawing; sorts    */
@@ -1261,9 +1264,9 @@ bool
 track::minmax_notes (int & lowest, int & highest) // const
 {
     xpc::automutex locker(m_mutex);
-    bool result = false;
-    int low = int(max_midi_value());
-    int high = -1;
+    bool result { false };
+    int low { int(max_midi_value()) };
+    int high { -1 };
     for (auto & er : events())
     {
         if (er.is_strict_note())
@@ -1281,7 +1284,7 @@ track::minmax_notes (int & lowest, int & highest) // const
         }
         else if (er.is_tempo())
         {
-            midi::byte notebyte = tempo_to_note_value(er.tempo());
+            midi::byte notebyte { tempo_to_note_value(er.tempo()) };
             if (notebyte < low)
                 low = notebyte;
             else if (notebyte > high)
@@ -1292,6 +1295,18 @@ track::minmax_notes (int & lowest, int & highest) // const
     }
     lowest = low;
     highest = high;
+    return result;
+}
+
+std::string
+track::to_string () const
+{
+    std::string result { "#" + std::to_string(track_number()) + " " };
+    result += track_name();
+    result += "\n";
+    result += info().to_string();
+    result += "\n";
+    result += data().to_string();
     return result;
 }
 

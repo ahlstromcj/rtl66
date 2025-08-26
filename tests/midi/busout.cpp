@@ -17,7 +17,7 @@
  */
 
 /**
- * \file          midiout.cpp
+ * \file          busout.cpp
  *
  *      Simple program to test MIDI output.
  *
@@ -60,7 +60,7 @@
 int
 main (int argc, char * argv [])
 {
-    bool can_run { rt_simple_cli("midiout", argc, argv) };
+    bool can_run { rt_simple_cli("busout", argc, argv) };
     if (can_run)
     {
         try
@@ -70,7 +70,7 @@ main (int argc, char * argv [])
              * port.
              */
 
-            rtl::rtmidi_out midiout { rtl::rtmidi::desired_api() };
+            rtl::rtmidi_out busout { rtl::rtmidi::desired_api() };
             if (! rt_virtual_test_port())
             {
                 /*
@@ -85,12 +85,12 @@ main (int argc, char * argv [])
                      * calls rt_choose_port_number and then open_port().
                      */
 
-                    can_run = rt_choose_output_port(midiout);
+                    can_run = rt_choose_output_port(busout);
                 }
                 else
                 {
                     int portnumber { rt_test_port() };
-                    can_run = midiout.open_port(portnumber);
+                    can_run = busout.open_port(portnumber);
                 }
             }
             if (can_run)
@@ -100,39 +100,39 @@ main (int argc, char * argv [])
                 midi::message msg;
                 msg.push(midi::status::program_change); // 0xC0 [ 192 ]
                 msg.push(5);                            // Electric Piano?
-                (void) midiout.send_message(msg);
+                (void) busout.send_message(msg);
                 rt_test_sleep(500);
 
                 msg.clear();
                 msg.push(midi::status::quarter_frame);  // 0xF1
                 msg.push(60);                           // ??
-                (void) midiout.send_message(msg);
+                (void) busout.send_message(msg);
 
                 msg.clear();
                 msg.push(midi::status::control_change); // 0xB0 [ 176 ]
                 msg.push(midi::ctrl::volume);           // 0x07
                 msg.push(100);                          // volume level
-                midiout.send_message(msg);
+                busout.send_message(msg);
 
                 msg.clear();
                 msg.push(midi::status::note_on);        // 0x90 [ 144 ]
                 msg.push(64);                           // note number
                 msg.push(90);                           // velocity
-                (void) midiout.send_message(msg);
+                (void) busout.send_message(msg);
                 rt_test_sleep(500);
 
                 msg.clear();
                 msg.push(midi::status::note_off);       // 0x80 [ 128 ]
                 msg.push(64);                           // note number
                 msg.push(40);                           // velocity
-                (void) midiout.send_message(msg);
+                (void) busout.send_message(msg);
                 rt_test_sleep(500);
 
                 msg.clear();
                 msg.push(midi::status::control_change); // 0xB0 [ 176 ]
                 msg.push(midi::ctrl::volume);           // 0x07
                 msg.push(40);                           // volume level
-                (void) midiout.send_message(msg);
+                (void) busout.send_message(msg);
                 rt_test_sleep(500);
 
                 msg.clear();
@@ -142,7 +142,7 @@ main (int argc, char * argv [])
                 msg.push(3);                            // ??
                 msg.push(2);                            // ??
                 msg.push(midi::status::sysex_end);      // 0xF7 [ 247 ]
-                (void) midiout.send_message(msg);
+                (void) busout.send_message(msg);
             }
         }
         catch (rtl::rterror & error)
@@ -154,7 +154,7 @@ main (int argc, char * argv [])
 }
 
 /*
- * midiout.cpp
+ * busout.cpp
  *
  * vim: sw=4 ts=4 wm=4 et ft=cpp
  */

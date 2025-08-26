@@ -48,7 +48,7 @@ namespace seq66
  */
 
 std::string
-to_string (seqspec sp)
+seq66_seqspec_to_string (seqspec sp)
 {
     static midi::ulong s_min = static_cast<midi::ulong> seqspec::midibus;
     static midi::ulong s_max = static_cast<midi::ulong> seqspec::max;

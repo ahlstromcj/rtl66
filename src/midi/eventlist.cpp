@@ -49,7 +49,6 @@ namespace midi
  */
 
 eventlist::eventlist () :
-//  m_track_info            (),
     m_events                (),
     m_match_iterating       (false),
     m_match_iterator        (m_events.end()),
@@ -73,7 +72,6 @@ eventlist::eventlist () :
  */
 
 eventlist::eventlist (const eventlist & rhs) :
-//  m_track_info            (rhs.m_track_info),
     m_events                (rhs.m_events),
     m_match_iterating       (false),
     m_match_iterator        (m_events.end()),
@@ -95,7 +93,6 @@ eventlist::operator = (const eventlist & rhs)
 {
     if (this != &rhs)
     {
-//      m_track_info            = rhs.m_track_info;
         m_events                = rhs.m_events;
         m_match_iterating       = rhs.m_match_iterating;    /* ok? */
         m_match_iterator        = rhs.m_match_iterator;     /* ok? */

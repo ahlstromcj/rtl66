@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-15
+ * \updates       2025-08-26
  * \license       See above.
  *
  *  Engine candidates:
@@ -1236,6 +1236,8 @@ midi_jack::BPM (midi::bpm /*bp*/)
  *  We generally need to send the (realtime) MIDI clock messages Start, Stop,
  *  and Continue if the JACK transport state changed.
  *
+ *  An alternative implementation is to call send_message(&evbyte, 1).
+ *
  * \param evbyte
  *      The status byte to send.
  */
@@ -1493,6 +1495,8 @@ midi_jack::send_event (const midi::event * ev, midi::byte channel)
  *  This SysEx capability is also used in the midicontrolout class to create
  *  an event that contains the MIDI bytes of a control macro, which can then
  *  be sent out via midi::masterbus::sysex().
+ *
+ *  An alternative implementation is to call send_event(ev).
  */
 
 bool
@@ -1502,7 +1506,7 @@ midi_jack::send_sysex (const midi::event * ev)
     bool result = send_message(message);
     if (! result)
     {
-        errprint("JACK SysEx failed");
+        errprint("JACK send SysEx failed");
     }
     return result;
 }

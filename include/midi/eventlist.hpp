@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2025-07-31
+ * \updates       2025-08-21
  * \license       GNU GPLv2 or above
  *
  *  This module extracts the event-list functionality from the sequencer
@@ -299,6 +299,8 @@ public:
     bool add (const midi::event & e);
     bool append (const midi::event & e);
     void scan_meta_events ();
+    void print () const;
+    std::string to_string () const;
 
     bool empty () const
     {
@@ -529,8 +531,6 @@ private:                                /* functions for friend sequence    */
     (
         midi::pulse ontime, midi::pulse offtime, int snap
     ) const;
-    void print () const;
-    std::string to_string () const;
     void print_notes (const std::string & tag = "in list") const;
 
     const midi::event::buffer & events () const

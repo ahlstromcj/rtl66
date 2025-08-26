@@ -44,6 +44,16 @@
 namespace seq66
 {
 
+/*
+ * WARNING:
+ *
+ *  These Seq66 "c_xxxxx" SeqSpec values MUST be replaced by the
+ *  "enum class seqspec" values in include/seq66/midi/seqspec.hpp.
+ *
+ *  The usage of s_tag_names_container MUST be done through the
+ *  seq66_seqspec_to_string() function in the seqspec module.
+ */
+
 std::map<midi::ulong, std::string>
 s_tag_names_container
 {

@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-08-18
+ * \updates       2025-08-22
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -42,7 +42,7 @@ namespace midi
 
 /*
  * -------------------------------------------------------------------------
- * class busarray::container
+ * class busarray::container defined for the pimpl paradigm.
  * -------------------------------------------------------------------------
  */
 
@@ -116,9 +116,9 @@ public:
     bool initialize ()
     {
         bool result = true;
-        for (auto & buss : m_bus_container)
+        for (auto & b : m_bus_container)
         {
-            if (! buss->initialize())
+            if (! b->initialize())
                 result = false;
         }
         return result;
@@ -126,61 +126,61 @@ public:
 
     void clock_start ()
     {
-        for (auto & buss : m_bus_container)
-            buss->clock_start();
+        for (auto & b : m_bus_container)
+            b->clock_start();
     }
 
     void clock_stop ()
     {
-        for (auto & buss : m_bus_container)
-            buss->clock_start();
+        for (auto & b : m_bus_container)
+            b->clock_start();
     }
 
     void clock_continue (pulse tick)
     {
-        for (auto & buss : m_bus_container)
-            buss->clock_continue(tick);
+        for (auto & b : m_bus_container)
+            b->clock_continue(tick);
     }
 
     void init_clock (pulse tick)
     {
-        for (auto & buss : m_bus_container)
-            buss->init_clock(tick);
+        for (auto & b : m_bus_container)
+            b->init_clock(tick);
     }
 
     void set_clock (clocking clocktype)
     {
-        for (auto & buss : m_bus_container)
-            buss->set_clock(clocktype);
+        for (auto & b : m_bus_container)
+            b->set_clock(clocktype);
     }
 
     void print () const
     {
-        for (const auto & buss : m_bus_container)
-            buss->print();
+        for (const auto & b : m_bus_container)
+            b->print();
     }
 
     void port_exit (int client, int p)
     {
-        for (auto & buss : m_bus_container)
+        for (auto & b : m_bus_container)
         {
-            if (buss->match(client, p))
-               buss->deactivate();
+            if (b->match(client, p))
+               b->deactivate();
         }
     }
 
     void set_all_inputs (bool inputing)
     {
-        for (auto & buss : m_bus_container)
-            buss->init_input(inputing);
+        for (auto & b : m_bus_container)
+            b->init_input(inputing);
     }
 
     int poll_for_midi () const
     {
         int result = 0;
-        for (auto & buss : m_bus_container)
+        for (auto & b : m_bus_container)
         {
-            result = buss->poll_for_midi();
+            result = b->poll_for_midi();
             if (result > 0)
                 break;
         }
@@ -189,14 +189,14 @@ public:
 
     bool get_midi_event (event * inev)
     {
-        for (auto & buss : m_bus_container)
+        for (auto & b : m_bus_container)
         {
-            if (buss->get_midi_event(inev))
+            if (b->get_midi_event(inev))
             {
-                bussbyte b = bussbyte(buss->bus_index());
-                inev->set_input_bus(b);
+                bussbyte p = bussbyte(b->bus_index());
+                inev->set_input_bus(p);
 #if defined PLATFORM_DEBUG_TMI
-                printf("[rtl66] input event on bus %d\n", int(b));
+                printf("[rtl66] input event on bus %d\n", int(p));
 #endif
                 return true;
             }
@@ -208,12 +208,12 @@ public:
     {
         int result = -1;
         int counter = 0;
-        for (auto & buss : m_bus_container)
+        for (auto & bs : m_bus_container)
         {
-            if (buss->match(b, p) && ! buss->active())
+            if (bs->match(b, p) && ! bs->active())
             {
                 result = counter;
-                if (bool(buss))
+                if (bool(bs))
                 {
                     // TODO
                     // /* deletes m_bus as well */
@@ -344,8 +344,8 @@ busarray::port_active (midi::bussbyte b)
  *  Initializes all busses.  Not sure we need this function.
  *
  * \return
- *      Returns true if all busses initialized successfully.  It currently keeps
- *      going even after a failure, though.
+ *      Returns true if all busses initialized successfully.  It currently
+ *      keeps going even after a failure, though.
  */
 
 bool
