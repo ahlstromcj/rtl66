@@ -64,7 +64,7 @@ class RTL66_DLL_PUBLIC rtmidi_engine : public rtmidi
      *  Note that we don't own the masterbus... it owns us.
      */
 
-    midi::masterbus * m_master_bus;   /* note: not rtl::rtmidi! */
+    midi::masterbus * m_master_bus;     /* note: not rtl::rtmidi! */
 
 public:
 
@@ -91,6 +91,11 @@ protected:
         const std::string & clientname  = "",
         unsigned queuesize              = 0
     ) override;
+
+    midi::masterbus * master_bus ()
+    {
+        return m_master_bus;
+    }
 
 };          // class rtmidi_engine
 

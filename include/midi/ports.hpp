@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05        (seq66::midi_port_info)
- * \updates       2025-08-17
+ * \updates       2025-08-26
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -199,12 +199,16 @@ public:
 
     midi::port & portref (int index)
     {
-        return m_port_container[index];
+        static midi::port s_dummy;
+        return index < get_port_count() ?
+            m_port_container[index] : s_dummy ;
     }
 
     const midi::port & portref (int index) const
     {
-        return m_port_container[index];
+        static midi::port s_dummy;
+        return index < get_port_count() ?
+            m_port_container[index] : s_dummy ;
     }
 
     int get_bus_id (int index) const

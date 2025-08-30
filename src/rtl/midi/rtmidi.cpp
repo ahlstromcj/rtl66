@@ -25,18 +25,14 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-25
+ * \updates       2025-08-30
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
  *  extras/notes/member-mappings.text.
  */
 
-#include <stdexcept>                    /* std::invalid_argument, etc.      */
-
 #include "platform_macros.h"            /* operating system detection       */
-#include "c_macros.h"                   /* not_nullptr and other macros     */
-#include "midi/event.hpp"               /* midi::eventd, midi::byte         */
 #include "rtl/midi/midi_api.hpp"        /* rtl::midi_api class              */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 
@@ -103,9 +99,9 @@ rtmidi::api rtmidi::sm_selected_api                     /* selected one */
  *--------------------------------------------------------------------------*/
 
 rtmidi::rtmidi () :
-    m_rt_api_ptr        (),
-    m_master_api_ptr    (nullptr),
-    m_has_master        (false)
+    m_rt_api_ptr        (),                 /* unique_ptr<midi_api>         */
+    m_master_client_ptr (nullptr),          /* regular pointer to seq eng.  */
+    m_has_master        (false)             /* false ==> unique_ptr<>       */
 {
     // No code
 }
@@ -140,18 +136,73 @@ rtmidi::delete_rt_api_ptr ()
         m_rt_api_ptr.reset();
 }
 
+/**
+ *  Used for the rtl libraries "bus" concept. It sets:
+ *
+ *      -   The client handle (e.g. the snd_seq_t pointer) for this
+ *          rtmidi object.
+ *      -   The masterbus pointer for the midi_api-derived object.
+ *      -   The client handle for the midi_api-derived object,
+ *          which get copied into the API's data structure (e.g.
+ *          midi_alsa_data). See the master_client_ptr() function.
+ *
+ *  This function is called in these contexts:
+ *
+ *      -   rtmidi_engine::open_midi_api(). This is called when the
+ *          rtmidi_engine is set up, so that the masterbus gets
+ *          the MIDI API's client pointer [a.k.a. client_handle()]
+ *      -   midi::bus_in() and midi_bus_out(), sort of. This gives
+     *      rtmidi_in and rtmidi_out access to the client handle.
+ */
+
+bool
+rtmidi::set_master_bus (midi::masterbus * mb)
+{
+    bool result { set_master_bus_ptr(mb) };
+    if (result)
+        mb->void_client_handle(rt_api_ptr()->void_client_handle());
+
+    return result;
+}
+
+/**
+ *  This function assumes the function above has been called already
+ *  to set up the masterbus with the data it needs.
+ *
+ *  This function is called in these contexts:
+ *
+ *      -   midi::bus_in().
+ *      -   midi_bus_out().
+ */
+
+bool
+rtmidi::set_master_bus_ptr (midi::masterbus * mb)
+{
+    bool result { not_nullptr(mb) };
+    if (result)
+    {
+        result = not_nullptr(rt_api_ptr());
+        if (result)
+        {
+            master_client_ptr(mb->void_client_handle());
+            rt_api_ptr()->master_bus(mb);
+            m_has_master = true;
+        }
+    }
+    return true;
+}
+
 void
-rtmidi::master_api_ptr (midi_api * p)
+rtmidi::master_client_ptr (void * p)
 {
     if (not_nullptr(p))
     {
-        delete_rt_api_ptr();
+        m_master_client_ptr = p;    // perhaps unnecessary
+        rt_api_ptr()->void_client_handle(p);
         m_has_master = true;
     }
     else
         m_has_master = false;
-
-    m_master_api_ptr = p;
 }
 
 /*--------------------------------------------------------------------------
@@ -658,7 +709,7 @@ rtmidi::flush ()
 bool
 rtmidi::flush_port (midi::bussbyte b)
 {
-    bool result { rt_api_ptr() };
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->flush_port(b);
 
@@ -672,7 +723,7 @@ rtmidi::flush_port (midi::bussbyte b)
 bool
 rtmidi::close_port ()
 {
-    bool result { rt_api_ptr() };
+    bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->close_port();
 
@@ -919,7 +970,7 @@ rtmidi::get_midi_event (midi::event * inev)
 }
 
 bool
-rtmidi::send_byte (midi::byte evbyte)
+rtmidi::send_byte (midi::byte evbyte) const
 {
     bool result { not_nullptr(rt_api_ptr()) };
     if (result)
@@ -929,7 +980,7 @@ rtmidi::send_byte (midi::byte evbyte)
 }
 
 bool
-rtmidi::send_event (const midi::event * ev, midi::byte channel)
+rtmidi::send_event (const midi::event * ev, midi::byte channel) const
 {
     bool result { not_nullptr(rt_api_ptr()) };
     if (result)
@@ -939,7 +990,7 @@ rtmidi::send_event (const midi::event * ev, midi::byte channel)
 }
 
 bool
-rtmidi::send_message (const midi::message & msg)
+rtmidi::send_message (const midi::message & msg) const
 {
     bool result { not_nullptr(rt_api_ptr()) };
     if (result)
@@ -949,7 +1000,7 @@ rtmidi::send_message (const midi::message & msg)
 }
 
 bool
-rtmidi::send_message (const midi::bytes & msg)
+rtmidi::send_message (const midi::bytes & msg) const
 {
     bool result { not_nullptr(rt_api_ptr()) };
     if (result)
@@ -959,7 +1010,7 @@ rtmidi::send_message (const midi::bytes & msg)
 }
 
 bool
-rtmidi::send_message (const midi::byte * msg, size_t sz)
+rtmidi::send_message (const midi::byte * msg, size_t sz) const
 {
     bool result { not_nullptr(rt_api_ptr()) };
     if (result)

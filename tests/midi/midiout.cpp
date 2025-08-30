@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-06-25
- * \updates       2025-08-23
+ * \updates       2025-08-27
  * \license       See above.
  *
  *      Tests that the C API for rtl (RtMidi refactored) is working.

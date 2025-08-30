@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2025-08-18
+ * \updates       2025-08-30
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -260,10 +260,10 @@ private:
 
     /**
      *  Provides a handle to the main ALSA or JACK implementation object.
-     *  Created by the class derived from midi::clientinfo.
+     *  Created by the class using the midi::clientinfo.
      */
 
-    void * m_midi_handle { nullptr };
+    void * m_void_client_handle { nullptr };
 
     /**
      *  True if ports have been queried.
@@ -461,9 +461,9 @@ public:
      *  Value more likely to vary.
      */
 
-    void * midi_handle ()
+    void * void_client_handle ()
     {
-        return m_midi_handle;
+        return m_void_client_handle;
     }
 
     port::io port_type () const
@@ -610,6 +610,11 @@ public:
     std::string port_list (port::io iotype) const;
     std::string port_list () const;
 
+    bool get_all_port_info
+    (
+        rtl::rtmidi::api rapi = rtl::rtmidi::api::unspecified
+    );
+
     int global_queue () const
     {
         return m_global_queue;
@@ -631,9 +636,9 @@ protected:
         m_global_queue = q;
     }
 
-    void midi_handle (void * h)
+    void void_client_handle (void * h)
     {
-        m_midi_handle = h;
+        m_void_client_handle = h;
     }
 
 };          // clientinfo

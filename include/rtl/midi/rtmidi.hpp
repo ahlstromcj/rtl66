@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-26
+ * \updates       2025-08-30
  * \license       See above.
  *
  *      Also contains some additional capabilities.
@@ -56,6 +56,7 @@
 namespace midi
 {
     class event;
+    class masterbus;
     class ports;
 }
 
@@ -145,10 +146,10 @@ private:
     std::unique_ptr<midi_api> m_rt_api_ptr;
 
     /**
-     *  The masterbus's API pointer, if not null.
+     *  The masterbus's API *client* pointer, if not null.
      */
 
-    midi_api * m_master_api_ptr;
+    void * m_master_client_ptr;
 
     /**
      *  Do we have a master API pointer?
@@ -300,16 +301,16 @@ public:
     int poll_for_midi () const;
     bool get_midi_event (midi::event * inev);
 
-    bool send_byte (midi::byte evbyte);
+    bool send_byte (midi::byte evbyte) const;
     bool send_event
     (
         const midi::event * ev,
         midi::byte channel = midi::null_channel()
-    );
-    bool send_message (const midi::message & msg);
-    bool send_message (const midi::bytes & msg);
-    bool send_message (const midi::byte * msg, size_t sz);
-    bool send_sysex (const midi::event * ev);
+    ) const;
+    bool send_message (const midi::message & msg) const;
+    bool send_message (const midi::bytes & msg) const;
+    bool send_message (const midi::byte * msg, size_t sz) const;
+    bool send_sysex (const midi::event * ev) const;
 
 #endif  // defined RTL66_MIDI_EXTENSIONS
 
@@ -329,7 +330,6 @@ public:
 public:
 
     void rt_api_ptr (midi_api * p);
-    void master_api_ptr (midi_api * p);
 
     bool has_master () const
     {
@@ -338,7 +338,7 @@ public:
 
     midi_api * rt_api_ptr ()
     {
-        return has_master() ?  m_master_api_ptr : m_rt_api_ptr.get() ;
+        return m_rt_api_ptr.get();
     }
 
     const midi_api * rt_api_ptr () const
@@ -346,8 +346,13 @@ public:
         return m_rt_api_ptr.get();
     }
 
+    bool set_master_bus_ptr (midi::masterbus * mb);
+
 protected:
 
+    bool set_master_bus (midi::masterbus * mb);
+
+    void master_client_ptr (void * p);
     void delete_rt_api_ptr ();
 
     bool have_rt_api_ptr () const

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-18
+ * \updates       2025-08-30
  * \license       See above.
  *
  */
@@ -48,6 +48,7 @@ midi_api::midi_api () :
     m_port_io_type              (midi::port::io::engine),
     m_input_data                (),             /* a small structure        */
     m_master_bus                (),             /* a potential shared ptr   */
+    m_has_master                (false),        /* true ==> midi::bus       */
     m_api_data                  (nullptr),
     m_is_connected              (false),
     m_queue_size                (0)
@@ -63,6 +64,7 @@ midi_api::midi_api (midi::port::io iotype, unsigned queuesize) :
     m_port_io_type              (iotype),
     m_input_data                (),             /* a small structure        */
     m_master_bus                (),             /* a potential shared ptr   */
+    m_has_master                (false),        /* true ==> midi::bus       */
     m_api_data                  (nullptr),
     m_is_connected              (false),
     m_queue_size                (queuesize)
@@ -77,23 +79,11 @@ midi_api::~midi_api ()
         m_input_data.queue().deallocate();
 }
 
-#if 0
-void *
-midi_api::client_handle ()
-{
-    void * result = nullptr;
-    if (have_master_bus())
-        result = master_bus()->client_handle();
-
-    return result;
-}
-#endif
-
 const midi::clientinfo *
 midi_api::client_info () const
 {
     const midi::clientinfo * result = nullptr;
-    if (have_master_bus())
+    if (has_master())
         result = &master_bus()->client_info();
 
     return result;
@@ -108,13 +98,13 @@ midi_api::client_info () const
 midi::ppqn
 midi_api::PPQN () const
 {
-    return have_master_bus() ? master_bus()->PPQN() : RTL66_DEFAULT_PPQN ;
+    return has_master() ? master_bus()->PPQN() : RTL66_DEFAULT_PPQN ;
 }
 
 midi::bpm
 midi_api::BPM () const
 {
-    return have_master_bus() ? master_bus()->BPM() : RTL66_DEFAULT_BPM ;
+    return has_master() ? master_bus()->BPM() : RTL66_DEFAULT_BPM ;
 }
 
 /**
@@ -125,7 +115,7 @@ bool
 midi_api::master_is_connected () const
 {
     bool result = false;
-    if (have_master_bus())
+    if (has_master())
         result = master_bus()->info_is_connected();
 
     return result;

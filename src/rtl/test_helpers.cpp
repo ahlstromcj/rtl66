@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-08-17
+ * \updates       2025-08-27
  * \license       See above.
  *
  */
@@ -186,6 +186,7 @@ choose_midi_port (RTMIDI_TYPE & rt, bool isoutput)
         result = portno >= 0;
         if (result)
         {
+            set_rt_test_port(portno);       /* just in case; app decides    */
             if (isoutput)
                 set_rt_test_port_out(portno);
             else

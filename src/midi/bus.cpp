@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-08-24
+ * \updates       2025-08-27
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -64,6 +64,21 @@ namespace midi
  */
 
 int bus::m_clock_mod { 16 * 4 };
+
+/**
+ *  Default constructor, useful for a reference to a dummy bus.
+ */
+
+bus::bus () :
+    m_master_bus        (nullptr),
+    m_initialized       (false),
+    m_bus_index         (-1),
+    m_port              (),
+    m_io_active         (false),
+    m_display_name      ()
+{
+    io_type(midi::port::io::dummy);
+}
 
 /**
  *  Creates a MIDI port, which will correspond to an existing system
@@ -122,7 +137,9 @@ int bus::m_clock_mod { 16 * 4 };
  *      Provides the ordinal of this buss/port, for data and display purposes
  *      and for more portable lists of ports.
  *
- *  TODO: do we need a mutex?
+ * \param iotype
+ *      Provides the I/O type, either input or output. Others are "illegal"
+ *      here.
  */
 
 bus::bus
@@ -131,16 +148,22 @@ bus::bus
     int index,
     midi::port::io iotype
 ) :
-    m_master_bus        (master),
+    m_master_bus        (&master),
     m_initialized       (false),
     m_bus_index         (index),
     m_port              (),
     m_io_active         (false),
     m_display_name      ()
 {
-    if (iotype == midi::port::io::input || iotype == midi::port::io::output)
+    bool ok = iotype == midi::port::io::input ||
+        iotype == midi::port::io::output;
+
+    if (ok)
+        ok = index >= 0;
+
+    if (ok)
     {
-        masterbus::info & ci { master_bus().client_info() };
+        masterbus::info & ci { master_bus()->client_info() };
         if (ci.ports_queried())
         {
             const midi::ports & portlist { ci.io_ports(iotype) };
@@ -166,13 +189,15 @@ bus::bus
 #endif
         }
     }
+    else
+        printf("Bad bus specification\n");
 }
 
 /**
  *  A rote empty destructor.
  */
 
-bus::~bus()
+bus::~bus ()
 {
     // empty body
 }
@@ -188,13 +213,13 @@ bus::~bus()
 rtl::midi_api *
 bus::midi_api_ptr ()
 {
-    return master_bus().rt_api_ptr();
+    return not_nullptr(master_bus()) ? master_bus()->rt_api_ptr() : nullptr ;
 }
 
 const rtl::midi_api *
 bus::midi_api_ptr () const
 {
-    return master_bus().rt_api_ptr();
+    return not_nullptr(master_bus()) ? master_bus()->rt_api_ptr() : nullptr ;
 }
 
 /**
@@ -207,13 +232,16 @@ bus::midi_api_ptr () const
 void
 bus::get_port_items (midi::port::io iotype)
 {
-    const masterbus::info & ci { master_bus().client_info() };
-    if (ci.ports_queried())
+    if (not_nullptr(master_bus()))
     {
-        int index { m_bus_index };
-        const midi::ports & portlist { ci.io_ports(iotype) };
-        const midi::port & p { portlist.portref(index) };
-        m_port = p;
+        const masterbus::info & ci { master_bus()->client_info() };
+        if (ci.ports_queried())
+        {
+            int index { m_bus_index };
+            const midi::ports & portlist { ci.io_ports(iotype) };
+            const midi::port & p { portlist.portref(index) };
+            m_port = p;
+        }
     }
 }
 
@@ -438,7 +466,8 @@ bus::BPM () const
  *  get two instances of each output port.
  *
  * \param clocktype
- *      The value used to set the clock-type.
+ *      The value used to set the clock-type. The clocking::max value is not
+ *      checked; it should never be used.
  */
 
 bool

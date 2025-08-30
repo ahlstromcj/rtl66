@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2023-03-08
- * \updates       2023-03-08
+ * \updates       2025-08-26
  * \license       See above.
  *
  */
@@ -90,7 +90,7 @@ api_base::set_error_callback (rterror::callback_t cb, void * userdata)
 }
 
 void
-api_base::error (rterror::kind type, const std::string & errmsg)
+api_base::error (rterror::kind type, const std::string & errmsg) const
 {
     error_string(errmsg);                   /* new 2022-07-25 */
     if (not_nullptr(m_error_callback))
@@ -125,7 +125,7 @@ api_base::error (rterror::kind type, const std::string & errmsg)
 }
 
 void
-api_base::error (const std::string & tag, int portnumber)
+api_base::error (const std::string & tag, int portnumber) const
 {
     std::ostringstream ost;
     ost << tag << ": portnumber (" << portnumber << ") is invalid.";

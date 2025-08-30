@@ -576,7 +576,7 @@ player::create_master_bus (clientinfo & ci)
     {
         /*
          *  Find an available API.  Here, we rely on finding the fallback API,
-         *  rather than a specified API.
+         *  rather than a specified API. Hmmmmmm.
          *
          *      rtl::rtmidi::api midiapi = rtl::rtmidi::selected(api);
          */

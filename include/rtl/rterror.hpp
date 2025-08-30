@@ -1,5 +1,5 @@
-#if ! defined RTL66_RTERROR_HPP
-#define RTL66_RTERROR_HPP
+#if ! defined RTL66_RTL_RTERROR_HPP
+#define RTL66_RTL_RTERROR_HPP
 
 /*
  *  This file is part of rtl66.
@@ -22,15 +22,15 @@
 /**
  * \file          rterror.hpp
  *
- *  An abstract base class for MIDI error handling.
+ *  A base class for MIDI error handling.
  *
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-14
- * \updates       2023-03-07
+ * \updates       2025-08-28
  * \license       See above.
  *
- * #include <exception>                    // std::exception base class
+ *  Currently a header-only implementation.
  */
 
 #include <cstdio>                       /* stderr                           */
@@ -54,7 +54,7 @@ namespace rtl
  *  that is what we will use here.)
  */
 
-class RTL66_DLL_PUBLIC rterror : public std::runtime_error  /*std::exception*/
+class RTL66_DLL_PUBLIC rterror : public std::runtime_error
 {
 
 public:
@@ -168,7 +168,7 @@ error_kind_to_int (rterror::kind ek)
 
 }           // namespace rtl
 
-#endif      // RTL66_RTEXERROR_HPP
+#endif      // RTL66_RTL_RTERROR_HPP
 
 /*
  * rterror.hpp

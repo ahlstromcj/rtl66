@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-26
+ * \updates       2025-08-28
  * \license       See above.
  *
  */
@@ -167,19 +167,34 @@ protected:
 
     jack_client_t * client_handle ()
     {
-        return have_master_bus() ?
+#if defined USE_HAS_MASTER
+
+        /*
+         * rtmidi::set_master() copies the masterbus client handle
+         * into the data structure.
+         */
+
+        return has_master() ?
             reinterpret_cast<jack_client_t *>(master_bus()->client_handle()) :
             jack_data().jack_client() ;
+#else
+        return jack_data().jack_client();
+#endif
+    }
+
+    virtual void * void_client_handle () override
+    {
+        return reinterpret_cast<void *>(client_handle());
+    }
+
+    virtual void void_client_handle (void * vp) override
+    {
+        jack_data().jack_client(client_handle(vp));
     }
 
     /*
      * MIDI engine functions.
      */
-
-    virtual void * void_handle () override
-    {
-        return reinterpret_cast<void *>(client_handle());
-    }
 
     virtual void * engine_connect () override;
     virtual void engine_disconnect () override;
@@ -251,21 +266,21 @@ protected:
      * API-dependent wrinkles.
      */
 
-    virtual bool send_byte (midi::byte evbyte) override;
+    virtual bool send_byte (midi::byte evbyte) const override;
     virtual bool send_event
     (
         const midi::event * ev,
         midi::byte channel = midi::null_channel()
-    ) override;
-    virtual bool send_message (const midi::message & msg) override;
+    ) const override;
+    virtual bool send_message (const midi::message & msg) const override;
 
-    virtual bool send_message (const midi::bytes & msg) override
+    virtual bool send_message (const midi::bytes & msg) const override
     {
         return send_message(msg.data(), msg.size());
     }
 
-    virtual bool send_message (const midi::byte * msg, size_t sz) override;
-    virtual bool send_sysex (const midi::event * ev) override;
+    virtual bool send_message (const midi::byte * msg, size_t sz) const override;
+    virtual bool send_sysex (const midi::event * ev) const override;
 
     bool connect_ports
     (

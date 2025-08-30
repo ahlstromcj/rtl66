@@ -167,7 +167,7 @@ protected:
             jack_data().jack_client() ;
     }
 
-    virtual void * void_handle ()
+    virtual void * void_client_handle ()
     {
         return reinterpret_cast<void *>(client_handle());
     }

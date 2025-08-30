@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-26
+ * \updates       2025-08-30
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -120,10 +120,16 @@ private:
      *  jack_client_t) is done through the masterbus, without constantly
      *  recreating the client (and its callbacks). The masterbus destructor
      *  will unset this pointer.  Note that we do not want a shared pointer,
-     *  since the masterbus may be on the stack.
+     *  since the masterbus owns this pointer.
      */
 
-    midi::masterbus * m_master_bus;       /* a paradigm changer!!!    */
+    midi::masterbus * m_master_bus;     /* this is a paradigm changer!!!    */
+
+    /**
+     *  Quicker than checking the pointer.
+     */
+
+    bool m_has_master;
 
     /**
      *  Data specific to each API.  Includes the client handle as an exact
@@ -167,9 +173,9 @@ public:
      * owned by the midi_api objects.
      */
 
-    bool have_master_bus () const
+    bool has_master () const
     {
-        return not_nullptr(master_bus());
+        return m_has_master;                /* not_nullptr(master_bus())    */
     }
 
     midi::masterbus * master_bus ()
@@ -185,6 +191,8 @@ public:
     void master_bus (midi::masterbus * mb)
     {
         m_master_bus = mb;
+        if (not_nullptr(mb))
+            m_has_master = true;
     }
 
     midi::port::io port_io_type () const
@@ -228,10 +236,14 @@ public:
      * Or create a non-virtual API-specific function, like the following, to
      * do the job:
      *
-     *      jack_client_t * client_handle ();
+     *  jack_client_t * client_handle ()
+     *  {
+     *      return reinterpret_cast<jack_client_t *>(void_client_handle());
+     *  }
      */
 
-    virtual void * void_handle () = 0;
+    virtual void * void_client_handle () = 0;
+    virtual void void_client_handle (void *) = 0;
     virtual midi::ppqn PPQN () const;
     virtual midi::bpm BPM () const;
 
@@ -243,6 +255,11 @@ public:
      */
 
     void * api_data ()
+    {
+        return m_api_data;
+    }
+
+    const void * api_data () const
     {
         return m_api_data;
     }
@@ -371,16 +388,16 @@ protected:
     virtual bool PPQN (midi::ppqn ppq) = 0;
     virtual bool BPM (midi::bpm bp) = 0;
 
-    virtual bool send_byte (midi::byte evbyte) = 0;
+    virtual bool send_byte (midi::byte evbyte) const = 0;
     virtual bool send_event
     (
         const midi::event * ev,
         midi::byte channel = midi::null_channel()
-    ) = 0;
-    virtual bool send_message (const midi::message & msg) = 0;
-    virtual bool send_message (const midi::bytes & msg) = 0;
-    virtual bool send_message (const midi::byte * msg, size_t sz) = 0;
-    virtual bool send_sysex (const midi::event * ev) = 0;
+    ) const = 0;
+    virtual bool send_message (const midi::message & msg) const = 0;
+    virtual bool send_message (const midi::bytes & msg) const = 0;
+    virtual bool send_message (const midi::byte * msg, size_t sz) const = 0;
+    virtual bool send_sysex (const midi::event * ev) const = 0;
 
     virtual bool clock_start ()
     {

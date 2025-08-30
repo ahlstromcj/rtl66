@@ -143,7 +143,7 @@ protected:
         }
     }
 
-    virtual void * void_handle ()
+    virtual void * void_client_handle ()
     {
         return is_input() ?
             reinterpret_cast<void *>(client_in_handle()) :

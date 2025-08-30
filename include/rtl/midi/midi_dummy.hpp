@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-26
+ * \updates       2025-08-29
  * \license       See above.
  *
  */
@@ -146,9 +146,14 @@ protected:
         return nullptr;
     }
 
-    virtual void * void_handle () override
+    virtual void * void_client_handle () override
     {
         return nullptr;
+    }
+
+    virtual void void_client_handle (void * vp) override
+    {
+        (void) vp;
     }
 
     virtual bool initialize (const std::string & /*name*/) override
@@ -161,7 +166,7 @@ protected:
         return true;
     }
 
-    virtual bool send_byte (midi::byte evbyte) override
+    virtual bool send_byte (midi::byte evbyte) const override
     {
         (void) evbyte;
         return true;
@@ -171,31 +176,31 @@ protected:
     (
         const midi::event * ev,
         midi::byte channel = midi::null_channel()
-    ) override
+    ) const override
     {
         (void) ev; (void) channel;
         return true;
     }
 
-    virtual bool send_message (const midi::message & msg) override
+    virtual bool send_message (const midi::message & msg) const override
     {
         (void) msg;
         return true;
     }
 
-    virtual bool send_message (const midi::bytes & msg) override
+    virtual bool send_message (const midi::bytes & msg) const override
     {
         (void) msg;
         return true;
     }
 
-    virtual bool send_message (const midi::byte * msg, size_t sz) override
+    virtual bool send_message (const midi::byte * msg, size_t sz) const override
     {
         (void) msg; (void) sz;
         return true;
     }
 
-    virtual bool send_sysex (const midi::event * ev) override
+    virtual bool send_sysex (const midi::event * ev) const override
     {
         (void) ev;
         return true;

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-26
+ * \updates       2025-08-30
  * \license       See above.
  *
  */
@@ -117,6 +117,11 @@ public:
         return m_alsa_data;
     }
 
+    const midi_alsa_data & alsa_data () const
+    {
+        return m_alsa_data;
+    }
+
     void client_name (const std::string & cname)
     {
         m_client_name = cname;
@@ -131,14 +136,19 @@ protected:
 
     snd_seq_t * client_handle ()
     {
-        return have_master_bus() ?
-            reinterpret_cast<snd_seq_t *>(master_bus()->client_handle()) :
+        return has_master() ?
+            reinterpret_cast<snd_seq_t *>(master_bus()->void_client_handle()) :
             alsa_data().alsa_client() ;
     }
 
-    virtual void * void_handle () override
+    virtual void * void_client_handle () override
     {
         return reinterpret_cast<void *>(client_handle());
+    }
+
+    virtual void void_client_handle (void * vp) override
+    {
+        alsa_data().alsa_client(client_handle(vp));
     }
 
     virtual void * engine_connect () override;
@@ -208,7 +218,7 @@ public:
      * API-dependent wrinkles.
      */
 
-    virtual bool send_byte (midi::byte evbyte) override
+    virtual bool send_byte (midi::byte evbyte) const override
     {
         return send_message(&evbyte, 1);
     }
@@ -216,21 +226,21 @@ public:
     virtual bool send_event
     (
         const midi::event * ev, midi::byte channel = midi::null_channel()
-    ) override;
+    ) const override;
 
-    virtual bool send_message (const midi::message & msg) override
+    virtual bool send_message (const midi::message & msg) const override
     {
         return send_message(msg.data_ptr(), msg.size());
     }
 
-    virtual bool send_message (const midi::bytes & msg) override
+    virtual bool send_message (const midi::bytes & msg) const override
     {
         return send_message(msg.data(), msg.size());
     }
 
-    virtual bool send_message (const midi::byte * msg, size_t sz) override;
+    virtual bool send_message (const midi::byte * msg, size_t sz) const override;
 
-    virtual bool send_sysex (const midi::event * ev) override
+    virtual bool send_sysex (const midi::event * ev) const override
     {
         return send_event(ev);
     }
@@ -263,7 +273,7 @@ protected:
 
     void delete_port ();
     void close_input_triggers ();
-    bool drain_output ();
+    bool drain_output () const;
     bool set_seq_tempo_ppqn (snd_seq_t * seq, midi::bpm bp, midi::ppqn ppq);
     bool set_seq_client_name (snd_seq_t * seq, const std::string & clientname);
     bool setup_input_port ();

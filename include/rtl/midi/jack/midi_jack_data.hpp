@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2017-01-02
- * \updates       2025-08-13
+ * \updates       2025-08-26
  * \license       See above.
  *
  */
@@ -84,7 +84,7 @@ class RTL66_DLL_PUBLIC midi_jack_data
      *  single JACK client created by the midi_jack_info object.
      */
 
-     jack_client_t * m_jack_client;
+    jack_client_t * m_jack_client;
 
     /**
      *  Holds the JACK port information of the JACK client.
@@ -323,6 +323,11 @@ public:
     }
 
     xpc::ring_buffer<midi::message> * jack_buffer ()
+    {
+        return m_jack_buffer;
+    }
+
+    const xpc::ring_buffer<midi::message> * jack_buffer () const
     {
         return m_jack_buffer;
     }

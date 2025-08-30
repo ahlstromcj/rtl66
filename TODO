@@ -1,6 +1,6 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-08-25
+2019-04-13 to 2025-08-27
 
 Hot:
 
@@ -11,6 +11,7 @@ Hot:
     -   In event::append_meta_data(), the message is actually cleared
         before appending. Rename the function or add a bool 'clear' flag.
     -   Make sure trackdata::parse() sets track number correctly.
+    -   Update rterror to print the client-tag in error messages.
 
 NSM:
 

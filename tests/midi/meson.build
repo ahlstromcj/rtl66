@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-13
-# \updates     2025-01-31
+# \updates     2025-08-26
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the "rtl66" library. See the top-level meson.build
@@ -33,6 +33,12 @@ cbmidiin_exe = executable(
 #-----------------------------------------------------------------------------
 # Make both in and out versions of the midiclock test application.
 #-----------------------------------------------------------------------------
+
+busout_exe = executable(
+   'busout',
+   sources : ['busout.cpp'],
+   dependencies : [ rtl66_dep, liblib66_library_dep, libxpc66_library_dep ]
+   )
 
 midiclock_in_exe = executable(
    'midiclock_in',

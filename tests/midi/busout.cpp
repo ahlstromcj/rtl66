@@ -23,35 +23,85 @@
  *
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
- * \date          2022-06-25
- * \updates       2025-08-23
+ * \date          2025-08-26
+ * \updates       2025-08-30
  * \license       See above.
  *
- *      Tests that the C API for rtl (RtMidi refactored) is working.
+ *      This application has elements of the play test application,
+ *      but merely opens one port and sends messages directly, rather
+ *      than using a busarray.
  *
  *      On Linux, run this test both with ALSA and with JACK.
- *
- * Refactoring:
- *
- *  -   #include "RtMidi.h"                 See the headers below.
- *  -   chooseMidiPort()                    choose_midi_port()
- *  -   RtMidi                              rtl::rtmidi
- *  -   RtMidiOut                           rtl::rtmidi_out
- *  -   RtMidiError                         rtl::rterror
- *  -   std::vector<unsigned char>          midi::message
- *  -   printMessage()                      print_message()
- *  -   openVirtualPort()                   open_virtual_port()
- *  -   getPortCount()                      get_port_count()
- *  -   getPortName()                       get_port_name()
- *  -   openPort()                          open_port
  */
 
 #include <iostream>
 
+#include "midi/bus_out.hpp"             /* midi::bus_out class              */
+#include "midi/masterbus.hpp"           /* midi::masterbus class            */
 #include "midi/message.hpp"             /* midi::message class              */
+#include "rtl/midi/find_midi_api.hpp"   /* rtl::find_midi_api() module      */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
+
+/**
+ *  Client info
+ */
+
+midi::client_defaults s_clientinfo_defaults
+{
+    RTL66_VERSION,                      /* API version                      */
+    "playclient",                       /* client name                      */
+    "play",                             /* client name                      */
+    false,                              /* JACK MIDI                        */
+    false,                              /* virtual ports                    */
+    0,                                  /* no virtual input ports           */
+    0,                                  /* no virtual output ports          */
+    true,                               /* auto connect                     */
+    false,                              /* port refresh                     */
+    4,                                  /* the default global beat width    */
+    4,                                  /* the default global beats per bar */
+    384,                                /* global PPQN, not 192             */
+    148,                                /* global BPM, not 120              */
+    midi::port::io::duplex,             /* MIDI port type                   */
+    -1,                                 /* input port number                */
+    0                                   /* output port number               */
+};
+
+/**
+ *  The port-numbers can be changed, so this item is not const.
+ */
+
+static midi::clientinfo s_clientinfo { s_clientinfo_defaults };
+
+/**
+ *  Provides a masterbus object, of which only a few facilties will be
+ *  used, to support a single midi::bus_out object. Compare it to
+ *  player::create_master_bus() and the follow-on code in launch().
+ */
+
+static midi::masterbus &
+master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
+{
+    if (rapi == rtl::rtmidi::api::unspecified)
+        rapi = rtl::find_midi_api();
+
+    static midi::masterbus s_master_bus { rapi };
+    static bool s_uninitialized { true };
+    if (s_uninitialized)
+    {
+        bool ok { rapi != rtl::rtmidi::api::unspecified };
+        if (ok)
+        {
+            ok = s_master_bus.client_info_reset(ci) &&
+                    s_master_bus.engine_initialize(ci) &&
+                        s_master_bus.engine_activate();
+        }
+        if (ok)
+            s_uninitialized = false;
+    }
+    return s_master_bus;
+}
 
 /**
  *  The main routine.
@@ -65,92 +115,92 @@ main (int argc, char * argv [])
     {
         try
         {
-            /*
-             * Call function to select port. It also ends up opening the
-             * port.
-             */
-
-            rtl::rtmidi_out busout { rtl::rtmidi::desired_api() };
             if (! rt_virtual_test_port())
             {
-                /*
-                 * if (rt_test_port() == (-1))
-                 */
-
                 if (! rt_test_port_valid(rt_test_port()))
                 {
-                    /*
-                     * Compare this setup to that in the play application.
-                     * The function here calls choose_midi_port(), which
-                     * calls rt_choose_port_number and then open_port().
-                     */
-
-                    can_run = rt_choose_output_port(busout);
+                    rtl::rtmidi_out midiout { rtl::rtmidi::desired_api() };
+                    can_run = rt_choose_output_port(midiout);
                 }
-                else
-                {
-                    int portnumber { rt_test_port() };
-                    can_run = busout.open_port(portnumber);
-                }
-            }
-            if (can_run)
-            {
-                /* Send out a series of MIDI messages. */
-
-                midi::message msg;
-                msg.push(midi::status::program_change); // 0xC0 [ 192 ]
-                msg.push(5);                            // Electric Piano?
-                (void) busout.send_message(msg);
-                rt_test_sleep(500);
-
-                msg.clear();
-                msg.push(midi::status::quarter_frame);  // 0xF1
-                msg.push(60);                           // ??
-                (void) busout.send_message(msg);
-
-                msg.clear();
-                msg.push(midi::status::control_change); // 0xB0 [ 176 ]
-                msg.push(midi::ctrl::volume);           // 0x07
-                msg.push(100);                          // volume level
-                busout.send_message(msg);
-
-                msg.clear();
-                msg.push(midi::status::note_on);        // 0x90 [ 144 ]
-                msg.push(64);                           // note number
-                msg.push(90);                           // velocity
-                (void) busout.send_message(msg);
-                rt_test_sleep(500);
-
-                msg.clear();
-                msg.push(midi::status::note_off);       // 0x80 [ 128 ]
-                msg.push(64);                           // note number
-                msg.push(40);                           // velocity
-                (void) busout.send_message(msg);
-                rt_test_sleep(500);
-
-                msg.clear();
-                msg.push(midi::status::control_change); // 0xB0 [ 176 ]
-                msg.push(midi::ctrl::volume);           // 0x07
-                msg.push(40);                           // volume level
-                (void) busout.send_message(msg);
-                rt_test_sleep(500);
-
-                msg.clear();
-                msg.push(midi::status::sysex);          // 0xF0 [ 240 ]
-                msg.push(67);                           // Yamaha (Manuf. ID.)
-                msg.push(4);                            // ??
-                msg.push(3);                            // ??
-                msg.push(2);                            // ??
-                msg.push(midi::status::sysex_end);      // 0xF7 [ 247 ]
-                (void) busout.send_message(msg);
             }
         }
         catch (rtl::rterror & error)
         {
-            exit(EXIT_FAILURE);     // error.print_message();
+            can_run = false;                        // error.print_message()
+        }
+        if (can_run)
+        {
+            rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
+            int portnumber { rt_test_port() };
+            midi::masterbus & master { master_bus(rapi, s_clientinfo) };
+            midi::bus & outbus { master.get_out_bus(portnumber) };
+            can_run = outbus.initialize();
+            if (can_run)
+            {
+                midi::bus_out & busout
+                {
+                    dynamic_cast<midi::bus_out &>(outbus)
+                };
+
+                /* Send out a series of MIDI messages. */
+
+                try
+                {
+                    midi::message msg;
+                    msg.push(midi::status::program_change); // 0xC0 [ 192 ]
+                    msg.push(5);                            // Electric Piano?
+                    (void) busout.send_message(msg);
+                    rt_test_sleep(500);
+
+                    msg.clear();
+                    msg.push(midi::status::quarter_frame);  // 0xF1
+                    msg.push(60);                           // ??
+                    (void) busout.send_message(msg);
+
+                    msg.clear();
+                    msg.push(midi::status::control_change); // 0xB0 [ 176 ]
+                    msg.push(midi::ctrl::volume);           // 0x07
+                    msg.push(100);                          // volume level
+                    busout.send_message(msg);
+
+                    msg.clear();
+                    msg.push(midi::status::note_on);        // 0x90 [ 144 ]
+                    msg.push(64);                           // note number
+                    msg.push(90);                           // velocity
+                    (void) busout.send_message(msg);
+                    rt_test_sleep(500);
+
+                    msg.clear();
+                    msg.push(midi::status::note_off);       // 0x80 [ 128 ]
+                    msg.push(64);                           // note number
+                    msg.push(40);                           // velocity
+                    (void) busout.send_message(msg);
+                    rt_test_sleep(500);
+
+                    msg.clear();
+                    msg.push(midi::status::control_change); // 0xB0 [ 176 ]
+                    msg.push(midi::ctrl::volume);           // 0x07
+                    msg.push(40);                           // volume level
+                    (void) busout.send_message(msg);
+                    rt_test_sleep(500);
+
+                    msg.clear();
+                    msg.push(midi::status::sysex);          // 0xF0 [ 240 ]
+                    msg.push(67);                           // Yamaha (Man. ID.)
+                    msg.push(4);                            // ??
+                    msg.push(3);                            // ??
+                    msg.push(2);                            // ??
+                    msg.push(midi::status::sysex_end);      // 0xF7 [ 247 ]
+                    (void) busout.send_message(msg);
+                }
+                catch (rtl::rterror & error)
+                {
+                    can_run = false;
+                }
+            }
         }
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 /*

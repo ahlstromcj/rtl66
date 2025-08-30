@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2023-03-08
- * \updates       2024-01-15
+ * \updates       2025-08-26
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -72,9 +72,9 @@ private:
      *  Error handling.
      */
 
-    std::string m_error_string;
+    mutable std::string m_error_string;
     rterror::callback_t m_error_callback;
-    bool m_first_error;
+    mutable bool m_first_error;
     void * m_error_callback_user_data;
 
 public:
@@ -95,12 +95,12 @@ public:
      */
 
     void set_error_callback (rterror::callback_t cb, void * userdata);
-    void error (rterror::kind type, const std::string & errorstring);
-    void error (const std::string & tag, int portnumber);
+    void error (rterror::kind type, const std::string & errorstring) const;
+    void error (const std::string & tag, int portnumber) const;
     void warning_no_devices(const std::string & tag, bool isoutput);
     void warning_unimplemented(const std::string & tag);
 
-    void error (rterror::kind type)
+    void error (rterror::kind type) const
     {
         error(type, error_string());
     }
@@ -110,9 +110,9 @@ public:
         return m_error_string;
     }
 
-    void error_string (const std::string & errmsg)
+    void error_string (const std::string & errmsg) const
     {
-        m_error_string = errmsg;
+        m_error_string = errmsg;                        /* mutable member   */
     }
 
 };          // class api_base

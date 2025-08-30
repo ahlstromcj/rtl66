@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-26
+ * \updates       2025-08-28
  * \license       See above.
  *
  *  Engine candidates:
@@ -343,8 +343,13 @@ midi_jack::engine_connect ()
             void * apidata = reinterpret_cast<void *>(&data);
             data.jack_client(c);
             api_data(&data);
-            if (have_master_bus())
-                master_bus()->client_handle(c);
+
+            /*
+             * This isn't right. The masterbus itself sets this up.
+             *
+             * if (has_master())
+             *     master_bus()->client_handle(c);
+             */
 
             JackProcessCallback cb = jack_process_io;
             if (is_output())
@@ -603,8 +608,13 @@ midi_jack::initialize (const std::string & clientname)
     if (! reuse_connection())
     {
         midi_jack_data & data = jack_data();
-        if (have_master_bus())
-            master_bus()->client_handle(data.jack_client());
+
+        /*
+         * This isn't right. The masterbus itself sets this up.
+         *
+         * if (has_master())
+         *     master_bus()->client_handle(data.jack_client());
+         */
 
         api_data(&data);
         result = connect();
@@ -1243,7 +1253,7 @@ midi_jack::BPM (midi::bpm /*bp*/)
  */
 
 bool
-midi_jack::send_byte (midi::byte evbyte)
+midi_jack::send_byte (midi::byte evbyte) const
 {
     midi::message message;
     message.push(evbyte);
@@ -1461,7 +1471,7 @@ midi_jack::get_midi_event (midi::event * inev)           // input
  */
 
 bool
-midi_jack::send_event (const midi::event * ev, midi::byte channel)
+midi_jack::send_event (const midi::event * ev, midi::byte channel) const
 {
     midi::byte evstatus = ev->get_status(channel);
     midi::byte d0, d1;
@@ -1500,7 +1510,7 @@ midi_jack::send_event (const midi::event * ev, midi::byte channel)
  */
 
 bool
-midi_jack::send_sysex (const midi::event * ev)
+midi_jack::send_sysex (const midi::event * ev) const
 {
     const midi::message & message = ev->get_message();
     bool result = send_message(message);
@@ -1599,14 +1609,14 @@ midi_jack::connect_ports        // IN OR OUT!!!!!
  */
 
 bool
-midi_jack::send_message (const midi::byte * message, size_t sz)
+midi_jack::send_message (const midi::byte * msg, size_t sz) const
 {
-    bool result = not_nullptr(message) && sz > 0;
+    bool result = not_nullptr(msg) && sz > 0;
     if (result)
     {
         midi::message msg;
         for (size_t i = 0; i < sz; ++i)
-            msg.push(message[i]);
+            msg.push(msg[i]);
 
         result = send_message(msg);
     }
@@ -1633,7 +1643,7 @@ midi_jack::send_message (const midi::byte * message, size_t sz)
  *  Let's try the frame count instead of the timestamp.  See the ttymidi.c
  *  module.
  *
- * \param message
+ * \param msg
  *      Provides the MIDI message object, which contains the bytes to send.
  *
  * \return
@@ -1642,10 +1652,14 @@ midi_jack::send_message (const midi::byte * message, size_t sz)
  */
 
 bool
-midi_jack::send_message (const midi::message & message)
+midi_jack::send_message (const midi::message & msg) const
 {
-    xpc::ring_buffer<midi::message> * rb = jack_data().jack_buffer();
-    return rb->push_back(message);
+    const xpc::ring_buffer<midi::message> * rb { jack_data().jack_buffer() };
+    xpc::ring_buffer<midi::message> * ncrb
+    {
+        const_cast<xpc::ring_buffer<midi::message> *>(rb)
+    };
+    return ncrb->push_back(msg);
 }
 
 }           // namespace rtl

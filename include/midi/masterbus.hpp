@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-24
+ * \updates       2025-08-30
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -207,7 +207,7 @@ private:
      *  time.
      */
 
-    void * m_client_handle;
+    void * m_void_client_handle;
 
     /**
      *  The MIDI API client ID.???
@@ -274,14 +274,9 @@ public:
         return m_selected_api;
     }
 
-    void * client_handle ()
+    void * void_client_handle ()
     {
-        return m_client_handle;
-    }
-
-    void * void_handle ()
-    {
-        return client_handle();
+        return m_void_client_handle;
     }
 
     rtl::rtmidi_engine & engine ()
@@ -343,6 +338,21 @@ public:
         return m_outbus_array;
     }
 
+    /**
+     *  Gets either a good midi:bus reference or a reference to a dummy
+     *  bus. Useful mainly for testing.
+     */
+
+    midi:: bus & get_in_bus (int index)
+    {
+        return inbus_array().buss(bussbyte(index));
+    }
+
+    midi:: bus & get_out_bus (int index)
+    {
+        return outbus_array().buss(bussbyte(index));
+    }
+
     int get_num_out_buses () const
     {
         return outbus_array().count();
@@ -353,9 +363,9 @@ public:
         return inbus_array().count();
     }
 
-    void client_handle (void * clienthandle)
+    void void_client_handle (void * clienthandle)
     {
-        m_client_handle = clienthandle;
+        m_void_client_handle = clienthandle;
     }
 
     int client_id () const
@@ -380,12 +390,12 @@ public:
 
     rtl::midi_api * rt_api_ptr ()
     {
-        return m_engine.rt_api_ptr();
+        return engine().rt_api_ptr();
     }
 
     const rtl::midi_api * rt_api_ptr () const
     {
-        return m_engine.rt_api_ptr();
+        return engine().rt_api_ptr();
     }
 
 protected:
@@ -420,21 +430,18 @@ protected:
 protected:
 
     bool activate ();
+
+public:     // public because used in test applications
+
     midi::bus * make_bus (int busno, midi::port::io iotype);
-
-public:     // used in a test application
-
     bool engine_initialize ();
     bool engine_initialize (const clientinfo & ci);
     bool engine_query ();
+    bool engine_activate ();
 
 protected:  // API pass-alongs
 
-    bool engine_activate ();
     bool engine_connect ();
-
-//  bool engine_make_busses (bool is_input, bool is_virtual = false);
-//      bool autoconnect, int inputport, int outputport
 
 protected:  // API implementations
 

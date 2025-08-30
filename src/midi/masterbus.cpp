@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-24
+ * \updates       2025-08-30
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -35,8 +35,8 @@
  *
  *      -   engine_query(). Create temporary I/O objects and use them
  *          to query the host for an existing API, such as ALSA or JACK.
- *          -   Gets the rtl::rtmidi::api to be used.
- *          -   Collects the I/O ports that exist into shared pointers for
+ *          -   Get the rtl::rtmidi::api to be used.
+ *          -   Collect the I/O ports that exist into shared pointers for
  *              midi::clientinfo for input and output.
  *      -   engine_connect(). Creates the MIDI engine client, which should
  *          serve as the "client" for all operations.  Creates a handle to the
@@ -108,7 +108,13 @@ namespace midi
 {
 
 /**
- *  The masterbus default constructor fills the array with our busses.
+ *  The masterbus default constructor has the following features:
+ *
+ *      -   It uses the rtl::rtmidi_engine to hold a client
+ *          pointer for use by all of the ports. (The normal RtMidi
+ *          paradigm is one client per port, it seems.)
+ *      -   It fills the input and output arrays with the busses
+ *          existing on the system.
  *
  *  Once constructed, if the caller wants to use the Seq66-derived
  *  buss feature, the caller should call masterbus::client_info_reset().
@@ -142,14 +148,21 @@ masterbus::masterbus
     m_dumping_input     (false),
     m_input_track       (nullptr),
     m_mutex             (),
-    m_client_handle     (nullptr),
+    m_void_client_handle     (nullptr),
     m_client_id         (0),
     m_max_busses        (c_busscount_max),
     m_client_info       (),
     m_ppqn              (ppq),
     m_beats_per_minute  (bp)
 {
-    // No code
+    // TENTATIVE
+    //
+    // When to set the midi_alsa's client pointer? Can we safely
+    // override it?  DOUBLE CHECK by setting breaks at the set points
+    // and the use points.
+    //
+    // if (not_nullptr(rt_api_ptr()))
+    //    client_handle(m_engine.rt_api_ptr()->void_client_handle());
 }
 
 /**
@@ -213,7 +226,7 @@ masterbus::client_info_reset (clientinfo & cinfo)
 bool
 masterbus::engine_query ()
 {
-    bool result = get_all_port_info(client_info(), selected_api());
+    bool result = client_info().get_all_port_info(selected_api());
     if (result)
     {
 #if defined PLATFORM_DEBUG
@@ -974,7 +987,7 @@ masterbus::engine_initialize (const clientinfo & ci)
                     midi::bus * b = make_bus(p, iotype);
                     if (not_nullptr(b))
                     {
-                        bool ok = busarray_1.add(b);
+                        bool ok = busarray_1.add(b);    /* store unique_ptr */
                         if (! ok)
                         {
                             result = false;
@@ -982,7 +995,7 @@ masterbus::engine_initialize (const clientinfo & ci)
                         }
                     }
                     else
-                        break;                      /* error */
+                        break;                          /* error            */
                 }
                 isinput = ! isinput;
                 iotype = isinput ?
@@ -998,7 +1011,7 @@ masterbus::engine_initialize (const clientinfo & ci)
                     midi::bus * b = make_bus(p, iotype);
                     if (not_nullptr(b))
                     {
-                        bool ok = busarray_2.add(b);
+                        bool ok = busarray_2.add(b);    /* store unique_ptr */
                         if (! ok)
                         {
                             result = false;
@@ -1006,7 +1019,7 @@ masterbus::engine_initialize (const clientinfo & ci)
                         }
                     }
                     else
-                        break;                      /* error */
+                        break;                          /* error            */
                 }
             }
         }

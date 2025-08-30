@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-08-25
+ * \updates       2025-08-30
  * \license       GNU GPLv2 or above
  *
  */
@@ -57,7 +57,7 @@ bus_in::bus_in
     midi::bus (master, index, midi::port::io::input),
     m_rtmidi_in
     (
-        rtl::rtmidi::api::none,                 /* master.selected_api()    */
+        master.selected_api(),
         master.client_info().client_name(),
         queuesizelimit
     )
@@ -65,12 +65,11 @@ bus_in::bus_in
     if (not_nullptr(midi_api_ptr()))            /* masterbus's API pointer? */
     {
         /*
-         * Set up the masterbus paradigm for the input, then
-         * wire in the masterbus's API pointer.
+         * Set up the masterbus paradigm for the input, but the
+         * masterbus's API pointer will not be changed.
          */
 
-        midi_api_ptr()->master_bus(&master);
-        m_rtmidi_in.master_api_ptr(midi_api_ptr());
+        m_rtmidi_in.set_master_bus_ptr(&master);
     }
 }
 
@@ -90,11 +89,14 @@ bus_in::~bus_in()
 int
 bus_in::get_in_port_info ()
 {
-    masterbus::info & ci { master_bus().client_info() };
-    int result { m_rtmidi_in.get_io_port_info(ci.io_ports(port::io::input)) };
-    if (result >= 0)
-        get_port_items(port::io::input);
-
+    int result { 0 };
+    if (not_nullptr(master_bus()))
+    {
+        masterbus::info & ci { master_bus()->client_info() };
+        result = m_rtmidi_in.get_io_port_info(ci.io_ports(port::io::input));
+        if (result >= 0)
+            get_port_items(port::io::input);
+    }
     return result;
 }
 

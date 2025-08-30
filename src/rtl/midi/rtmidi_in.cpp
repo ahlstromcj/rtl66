@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-24
+ * \updates       2025-08-30
  * \license       See above.
  *
  */
@@ -79,7 +79,8 @@ rtmidi_in::rtmidi_in
     if (qsize == 0)
         qsize = RTL66_DEFAULT_Q_SIZE;
 
-    if (rapi != rtmidi::api::none)
+    bool nomaster { rapi != rtmidi::api::none };
+    if (nomaster)
     {
         rapi = ctor_common_setup(rapi, clientname);
         if (is_midiapi_valid(rapi))

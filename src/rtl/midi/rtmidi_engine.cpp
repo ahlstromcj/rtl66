@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-12-15
- * \updates       2025-08-25
+ * \updates       2025-08-30
  * \license       See above.
  *
  */
@@ -103,8 +103,8 @@ rtmidi_engine::open_midi_api
             try_open_midi_api(rapi, midi::port::io::engine, clientname)
         );
         result = not_nullptr(rt_api_ptr());
-        if (result && not_nullptr(m_master_bus))
-            rt_api_ptr()->master_bus(m_master_bus);
+        if (result && not_nullptr(master_bus()))
+            result = set_master_bus(master_bus());
     }
     return result;
 }

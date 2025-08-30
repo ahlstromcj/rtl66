@@ -25,12 +25,12 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-26
+ * \updates       2025-08-30
  * \license       See above.
  *
  */
 
-#include "midi/message.hpp"                 /* midi::message class          */
+// #include "midi/message.hpp"                 /* midi::message class          */
 #include "midi/ports.hpp"                   /* midi::ports class            */
 #include "rtl/midi/find_midi_api.hpp"       /* rtl::try_open_midi_api()     */
 #include "rtl/midi/rtmidi_out.hpp"          /* rtl::rtmidi_out class, etc.  */
@@ -50,15 +50,16 @@ namespace rtl
 rtmidi_out::rtmidi_out (rtmidi::api rapi, const std::string & clientname) :
     rtmidi  ()
 {
-    if (rapi != rtmidi::api::none)
-    {
+//  bool nomaster { rapi != rtmidi::api::none };
+//  if (nomaster)
+//  {
         rapi = ctor_common_setup(rapi, clientname);
         if (is_midiapi_valid(rapi))
         {
             if (open_midi_api(rapi, clientname))
                 rtmidi::selected_api(rapi);
         }
-    }
+//  }
 }
 
 rtmidi_out::~rtmidi_out()
@@ -122,42 +123,6 @@ rtmidi_out::open_virtual_port (const std::string & portname)
 
     return rtmidi::open_virtual_port(pname);
 }
-
-#if 0
-
-/**
- *  An override.  More convenient.
- */
-
-bool
-rtmidi_out::send_message (const midi::message & message)
-{
-    return send_message(message.data_ptr(), message.size());
-}
-
-/**
- *  Immediately send a single message out an open MIDI output port.
- *  An exception is thrown if an error occurs during output or an
- *  output connection was not previously established.
- *
- * \param message
- *      A pointer to the MIDI message as raw bytes.
- *
- * \param sz
- *      Length of the MIDI message in bytes.
- */
-
-bool
-rtmidi_out::send_message (const midi::byte * message, size_t sz)
-{
-    bool result = not_nullptr(rt_api_ptr());
-    if (result)
-        result = rt_api_ptr()->send_message(message, sz);
-
-    return result;
-}
-
-#endif      // 0
 
 }           // namespace rtl
 

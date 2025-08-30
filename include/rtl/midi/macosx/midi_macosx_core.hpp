@@ -106,7 +106,7 @@ protected:
         return nullptr;
     }
 
-    virtual void * void_handle () override
+    virtual void * void_client_handle () override
     {
         return reinterpret_cast<void *>(client_handle());
     }

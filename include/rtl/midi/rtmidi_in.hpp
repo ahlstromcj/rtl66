@@ -52,9 +52,9 @@ namespace rtl
  *  messages are either saved to a queue for retrieval using the get_message()
  *  function or immediately passed to a user-specified callback function.
  *  Create multiple instances of this class to connect to more than one MIDI
- *  device at the same time.  With the OS-X, Linux ALSA, and JACK MIDI APIs, it
- *  is also possible to open a virtual input port to which other MIDI software
- *  clients can connect.
+ *  device at the same time.  With the OS-X, Linux ALSA, and JACK MIDI APIs,
+ *  it is also possible to open a virtual input port to which other MIDI
+ *  software clients can connect.
  */
 
 class RTL66_DLL_PUBLIC rtmidi_in : public rtmidi

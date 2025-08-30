@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-08-26
+ * \updates       2025-08-28
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -151,10 +151,11 @@ private:
     /**
      *  The "parent" of this bus.  It's lifetime always completely contains
      *  that of a bus. We want to handle ports/busses coming and going as
-     *  devices are plugged in/out of the computer.
+     *  devices are plugged in/out of the computer. Note that midi::bus
+     *  does not own the pointer, as indicated by use of a bare pointer.
      */
 
-    masterbus & m_master_bus;
+    masterbus * m_master_bus;
 
     /**
      *  Set to true if the bus has been successfully initialized.
@@ -225,10 +226,12 @@ private:
      *  if the user enables the port in the Options / MIDI Input tab or the
      *  Options / MIDI Clocks tab.
      *
-     *  Setter/getter are port_enabled().
+     *  It is separate from the clocking values in midi::port; it allows
+     *  turning the bus on/off without changing its status. See the activate()
+     *  and deactivate() functions.
      */
 
-    bool m_io_active;                       // port::m_io_status ????
+    bool m_io_active;
 
     /**
      *  Holds the full display name of the bus, index, ID numbers, and item
@@ -298,7 +301,7 @@ public:
      * Same with the assignment operator.
      */
 
-    bus () = delete;
+    bus ();
     bus
     (
         masterbus & master,
@@ -321,12 +324,12 @@ public:
 
     void get_port_items (port::io iotype);
 
-    masterbus & master_bus ()
+    masterbus * master_bus ()
     {
         return m_master_bus;
     }
 
-    const masterbus & master_bus () const
+    const masterbus * master_bus () const
     {
         return m_master_bus;
     }
@@ -349,19 +352,19 @@ public:
         return true;
     }
 
+    bool active () const
+    {
+        return m_io_active;
+    }
+
     void activate ()
     {
-        m_io_active = true;                 // MORE TODO?
+        m_io_active = port_unavailable() ? false : true ;
     }
 
     void deactivate ()
     {
-        m_io_active = false;                // MORE TODO?
-    }
-
-    bool active () const
-    {
-        return m_io_active;                 // conflated with port_enabled()
+        m_io_active = false;
     }
 
     midi::port & midi_port ()
@@ -510,22 +513,22 @@ public:
 
     bool port_enabled () const                      /* replaces get_input() */
     {
-        return active();
+        return ! midi_port().port_disabled();
+    }
+
+    bool port_disabled () const                     /* replaces get_input() */
+    {
+        return midi_port().port_disabled();
     }
 
     bool clock_enabled () const
     {
-        return midi::clock_is_enabled(midi_port().port_status());
+        return midi_port().clock_enabled();
     }
 
     bool port_unavailable () const
     {
         return clock_type() == midi::clocking::unavailable;
-    }
-
-    void port_enabled (bool flag)                   /* set_io_status(bool)  */
-    {
-        m_io_active = flag;
     }
 
     /**
@@ -662,34 +665,40 @@ public:
         return false;
     }
 
-    virtual bool send_message  (const midi::message & msg)
+    virtual bool send_byte (midi::byte evbyte) const
     {
-        (void) msg;
-        return false;
-    }
-
-    virtual bool send_message (const midi::bytes & msg)
-    {
-        (void) msg;
-        return false;
-    }
-
-    virtual bool send_message (const midi::byte * msg, size_t sz)
-    {
-        (void) msg; (void) sz;
+        (void) evbyte;
         return false;
     }
 
     virtual bool send_event
     (
-        const event * e24, midi::byte channel = null_channel()
-    )
+        const midi::event * e24, midi::byte channel = midi::null_channel()
+    ) const
     {
         (void) e24; (void) channel;
         return false;
     }
 
-    virtual bool send_sysex (const event * e24)
+    virtual bool send_message  (const midi::message & msg) const
+    {
+        (void) msg;
+        return false;
+    }
+
+    virtual bool send_message (const midi::bytes & msg) const
+    {
+        (void) msg;
+        return false;
+    }
+
+    virtual bool send_message (const midi::byte * msg, size_t sz) const
+    {
+        (void) msg; (void) sz;
+        return false;
+    }
+
+    virtual bool send_sysex (const event * e24) const
     {
         (void) e24;
         return false;

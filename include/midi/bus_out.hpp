@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2024-06-09
+ * \updates       2025-08-26
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -87,11 +87,15 @@ public:
 
     virtual int get_out_port_info () override;
     virtual bool init_clock (midi::pulse tick) override;
+    virtual bool send_byte (midi::byte evbyte) const override;
     virtual bool send_event
     (
-        const midi::event * e24, midi::byte channel
-    ) override;
-    virtual bool send_sysex (const midi::event * e24) override;
+        const midi::event * e24, midi::byte channel = midi::null_channel()
+    ) const override;
+    virtual bool send_message (const midi::message & msg) const override;
+    virtual bool send_message (const midi::bytes & msg) const override;
+    virtual bool send_message (const midi::byte * msg, size_t sz) const override;
+    virtual bool send_sysex (const midi::event * e24) const override;
     virtual bool clock_start () override;
     virtual bool clock_stop () override;
     virtual bool clock_send (midi::pulse tick) override;

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2023-07-20
+ * \updates       2025-08-30
  * \license       See above.
  *
  */
@@ -38,6 +38,7 @@
 
 #include <alsa/asoundlib.h>             /* ALSA header file                 */
 #include <pthread.h>                    /* pthread_t, etc.                  */
+#include <memory>                       /* std::unique_ptr()                */
 
 #include "c_macros.h"                   /* not_nullptr() and friends        */
 #include "midi/midibytes.hpp"           /* midi::byte, other aliases        */
@@ -63,7 +64,17 @@ private:
     snd_seq_port_subscribe_t * m_subscription { nullptr };
     snd_midi_event_t * m_event_parser { nullptr };
     size_t m_buffer_size { 32 };
-    midi::byte * m_buffer { nullptr };
+
+    /**
+     *  Change to an exception-safe object. We could also use the
+     *  midi::bytes vector, but it's less flexible for the purpose,
+     *  which includes reallocation.
+     *
+     *      midi::byte * m_buffer { nullptr };
+     */
+
+    std::unique_ptr<midi::byte> m_buffer { };
+
     pthread_t m_thread { };
     pthread_t m_dummy_thread_id { };
     snd_seq_real_time_t m_last_time { };
@@ -74,13 +85,6 @@ public:
 
     midi_alsa_data ();
 
-    bool initialize
-    (
-        snd_seq_t * seq,
-        midi::port::io iotype,      // bool isinput = false,
-        size_t buffersize   = 32
-    );
-
     /**
      *  This destructor currently does nothing.  We rely on the enclosing
      *  class to close out the things that it created.
@@ -88,10 +92,25 @@ public:
 
     ~midi_alsa_data ()
     {
-        // Empty body
+        unallocate();
     }
 
+    void clear ();
+    bool initialize
+    (
+        snd_seq_t * seq,
+        midi::port::io iotype,      // bool isinput = false,
+        size_t buffsize   = 32
+    );
+    bool reallocate (size_t buffsize = 32);
+    void unallocate ();
+
     snd_seq_t * alsa_client ()
+    {
+        return m_alsa_client;
+    }
+
+    const snd_seq_t * alsa_client () const
     {
         return m_alsa_client;
     }
@@ -116,6 +135,11 @@ public:
         return m_event_parser;
     }
 
+    const snd_midi_event_t * event_parser () const
+    {
+        return m_event_parser;
+    }
+
     snd_midi_event_t ** event_address ()
     {
         return &m_event_parser;
@@ -128,12 +152,17 @@ public:
 
     midi::byte * buffer ()
     {
-        return m_buffer;
+        return m_buffer.get();
+    }
+
+    const midi::byte * buffer () const
+    {
+        return m_buffer.get();
     }
 
     bool valid_buffer () const
     {
-        return not_nullptr(m_buffer);
+        return bool(m_buffer);
     }
 
     pthread_t thread_handle ()
@@ -198,9 +227,9 @@ public:
         m_buffer_size = sz;
     }
 
-    void buffer (midi::byte * b)
+    void buffer (midi::byte * b)            // hmmmmmmmmm
     {
-        m_buffer = b;
+        m_buffer.reset(b);
     }
 
     void thread_handle (pthread_t pt)

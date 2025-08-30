@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-08-22
+ * \updates       2025-08-28
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -214,12 +214,8 @@ public:
             {
                 result = counter;
                 if (bool(bs))
-                {
-                    // TODO
-                    // /* deletes m_bus as well */
-                    // (void) m_bus_container.erase(bi);
-                    errprintf("port_start(): bus out %d not null\n", result);
-                }
+                    errprint("port_start(): bus out not null");
+
                 break;
             }
             ++counter;
@@ -880,10 +876,13 @@ busarray::bus_valid (midi::bussbyte b) const
     return p_impl->bus_valid(b);
 }
 
-midi::bus *
-busarray::bus_pointer (midi::bussbyte b)
+midi::bus &
+busarray::buss (midi::bussbyte b)
 {
-    return p_impl->bus_ptr(b);
+    static midi::bus s_dummy_bus;
+    midi::bus * bptr = p_impl->bus_ptr(b);
+    bool good_busnumber = not_nullptr(bptr);
+    return good_busnumber ? *bptr : s_dummy_bus ;
 }
 
 /**

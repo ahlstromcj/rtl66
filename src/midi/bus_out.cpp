@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-08-25
+ * \updates       2025-08-30
  * \license       GNU GPLv2 or above
  *
  */
@@ -46,7 +46,7 @@ namespace midi
  *
  *      -   selected_api()
  *      -   client_handle()
- *      -   void_handle()
+ *      -   void_client_handle()
  *      -   engine() [rtl::rtmidi::engine reference]
  *      -   client_info()
  *      -   In and Out busarrays and their busses
@@ -69,7 +69,7 @@ bus_out::bus_out
     midi::bus (master, index, midi::port::io::output),
     m_rtmidi_out
     {
-        rtl::rtmidi::api::none,                 /* master.selected_api()    */
+        master.selected_api(),
         master.client_info().client_name(),
     },
     m_last_tick (0)
@@ -77,12 +77,11 @@ bus_out::bus_out
     if (not_nullptr(midi_api_ptr()))            /* masterbus's API pointer? */
     {
         /*
-         * Set up the masterbus paradigm for the input, then
-         * wire in the masterbus's API pointer.
+         * Set up the masterbus paradigm for the input, but the
+         * masterbus's API pointer will not be changed.
          */
 
-        midi_api_ptr()->master_bus(&master);
-        m_rtmidi_out.master_api_ptr(midi_api_ptr());
+        m_rtmidi_out.set_master_bus_ptr(&master);
     }
 }
 
@@ -102,14 +101,14 @@ bus_out::~bus_out ()
 int
 bus_out::get_out_port_info ()
 {
-    auto & ci { master_bus().client_info() };
-    int result
+    int result { 0 };
+    if (not_nullptr(master_bus()))
     {
-        m_rtmidi_out.get_io_port_info(ci.io_ports(port::io::output))
-    };
-    if (result >= 0)
-        get_port_items(port::io::output);
-
+        auto & ci { master_bus()->client_info() };
+        result = m_rtmidi_out.get_io_port_info(ci.io_ports(port::io::output));
+        if (result >= 0)
+            get_port_items(port::io::output);
+    }
     return result;
 }
 
@@ -163,7 +162,17 @@ bus_out::init_clock (pulse tick)
  */
 
 bool
-bus_out::send_event (const event * e24, midi::byte channel)
+bus_out::send_byte (midi::byte evbyte) const
+{
+    bool result { not_nullptr(midi_api_ptr()) };
+    if (result)
+        midi_api_ptr()->send_byte(evbyte);
+
+    return result;
+}
+
+bool
+bus_out::send_event (const midi::event * e24, midi::byte channel) const
 {
     bool result { not_nullptr(midi_api_ptr()) };
     if (result)
@@ -173,7 +182,37 @@ bus_out::send_event (const event * e24, midi::byte channel)
 }
 
 bool
-bus_out::send_sysex (const event * e24)
+bus_out::send_message (const midi::message & msg) const
+{
+    bool result { not_nullptr(midi_api_ptr()) };
+    if (result)
+        midi_api_ptr()->send_message(msg);
+
+    return result;
+}
+
+bool
+bus_out::send_message (const midi::bytes & msg) const
+{
+    bool result { not_nullptr(midi_api_ptr()) };
+    if (result)
+        midi_api_ptr()->send_message(msg);
+
+    return result;
+}
+
+bool
+bus_out::send_message (const midi::byte * msg, size_t sz) const
+{
+    bool result { not_nullptr(midi_api_ptr()) };
+    if (result)
+        midi_api_ptr()->send_message(msg, sz);
+
+    return result;
+}
+
+bool
+bus_out::send_sysex (const midi::event * e24) const
 {
     bool result { not_nullptr(midi_api_ptr()) };
     if (result)

@@ -1,12 +1,14 @@
 NEWS for Rtl66 0.2.0
 Chris Ahlstrom
-2024-04-15 to 2025-08-15
+2024-04-15 to 2025-08-30
 
-Version 0.2.0 is a heavy refactoring of the original code.
+Version 0.2.0 is a heavy refactoring of the original code. Beware.
 
 # Changelog
 
-## [0.2.0] - 2025-08-15
+## [0.2.0] - 2025-08-30
+
+    To do: grab the highlest from the git log.
 
 ## [0.1.0] - 2024-04-15
 

@@ -52,7 +52,7 @@ View this file in a wide terminal.
 
     -                   -                       master_bus functions
     -                   -                       client_info()
-    -                   -                       void_handle()
+    -                   -                       void_client_handle()
     -                   -                       api_data()
     -                   -                       input_data() and cast
     -                   -                       queue_size()

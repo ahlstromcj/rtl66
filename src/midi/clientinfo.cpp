@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-08-17
+ * \updates       2025-08-30
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -152,6 +152,12 @@ clientinfo::to_string (const std::string & tagmsg) const
     return os.str();
 }
 
+bool
+clientinfo::get_all_port_info (rtl::rtmidi::api rapi)
+{
+    return midi::get_all_port_info(*this, rapi);    /* defined at bottom    */
+}
+
 /**
  *  Generates a string listing all of the ports present in the
  *  selected port container. Useful for debugging and probing.
@@ -262,16 +268,17 @@ get_all_port_info (midi::clientinfo & cinfo, rtl::rtmidi::api rapi)
     try
     {
         rtl::rtmidi_in midiin(rapi);
-        ports & in = cinfo.io_ports(port::io::input);
-        int incount = midiin.get_io_port_info(in, false);    /* ! preclear  */
+        ports & in { cinfo.io_ports(port::io::input) };
+        int incount { midiin.get_io_port_info(in, false) };    /* !preclear */
+        void * clihandle { nullptr };
         if (incount > 0)
         {
-            // anything to do with the input port info?
+            // anything to do with the output port info?
         }
 
         rtl::rtmidi_out midiout(rapi);
-        ports & out = cinfo.io_ports(port::io::output);
-        int outcount = midiout.get_io_port_info(out, false); /* ! preclear  */
+        ports & out { cinfo.io_ports(port::io::output) };
+        int outcount { midiout.get_io_port_info(out, false) }; /* !preclear */
         if (outcount > 0)
         {
             // anything to do with the output port info?
