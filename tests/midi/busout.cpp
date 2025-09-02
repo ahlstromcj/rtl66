@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2025-08-26
- * \updates       2025-08-30
+ * \updates       2025-09-01
  * \license       See above.
  *
  *      This application has elements of the play test application,
@@ -93,9 +93,12 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
         bool ok { rapi != rtl::rtmidi::api::unspecified };
         if (ok)
         {
-            ok = s_master_bus.client_info_reset(ci) &&
-                    s_master_bus.engine_initialize(ci) &&
-                        s_master_bus.engine_activate();
+            ok = s_master_bus.client_info_reset(ci);
+            if (ok)
+                ok = s_master_bus.engine_initialize(ci);
+
+            if (ok)
+                s_master_bus.engine_activate();
         }
         if (ok)
             s_uninitialized = false;
@@ -130,8 +133,10 @@ main (int argc, char * argv [])
         }
         if (can_run)
         {
-            rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
             int portnumber { rt_test_port() };
+            s_clientinfo.output_portnumber(portnumber);
+
+            rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
             midi::masterbus & master { master_bus(rapi, s_clientinfo) };
             midi::bus & outbus { master.get_out_bus(portnumber) };
             can_run = outbus.initialize();

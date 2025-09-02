@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-30
+ * \updates       2025-09-01
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -161,13 +161,6 @@ private:
      */
 
     /**
-     *  Provides access to the selected API in order to hook up to the desired
-     *  MIDI engine as a client and perform key operations on it.
-     */
-
-    rtl::rtmidi_engine m_engine;
-
-    /**
      *  Encapsulates information about the input busses.
      */
 
@@ -245,6 +238,17 @@ private:
 
     midi::bpm m_beats_per_minute;
 
+    /**
+     *  Provides access to the selected API in order to hook up to the desired
+     *  MIDI engine as a client and perform key operations on it.
+     *
+     * \tricky
+     *      This member must come last because it also sets client information
+     *      members.
+     */
+
+    rtl::rtmidi_engine m_engine;
+
 public:
 
     masterbus () = delete;
@@ -267,11 +271,6 @@ public:
     ~masterbus ()
     {
         // No other code needed
-    }
-
-    rtl::rtmidi::api selected_api () const
-    {
-        return m_selected_api;
     }
 
     void * void_client_handle ()
@@ -304,6 +303,30 @@ public:
         return m_client_info;
     }
 
+    /**
+     *  Some accessor for ease of use.
+     */
+
+    rtl::rtmidi::api selected_api () const
+    {
+        return m_selected_api;
+    }
+
+    port::io port_type () const
+    {
+        return client_info().port_type();
+    }
+
+    const std::string & client_name () const
+    {
+        return client_info().client_name();
+    }
+
+    int queue_size () const
+    {
+        return client_info().queue_size();
+    }
+
     bool client_info_reset ();
     bool client_info_reset (clientinfo & cinfo);
     std::string port_listing () const;
@@ -315,7 +338,7 @@ public:
 
     bool info_is_connected () const
     {
-        return m_client_info.is_connected();
+        return client_info().is_connected();
     }
 
     const midi::busarray & inbus_array () const
@@ -363,10 +386,7 @@ public:
         return inbus_array().count();
     }
 
-    void void_client_handle (void * clienthandle)
-    {
-        m_void_client_handle = clienthandle;
-    }
+    void void_client_handle (void * clienthandle);
 
     int client_id () const
     {

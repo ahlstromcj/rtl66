@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-08-30
+ * \updates       2025-09-01
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -141,28 +141,21 @@ masterbus::masterbus
     midi::ppqn ppq,
     midi::bpm bp
 ) :
-    m_selected_api      (rapi),         /* rtl::rtmidi::api::unspecified)   */
-    m_engine            (this, rapi),   /* "mbus", don't change client name */
-    m_inbus_array       (),
-    m_outbus_array      (),
-    m_dumping_input     (false),
-    m_input_track       (nullptr),
-    m_mutex             (),
-    m_void_client_handle     (nullptr),
-    m_client_id         (0),
-    m_max_busses        (c_busscount_max),
-    m_client_info       (),
-    m_ppqn              (ppq),
-    m_beats_per_minute  (bp)
+    m_selected_api          (rapi),         /* rtmidi::api::unspecified)    */
+    m_inbus_array           (),
+    m_outbus_array          (),
+    m_dumping_input         (false),
+    m_input_track           (nullptr),
+    m_mutex                 (),
+    m_void_client_handle    (nullptr),
+    m_client_id             (0),
+    m_max_busses            (c_busscount_max),
+    m_client_info           (),
+    m_ppqn                  (ppq),
+    m_beats_per_minute      (bp),
+    m_engine                (*this, rapi)   /* "mbus", keep client name     */
 {
-    // TENTATIVE
-    //
-    // When to set the midi_alsa's client pointer? Can we safely
-    // override it?  DOUBLE CHECK by setting breaks at the set points
-    // and the use points.
-    //
-    // if (not_nullptr(rt_api_ptr()))
-    //    client_handle(m_engine.rt_api_ptr()->void_client_handle());
+    // no code
 }
 
 /**
@@ -197,6 +190,22 @@ masterbus::client_info_reset (clientinfo & cinfo)
         cinfo = m_client_info;                      /* return to the caller */
 
     return result;
+}
+
+/**
+ *  Log the client handle with the masterbus and, for possible use
+ *  elsewhere, in the clientinfo structure.
+ */
+
+void
+masterbus::void_client_handle (void * clienthandle)
+{
+    m_void_client_handle = clienthandle;
+    client_info().void_client_handle(clienthandle);
+
+#if defined PLATFORM_DEBUG
+    printf("masterbus client handle = %p\n", clienthandle);
+#endif
 }
 
 /**

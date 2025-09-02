@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-26
+ * \updates       2025-08-31
  * \license       See above.
  *
  */
@@ -44,7 +44,7 @@
 
 namespace midi
 {
-    class message;
+    class masterbus;
 }
 
 namespace rtl
@@ -79,6 +79,10 @@ public:
         const std::string & clientname  = ""
     );
 
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+    rtmidi_out (const midi::masterbus & mb);
+#endif
+
     rtmidi_out (const rtmidi_out & other) = delete;
     rtmidi_out & operator = (rtmidi_out & other) = delete;
 
@@ -98,15 +102,6 @@ public:
     ) override;
     virtual bool open_virtual_port (const std::string & portname = "") override;
 
-#if 0
-    bool send_byte (midi::byte evbyte);
-    bool send_event (const midi::event * e24, midi::byte channel = null_channel());
-    bool send_message (const midi::message & msg);
-    bool send_message (const midi::bytes & msg);
-    bool send_message (const midi::byte * msg, size_t sz);
-    bool send_sysex (const midi::event * ev);
-#endif
-
 protected:
 
     virtual bool open_midi_api
@@ -115,6 +110,10 @@ protected:
         const std::string & clientname  = "",
         unsigned queuesize              = 0         /* used for input only  */
     ) override;
+
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+    virtual bool open_midi_api (const midi::masterbus & mb) override;
+#endif
 
 };          // class rtmidi_out
 

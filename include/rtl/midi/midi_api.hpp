@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-30
+ * \updates       2025-09-01
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -101,6 +101,13 @@ private:
     midi::port::io m_port_io_type;
 
     /**
+     *  Holds the port number (an index starting at 0). Defaults to
+     *  -1, and set in open_port().
+     */
+
+    int m_port_number;
+
+    /**
      *  Data for usage by input ports.  Among the items it contains are a
      *  midi_queue, midi::message, a void pointer to an API-specific data
      *  structure, and buffer information.
@@ -133,7 +140,7 @@ private:
 
     /**
      *  Data specific to each API.  Includes the client handle as an exact
-     *  type.
+     *  type. Might point to a member variable.
      */
 
     void * m_api_data;
@@ -200,6 +207,11 @@ public:
         return m_port_io_type;
     }
 
+    std::string port_io_string () const
+    {
+        return midi::io_to_string(port_io_type()).c_str();
+    }
+
     bool is_input () const
     {
         return m_port_io_type == midi::port::io::input ||
@@ -220,6 +232,11 @@ public:
     bool is_engine () const
     {
         return m_port_io_type == midi::port::io::engine;
+    }
+
+    int port_number () const
+    {
+        return m_port_number;
     }
 
     /*
@@ -341,7 +358,8 @@ protected:
     virtual bool initialize (const std::string & clientname ) = 0;
     virtual bool open_port
     (
-        int number = 0, const std::string & name = ""
+        int number                  = 0,
+        const std::string & name    = ""
     ) = 0;
     virtual bool open_virtual_port (const std::string & name = "") = 0;
     virtual bool close_port () = 0;
@@ -483,6 +501,11 @@ protected:
     );
     void cancel_input_callback ();
     double get_message (midi::message & message);
+
+    void port_number (int n)
+    {
+        m_port_number = n;
+    }
 
 protected:
 

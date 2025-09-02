@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-08-26
+ * \updates       2025-08-30
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -100,6 +100,18 @@ public:
     virtual bool clock_stop () override;
     virtual bool clock_send (midi::pulse tick) override;
     virtual bool clock_continue (midi::pulse tick) override;
+
+private:
+
+    rtl::rtmidi_out & midi_out ()
+    {
+        return m_rtmidi_out;
+    }
+
+    const rtl::rtmidi_out & midi_out () const
+    {
+        return m_rtmidi_out;
+    }
 
 };          // class bus_out
 

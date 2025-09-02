@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-08-30
+ * \updates       2025-08-31
  * \license       GNU GPLv2 or above
  *
  */
@@ -67,13 +67,20 @@ bus_out::bus_out
     int index
 ) :
     midi::bus (master, index, midi::port::io::output),
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+    m_rtmidi_out    (master),
+#else
     m_rtmidi_out
     {
         master.selected_api(),
         master.client_info().client_name(),
     },
+#endif
     m_last_tick (0)
 {
+#if defined RTL66_FULL_MASTERBUS_SUPPORT        /* will move to rtmidi_in   */
+    // no code
+#else
     if (not_nullptr(midi_api_ptr()))            /* masterbus's API pointer? */
     {
         /*
@@ -83,6 +90,7 @@ bus_out::bus_out
 
         m_rtmidi_out.set_master_bus_ptr(&master);
     }
+#endif
 }
 
 /**
@@ -164,91 +172,55 @@ bus_out::init_clock (pulse tick)
 bool
 bus_out::send_byte (midi::byte evbyte) const
 {
-    bool result { not_nullptr(midi_api_ptr()) };
-    if (result)
-        midi_api_ptr()->send_byte(evbyte);
-
-    return result;
+    return midi_out().send_byte(evbyte);
 }
 
 bool
 bus_out::send_event (const midi::event * e24, midi::byte channel) const
 {
-    bool result { not_nullptr(midi_api_ptr()) };
-    if (result)
-        midi_api_ptr()->send_event(e24, channel);
-
-    return result;
+    return midi_out().send_event(e24, channel);
 }
 
 bool
 bus_out::send_message (const midi::message & msg) const
 {
-    bool result { not_nullptr(midi_api_ptr()) };
-    if (result)
-        midi_api_ptr()->send_message(msg);
-
-    return result;
+    return midi_out().send_message(msg);
 }
 
 bool
 bus_out::send_message (const midi::bytes & msg) const
 {
-    bool result { not_nullptr(midi_api_ptr()) };
-    if (result)
-        midi_api_ptr()->send_message(msg);
-
-    return result;
+    return midi_out().send_message(msg);
 }
 
 bool
 bus_out::send_message (const midi::byte * msg, size_t sz) const
 {
-    bool result { not_nullptr(midi_api_ptr()) };
-    if (result)
-        midi_api_ptr()->send_message(msg, sz);
-
-    return result;
+    return midi_out().send_message(msg, sz);
 }
 
 bool
 bus_out::send_sysex (const midi::event * e24) const
 {
-    bool result { not_nullptr(midi_api_ptr()) };
-    if (result)
-        midi_api_ptr()->send_sysex(e24);
-
-    return result;
+    return midi_out().send_sysex(e24);
 }
 
 bool
 bus_out::clock_start ()
 {
-    bool result { not_nullptr(midi_api_ptr()) };
-    if (result)
-        midi_api_ptr()->clock_start();
-
-    return result;
+    return midi_out().clock_start();
 }
 
 bool
 bus_out::clock_stop ()
 {
-    bool result { not_nullptr(midi_api_ptr()) };
-    if (result)
-        midi_api_ptr()->clock_stop();
-
-    return result;
+    return midi_out().clock_stop();
 }
 
 bool
 bus_out::clock_send (pulse tick)
 {
-    bool result { not_nullptr(midi_api_ptr()) };
-    if (result)
-        midi_api_ptr()->clock_send(tick);
-
-    return result;
+    return midi_out().clock_send(tick);
 }
 
 /**
@@ -259,11 +231,7 @@ bus_out::clock_send (pulse tick)
 bool
 bus_out::clock_continue (pulse tick)
 {
-    bool result { not_nullptr(midi_api_ptr()) };
-    if (result)
-        midi_api_ptr()->clock_continue(tick);
-
-    return result;
+    return midi_out().clock_continue(tick, 4); // TODO: beats);
 }
 
 }           // namespace midi

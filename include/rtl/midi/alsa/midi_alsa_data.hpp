@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2025-08-30
+ * \updates       2025-09-02
  * \license       See above.
  *
  */
@@ -47,6 +47,8 @@
 namespace rtl
 {
 
+const size_t c_event_size_max { 12 };   /* from Seq66                       */
+
 /**
  *  Contains the ALSA MIDI API data as a kind of scratchpad for this object.
  */
@@ -58,12 +60,13 @@ class RTL66_DLL_PUBLIC midi_alsa_data
 
 private:
 
+    bool m_is_initialized { false };
     snd_seq_t * m_alsa_client { nullptr };
     int m_portnum { -1 };
     int m_vport { -1 };
     snd_seq_port_subscribe_t * m_subscription { nullptr };
     snd_midi_event_t * m_event_parser { nullptr };
-    size_t m_buffer_size { 32 };
+    size_t m_buffer_size { c_event_size_max };      /* increase as needed   */
 
     /**
      *  Change to an exception-safe object. We could also use the
@@ -104,6 +107,16 @@ public:
     );
     bool reallocate (size_t buffsize = 32);
     void unallocate ();
+
+    bool is_initialized () const
+    {
+        return m_is_initialized;
+    }
+
+    void set_initialized (bool flag)
+    {
+        m_is_initialized = flag;
+    }
 
     snd_seq_t * alsa_client ()
     {

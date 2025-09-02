@@ -374,6 +374,10 @@ protected:
         unsigned queuesize              = 0     /* useful with input ports  */
     ) = 0;
 
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+    virtual bool open_midi_api (const midi::masterbus & mb) = 0;
+#endif
+
     rtmidi::api ctor_common_setup
     (
         rtmidi::api rapi, const std::string & clientname

@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-30
+ * \updates       2025-08-31
  * \license       See above.
  *
  */
@@ -33,6 +33,10 @@
 #include "midi/ports.hpp"                   /* midi::ports class            */
 #include "rtl/midi/find_midi_api.hpp"       /* rtl::try_open_midi_api()     */
 #include "rtl/midi/rtmidi_in.hpp"           /* rtl::rtmidi_in class, etc.   */
+
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+#include "midi/masterbus.hpp"               /* midi::masterbus class        */
+#endif
 
 namespace rtl
 {
@@ -76,12 +80,13 @@ rtmidi_in::rtmidi_in
 ) :
     rtmidi  ()
 {
-    if (qsize == 0)
-        qsize = RTL66_DEFAULT_Q_SIZE;
 
     bool nomaster { rapi != rtmidi::api::none };
     if (nomaster)
     {
+        if (qsize == 0)
+            qsize = RTL66_DEFAULT_Q_SIZE;
+
         rapi = ctor_common_setup(rapi, clientname);
         if (is_midiapi_valid(rapi))
         {
@@ -90,6 +95,34 @@ rtmidi_in::rtmidi_in
         }
     }
 }
+
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+
+rtmidi_in::rtmidi_in (const midi::masterbus & mb) : rtmidi ()
+{
+    rtmidi::api rapi { mb.selected_api() };
+    const std::string & clientname { mb.client_name() };
+//      unsigned qsize { mb.queue_size() };
+//      if (qsize == 0)
+//          qsize = RTL66_DEFAULT_Q_SIZE;
+
+    rapi = ctor_common_setup(rapi, clientname);
+    if (is_midiapi_valid(rapi))
+    {
+        if (open_midi_api(mb))
+            rtmidi::selected_api(rapi);
+    }
+    if (not_nullptr(rt_api_ptr()))
+    {
+        midi::masterbus * ncmb = const_cast<midi::masterbus *>(&mb);
+        if (set_master_bus_ptr(ncmb))
+            (void) rt_api_ptr()->initialize(clientname);
+    }
+    else
+        printf("No rtmidi_out API pointer\n");
+}
+
+#endif
 
 /**
  *  If a MIDI connection is still open, it will be closed by the destructor.
@@ -133,6 +166,24 @@ rtmidi_in::open_midi_api
     }
     return result;
 }
+
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+
+bool
+rtmidi_in::open_midi_api (const midi::masterbus & mb)
+{
+    rtmidi::api rapi { mb.selected_api() };
+    bool result { rapi != rtmidi::api::max };
+    delete_rt_api_ptr();                    /* remove and nullify pointer   */
+    if (result)
+    {
+        rt_api_ptr(try_open_midi_api(mb));
+        result = not_nullptr(rt_api_ptr());
+    }
+    return result;
+}
+
+#endif
 
 /**
  *  Open a MIDI input connection given by enumeration number.

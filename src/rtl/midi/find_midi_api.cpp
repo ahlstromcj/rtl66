@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2024-06-01
+ * \updates       2024-08-31
  * \license       See above.
  *
  */
@@ -193,6 +193,109 @@ try_open_midi_api
     }
     return result;
 }
+
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+
+/**
+ *  This overload differs in the following ways:
+ *
+ *      -   It uses the master bus to get the API parameters, stored
+ *          in the masterbus's midi::clientinfo structure:
+ *          -   masterbus::selected_api()
+ *          -   masterbus::port_type()      [not used here]
+ *          -   masterbus::client_name()    [not used here]
+ *          -   masterbus::queue_size()     [not used here]
+ *      -   It calls the default MIDI API constructors, which do
+ *          not call the initialize() function.
+ *      -   It sets the masterbus for the MIDI API object.
+ */
+
+midi_api *
+try_open_midi_api (const midi::masterbus & mb)
+{
+    midi_api * result { nullptr };
+    rtmidi::api rapi { mb.selected_api() };
+    try
+    {
+        if (rapi != rtmidi::api::max)
+        {
+#if defined RTL66_BUILD_PIPEWIRE
+            if (try_match(rapi, rtmidi::api::pipewire))
+                result = new midi_pipewire_in();
+#endif
+#if defined RTL66_BUILD_JACK
+            if (is_nullptr(result))
+            {
+                if (try_match(rapi, rtmidi::api::jack))
+                    result = new midi_jack();
+            }
+#endif
+#if defined RTL66_BUILD_ALSA
+            if (is_nullptr(result))
+            {
+                if (try_match(rapi, rtmidi::api::alsa))
+                    result = new midi_alsa();
+            }
+#endif
+#if defined RTL66_BUILD_MACOSX_CORE
+            if (is_nullptr(result))
+            {
+                if (try_match(rapi, rtmidi::api::macosx_core))
+                    result = new midi_macosx_core();
+            }
+#endif
+#if defined RTL66_BUILD_WIN_MM
+            if (is_nullptr(result))
+            {
+                if (try_match(rapi, rtmidi::api::windows_mm))
+                    result = new midi_win_mm();
+            }
+#endif
+#if defined RTL66_BUILD_WEB_MIDI
+            if (is_nullptr(result))
+            {
+                if (try_match(rapi, rtmidi::api::web_midi))
+                    result = new midi_web_midi();
+            }
+#endif
+#if defined RTL66_BUILD_DUMMY
+            if (is_nullptr(result))
+            {
+                if (try_match(rapi, rtmidi::api::dummy))
+                    result = new midi_dummy();
+            }
+#endif
+
+            /*
+             * To do:  Add RTL66_BUILD_WIN_UWP and RTL66_BUILD_ANDROID.
+             */
+
+            if (is_nullptr(result))
+            {
+                error_print("try_open_midi_api_in", "no support for API");
+
+#if defined RTL66_THROW_RTERROR
+                std::string errormsg =
+                    "find_midi_api(in): no API support found";
+
+                throw(rterror(errormsg, rterror::kind::unspecified));
+#endif
+            }
+        }
+    }
+    catch (rtl::rterror & error)
+    {
+        error.print_message();
+    }
+    catch (...)
+    {
+        std::string msg =_("Unknown exception... fix the catch");
+        errprint(msg.c_str());
+    }
+    return result;
+}
+
+#endif      // defined RTL66_FULL_MASTERBUS_SUPPORT
 
 }           // namespace rtl
 

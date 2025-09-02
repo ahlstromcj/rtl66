@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2023-03-06
+ * \updates       2025-09-01
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -49,8 +49,8 @@ rtmidi_in_data::rtmidi_in_data () :
     m_using_callback    (false),
     m_user_callback     (nullptr),
     m_user_data         (nullptr),
-    m_buffer_size       (1024),
-    m_buffer_count      (4)
+    m_buffer_size       (c_buffer_size_max),
+    m_buffer_count      (c_buffer_count)
 {
     // No code
 }

@@ -1,14 +1,18 @@
 NEWS for Rtl66 0.2.0
 Chris Ahlstrom
-2024-04-15 to 2025-08-30
+2024-04-15 to 2025-08-31
 
 Version 0.2.0 is a heavy refactoring of the original code. Beware.
 
 # Changelog
 
-## [0.2.0] - 2025-08-30
+## [0.2.0] - 2025-08-31
 
-    To do: grab the highlest from the git log.
+To do: grab the highlest from the git log.
+
+- C++
+  - Started converting assignments (operator =) to initialization
+    (the {} initializer).
 
 ## [0.1.0] - 2024-04-15
 

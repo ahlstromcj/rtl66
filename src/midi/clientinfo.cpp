@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-08-30
+ * \updates       2025-09-01
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -138,16 +138,16 @@ clientinfo::to_string (const std::string & tagmsg) const
         << "Virtual ports: " << bool_to_yesno(virtual_ports()) << "\n"
         << "Auto-connect:  " << bool_to_yesno(auto_connect()) << "\n"
         << "Port refresh:  " << bool_to_yesno(port_refresh()) << "\n"
-        << "Global PPQN:   " << std::to_string(int(global_ppqn())) << "\n"
-        << "Global BPM:    " << std::to_string(int(global_bpm())) << "\n"
-        << "Global BW:     " <<
-            std::to_string(int(global_beat_width())) << "\n"
-        << "Global BPB:    " <<
-            std::to_string(int(global_beats_per_bar())) << "\n"
+        << "Global PPQN, BPM, BPB, and BW: "
+            << std::to_string(int(global_ppqn())) << ", "
+            << std::to_string(int(global_bpm())) << ", "
+            << std::to_string(int(global_beats_per_bar())) << ", and "
+            << std::to_string(int(global_beat_width())) <<  "\n"
         << ports_in
         << ports_out
-        << "I/O ports #s:  " << std::to_string(input_portnumber())
-        << "/" << std::to_string(output_portnumber()) << "\n"
+        << "I/O ports:  "
+        << std::to_string(input_portnumber()) << " in "
+        << std::to_string(output_portnumber()) << " out\n"
         ;
     return os.str();
 }
@@ -270,7 +270,6 @@ get_all_port_info (midi::clientinfo & cinfo, rtl::rtmidi::api rapi)
         rtl::rtmidi_in midiin(rapi);
         ports & in { cinfo.io_ports(port::io::input) };
         int incount { midiin.get_io_port_info(in, false) };    /* !preclear */
-        void * clihandle { nullptr };
         if (incount > 0)
         {
             // anything to do with the output port info?

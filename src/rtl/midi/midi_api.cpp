@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-30
+ * \updates       2025-09-01
  * \license       See above.
  *
  */
@@ -46,6 +46,7 @@ namespace rtl
 midi_api::midi_api () :
     api_base                    (),
     m_port_io_type              (midi::port::io::engine),
+    m_port_number               (-1),
     m_input_data                (),             /* a small structure        */
     m_master_bus                (),             /* a potential shared ptr   */
     m_has_master                (false),        /* true ==> midi::bus       */
@@ -62,6 +63,7 @@ midi_api::midi_api () :
 midi_api::midi_api (midi::port::io iotype, unsigned queuesize) :
     api_base                    (),
     m_port_io_type              (iotype),
+    m_port_number               (-1),
     m_input_data                (),             /* a small structure        */
     m_master_bus                (),             /* a potential shared ptr   */
     m_has_master                (false),        /* true ==> midi::bus       */

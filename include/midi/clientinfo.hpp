@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2025-08-30
+ * \updates       2025-08-31
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -196,6 +196,12 @@ struct client_defaults
     port::io cd_port_type { port::io::duplex };
 
     /**
+     *  Holds the queuesize that might be needed in some MIDI APIs.
+     */
+
+    int cd_queue_size { 32 };
+
+    /**
      *  The input port number.  If equal to -1, then (in the future)
      *  will work with all ports.
      */
@@ -222,10 +228,7 @@ struct client_defaults
 class clientinfo
 {
 
-#if 0
-public:
-    using pointer = std::shared_ptr<clientinfo>;
-#endif
+    friend class masterbus;
 
 private:
 
@@ -345,6 +348,16 @@ public:
     const std::string & app_name () const
     {
         return m_cd.cd_app_name;
+    }
+
+    void queue_size (int qsize)
+    {
+        m_cd.cd_queue_size = qsize;
+    }
+
+    int queue_size () const
+    {
+        return m_cd.cd_queue_size;
     }
 
     static bool all_ports (int portnumber)

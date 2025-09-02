@@ -89,7 +89,7 @@ public:
 
     bool add (midi::bus * b)
     {
-        bool result = not_nullptr(b);
+        bool result { not_nullptr(b) };
         if (result)
         {
             bus::pointer bp { b };
@@ -115,7 +115,7 @@ public:
 
     bool initialize ()
     {
-        bool result = true;
+        bool result { true };
         for (auto & b : m_bus_container)
         {
             if (! b->initialize())
@@ -177,7 +177,7 @@ public:
 
     int poll_for_midi () const
     {
-        int result = 0;
+        int result { 0 };
         for (auto & b : m_bus_container)
         {
             result = b->poll_for_midi();
@@ -206,8 +206,8 @@ public:
 
     int replacement_port (int b, int p)
     {
-        int result = -1;
-        int counter = 0;
+        int result { -1 };
+        int counter { 0 };
         for (auto & bs : m_bus_container)
         {
             if (bs->match(b, p) && ! bs->active())
@@ -320,7 +320,7 @@ busarray::add (midi::bus * b, bool inputing)
 int
 busarray::client_id (midi::bussbyte b)
 {
-    midi::bus * bptr = p_impl->bus_ptr(b);
+    midi::bus * bptr { p_impl->bus_ptr(b) };
     return not_nullptr(bptr) ? bptr->client_id() : (-1) ;
 }
 
@@ -332,7 +332,7 @@ busarray::client_id (midi::bussbyte b)
 bool
 busarray::port_active (midi::bussbyte b)
 {
-    midi::bus * bptr = p_impl->bus_ptr(b);
+    midi::bus * bptr { p_impl->bus_ptr(b) };
     return bus_active(bptr);
 }
 
@@ -434,7 +434,7 @@ busarray::set_clock (clocking clk)
 void
 busarray::send_event (bussbyte b, const event * e24, midi::byte channel)
 {
-    midi::bus * bptr = p_impl->bus_ptr(b);
+    midi::bus * bptr { p_impl->bus_ptr(b) };
     if (bus_active(bptr))
         bptr->send_event(e24, channel);
 }
@@ -449,7 +449,7 @@ busarray::send_event (bussbyte b, const event * e24, midi::byte channel)
 void
 busarray::send_sysex (bussbyte b, const event * e24)
 {
-    midi::bus * bptr = p_impl->bus_ptr(b);
+    midi::bus * bptr { p_impl->bus_ptr(b) };
     if (bus_active(bptr))
         bptr->send_sysex(e24);
 }
@@ -480,9 +480,9 @@ busarray::send_sysex (bussbyte b, const event * e24)
 bool
 busarray::set_clock (bussbyte b, clocking clocktype)
 {
-    clocking current = get_clock(b);
-    midi::bus * bptr = p_impl->bus_ptr(b);
-    bool result = bus_active(bptr);
+    clocking current { get_clock(b) };
+    midi::bus * bptr { p_impl->bus_ptr(b) };
+    bool result { bus_active(bptr) };
     if (! result)
         result = current == clocking::disabled;
 
@@ -510,7 +510,7 @@ busarray::set_clock (bussbyte b, clocking clocktype)
 clocking
 busarray::get_clock (bussbyte b) const
 {
-    midi::bus * bptr = p_impl->bus_ptr(b);
+    midi::bus * bptr { p_impl->bus_ptr(b) };
     return bus_active(bptr) ?
         bptr->clock_type() : clocking::unavailable ;
 }
@@ -545,16 +545,16 @@ std::string
 busarray::get_midi_bus_name (int b) const
 {
     std::string result;
-    const midi::bus * bptr = p_impl->bus_ptr(b);
+    const midi::bus * bptr { p_impl->bus_ptr(b) };
     if (not_nullptr(bptr))
     {
-        clocking current = bptr->clock_type();
+        clocking current { bptr->clock_type() };
         if (bptr->port_enabled() || current == clocking::disabled)
         {
-            std::string busname = bptr->bus_name();
-            std::string portname = bptr->port_name();
-            std::size_t len = busname.size();
-            int test = busname.compare(0, len, portname, 0, len);
+            std::string busname { bptr->bus_name() };
+            std::string portname { bptr->port_name() };
+            std::size_t len { busname.size() };
+            int test { busname.compare(0, len, portname, 0, len) };
             if (test == 0)
             {
                 char tmp[80];
@@ -590,7 +590,7 @@ std::string
 busarray::get_midi_port_name (int b) const
 {
     std::string result;
-    const midi::bus * bptr = p_impl->bus_ptr(b);
+    const midi::bus * bptr { p_impl->bus_ptr(b) };
     if (not_nullptr(bptr))
         result = bptr->port_name();
 
@@ -608,7 +608,7 @@ std::string
 busarray::get_midi_alias (int b) const
 {
     std::string result;
-    const midi::bus * bptr = p_impl->bus_ptr(b);
+    const midi::bus * bptr { p_impl->bus_ptr(b) };
     if (not_nullptr(bptr))
         result = bptr->port_alias();
 
@@ -685,11 +685,11 @@ busarray::port_exit (int client, int p)
 bool
 busarray::set_input (bussbyte b, bool inputing)
 {
-    midi::bus * bptr = p_impl->bus_ptr(b);
-    bool result = not_nullptr(bptr);
+    midi::bus * bptr { p_impl->bus_ptr(b) };
+    bool result { not_nullptr(bptr) };
     if (result)
     {
-        bool current = get_input(b);                          /* see below    */
+        bool current { get_input(b) };                      /* see below    */
 
         /*
          *  The init_input() call here first sets the m_init_input flag in
@@ -736,8 +736,8 @@ busarray::set_all_inputs (bool inputing)
 bool
 busarray::get_input (bussbyte b) const
 {
-    const midi::bus * bptr = p_impl->bus_ptr(b);
-    bool result = not_nullptr(bptr);
+    const midi::bus * bptr { p_impl->bus_ptr(b) };
+    bool result { not_nullptr(bptr) };
     if (result)
     {
         if (bptr->active())
@@ -760,8 +760,8 @@ busarray::get_input (bussbyte b) const
 bool
 busarray::is_system_port (bussbyte b) const
 {
-    const midi::bus * bptr = p_impl->bus_ptr(b);
-    bool result = not_nullptr(bptr);
+    const midi::bus * bptr { p_impl->bus_ptr(b) };
+    bool result { not_nullptr(bptr) };
     if (result)
     {
         if (bptr->active())
@@ -773,8 +773,8 @@ busarray::is_system_port (bussbyte b) const
 bool
 busarray::is_port_unavailable (bussbyte b) const
 {
-    bool result = true;
-    const midi::bus * bptr = p_impl->bus_ptr(b);
+    bool result { true };
+    const midi::bus * bptr { p_impl->bus_ptr(b) };
     if (not_nullptr(bptr))
         result = bptr->port_unavailable();
 
@@ -793,8 +793,8 @@ busarray::is_port_unavailable (bussbyte b) const
 bool
 busarray::is_port_locked (bussbyte b) const
 {
-    const midi::bus * bptr = p_impl->bus_ptr(b);
-    bool result = not_nullptr(bptr);
+    const midi::bus * bptr { p_impl->bus_ptr(b) };
+    bool result { not_nullptr(bptr) };
     if (result)
         result = bptr->is_port_locked();
 
@@ -880,8 +880,8 @@ midi::bus &
 busarray::buss (midi::bussbyte b)
 {
     static midi::bus s_dummy_bus;
-    midi::bus * bptr = p_impl->bus_ptr(b);
-    bool good_busnumber = not_nullptr(bptr);
+    midi::bus * bptr { p_impl->bus_ptr(b) };
+    bool good_busnumber { not_nullptr(bptr) };
     return good_busnumber ? *bptr : s_dummy_bus ;
 }
 
@@ -900,7 +900,7 @@ busarray::buss (midi::bussbyte b)
 void
 swap (bus & buses0, bus & buses1)
 {
-    bus temp = buses0;
+    bus temp { buses0 };
     buses0 = buses1;
     buses1 = temp;
 }

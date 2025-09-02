@@ -28,13 +28,22 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2024-05-26
+ * \updates       2025-08-31
  * \license       See above.
  *
  */
 
 #include "rtl/midi/midi_api.hpp"
 #include "rtl/midi/rtmidi.hpp"
+
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+
+namespace midi
+{
+    class masterbus;
+}
+
+#endif
 
 namespace rtl
 {
@@ -52,6 +61,12 @@ extern midi_api * try_open_midi_api
     unsigned qsize          = 0
 );
 
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+
+extern midi_api * try_open_midi_api (const midi::masterbus & mb);
+
+#endif
+
 }           // namespace rtl
 
 #endif      // RTL66_RTL_FIND_MIDI_API_HPP
@@ -61,4 +76,3 @@ extern midi_api * try_open_midi_api
  *
  * vim: sw=4 ts=4 wm=4 et ft=cpp
  */
-

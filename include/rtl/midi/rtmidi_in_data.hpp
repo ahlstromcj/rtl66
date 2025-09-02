@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2023-07-19
+ * \updates       2025-09-01
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -44,6 +44,23 @@
 
 namespace rtl
 {
+
+/**
+ *  Maximum expected incoming message size.
+ *
+ *  For APIs that require manual buffer management, it can be useful to set
+ *  the buffer size and buffer count when expecting to receive large SysEx
+ *  messages. Setting this value has no effect when called after open_port().
+ *  The default buffer size is 1024 with a count of 4 buffers, which should
+ *  be sufficient for most cases; as mentioned, this does not affect all API
+ *  backends, since most either support dynamically scalable buffers or take
+ *  care of buffer handling themselves. It is principally intended for users
+ *  of the Windows MM backend who must support receiving especially large
+ *  messages.
+ */
+
+const size_t c_buffer_size_max { 256 }; /* was 1024 as noted above          */
+const size_t c_buffer_count    {   4 }; /* as noted above                   */
 
 /**
  *  The rtmidi_in_data structure is used to pass private class data to the

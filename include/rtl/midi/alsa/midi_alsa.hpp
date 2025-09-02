@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-30
+ * \updates       2025-09-01
  * \license       See above.
  *
  */
@@ -134,17 +134,32 @@ protected:
         return reinterpret_cast<snd_seq_t *>(c);
     }
 
+    /**
+     *  Since midi_alsa_handler() uses the midi_alsa_data structure,
+     *  we have to rely on that for all operations.
+     */
+
     snd_seq_t * client_handle ()
     {
+#if USE_MASTER_BUS_CLIENT_HANDLE                            /* undefined    */
         return has_master() ?
             reinterpret_cast<snd_seq_t *>(master_bus()->void_client_handle()) :
             alsa_data().alsa_client() ;
+#else
+        return alsa_data().alsa_client();
+#endif
     }
 
     virtual void * void_client_handle () override
     {
         return reinterpret_cast<void *>(client_handle());
     }
+
+    /**
+     *  The midi_alsa_handler() function uses the midi_alsa_data
+     *  pointer, which contains, among other things, the ALSA
+     *  client handle (snd_seq_t *).
+     */
 
     virtual void void_client_handle (void * vp) override
     {

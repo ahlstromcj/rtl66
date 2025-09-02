@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2024-08-30
+ * \updates       2024-09-02
  * \license       See above.
  *
  */
@@ -36,9 +36,18 @@
 namespace rtl
 {
 
+/**
+ * Note that most of the class members are initialize in-class (in the
+ * class header file. We need to guarantee that a buffer exists before
+ * usage, as the order of setup calls can vary.
+ */
+
 midi_alsa_data::midi_alsa_data () : m_trigger_fds ()    /* 2-element array  */
 {
-    // Empty body
+    if (buffer_size() == 0)
+        buffer_size(c_event_size_max);
+
+    m_buffer.reset(new (std::nothrow) midi::byte [buffer_size()]);
 }
 
 void
@@ -61,6 +70,9 @@ midi_alsa_data::initialize
 )
 {
     bool result { true };
+    if (is_initialized())
+        return result;
+
     clear();
     m_alsa_client = seq;
     m_portnum = m_vport = (-1);
@@ -73,7 +85,7 @@ midi_alsa_data::initialize
     m_buffer_size = buffsize;
     if (iotype == midi::port::io::input)
     {
-        m_subscription = nullptr;           // these okay for input?
+        m_subscription = nullptr;
         m_buffer.reset();
         m_dummy_thread_id = pthread_self();
         m_thread = m_dummy_thread_id;
@@ -118,8 +130,7 @@ midi_alsa_data::reallocate (size_t buffsize)
     bool result = buffsize > 0;
     if (result)
     {
-        unallocate();
-        buffer(new (std::nothrow) midi::byte [buffsize]);
+        m_buffer.reset(new (std::nothrow) midi::byte [buffsize]);
         result = not_nullptr(buffer());
         if (result)
             buffer_size(buffsize);

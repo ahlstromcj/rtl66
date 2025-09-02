@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24
- * \updates       2025-08-10
+ * \updates       2025-09-01
  * \license       See above.
  *
  *  midi::port. A class holding data about a port.  This class is meant to
@@ -107,6 +107,8 @@ io_to_string (port::io iotype)
         result = std::string("duplex");
     else if (iotype == port::io::engine)
         result = std::string("engine");
+    else if (iotype == port::io::dummy)
+        result = std::string("dummy");
 
     return result;
 }

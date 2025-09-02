@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-12-15
- * \updates       2025-08-25
+ * \updates       2025-08-31
  * \license       See above.
  *
  */
@@ -64,14 +64,14 @@ class RTL66_DLL_PUBLIC rtmidi_engine : public rtmidi
      *  Note that we don't own the masterbus... it owns us.
      */
 
-    midi::masterbus * m_master_bus;     /* note: not rtl::rtmidi! */
+    midi::masterbus & m_master_bus;     /* note: not rtl::rtmidi! */
 
 public:
 
     rtmidi_engine () = delete;
     rtmidi_engine
     (
-        midi::masterbus * mbus,
+        midi::masterbus & mbus,
         rtmidi::api rapi                = rtmidi::api::unspecified,
         const std::string & clientname  = ""
     );
@@ -92,7 +92,20 @@ protected:
         unsigned queuesize              = 0
     ) override;
 
-    midi::masterbus * master_bus ()
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+
+    /**
+     *  Not needed for the engine, just for the in and out rtmidi's.
+     */
+
+    virtual bool open_midi_api (const midi::masterbus & mb) override
+    {
+        (void) mb;
+        return true;
+    }
+#endif
+
+    midi::masterbus & master_bus ()
     {
         return m_master_bus;
     }

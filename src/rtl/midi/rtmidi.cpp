@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-30
+ * \updates       2025-08-31
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -152,39 +152,61 @@ rtmidi::delete_rt_api_ptr ()
  *          rtmidi_engine is set up, so that the masterbus gets
  *          the MIDI API's client pointer [a.k.a. client_handle()]
  *      -   midi::bus_in() and midi_bus_out(), sort of. This gives
-     *      rtmidi_in and rtmidi_out access to the client handle.
+ *          rtmidi_in and rtmidi_out access to the client handle.
  */
 
 bool
 rtmidi::set_master_bus (midi::masterbus * mb)
 {
-    bool result { set_master_bus_ptr(mb) };
+    bool result { not_nullptr(mb) };
     if (result)
-        mb->void_client_handle(rt_api_ptr()->void_client_handle());
-
+    {
+        void * rvch { rt_api_ptr()->void_client_handle() };
+        result = not_nullptr(rvch);
+        if (result)
+        {
+            mb->void_client_handle(rvch);       /* first log client handle  */
+            result = set_master_bus_ptr(mb);    /* then log the masterbus   */
+        }
+#if defined PLATFORM_DEBUG
+        printf
+        (
+            "set_master_bus() pointers:\n"
+            "  rt_api_ptr() = %p\n"
+            "  \" client handle = %p\n",
+            (void *)(rt_api_ptr()), rvch
+        );
+#endif
+    }
     return result;
 }
 
 /**
  *  This function assumes the function above has been called already
- *  to set up the masterbus with the data it needs.
+ *  to set up the masterbus with the data it needs at startup.
+ *  This function is used to set up the masterbus for usage by the
+ *  midi::bus.
  *
  *  This function is called in these contexts:
  *
  *      -   midi::bus_in().
- *      -   midi_bus_out().
+ *      -   midi::bus_out().
  */
 
 bool
 rtmidi::set_master_bus_ptr (midi::masterbus * mb)
 {
-    bool result { not_nullptr(mb) };
+    bool result { not_nullptr(mb) && not_nullptr(rt_api_ptr()) };
+#if defined PLATFORM_DEBUG
+        printf("masterbus * mb = %p\n", (void *)(mb));
+#endif
     if (result)
     {
-        result = not_nullptr(rt_api_ptr());
+        void * mvch { mb->void_client_handle() };
+        result = not_nullptr(mvch);
         if (result)
         {
-            master_client_ptr(mb->void_client_handle());
+            master_client_ptr(mvch);
             rt_api_ptr()->master_bus(mb);
             m_has_master = true;
         }
@@ -1015,6 +1037,16 @@ rtmidi::send_message (const midi::byte * msg, size_t sz) const
     bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->send_message(msg, sz);
+
+    return result;
+}
+
+bool
+rtmidi::send_sysex (const midi::event * ev) const
+{
+    bool result { not_nullptr(rt_api_ptr()) };
+    if (result)
+        result = rt_api_ptr()->send_sysex(ev);
 
     return result;
 }

@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-25
+ * \updates       2025-08-31
  * \license       See above.
  *
  */
@@ -42,6 +42,11 @@
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi base class           */
 #include "rtl/midi/rtmidi_in_data.hpp"  /* rtl::rtmidi_in_data class        */
 #include "rtl/rterror.hpp"              /* rterror::callback_t              */
+
+namespace midi
+{
+    class masterbus;
+}
 
 namespace rtl
 {
@@ -68,6 +73,10 @@ public:
         const std::string & clientname  = "",
         unsigned queuesizelimit         = 0
     );
+
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+    rtmidi_in (const midi::masterbus & mb);
+#endif
 
     rtmidi_in (const rtmidi_in & other) = delete;
     rtmidi_in & operator = (rtmidi_in & other) = delete;
@@ -111,6 +120,10 @@ protected:
         const std::string & clientname  = "",
         unsigned queuesize              = 0
     ) override;
+
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+    virtual bool open_midi_api (const midi::masterbus & mb) override;
+#endif
 
 };          // class rtmidi_in
 

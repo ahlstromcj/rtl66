@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-05
- * \updates       2025-08-15
+ * \updates       2025-08-31
  * \license       See above.
  *
  * Introduction:
@@ -169,7 +169,6 @@
 #undef RTL66_JACK_SESSION
 #undef RTL66_JACK_SYNC_CALLBACK
 #undef RTL66_JACK_TRANSPORT
-#undef RTL66_MIDI_EXTENSIONS
 #undef RTL66_USE_MEMORY_LOCK
 
 /**
@@ -209,6 +208,7 @@
  */
 
 #define RTL66_MIDI_EXTENSIONS
+#define RTL66_FULL_MASTERBUS_SUPPORT
 
 /*
  * To do:

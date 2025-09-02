@@ -25,15 +25,18 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-30
+ * \updates       2025-08-31
  * \license       See above.
  *
  */
 
-// #include "midi/message.hpp"                 /* midi::message class          */
 #include "midi/ports.hpp"                   /* midi::ports class            */
 #include "rtl/midi/find_midi_api.hpp"       /* rtl::try_open_midi_api()     */
 #include "rtl/midi/rtmidi_out.hpp"          /* rtl::rtmidi_out class, etc.  */
+
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+#include "midi/masterbus.hpp"               /* midi::masterbus class        */
+#endif
 
 namespace rtl
 {
@@ -50,17 +53,41 @@ namespace rtl
 rtmidi_out::rtmidi_out (rtmidi::api rapi, const std::string & clientname) :
     rtmidi  ()
 {
-//  bool nomaster { rapi != rtmidi::api::none };
-//  if (nomaster)
-//  {
+    bool nomaster { rapi != rtmidi::api::none };
+    if (nomaster)
+    {
         rapi = ctor_common_setup(rapi, clientname);
         if (is_midiapi_valid(rapi))
         {
             if (open_midi_api(rapi, clientname))
                 rtmidi::selected_api(rapi);
         }
-//  }
+    }
 }
+
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+
+rtmidi_out::rtmidi_out (const midi::masterbus & mb) : rtmidi ()
+{
+    rtmidi::api rapi { mb.selected_api() };
+    const std::string & clientname { mb.client_name() };
+    rapi = ctor_common_setup(rapi, clientname);
+    if (is_midiapi_valid(rapi))
+    {
+        if (open_midi_api(mb))
+            rtmidi::selected_api(rapi);
+    }
+    if (not_nullptr(rt_api_ptr()))
+    {
+        midi::masterbus * ncmb = const_cast<midi::masterbus *>(&mb);
+        if (set_master_bus_ptr(ncmb))
+            (void) rt_api_ptr()->initialize(clientname);
+    }
+    else
+        printf("No rtmidi_out API pointer\n");
+}
+
+#endif
 
 rtmidi_out::~rtmidi_out()
 {
@@ -84,6 +111,24 @@ rtmidi_out::open_midi_api
     }
     return result;
 }
+
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+
+bool
+rtmidi_out::open_midi_api (const midi::masterbus & mb)
+{
+    rtmidi::api rapi { mb.selected_api() };
+    bool result { rapi != rtmidi::api::max };
+    delete_rt_api_ptr();                    /* remove and nullify pointer   */
+    if (result)
+    {
+        rt_api_ptr(try_open_midi_api(mb));
+        result = not_nullptr(rt_api_ptr());
+    }
+    return result;
+}
+
+#endif
 
 /**
  *  Open a MIDI output connection.  An optional port number greater than 0

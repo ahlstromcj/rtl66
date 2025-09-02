@@ -208,6 +208,8 @@ bus::~bus ()
  *
  *  And Note that the bus_out object can get this pointer from its
  *  rtmidi_out object.
+ *
+ *  WRONG WRONG WRON and UNNECESSARY.
  */
 
 rtl::midi_api *

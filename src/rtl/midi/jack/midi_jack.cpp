@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-28
+ * \updates       2025-08-31
  * \license       See above.
  *
  *  Engine candidates:
@@ -272,7 +272,13 @@ midi_jack::midi_jack () :
     m_client_name   (),
     m_jack_data     ()
 {
-    (void) initialize(client_name());
+    /*
+     * Let's allow delaying initialization until after setting the
+     * masterbus via the midi::bus I/O objects and the masterbus
+     * overloads of the rtl::rtmidi I/O objects.
+     *
+     *      (void) initialize(client_name());
+     */
 }
 
 midi_jack::midi_jack

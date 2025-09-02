@@ -52,7 +52,7 @@ namespace rtl
 
 rtmidi_engine::rtmidi_engine
 (
-    midi::masterbus * mbus,
+    midi::masterbus & mbus,
     rtmidi::api rapi,
     const std::string & clientname
 ) :
@@ -91,11 +91,12 @@ rtmidi_engine::open_midi_api
 (
     rtmidi::api rapi,
     const std::string & clientname,
-    unsigned /*qsize*/
+    unsigned qsize
 )
 {
     bool result = rapi != rtmidi::api::max;
     delete_rt_api_ptr();                    /* remove and nullify pointer   */
+    (void) qsize;
     if (result)
     {
         rt_api_ptr
@@ -103,8 +104,8 @@ rtmidi_engine::open_midi_api
             try_open_midi_api(rapi, midi::port::io::engine, clientname)
         );
         result = not_nullptr(rt_api_ptr());
-        if (result && not_nullptr(master_bus()))
-            result = set_master_bus(master_bus());
+        if (result)
+            result = set_master_bus(&master_bus());
     }
     return result;
 }
