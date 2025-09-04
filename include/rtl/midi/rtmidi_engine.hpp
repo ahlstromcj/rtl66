@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-12-15
- * \updates       2025-08-31
+ * \updates       2025-09-04
  * \license       See above.
  *
  */
@@ -92,8 +92,6 @@ protected:
         unsigned queuesize              = 0
     ) override;
 
-#if defined RTL66_FULL_MASTERBUS_SUPPORT
-
     /**
      *  Not needed for the engine, just for the in and out rtmidi's.
      */
@@ -103,7 +101,6 @@ protected:
         (void) mb;
         return true;
     }
-#endif
 
     midi::masterbus & master_bus ()
     {

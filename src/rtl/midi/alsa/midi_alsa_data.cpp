@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2024-09-02
+ * \updates       2024-09-03
  * \license       See above.
  *
  */
@@ -54,8 +54,7 @@ void
 midi_alsa_data::clear ()
 {
     m_alsa_client = nullptr;
-    m_portnum = -1;
-    m_vport = -1;
+    m_portnum = m_vport = -1;
     m_subscription = nullptr;
     m_event_parser = nullptr;
     unallocate();
@@ -73,7 +72,12 @@ midi_alsa_data::initialize
     if (is_initialized())
         return result;
 
-    clear();
+    /*
+     * Necessary?
+     *
+     * clear();
+     */
+
     m_alsa_client = seq;
     m_portnum = m_vport = (-1);
 
@@ -90,6 +94,7 @@ midi_alsa_data::initialize
         m_dummy_thread_id = pthread_self();
         m_thread = m_dummy_thread_id;
         m_trigger_fds[0] = m_trigger_fds[1] = (-1);
+        buffer_size(buffsize); ////////////// validate with midiout!!!!
 
         int rc { pipe(m_trigger_fds) };
         result = rc == 0;
@@ -102,11 +107,15 @@ midi_alsa_data::initialize
     {
         m_event_parser = nullptr;
 
+        /*
+         * result = create_event_parser(buffsize);
+         */
+
         int rc { ::snd_midi_event_new(buffsize, &m_event_parser) };
         result = rc == 0;
         if (result)
         {
-            result = reallocate(buffsize);
+            result = reallocate(buffsize);      // why??????
             if (result)
             {
                 ::snd_midi_event_init(m_event_parser);
@@ -121,8 +130,16 @@ midi_alsa_data::initialize
             errprint("snd_midi_event_new() failed");
         }
     }
+    /*
+     * set_initialized(true);
+     */
+
     return result;
 }
+
+/*------------------------------------------------------------------------
+ * Buffer functions
+ *------------------------------------------------------------------------*/
 
 bool
 midi_alsa_data::reallocate (size_t buffsize)
@@ -143,6 +160,69 @@ midi_alsa_data::unallocate ()
 {
     m_buffer.reset();
     buffer_size(0);
+}
+
+/*------------------------------------------------------------------------
+ * ALSA data management wrapper functions
+ *------------------------------------------------------------------------*/
+
+/**
+ *  Creates a MIDI event parser. This function creates and initializes a
+ *  MIDI parser object to convert a MIDI byte stream to sequencer events
+ *  (encoding) or to convert sequencer events to a MIDI byte stream
+ *  (decoding).
+ *
+ *  The ALSA function snd_midi_event_init() resets both the encoder and
+ *  decoder of the event parser.
+ *
+ *  The ALSA function snd_midi_event_no_status() enables command merging
+ *  here; this means that MIDI running status can be used to re-use the
+ *  previous event status byte.
+ *
+ * \param [in] buffsize
+ *      The size of the buffer used for encoding, which should be large
+ *      enough to hold the largest MIDI message to be encoded.
+ *
+ * \param [out]	rdev
+ *      The pointer to the pointer to point to the new MIDI event parser.
+ *
+ * \return
+ *      Returns 0 on success, otherwise a negative error code (-ENOMEM for
+ *      "out of memory").
+ */
+
+bool
+midi_alsa_data::create_event_parser (size_t buffsize)
+{
+    (void) delete_event_parser();       // m_event_ZZ
+    if (buffsize == 0)
+        buffsize = buffer_size();
+
+    int rc { ::snd_midi_event_new(buffsize, &m_event_parser) };
+    bool result = rc == 0;
+    if (result)
+    {
+        ::snd_midi_event_init(m_event_parser);
+        ::snd_midi_event_no_status(m_event_parser, 1);
+    }
+    return result;
+}
+
+/**
+ *  This function frees the event parser and indicates that by
+ *  nullifying the parser ointer.
+ */
+
+bool
+midi_alsa_data::delete_event_parser ()
+{
+    bool result { not_nullptr(m_event_parser) };
+    if (result)
+    {
+       ::snd_midi_event_free(m_event_parser);
+       m_event_parser = nullptr;
+    }
+    return result;
 }
 
 }           // namespace rtl

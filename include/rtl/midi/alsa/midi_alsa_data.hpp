@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2025-09-02
+ * \updates       2025-09-03
  * \license       See above.
  *
  */
@@ -101,8 +101,8 @@ public:
     void clear ();
     bool initialize
     (
-        snd_seq_t * seq,
-        midi::port::io iotype,      // bool isinput = false,
+        ::snd_seq_t * seq,
+        midi::port::io iotype,
         size_t buffsize   = 32
     );
     bool reallocate (size_t buffsize = 32);
@@ -153,7 +153,7 @@ public:
         return m_event_parser;
     }
 
-    snd_midi_event_t ** event_address ()
+    snd_midi_event_t ** event_parser_address ()
     {
         return &m_event_parser;
     }
@@ -264,6 +264,11 @@ public:
     {
         m_queue_id = q;
     }
+
+public:     // wrapper functions for some of the data items
+
+    bool create_event_parser (size_t buffsize = 0);
+    bool delete_event_parser ();
 
 };          // class midi_alsa_data
 

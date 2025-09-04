@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-08-31
+ * \updates       2025-09-04
  * \license       GNU GPLv2 or above
  *
  */
@@ -67,30 +67,13 @@ bus_out::bus_out
     int index
 ) :
     midi::bus (master, index, midi::port::io::output),
-#if defined RTL66_FULL_MASTERBUS_SUPPORT
     m_rtmidi_out    (master),
-#else
-    m_rtmidi_out
-    {
-        master.selected_api(),
-        master.client_info().client_name(),
-    },
-#endif
     m_last_tick (0)
 {
-#if defined RTL66_FULL_MASTERBUS_SUPPORT        /* will move to rtmidi_in   */
-    // no code
-#else
-    if (not_nullptr(midi_api_ptr()))            /* masterbus's API pointer? */
+    if (not_nullptr(midi_api_ptr()))            /* midi_api object's ptr    */
     {
-        /*
-         * Set up the masterbus paradigm for the input, but the
-         * masterbus's API pointer will not be changed.
-         */
-
-        m_rtmidi_out.set_master_bus_ptr(&master);
+        (void) m_rtmidi_out.open_port(port_id(), port_name());
     }
-#endif
 }
 
 /**

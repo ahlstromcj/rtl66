@@ -25,18 +25,15 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-31
+ * \updates       2025-09-04
  * \license       See above.
  *
  */
 
+#include "midi/masterbus.hpp"               /* midi::masterbus class        */
 #include "midi/ports.hpp"                   /* midi::ports class            */
 #include "rtl/midi/find_midi_api.hpp"       /* rtl::try_open_midi_api()     */
 #include "rtl/midi/rtmidi_out.hpp"          /* rtl::rtmidi_out class, etc.  */
-
-#if defined RTL66_FULL_MASTERBUS_SUPPORT
-#include "midi/masterbus.hpp"               /* midi::masterbus class        */
-#endif
 
 namespace rtl
 {
@@ -65,8 +62,6 @@ rtmidi_out::rtmidi_out (rtmidi::api rapi, const std::string & clientname) :
     }
 }
 
-#if defined RTL66_FULL_MASTERBUS_SUPPORT
-
 rtmidi_out::rtmidi_out (const midi::masterbus & mb) : rtmidi ()
 {
     rtmidi::api rapi { mb.selected_api() };
@@ -81,15 +76,22 @@ rtmidi_out::rtmidi_out (const midi::masterbus & mb) : rtmidi ()
     {
         midi::masterbus * ncmb = const_cast<midi::masterbus *>(&mb);
         if (set_master_bus_ptr(ncmb))
-            (void) rt_api_ptr()->initialize(clientname);
+        {
+            if (rt_api_ptr()->initialize(clientname))
+            {
+                /*
+                 * We could open the port here, but we don't have
+                 * the port number or the port name. So this is done
+                 * in bus_out.
+                 */
+            }
+        }
     }
     else
         printf("No rtmidi_out API pointer\n");
 }
 
-#endif
-
-rtmidi_out::~rtmidi_out()
+rtmidi_out::~rtmidi_out ()
 {
     // No code needed
 }
@@ -112,8 +114,6 @@ rtmidi_out::open_midi_api
     return result;
 }
 
-#if defined RTL66_FULL_MASTERBUS_SUPPORT
-
 bool
 rtmidi_out::open_midi_api (const midi::masterbus & mb)
 {
@@ -122,13 +122,11 @@ rtmidi_out::open_midi_api (const midi::masterbus & mb)
     delete_rt_api_ptr();                    /* remove and nullify pointer   */
     if (result)
     {
-        rt_api_ptr(try_open_midi_api(mb));
+        rt_api_ptr(try_open_midi_api(mb, midi::port::io::output));
         result = not_nullptr(rt_api_ptr());
     }
     return result;
 }
-
-#endif
 
 /**
  *  Open a MIDI output connection.  An optional port number greater than 0

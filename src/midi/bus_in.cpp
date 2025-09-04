@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-08-31
+ * \updates       2025-09-04
  * \license       GNU GPLv2 or above
  *
  */
@@ -55,30 +55,13 @@ bus_in::bus_in
     unsigned queuesizelimit
 ) :
     midi::bus (master, index, midi::port::io::input),
-#if defined RTL66_FULL_MASTERBUS_SUPPORT
     m_rtmidi_in (master)
-#else
-    m_rtmidi_in
-    (
-        master.selected_api(),
-        master.client_info().client_name(),
-        queuesizelimit
-    )
-#endif
 {
-#if defined RTL66_FULL_MASTERBUS_SUPPORT        /* will move to rtmidi_in   */
-    (void) queuesizelimit;
-#else
-    if (not_nullptr(midi_api_ptr()))            /* masterbus's API pointer? */
+    (void) queuesizelimit;                      /* masterbus::queue_size()  */
+    if (not_nullptr(midi_api_ptr()))            /* midi_api object's ptr    */
     {
-        /*
-         * Set up the masterbus paradigm for the input, but the
-         * masterbus's API pointer will not be changed.
-         */
-
-        m_rtmidi_in.set_master_bus_ptr(&master);
+        (void) m_rtmidi_in.open_port(port_id(), port_name());
     }
-#endif
 }
 
 /**

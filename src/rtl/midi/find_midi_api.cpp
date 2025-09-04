@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2024-08-31
+ * \updates       2024-09-04
  * \license       See above.
  *
  */
@@ -109,7 +109,7 @@ try_open_midi_api
 (
     rtmidi::api rapi,
     midi::port::io iotype,
-    std::string clientname,
+    const std::string & clientname,
     unsigned qsize
 )
 {
@@ -194,9 +194,9 @@ try_open_midi_api
     return result;
 }
 
-#if defined RTL66_FULL_MASTERBUS_SUPPORT
-
 /**
+ *  RTL66_FULL_MASTERBUS_SUPPORT
+ *
  *  This overload differs in the following ways:
  *
  *      -   It uses the master bus to get the API parameters, stored
@@ -211,10 +211,13 @@ try_open_midi_api
  */
 
 midi_api *
-try_open_midi_api (const midi::masterbus & mb)
+try_open_midi_api (const midi::masterbus & mb, midi::port::io iotype)
 {
     midi_api * result { nullptr };
     rtmidi::api rapi { mb.selected_api() };
+    unsigned qsize { unsigned(mb.queue_size()) };
+    std::string clientname { mb.client_name() };
+
     try
     {
         if (rapi != rtmidi::api::max)
@@ -227,14 +230,14 @@ try_open_midi_api (const midi::masterbus & mb)
             if (is_nullptr(result))
             {
                 if (try_match(rapi, rtmidi::api::jack))
-                    result = new midi_jack();
+                    result = new midi_jack(iotype, clientname, qsize);
             }
 #endif
 #if defined RTL66_BUILD_ALSA
             if (is_nullptr(result))
             {
                 if (try_match(rapi, rtmidi::api::alsa))
-                    result = new midi_alsa();
+                    result = new midi_alsa(iotype, clientname, qsize);
             }
 #endif
 #if defined RTL66_BUILD_MACOSX_CORE
@@ -294,8 +297,6 @@ try_open_midi_api (const midi::masterbus & mb)
     }
     return result;
 }
-
-#endif      // defined RTL66_FULL_MASTERBUS_SUPPORT
 
 }           // namespace rtl
 

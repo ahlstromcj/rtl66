@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-05
- * \updates       2025-08-31
+ * \updates       2025-09-04
  * \license       See above.
  *
  * Introduction:
@@ -208,7 +208,7 @@
  */
 
 #define RTL66_MIDI_EXTENSIONS
-#define RTL66_FULL_MASTERBUS_SUPPORT
+#define RTL66_FULL_MASTERBUS_SUPPORT            /* implicitly defined now   */
 
 /*
  * To do:

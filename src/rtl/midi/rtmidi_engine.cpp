@@ -68,7 +68,7 @@ rtmidi_engine::rtmidi_engine
  *  If a MIDI connection is still open, it will be closed by the destructor.
  */
 
-rtmidi_engine::~rtmidi_engine () noexcept
+rtmidi_engine::~rtmidi_engine ()
 {
     // No code needed
 }

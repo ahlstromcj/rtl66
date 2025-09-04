@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-31
+ * \updates       2025-09-04
  * \license       See above.
  *
  */
@@ -78,10 +78,7 @@ public:
         api rapi                        = api::unspecified,
         const std::string & clientname  = ""
     );
-
-#if defined RTL66_FULL_MASTERBUS_SUPPORT
     rtmidi_out (const midi::masterbus & mb);
-#endif
 
     rtmidi_out (const rtmidi_out & other) = delete;
     rtmidi_out & operator = (rtmidi_out & other) = delete;
@@ -110,10 +107,7 @@ protected:
         const std::string & clientname  = "",
         unsigned queuesize              = 0         /* used for input only  */
     ) override;
-
-#if defined RTL66_FULL_MASTERBUS_SUPPORT
     virtual bool open_midi_api (const midi::masterbus & mb) override;
-#endif
 
 };          // class rtmidi_out
 

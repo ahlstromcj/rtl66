@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-08-27
+ * \updates       2025-09-04
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -55,6 +55,10 @@
 #include "rtl/midi/midi_api.hpp"        /* rtl::midi_api base class         */
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
 #include "midi/bus.hpp"                 /* midi::bus class                  */
+
+#if defined RTL66_FULL_MASTERBUS_SUPPORT
+#pragma message ("Full masterbus support enabled")
+#endif
 
 namespace midi
 {

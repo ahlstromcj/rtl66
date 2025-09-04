@@ -977,11 +977,15 @@ masterbus::engine_initialize (const clientinfo & ci)
             result = ci.ports_queried();
             if (result)
             {
+#if 0
                 bool swap_io
                 {
                     rtl::rtmidi::selected_api() == rtl::rtmidi::api::jack
                 };
                 bool isinput { ! swap_io };
+#else
+                bool isinput { true };
+#endif
                 midi::port::io iotype
                 {
                     isinput ? midi::port::io::input : midi::port::io::output
