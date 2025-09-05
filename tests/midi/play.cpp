@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-08-21
+ * \updates       2025-09-05
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -105,7 +105,7 @@ bool play_it (midi::player & p, std::string & errmsg)
      p.print_tracks("Play");                /* show all events in tracks    */
 #endif
 
-    bool result = { p.simple_play() };
+    bool result { p.simple_play() };
     if (! result)
     {
         if (p.error_pending())
@@ -199,53 +199,6 @@ main (int argc, char * argv [])
             s_clientinfo.output_portnumber(out_port);
         }
     }
-#if 0
-    if (can_run)
-    {
-        try
-        {
-            /*
-             * Call function to select port.
-             */
-
-            rtl::rtmidi::api rapi = rtl::rtmidi::desired_api();
-            if (rt_virtual_test_port())
-            {
-                // TODO
-            }
-            else
-            {
-                /*
-                 * We get port info here, into a local object, purely for
-                 * showing port information.
-                 */
-
-                midi::clientinfo cinfo;
-                can_run = midi::get_all_port_info(cinfo, rapi);
-                if (can_run)
-                {
-                    /*
-                     * tag += rtl::rtmidi::selected_api_name();
-                     */
-
-                    std::string tag = rtl::rtmidi::selected_api_display_name();
-                    tag += " MIDI Ports";
-
-                    std::string plist = cinfo.port_list();
-                    std::cout << tag << ":\n" << plist << std::endl;
-
-                    rtl::rtmidi_out midiout(rtl::rtmidi::desired_api());
-                    if (rt_test_port() == (-1))
-                        can_run = rt_choose_output_port(midiout);
-                }
-            }
-        }
-        catch (rtl::rterror & error)
-        {
-            exit(EXIT_FAILURE);     // error.print_message();
-        }
-    }
-#endif
     if (can_run)
     {
         /*

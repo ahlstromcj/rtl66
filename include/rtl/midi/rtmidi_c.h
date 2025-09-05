@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2024-01-31
+ * \updates       2025-09-04
  * \license       See above.
  *
  *  C interface to realtime MIDI input/output C++ classes.  rtmidi offers a
@@ -116,6 +116,7 @@ typedef enum
     RTMIDI_API_ANDROID_MIDI,        /* rtl::rtmidi::api::android_midi       */
     RTMIDI_API_WEB_MIDI,            /* rtl::rtmidi::api::web_midi           */
     RTMIDI_API_RTMIDI_DUMMY,        /* rtl::rtmidi::api::dummy              */
+    RTMIDI_API_RTMIDI_NONE,         /* rtl::rtmidi::api::none, testing      */
     RTMIDI_API_MAX                  /* rtl::rtmidi::api::max, terminator    */
 
 } RtMidiApi;
@@ -227,14 +228,6 @@ RTL66_API int rtmidi_get_port_name
     char * bufout,
     int * buflen
 );
-
-/*
-RTL66_API bool rtmidi_simple_cli
-(
-    const char * appname,
-    int argc, char * argv []
-);
-*/
 
 /**
  *  rtmidi_in API

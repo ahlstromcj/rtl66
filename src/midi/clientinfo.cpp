@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-09-01
+ * \updates       2025-09-05
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -66,7 +66,7 @@ namespace midi
 
 clientinfo::clientinfo (midi::port::io iodirection)
 {
-    m_cd.cd_port_type = iodirection;        /* I/O, service, or duplex      */
+    m_cd.cd_port_type = iodirection ;        /* I/O, service, or duplex      */
     m_io_ports[c_input_port_index].port_io_types(port::io::input);
     m_io_ports[c_output_port_index].port_io_types(port::io::output);
 }
@@ -86,7 +86,7 @@ clientinfo::clientinfo (const client_defaults & cd)
 int
 clientinfo::port_count (port::io iotype) const
 {
-    int result = 0;
+    int result { 0 };
     if (iotype == port::io::duplex)
     {
         result += m_io_ports[0].get_port_count();
@@ -103,7 +103,7 @@ clientinfo::port_count (port::io iotype) const
 bool
 clientinfo::setup_virtual_ports (int incount, int outcount)
 {
-    bool result = false;
+    bool result { false };
     if (incount > 0)
     {
         m_io_ports[element(port::io::input)].clear();
@@ -127,8 +127,8 @@ std::string
 clientinfo::to_string (const std::string & tagmsg) const
 {
     std::ostringstream os;
-    std::string ports_in = io_ports(port::io::input).to_string("Inputs");
-    std::string ports_out = io_ports(port::io::output).to_string("Outputs");
+    std::string ports_in { io_ports(port::io::input).to_string("Inputs") };
+    std::string ports_out { io_ports(port::io::output).to_string("Outputs") };
     os
         << tagmsg << ":\n"
         << "API:           " << api_version()  << "\n"
@@ -174,8 +174,8 @@ clientinfo::get_all_port_info (rtl::rtmidi::api rapi)
 std::string
 clientinfo::port_list (port::io iotype) const
 {
-    const ports & p = io_ports(iotype);
-    int portcount = p.get_port_count();
+    const ports & p { io_ports(iotype) };
+    int portcount { p.get_port_count() };
     std::ostringstream os;
     os << (iotype == port::io::input ? "Inputs" : "Outputs");
     os << " ports (" << portcount << "):" << std::endl;
@@ -204,7 +204,7 @@ clientinfo::port_list (port::io iotype) const
 std::string
 clientinfo::port_list () const
 {
-    std::string result = port_list(port::io::input);
+    std::string result { port_list(port::io::input) };
     result += "\n";
     result += port_list(port::io::output);
     return result;
@@ -238,7 +238,7 @@ set_global_client_info (const clientinfo & ci)
 bool
 get_global_client_info (clientinfo & ci)
 {
-    const clientinfo & gci = global_client_info();
+    const clientinfo & gci { global_client_info() };
     ci = gci;
     return true;
 }
@@ -264,7 +264,7 @@ get_global_client_info (clientinfo & ci)
 bool
 get_all_port_info (midi::clientinfo & cinfo, rtl::rtmidi::api rapi)
 {
-    bool result = false;
+    bool result { false };
     try
     {
         rtl::rtmidi_in midiin(rapi);

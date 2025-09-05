@@ -637,9 +637,9 @@ protected:
 
     int element (port::io iotype) const
     {
-        int result = io_to_int(iotype);
+        int result { io_to_int(iotype) };
         if (result > midi::c_output_port_index)
-            result = midi::c_input_port_index;        /* for safety reasons   */
+            result = midi::c_input_port_index;      /* for safety reasons   */
 
         return result;
     }

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-12-01
- * \updates       2023-07-19
+ * \updates       2025-09-05
  * \license       See above.
  *
  *  Provides some basic types for the (heavily-factored) rtl66 library, very
@@ -41,14 +41,15 @@ namespace rtl
  *  Default constructor.
  */
 
-midi_queue::midi_queue () :
+midi_queue::midi_queue (unsigned qsize) :
     m_front     (0),
     m_back      (0),
     m_size      (0),
     m_ring_size (0),
     m_ring      (nullptr)
 {
-    allocate();
+    if (qsize > 0)
+        allocate(qsize);
 }
 
 /**

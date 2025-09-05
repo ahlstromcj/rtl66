@@ -38,8 +38,16 @@
 namespace rtl
 {
 
-rtmidi_in_data::rtmidi_in_data () :
-    m_queue             (),
+/**
+ *  Default constructor.
+ *
+ * \param qsize
+ *      The size of the input queue. If 0 (the default), the queue
+ *      remains unallocated.
+ */
+
+rtmidi_in_data::rtmidi_in_data (unsigned qsize) :
+    m_queue             (qsize),
     m_message           (),
     m_first_message     (true),
     m_continue_sysex    (false),
@@ -52,7 +60,7 @@ rtmidi_in_data::rtmidi_in_data () :
     m_buffer_size       (c_buffer_size_max),
     m_buffer_count      (c_buffer_count)
 {
-    // No code
+    // no code necessary
 }
 
 void

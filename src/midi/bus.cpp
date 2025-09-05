@@ -159,8 +159,11 @@ bus::bus
     m_io_active         (false),
     m_display_name      ()
 {
-    bool ok = iotype == midi::port::io::input ||
-        iotype == midi::port::io::output;
+    bool ok
+    {
+        iotype == midi::port::io::input ||
+        iotype == midi::port::io::output
+    };
 
     if (ok)
         ok = index >= 0;
@@ -171,7 +174,7 @@ bus::bus
         if (ci.ports_queried())
         {
             const midi::ports & portlist { ci.io_ports(iotype) };
-            const midi::port & p = portlist.portref(index);
+            const midi::port & p { portlist.portref(index) };
             m_port = p;
 #if defined PLATFORM_DEBUG   // TODO add clocking
             printf

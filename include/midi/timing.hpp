@@ -59,14 +59,14 @@ class timing
      *  of pulses/ticks/divisions.
      */
 
-    midi::bpm m_beats_per_minute {0.0}; /* T (tempo, BPM in upper-case)   */
+    midi::bpm m_beats_per_minute { 0.0 }; /* T (tempo, BPM in upper-case)   */
 
     /**
      *  This value should match the numerator value selected when editing the
      *  sequence.  This value is most commonly set to 4.
      */
 
-    int m_beats_per_measure {0};        /* B (bpm in lower-case)          */
+    int m_beats_per_measure  { 0 };       /* B (bpm in lower-case)          */
 
     /**
      *  This value should match the denominator value selected when editing
@@ -75,7 +75,7 @@ class timing
      *
      */
 
-    int m_beat_width {0};               /* W (bw in lower-case)           */
+    int m_beat_width { 0 };               /* W (bw in lower-case)           */
 
     /**
      *  This value provides the precision of the MIDI song.  This value is
@@ -83,7 +83,7 @@ class timing
      *  still working getting "non-standard" values to work.
      */
 
-    midi::ppqn m_ppqn {0};              /* P (PPQN or ppqn)               */
+    midi::ppqn m_ppqn { 0 };              /* P (PPQN or ppqn)               */
 
 public:
 

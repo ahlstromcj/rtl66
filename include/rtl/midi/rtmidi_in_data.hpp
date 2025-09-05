@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-09-01
+ * \updates       2025-09-05
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -102,15 +102,15 @@ private:
     midi_queue m_queue;
 
     /**
-     *  NEW in RtMidi.
-     *  This is used to hold the latest message.
+     *  This is used to hold the latest MIDI message.
+     *  In RtMidi, this is the MidiMessage class.
      */
 
     midi::message m_message;
 
     /**
      *  A one-time flag that starts out true and is falsified when the first
-     *  MIDI messages comes in to this port.  It simply resets the delta JACK
+     *  MIDI messages comes in to this port. It simply resets the delta JACK
      *  time.
      */
 
@@ -126,18 +126,85 @@ private:
      *  A ton of "new" stuff from RtMidi....
      */
 
+    /**
+     *  Provides a set of bits to indicate to ignore certain MIDI messages
+     *  upon input:
+     *
+     *      -   sysex
+     *      -   time_code
+     *      -   active_sensing
+     *      -   All of them.
+     */
+
     unsigned char m_ignore_flags;
+
+    /**
+     *  This boolean is used in midi_alsa_handler(), for example. If not
+     *  yet true when opening a regular or virtual input port, it is set to
+     *  true in open_port(), just before starting the input thread.
+     *
+     *  While true, the handler loops, checking for pending input.
+     *  If a fatal error occurs in the handler, it is set to false.
+     *
+     *  In the midi_alsa destructor,it is set to false after close_port(),
+     *  and before joining the input thread.
+     */
+
     bool m_do_input;
+
+    /**
+     *  Points to the midi_api-derived object representing the input port.
+     *  Note that the derived class will provide a function [such as
+     *  midi_alsa::alsa_client()] that can be accessed indirectly through
+     *  this pointer to provide the global application client handle, or
+     *  the client handle of a stand-alone port.
+     */
+
     void * m_api_data;
+
+    /**
+     *  Indicates if we're using a callback function to handle input.
+     */
+
     bool m_using_callback;
+
+    /**
+     *  The input callback fuction. See the midi_api functions
+     *  set_input_callback() and cance_input_callback.
+     */
+
     callback_t m_user_callback;
+
+    /**
+     *  This member points to a class-specific data structure that is passed
+     *  to the user callback function.
+     */
+
     void * m_user_data;
+
+    /**
+     *  The size of the input-data buffer. It is also copied to the
+     *  midi_alsa_data class (for example) in the initialize() function.
+     *  That structure also uses the size to initialize an ALSA event parser
+     *  (known as "coder" in RtMidi).
+     */
+
     size_t m_buffer_size;
+
+    /**
+     *  The number of buffers, used to allocate and initialize the SysEx
+     *  buffers in the Windows MIDI API only.
+     */
+
     int m_buffer_count;
 
 public:
 
-    rtmidi_in_data ();
+    rtmidi_in_data (unsigned qsize = 0);
+    rtmidi_in_data (const rtmidi_in_data &) = delete;
+    rtmidi_in_data (rtmidi_in_data &&) = default;
+    rtmidi_in_data & operator = (const rtmidi_in_data &) = delete;
+    rtmidi_in_data & operator = (rtmidi_in_data &&) = default;
 
     const midi_queue & queue () const
     {

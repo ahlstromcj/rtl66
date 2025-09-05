@@ -881,7 +881,6 @@ extern midi::bpm note_value_to_tempo (midi::byte tempo);
 extern midi::bpm fix_tempo (midi::bpm tempo);
 extern int midi_data_adjust (int invalue, int reduction);
 extern unsigned short combine_bytes (midi::byte b0, midi::byte b1);
-// extern double unit_truncation (double angle);
 extern double exp_normalize (double angle, bool negate = false);
 extern midi::ulong bytes_to_varinum
 (

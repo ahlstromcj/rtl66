@@ -50,7 +50,7 @@ class track;
  *  Highlights the MIDI file track-marker (chunk) value, "MTrk".
  */
 
-const midi::tag c_mtrk_tag  = 0x4D54726B;           /* magic number 'MTrk'  */
+const midi::tag c_mtrk_tag { 0x4D54726B };          /* magic number 'MTrk'  */
 
 /**
  *  We need to offer some options for handling running-status issues in
@@ -448,7 +448,10 @@ protected:
      * "extract" functions
      *---------------------------------------------------------------------*/
 
-    virtual bool extract_seq_spec (midi::track & trk, midi::event & e, size_t len)
+    virtual bool extract_seq_spec
+    (
+        midi::track & trk, midi::event & e, size_t len
+    )
     {
         return extract_generic_meta(trk, e, midi::meta::seq_spec, len);
     }
@@ -459,7 +462,10 @@ protected:
         midi::track & trk, midi::event & e,
         midi::meta metatype, size_t len
     );
-    bool extract_track_number (midi::track & trk, midi::event & e, size_t len);
+    bool extract_track_number
+    (
+        midi::track & trk, midi::event & e, size_t len
+    );
     bool extract_track_name (midi::track & trk, midi::event & e, size_t len);
     bool extract_text_event
     (

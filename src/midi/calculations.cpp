@@ -135,8 +135,8 @@ strtoi (const std::string & v)
 int
 byte_to_int (midi::byte b)
 {
-    bool negative = (b & 0x80) != 0;
-    int result = int(b & 0x7F);
+    bool negative { (b & 0x80) != 0 };
+    int result { int(b & 0x7F) };
     if (negative)
         result = -result;
 
@@ -146,7 +146,7 @@ byte_to_int (midi::byte b)
 midi::byte
 int_to_byte (int v)
 {
-    midi::byte result = v < 0 ? 0x80 : 0x00;
+    midi::byte result { midi::byte(v < 0 ? 0x80 : 0x00) };
     result += v & 0x7F;
     return result;
 }
@@ -206,7 +206,7 @@ extract_timing_numbers
 )
 {
     lib66::tokenization tokens;
-    int count = tokenize_string(s, tokens);
+    int count { tokenize_string(s, tokens) };
     part_1.clear();
     part_2.clear();
     part_3.clear();
@@ -257,15 +257,15 @@ tokenize_string
     lib66::tokenization & tokens
 )
 {
-    static std::string s_delims = ":. ";
-    int result = 0;
+    static std::string s_delims { ":. " };
+    int result { 0 };
     tokens.clear();
     auto pos = source.find_first_not_of(s_delims);
     if (pos != std::string::npos)
     {
         for (;;)
         {
-            auto depos = source.find_first_of(s_delims, pos);
+            auto depos { source.find_first_of(s_delims, pos) };
             if (depos != std::string::npos)
             {
                 tokens.push_back(source.substr(pos, depos - pos));
@@ -386,20 +386,20 @@ pulses_to_midi_measures
     midi::measures & bars
 )
 {
-    int W = seqparms.beat_width();
-    int P = seqparms.PPQN();
-    int B = seqparms.beats_per_measure();
-    bool result = (W > 0) && (P > 0) && (B > 0);
+    int W { seqparms.beat_width() };
+    int P { seqparms.PPQN() };
+    int B { seqparms.beats_per_measure() };
+    bool result { (W > 0) && (P > 0) && (B > 0) };
     if (result)
     {
-        double qnotes = double(qn_beats()) * B / W; /* Q notes per measure  */
-        double measlength = P * qnotes;             /* pulses in a measure  */
-        int beatticks = measlength / B;             /* pulses in a beat     */
-        int m = int(p / measlength) + 1;            /* measure no. of pulse */
-        int metro = 1 + ((p * W / P / qn_beats()) % B);
-        bars.bars(m);                               /* number of measures   */
-        bars.beats(metro);                          /* beats within measure */
-        bars.divisions(int(p % beatticks));         /* leftover pulses      */
+        double qnotes { double(qn_beats()) * B / W };   /* Q notes/measure  */
+        double measlength { P * qnotes };               /* pulses/measure   */
+        int beatticks { int(measlength / B) };          /* pulses/beat      */
+        int m { int(p / measlength) + 1 };              /* pulse measure #  */
+        int metro { int(1 + ((p * W / P / qn_beats()) % B)) };
+        bars.bars(m);                                   /* # of measures    */
+        bars.beats(metro);                              /* beats in measure */
+        bars.divisions(int(p % beatticks));             /* leftover pulses  */
     }
     return result;
 }
@@ -451,18 +451,12 @@ pulses_to_measures
     int W                                           /* beat width           */
 )
 {
-    double result = 0.0;                            /* indicates an error   */
-    bool ok = (W > 0) && (P > 0) && (B > 0);
+    double result { 0.0 };                          /* indicates an error   */
+    bool ok { (W > 0) && (P > 0) && (B > 0) };
     if (ok)
     {
-#if defined USE_CLUMSY_CODE
-        double qnotes = double(qn_beats()) * B / W; /* Q notes per measure  */
-        double measlength = P * qnotes;             /* pulses/std measure   */
-        result = p / measlength;
-#else
-        double divisor = double(qn_beats()) * P * B;
+        double divisor { double(qn_beats()) * P * B };
         return double(p) * W / divisor;
-#endif
     }
     return result;
 }
@@ -530,12 +524,15 @@ pulses_to_time_string
     bool showus
 )
 {
-    unsigned long microseconds = ticks_to_delta_time_us(p, bp, ppq);
-    int seconds = int(microseconds / 1000000UL);
-    int minutes = seconds / 60;
-    int hours = seconds / (60 * 60);
-    int hoursecs = hours * 60 * 60;
-    int minutesecs = minutes * 60;
+    unsigned long microseconds
+    {
+        (unsigned long) (ticks_to_delta_time_us(p, bp, ppq))
+    };
+    int seconds { int(microseconds / 1000000UL) };
+    int minutes { seconds / 60 };
+    int hours { seconds / (60 * 60) };
+    int hoursecs { hours * 60 * 60 };
+    int minutesecs { minutes * 60 };
     minutes -= hours * 60;
     seconds -= hoursecs + minutesecs;
 
@@ -588,8 +585,11 @@ pulses_to_time_string
 int
 pulses_to_hours (midi::pulse p, midi::bpm bp, midi::ppqn ppq)
 {
-    unsigned long microseconds = ticks_to_delta_time_us(p, bp, ppq);
-    int seconds = int(microseconds / 1000000UL);
+    unsigned long microseconds
+    {
+        (unsigned long) (ticks_to_delta_time_us(p, bp, ppq))
+    };
+    int seconds { int(microseconds / 1000000UL) };
     return seconds / (60 * 60);
 }
 
@@ -603,7 +603,7 @@ pulses_to_hours (midi::pulse p, midi::bpm bp, midi::ppqn ppq)
 double
 trunc_measures (double measures)
 {
-    static const double s_slop = 0.01;   /* allows for a little slop */
+    static const double s_slop { 0.01 };    /* allows for a little slop     */
     double result;
     if (measures <= (1.0 + s_slop))
     {
@@ -611,7 +611,7 @@ trunc_measures (double measures)
     }
     else
     {
-        double truncated = std::trunc(measures);
+        double truncated { std::trunc(measures) };
         if ((measures - truncated) <= s_slop)
             result = double(int(truncated));
         else
@@ -658,7 +658,7 @@ measurestring_to_pulses
     if (! measures.empty())
     {
         std::string m, b, d, dummy;
-        int valuecount = extract_timing_numbers(measures, m, b, d, dummy);
+        int valuecount { extract_timing_numbers(measures, m, b, d, dummy) };
         if (valuecount >= 1)
         {
             midi::measures meas_values;         /* initializes to 0 in ctor */
@@ -728,16 +728,16 @@ midi_measures_to_pulses
     const midi::timing & seqparms
 )
 {
-    midi::pulse result = c_null_pulse;
-    int m = bars.bars() - 1;                /* true measure count   */
-    int b = bars.beats() - 1;
+    midi::pulse result { c_null_pulse };
+    int m { bars.bars() - 1 };                /* true measure count   */
+    int b { bars.beats() - 1 };
     if (m < 0)
         m = 0;
 
     if (b < 0)
         b = 0;
 
-    double qn_per_beat = double(qn_beats()) / seqparms.beat_width();
+    double qn_per_beat { double(qn_beats()) / seqparms.beat_width() };
     result = 0;
     if (m > 0)
         result += int(m * seqparms.beats_per_measure() * qn_per_beat);
@@ -763,12 +763,12 @@ string_to_measures (const std::string & bbt)
     std::string b;
     std::string t;
     std::string fraction;
-    int count = extract_timing_numbers(bbt, m, b, t, fraction);
+    int count { extract_timing_numbers(bbt, m, b, t, fraction) };
     if (count > 0)
     {
-        int meas = strtoi(m);
-        int beats = strtoi(b);
-        int ticks = strtoi(t);
+        int meas { strtoi(m) };
+        int beats { strtoi(b) };
+        int ticks { strtoi(t) };
         if (meas == 0)
             meas = 1;
 
@@ -812,7 +812,7 @@ timestring_to_pulses
     midi::bpm bp, midi::ppqn ppq
 )
 {
-    midi::pulse result = 0;
+    midi::pulse result { 0 };
     if (! timestring.empty())
     {
         std::string sh, sm, ss, us;
@@ -823,18 +823,21 @@ timestring_to_pulses
              * seconds is padded with zeroes on the left or right to 6 digits.
              */
 
-            int hours = strtoi(sh);
-            int minutes = strtoi(sm);
-            int seconds = strtoi(ss);
+            int hours { strtoi(sh) };
+            int minutes { strtoi(sm) };
+            int seconds { strtoi(ss) };
 
             /*
              * Alternative: atof(us.c_str());
              */
 
-            double secfraction = util::string_to_double(us, 0, 3);
-            long sec = ((hours * 60) + minutes) * 60 + seconds;
-            long microseconds = 1000000 * sec + long(1000000.0 * secfraction);
-            double pulses = delta_time_us_to_ticks(microseconds, bp, ppq);
+            double secfraction { util::string_to_double(us, 0, 3) };
+            long sec { ((hours * 60) + minutes) * 60 + seconds };
+            long microseconds
+            {
+                1000000 * sec + long(1000000.0 * secfraction)
+            };
+            double pulses { delta_time_us_to_ticks(microseconds, bp, ppq) };
             result = midi::pulse(pulses);
         }
     }
@@ -880,9 +883,9 @@ string_to_pulses
     bool timestring
 )
 {
-    midi::pulse result = 0;
     lib66::tokenization tokens;
-    int count = tokenize_string(s, tokens);     /* function in this module  */
+    midi::pulse result { 0 };
+    int count { tokenize_string(s, tokens) };   /* function in this module  */
     if (count == 1)                             /* no colons in it          */
     {
         result = midi::pulse(util::string_to_long(s));
@@ -922,7 +925,7 @@ string_to_pulses
 int
 randomize (int range, int seed)
 {
-    static bool s_uninitialized = true;
+    static bool s_uninitialized { true };
     if (s_uninitialized)
     {
         s_uninitialized = false;
@@ -936,7 +939,7 @@ randomize (int range, int seed)
         if (range < 0)
             range = -range;
 
-        long result = (2 * range * long(rand()) / RAND_MAX) - range;
+        long result { (2 * range * long(rand()) / RAND_MAX) - range };
         return int(result);
     }
     else
@@ -949,7 +952,7 @@ class randomizer
 {
 private:
 
-    static const int s_upper_limit = std::numeric_limits<int>::max();
+    static const int s_upper_limit { std::numeric_limits<int>::max() };
 
     std::random_device m_rd;    /* seed source for random number engine     */
     std::mt19937 m_mtwister;    /* mersenne_twister_engine, maybe seeded    */
@@ -973,8 +976,8 @@ public:
 
     int generate (int range)
     {
-        int rnd = generate();
-        long result = 2 * range * long(rnd) / long(s_upper_limit);
+        int rnd { generate() };
+        long result { 2 * range * long(rnd) / long(s_upper_limit) };
         return int(result) - range;
     }
 
@@ -983,8 +986,8 @@ public:
 int
 randomize_uniformly (int range, int seed)
 {
-    static bool s_uninitialized = true;
-    static randomizer * s_randomizer_pointer = nullptr;
+    static bool s_uninitialized { true };
+    static randomizer * s_randomizer_pointer { nullptr };
     if (s_uninitialized)
     {
         static randomizer s_randomizer(seed);   /* create it secretly   */
@@ -1123,13 +1126,13 @@ log2_of_power_of_2 (int tsd)
 int
 pulses_per_substep (midi::pulse ppq, int zoom)
 {
-    const int pixels_per_substep = 6;
+    const int pixels_per_substep { 6 };
 
     /*
      *  int result = zoom * pixels_per_substep;
      */
 
-    int result = int(ppq) * zoom * pixels_per_substep / base_ppqn();
+    int result { int(ppq) * zoom * pixels_per_substep / base_ppqn() };
     if ((result % 2) != 0)
         ++result;
 
@@ -1155,7 +1158,7 @@ pulses_per_substep (midi::pulse ppq, int zoom)
 int
 pulses_per_pixel (midi::pulse ppq, int zoom)
 {
-    midi::pulse result = (ppq * zoom) / base_ppqn();
+    midi::pulse result { (ppq * zoom) / base_ppqn() };
     if (result == 0)
         result = 1;
 
@@ -1212,7 +1215,7 @@ beat_power_of_2 (int logbase2)
 int
 previous_power_of_2 (int value)
 {
-    int result = 1;
+    int result { 1 };
     if (value > 1)
     {
         result = value >> 1;
@@ -1239,7 +1242,7 @@ previous_power_of_2 (int value)
 int
 next_power_of_2 (int value)
 {
-    int result = 1;
+    int result { 1 };
     if (value > 0)
     {
         while (result <= value)
@@ -1322,7 +1325,7 @@ beat_log2 (int value)
 midi::bpm
 tempo_us_from_bytes (const midi::bytes & tt)
 {
-    midi::bpm result = midi::bpm(tt[0]);
+    midi::bpm result { midi::bpm(tt[0]) };
     result = (result * 256) + midi::bpm(tt[1]);
     result = (result * 256) + midi::bpm(tt[2]);
     return result;
@@ -1354,11 +1357,11 @@ tempo_us_from_bytes (const midi::bytes & tt)
 bool
 tempo_us_to_bytes (midi::bytes & tt, midi::bpm tempo_us)
 {
-    bool result = tempo_us > 0.0;
+    bool result { tempo_us > 0.0 };
     tt.clear();
     if (result)
     {
-        int temp = int(tempo_us + 0.5);
+        int temp { int(tempo_us + 0.5) };
         tt.push_back(midi::byte((temp & 0xFF0000) >> 16));
         tt.push_back(midi::byte((temp & 0x00FF00) >> 8));
         tt.push_back(midi::byte(temp & 0x0000FF));
@@ -1407,10 +1410,10 @@ tempo_us_to_bytes (midi::bytes & tt, midi::bpm tempo_us)
 midi::byte
 tempo_to_note_value (midi::bpm tempovalue)
 {
-    double slope = double(max_midi_value());
+    double slope { double(max_midi_value()) };
     slope /= max_beats_per_minute() - min_beats_per_minute();
 
-    int note = int(slope * (tempovalue - min_beats_per_minute()) + 0.5);
+    int note { int(slope * (tempovalue - min_beats_per_minute()) + 0.5) };
     return clamp_midi_value(note);
 }
 
@@ -1438,7 +1441,7 @@ tempo_to_note_value (midi::bpm tempovalue)
 midi::bpm
 note_value_to_tempo (midi::byte note)
 {
-    double result = max_beats_per_minute() - min_beats_per_minute();
+    double result { max_beats_per_minute() - min_beats_per_minute() };
     result *= double(note);
     result /= double(max_midi_value());
     result += min_beats_per_minute();
@@ -1459,7 +1462,7 @@ note_value_to_tempo (midi::byte note)
 midi::bpm
 fix_tempo (midi::bpm bp)
 {
-    int precision = max_bpm_precision();    /* 0/1/2 digits past decimal    */
+    int precision { max_bpm_precision() };  /* 0/1/2 digits past decimal    */
     if (precision > 0)
     {
         bp *= 10.0;
@@ -1493,11 +1496,11 @@ fix_tempo (midi::bpm bp)
 int
 midi_data_adjust (int invalue, int reduction)
 {
-    const int m_min = 0;
-    const int m_max = max_midi_value();     /* 127 */
-    const int a_min = m_min + reduction;
-    const int a_max = m_max - reduction;
-    double slope = double(a_max - a_min) / double(m_max - m_min);
+    const int m_min { 0 };
+    const int m_max { max_midi_value() };     /* 127 */
+    const int a_min { m_min + reduction };
+    const int a_max { m_max - reduction };
+    double slope { double(a_max - a_min) / double(m_max - m_min) };
     return int(slope * int(invalue) + a_min);
 }
 
@@ -1530,7 +1533,7 @@ midi_data_adjust (int invalue, int reduction)
 unsigned short
 combine_bytes (midi::byte b0, midi::byte b1)
 {
-   unsigned short short_14bit = (unsigned short)(b1);
+   unsigned short short_14bit { (unsigned short)(b1) };
    short_14bit <<= 7;
    short_14bit |= (unsigned short)(b0);
    return short_14bit * 48;
@@ -1551,8 +1554,8 @@ combine_bytes (midi::byte b0, midi::byte b1)
 midi::ulong
 extract_varinum (const midi::bytes & data, int & index)
 {
-    midi::ulong result = 0;
-    midi::byte c = 0;
+    midi::ulong result { 0 };
+    midi::byte c { 0 };
     for ( ; index < int(data.size()); ++index)
     {
         c = data[index];
@@ -1607,7 +1610,7 @@ extract_varinum (const midi::bytes & data, int & index)
 double
 wave_func (double omega, waveform wavetype)
 {
-    double result = 0.0;
+    double result { 0.0 };
     double tmp;
     switch (wavetype)
     {
@@ -1666,10 +1669,10 @@ wave_func (double omega, waveform wavetype)
 double
 unit_truncation (double angle)
 {
-    double result = angle;
+    double result { angle };
     if (result > 1.0)
     {
-        double truncated = trunc(result);
+        double truncated { trunc(result) };
         result -= truncated;
     }
     return result;
@@ -1699,10 +1702,10 @@ unit_truncation (double angle)
 double
 exp_normalize (double angle, bool negate)
 {
-    static const double s_range = log(double(max_midi_value())); /* 4.852 */
-    static const double s_exp_max = s_range / 2.0;               /* +2.42 */
-    static const double s_exp_min = -s_exp_max;                  /* -2.42 */
-    static const double s_scaler = exp(s_exp_min);
+    static const double s_range { log(double(max_midi_value())) }; /* 4.852 */
+    static const double s_exp_max { s_range / 2.0 };               /* +2.42 */
+    static const double s_exp_min { -s_exp_max };                  /* -2.42 */
+    static const double s_scaler { exp(s_exp_min) };
 
     /*
      * Removed in Seq66
@@ -1710,11 +1713,11 @@ exp_normalize (double angle, bool negate)
      * double T = unit_truncation(angle);
      */
 
-    double Aprime = s_range * angle + s_exp_min;
+    double Aprime { s_range * angle + s_exp_min };
     if (negate)
         Aprime = -Aprime;
 
-    double result = exp(Aprime);
+    double result { exp(Aprime) };
     result *= s_scaler;
     return result;
 }
@@ -1733,7 +1736,7 @@ exp_normalize (double angle, bool negate)
 std::string
 wave_type_name (waveform wavetype)
 {
-    std::string result = "None";
+    std::string result { "None" };
     switch (wavetype)
     {
     case waveform::sine:
@@ -1807,8 +1810,8 @@ wave_type_name (waveform wavetype)
 midi::ulong
 bytes_to_varinum (const midi::bytes & bdata, size_t offset)
 {
-    midi::ulong result = 0;
-    size_t count = 0;
+    midi::ulong result { 0 };
+    size_t count { 0 };
     for (auto c : bdata)
     {
         if (count >= offset)
@@ -1876,7 +1879,7 @@ midi::bytes
 varinum_to_bytes (midi::ulong v)
 {
     midi::bytes result;
-    midi::ulong buffer = v & 0x7F;                  /* mask a no-sign byte  */
+    midi::ulong buffer { v & 0x7F };                /* mask a no-sign byte  */
     while (v >>= 7)                                 /* shift right, test    */
     {
         buffer <<= 8;                               /* move LSB bits to MSB */
@@ -1921,7 +1924,7 @@ varinum_to_bytes (midi::ulong v)
 int
 varinum_size (long len)
 {
-    int result = 0;
+    int result { 0 };
     if (len >= 0x00 && len < 0x80)
         result = 1;
     else if (len >= 0x80 && len < 0x4000)
@@ -1942,7 +1945,7 @@ varinum_size (long len)
 static bool
 check_metatext (const midi::bytes & bdata)
 {
-    static size_t s_min_metatext_size = 4;      /* FF xx len onecharacter   */
+    static size_t s_min_metatext_size { 4 };    /* FF xx len onecharacter   */
     bool result =
     (
         bdata.size() >= s_min_metatext_size &&
@@ -1964,15 +1967,15 @@ check_metatext (const midi::bytes & bdata)
 std::string
 get_meta_event_text (const midi::bytes & bdata)
 {
-    static size_t s_length_offset = 2;          /* FF nn len ...            */
+    static size_t s_length_offset { 2 };        /* FF nn len ...            */
     std::string result;
     if (check_metatext(bdata))
     {
-        size_t len = size_t(bytes_to_varinum(bdata, s_length_offset));
-        size_t textoffset = varinum_size(long(len)) + s_length_offset;
+        size_t len { size_t(bytes_to_varinum(bdata, s_length_offset)) };
+        size_t textoffset { varinum_size(long(len)) + s_length_offset };
         for (size_t i = 0; i < len; ++i, ++textoffset)
         {
-            char c = static_cast<char>(bdata[textoffset]);
+            char c { static_cast<char>(bdata[textoffset]) };
             result.push_back(c);
         }
     }
@@ -1989,20 +1992,20 @@ get_meta_event_text (const midi::bytes & bdata)
 bool
 set_meta_event_text (midi::bytes & bdata, const std::string & text)
 {
-    bool result = check_metatext(bdata);
+    bool result { check_metatext(bdata) };
     if (result)
     {
-        midi::byte metatype = bdata[1];     /* to restore later */
-        midi::bytes lenbytes = varinum_to_bytes(midi::ulong(text.length()));
+        midi::byte metatype { bdata[1] };               /* to restore later */
+        midi::bytes lenbytes { varinum_to_bytes(midi::ulong(text.length())) };
         bdata.clear();
-        bdata.push_back(midi::to_byte(midi::status::meta_msg)); /* 0xFF */
+        bdata.push_back(midi::to_byte(midi::status::meta_msg));     /* 0xFF */
         bdata.push_back(metatype);
         for (auto c : lenbytes)
             bdata.push_back(c);
 
         for (auto c : text)
         {
-            midi::byte b = static_cast<midi::byte>(c);
+            midi::byte b { static_cast<midi::byte>(c) };
             bdata.push_back(b);
         }
     }
@@ -2025,16 +2028,16 @@ set_meta_event_text (midi::bytes & bdata, const std::string & text)
 midi::pulse
 closest_snap (int S, midi::pulse p)
 {
-    midi::pulse result = p;
+    midi::pulse result { p };
     if (p <= 0)
         return 0;
 
     if (S > 0)
     {
-        midi::pulse Sn0 = p - (p % S);
-        midi::pulse Sn1 = Sn0 + S;
-        int deltalo = p - Sn0;                  /* do we need to use abs()? */
-        int deltahi = Sn1 - p;
+        midi::pulse Sn0 { p - (p % S) };
+        midi::pulse Sn1 { Sn0 + S };
+        int deltalo { int(p - Sn0) };           /* do we need to use abs()? */
+        int deltahi { int(Sn1 - p) };
         result = deltalo <= deltahi ? Sn0 : Sn1 ;
     }
     return result;
@@ -2043,7 +2046,7 @@ closest_snap (int S, midi::pulse p)
 midi::pulse
 down_snap (int S, midi::pulse p)
 {
-    midi::pulse result = p;
+    midi::pulse result { p };
     if (p <= 0)
         return 0;
 
@@ -2059,13 +2062,13 @@ down_snap (int S, midi::pulse p)
 midi::pulse
 up_snap (int S, midi::pulse p)
 {
-    midi::pulse result = p;
+    midi::pulse result { p };
     if (p < 0)
         return 0;
 
     if (S > 0)
     {
-        midi::pulse Sn0 = p - (p % S);
+        midi::pulse Sn0 { p - (p % S) };
         result = Sn0 + midi::pulse(S);
     }
     return result;
@@ -2086,7 +2089,7 @@ static double s_epsilon = 0.0001;
 static double
 one_max (double a, double b)
 {
-    double result = 1.0f;
+    double result { 1.0f };
     if (std::fabs(a) > result)
         result = std::fabs(a);
 
@@ -2165,8 +2168,8 @@ fgreaterthan (double x, double y)
 double
 pitch_value_semitones (midi::byte d0, midi::byte d1)
 {
-    double semitones = double(d1);
-    double semicents = double(d0) * 0.01;
+    double semitones { double(d1) };
+    double semicents { double(d0) * 0.01 };
     return semitones + semicents;
 }
 

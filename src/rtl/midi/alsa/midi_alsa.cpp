@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-04
+ * \updates       2025-09-05
  * \license       See above.
  *
  */
@@ -230,11 +230,13 @@ void *
 midi_alsa_handler (void * ptr)
 {
     rtmidi_in_data * rtidata { midi_api::static_in_data_cast(ptr) };
+    if (rtidata->queue().unallocated())
+        return nullptr;
+
     midi_alsa_data * ncdata
     {
         midi_alsa::static_data_cast(rtidata->api_data())
     };
-//  midi_alsa_data * ncdata { const_cast<midi_alsa_data *>(apidata) };
 
 #if defined PLATFORM_DEBUG
         printf("ALSA handler handle = %p\n", (void *)(ncdata->alsa_client()));
@@ -263,7 +265,7 @@ midi_alsa_handler (void * ptr)
     size_t nbytes { ncdata->buffer_size() };
     bool ok { ncdata->reallocate(nbytes) };
     midi::byte * buff { ncdata->buffer() };
-    if (ok)
+    if (! ok)
     {
         rtidata->do_input(false);
         ::snd_midi_event_free(ncdata->event_parser());      /* null check?  */
@@ -1159,7 +1161,9 @@ midi_alsa::setup_input_port ()
     if (! input_data().do_input())
     {
 #if ! defined RTL66_ALSA_AVOID_TIMESTAMPING
-        /* this is a macro */
+        /*
+         * Start the input queu; this function is a macro
+         */
         snd_seq_start_queue(data.alsa_client(), data.queue_id(), NULL);
         result = drain_output();
 #endif
@@ -1233,7 +1237,8 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                 snd_seq_port_info_alloca(&src_pinfo);   /* a macro          */
                 pcount = get_port_info
                 (
-                    data.alsa_client(), src_pinfo, sm_output_caps, portnumber
+                    data.alsa_client(), src_pinfo, sm_input_caps, portnumber
+//                  data.alsa_client(), src_pinfo, sm_output_caps, portnumber
                 );
             }
             result = pcount > 0;
@@ -1277,7 +1282,7 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                     );
                 }
             }
-            else
+            else                                                /* is input */
             {
                 sender.client = ::snd_seq_port_info_get_client(src_pinfo);
                 sender.port = ::snd_seq_port_info_get_port(src_pinfo);
@@ -1289,6 +1294,7 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                 {
                     /*
                      * Seems odd to be setting output capability here.
+                     * But that's what RtMidi does.
                      */
 
                     ::snd_seq_port_info_set_client(pinfo, 0);
@@ -1307,11 +1313,11 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
 #endif
                     ::snd_seq_port_info_set_name(pinfo, portname.c_str());
 
-                    int rc = ::snd_seq_create_port(data.alsa_client(), pinfo);
-                    data.vport(rc);
-                    if (rc < 0)
+                    int vp = ::snd_seq_create_port(data.alsa_client(), pinfo);
+                    data.vport(vp);
+                    if (vp < 0)
                     {
-                        error_print("open_port()", snd_strerror(rc));
+                        error_print("open_port(input)", snd_strerror(vp));
                         result = false;
                     }
                     else

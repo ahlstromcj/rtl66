@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-09-04
+ * \updates       2025-09-05
  * \license       GNU GPLv2 or above
  *
  */
@@ -117,7 +117,7 @@ bus_out::get_out_port_info ()
  */
 
 bool
-bus_out::init_clock (pulse tick)
+bus_out::init_clock (midi::pulse tick)
 {
     bool result { port_enabled() };
     if (result)
@@ -136,9 +136,9 @@ bus_out::init_clock (pulse tick)
              * If any left-overs, wait for next beat (16th note) to clock.
              */
 
-            pulse clock_mod_ticks { (PPQN() / 4) * get_clock_mod() };
-            pulse leftover { (tick % clock_mod_ticks) };
-            pulse starting_tick { tick - leftover };
+            midi::pulse clock_mod_ticks { (PPQN() / 4) * get_clock_mod() };
+            midi::pulse leftover { (tick % clock_mod_ticks) };
+            midi::pulse starting_tick { tick - leftover };
             if (leftover > 0)
                 starting_tick += clock_mod_ticks;
 
@@ -201,7 +201,7 @@ bus_out::clock_stop ()
 }
 
 bool
-bus_out::clock_send (pulse tick)
+bus_out::clock_send (midi::pulse tick)
 {
     return midi_out().clock_send(tick);
 }
@@ -212,7 +212,7 @@ bus_out::clock_send (pulse tick)
  */
 
 bool
-bus_out::clock_continue (pulse tick)
+bus_out::clock_continue (midi::pulse tick)
 {
     return midi_out().clock_continue(tick, 4); // TODO: beats);
 }

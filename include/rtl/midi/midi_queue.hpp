@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2024-02-03
+ * \updates       2025-09-05
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -66,10 +66,12 @@ private:
 
 public:
 
-    midi_queue ();
+    midi_queue (unsigned qsize = 0);
     ~midi_queue ();
     midi_queue (const midi_queue &) = delete;
     midi_queue & operator = (const midi_queue &) = delete;
+    midi_queue (midi_queue &&) = default;
+    midi_queue & operator = (midi_queue &&) = default;
 
     bool empty () const
     {
@@ -84,6 +86,11 @@ public:
     bool full () const
     {
         return m_size == m_ring_size;
+    }
+
+    bool unallocated () const
+    {
+        return m_ring_size == 0;
     }
 
     const midi::message & front () const

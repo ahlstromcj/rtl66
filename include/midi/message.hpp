@@ -142,13 +142,13 @@ public:
 
     midi::byte & operator [] (size_t i)
     {
-        static midi::byte s_zero = 0;
+        static midi::byte s_zero = { 0 };
         return i < m_bytes.size() ? m_bytes[i] : s_zero ;
     }
 
     const midi::byte & operator [] (size_t i) const
     {
-        static midi::byte s_zero = 0;
+        static midi::byte s_zero = { 0 };
         return i < m_bytes.size() ? m_bytes[i] : s_zero ;
     }
 

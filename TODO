@@ -1,17 +1,16 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-08-27
+2019-04-13 to 2025-09-05
 
 Hot:
 
-    -   Finish fixing the ctor/dtor of the rtmidi[_in, _out, _engine etc]
-        classed.
-    -   ALSA: make sure snd_seq_open() is always matched by snd_seq_close().
     -   In create_track(), use the initial track number as a parameter.
     -   In event::append_meta_data(), the message is actually cleared
         before appending. Rename the function or add a bool 'clear' flag.
     -   Make sure trackdata::parse() sets track number correctly.
     -   Update rterror to print the client-tag in error messages.
+    -   Make sure the default move constructor/operator = are implemented and
+        work.
 
 NSM:
 

@@ -429,7 +429,7 @@ bad_id ()
 inline int
 byte_height (int height, byte value)
 {
-    const int s_max_height = 128;
+    const int s_max_height { 128 };
     return height == s_max_height ?
         int(value) : int(value) * height / s_max_height;
 }
@@ -443,7 +443,7 @@ byte_height (int height, byte value)
 inline int
 byte_value (int height, int value)
 {
-    const int s_max_height = 128;
+    const int s_max_height { 128 };
     return height == s_max_height ?
         value : s_max_height * value / height;
 }

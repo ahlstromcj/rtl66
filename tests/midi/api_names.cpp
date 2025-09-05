@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Jean Pierre Cimalando; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2024-01-31
+ * \updates       2025-09-05
  * \license       See above.
  *
  *      apinames.cpp
@@ -60,17 +60,17 @@ test_cpp ()
      * Ensure the known APIs return valid names.
      */
 
-    const rtl::rtmidi::api_list & apis = compiled_apis;
+    const rtl::rtmidi::api_list & apis { compiled_apis };
     std::cout << "API names by identifier (C++):" << std::endl;
     for (size_t i = 0; i < apis.size(); ++i)
     {
-        const std::string name = rtl::rtmidi::api_name(apis[i]);
+        const std::string name { rtl::rtmidi::api_name(apis[i]) };
         if (name.empty())
         {
             std::cout << "Invalid name for API " << int(apis[i]) << std::endl;
             exit(EXIT_FAILURE);
         }
-        const std::string dispname = rtl::rtmidi::api_display_name(apis[i]);
+        const std::string dispname { rtl::rtmidi::api_display_name(apis[i]) };
         if (dispname.empty())
         {
             std::cout << "Invalid display name for API "
@@ -88,14 +88,14 @@ test_cpp ()
      * Ensure unknown APIs return the empty string.
      */
 
-    rtl::rtmidi::api bogus = rtl::rtmidi::api::max;
-    const std::string name = rtl::rtmidi::api_name(bogus);
+    rtl::rtmidi::api bogus { rtl::rtmidi::api::max };
+    const std::string name { rtl::rtmidi::api_name(bogus) };
     if (! name.empty())
     {
         std::cout << "Bad string for invalid API '" << name << "'" << std::endl;
         exit(EXIT_FAILURE);
     }
-    const std::string dispname = rtl::rtmidi::api_display_name(bogus);
+    const std::string dispname { rtl::rtmidi::api_display_name(bogus) };
     if (! dispname.empty())
     {
         std::cout << "Invalid API code" << std::endl;
@@ -109,7 +109,7 @@ test_cpp ()
     std::cout << "API identifiers by name (C++):" << std::endl;
     for (auto a: apis)                          /* might only be a couple   */
     {
-        std::string name = rtl::rtmidi::api_name(a);
+        std::string name { rtl::rtmidi::api_name(a) };
         if (rtl::rtmidi::api_by_name(name) != a)
         {
             std::cout << "Bad identifier for API '" << name << "'" << std::endl;
@@ -119,7 +119,7 @@ test_cpp ()
         for (size_t j = 0; j < name.size(); ++j)
             name[j] = (j & 1) ? toupper(name[j]) : tolower(name[j]);
 
-        rtl::rtmidi::api rapi = rtl::rtmidi::api_by_name(name);
+        rtl::rtmidi::api rapi { rtl::rtmidi::api_by_name(name) };
         if (rapi != rtl::rtmidi::api::unspecified)
         {
             std::cout << "Identifier " << int(rapi)
@@ -133,7 +133,7 @@ test_cpp ()
      * Try getting an API identifier by an unknown name.
      */
 
-    rtl::rtmidi::api rapi = rtl::rtmidi::api_by_name("");
+    rtl::rtmidi::api rapi { rtl::rtmidi::api_by_name("") };
     if (rapi != rtl::rtmidi::api::unspecified)
     {
         std::cout << "Bad identifier for unknown API name\n";
@@ -150,7 +150,7 @@ test_cpp ()
 static int
 test_c ()
 {
-    unsigned api_count = rtmidi_get_compiled_apis(nullptr, 0);
+    unsigned api_count = { unsigned(rtmidi_get_compiled_apis(nullptr, 0)) };
     std::vector<RtMidiApi> apis(api_count);
     rtmidi_get_compiled_apis(apis.data(), api_count);
 
@@ -158,13 +158,13 @@ test_c ()
      * We have to cast because this module isn't C, but C++.
      */
 
-    RtMidiApi * detected_apis = (RtMidiApi *) calloc(8, sizeof(RtMidiApi));
-    int detected_count = rtmidi_get_detected_apis(detected_apis, 8);
+    RtMidiApi * detected_apis { (RtMidiApi *) calloc(8, sizeof(RtMidiApi)) };
+    int detected_count { rtmidi_get_detected_apis(detected_apis, 8) };
     std::cout << "Detected APIs:" << std::endl;
     for (int i = 0; i < detected_count; ++i)
     {
-        const char * name = rtmidi_api_name(detected_apis[i]);
-        const char * displayname = rtmidi_api_display_name(detected_apis[i]);
+        const char * name { rtmidi_api_name(detected_apis[i]) };
+        const char * displayname { rtmidi_api_display_name(detected_apis[i]) };
         printf("%12s: %s\n", name, displayname);
     }
 
@@ -172,17 +172,17 @@ test_c ()
      * Ensure the known APIs return valid names.
      */
 
-    bool ok = true;
+    bool ok { true };
     std::cout << "API names by identifier (C):" << std::endl;
     for (size_t i = 0; i < api_count; ++i)
     {
-        const std::string name = rtmidi_api_name(apis[i]);
+        const std::string name { rtmidi_api_name(apis[i]) };
         if (name.empty())
         {
             std::cout << "Invalid API code " << int(apis[i]) << std::endl;
             ok = false;
         }
-        const std::string dispname = rtmidi_api_display_name(apis[i]);
+        const std::string dispname { rtmidi_api_display_name(apis[i]) };
         if (dispname.empty())
         {
             std::cout << "Invalid API code " << int(apis[i]) << std::endl;
@@ -206,16 +206,18 @@ test_c ()
 
     /*
      * Ensure unknown APIs return the empty string.
+     * RTMIDI_API_MAX should be equal to 11 here.
      */
 
-    rtl::rtmidi::api bogus = static_cast<rtl::rtmidi::api>(RTMIDI_API_MAX);
-    const std::string name = rtl::rtmidi::api_name(bogus);
+    int maxval { RTMIDI_API_MAX };
+    rtl::rtmidi::api bogus { static_cast<rtl::rtmidi::api>(maxval) };
+    const std::string name { rtl::rtmidi::api_name(bogus) };
     if (! name.empty())
     {
         std::cout << "Bad string for invalid API '" << name << "'" << std::endl;
         exit(EXIT_FAILURE);
     }
-    const std::string dispname  = rtl::rtmidi::api_display_name(bogus);
+    const std::string dispname { rtl::rtmidi::api_display_name(bogus) };
     if (! dispname.empty())
     {
         std::cout << "Invalid API code" << std::endl;
@@ -229,8 +231,8 @@ test_c ()
     std::cout << "API identifiers by name (C):" << std::endl;
     for (size_t i = 0; i < api_count ; ++i)
     {
-        const char * s = rtmidi_api_name(apis[i]);
-        std::string name = not_nullptr(s) ? s : "";
+        const char * s { rtmidi_api_name(apis[i]) };
+        std::string name { not_nullptr(s) ? s : "" };
         if (rtmidi_api_by_name(name.c_str()) != apis[i])
         {
             std::cout << "Bad identifier for API '" << name << "'" << std::endl;
@@ -240,7 +242,7 @@ test_c ()
         for (size_t j = 0; j < name.size(); ++j)
             name[j] = (j & 1) ? toupper(name[j]) : tolower(name[j]);
 
-        RtMidiApi midiapi = rtmidi_api_by_name(name.c_str());
+        RtMidiApi midiapi { rtmidi_api_by_name(name.c_str()) };
         if (midiapi != RTMIDI_API_UNSPECIFIED)
         {
             std::cout << "Identifier " << int(midiapi)
@@ -254,7 +256,7 @@ test_c ()
      * Try getting an API identifier by unknown name
      */
 
-    RtMidiApi midiapi = rtmidi_api_by_name("");
+    RtMidiApi midiapi { rtmidi_api_by_name("") };
     if (midiapi != RTMIDI_API_UNSPECIFIED)
     {
         std::cout << "Bad identifier for unknown API name\n";

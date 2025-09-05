@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-31
+ * \updates       2025-09-04
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -254,7 +254,8 @@ static const std::string cs_api_names[][2]
     { "windows_uwp",    "Windows UWP"           },  /* Microsoft-deprecated */
     { "android_midi",   "Android MIDI API"      },  /* Not yet supported    */
     { "web_midi",       "Web MIDI API"          },
-    { "dummy",          "Dummy"                 }
+    { "dummy",          "Dummy"                 },
+    { "none",           "None"                  }   /* currently for tests  */
 };
 
 /*

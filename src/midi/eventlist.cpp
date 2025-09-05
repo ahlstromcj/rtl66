@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2025-07-29
+ * \updates       2025-09-05
  * \license       GNU GPLv2 or above
  *
  *  This container now can indicate if certain Meta events (time-signaure or
@@ -121,10 +121,10 @@ eventlist::operator = (const eventlist & rhs)
 midi::pulse
 eventlist::get_min_timestamp () const
 {
-    midi::pulse result = 0;
+    midi::pulse result { 0 };
     if (count() > 0)
     {
-        auto lci = m_events.begin();                    /* get 1st element  */
+        auto lci { m_events.begin() };                  /* get 1st element  */
         result = lci->timestamp();                      /* get length value */
     }
     return result;
@@ -133,10 +133,10 @@ eventlist::get_min_timestamp () const
 midi::pulse
 eventlist::get_max_timestamp () const
 {
-    midi::pulse result = 0;
+    midi::pulse result { 0 };
     if (count() > 0)
     {
-        auto lci = m_events.rbegin();                   /* get last element */
+        auto lci { m_events.rbegin() };                 /* get last element */
         result = lci->timestamp();                      /* get length value */
     }
     return result;
@@ -252,7 +252,7 @@ eventlist::sort ()
 void
 eventlist::merge (const event::buffer & evlist)
 {
-    std::size_t totalsize = m_events.size() + evlist.size();
+    std::size_t totalsize { m_events.size() + evlist.size() };
     m_events.reserve(totalsize);
     m_events.insert(m_events.end(), evlist.begin(), evlist.end());
     sort();
@@ -288,10 +288,10 @@ eventlist::merge (const eventlist & el, bool presort)
 {
     if (presort)                            /* not really necessary here    */
     {
-        eventlist & el_nc = const_cast<eventlist &>(el);
+        eventlist & el_nc { const_cast<eventlist &>(el) };
         el_nc.sort();
     }
-    std::size_t totalsize = m_events.size() + el.m_events.size();
+    std::size_t totalsize { m_events.size() + el.m_events.size() };
     m_events.reserve(totalsize);
     m_events.insert(m_events.end(), el.m_events.begin(), el.m_events.end());
 
@@ -299,7 +299,7 @@ eventlist::merge (const eventlist & el, bool presort)
      * Done via verify_and_link(): sort();
      */
 
-    bool result = m_events.size() == totalsize;
+    bool result { m_events.size() == totalsize };
     if (result)
         verify_and_link();
 
@@ -340,13 +340,13 @@ eventlist::merge (const eventlist & el, bool presort)
 bool
 eventlist::link_new (bool wrap)
 {
-    bool result = false;
+    bool result { false };
     for (auto eon = m_events.begin(); eon != m_events.end(); ++eon)
     {
         if (eon->on_linkable())                     /* note-on, not linked  */
         {
-            bool endfound = false;                  /* end-of-note flag     */
-            auto eoff = eon;                        /* point to note on     */
+            bool endfound { false };                /* end-of-note flag     */
+            auto eoff { eon };                      /* point to note on     */
             ++eoff;                                 /* get next element     */
             while (eoff != m_events.end())
             {
@@ -412,7 +412,7 @@ eventlist::link_new_note ()
 {
     if (count() > 1)
     {
-        bool done = false;
+        bool done { false a };
         for (auto off = m_events.end(); off != m_events.begin(); /* none */ )
         {
             --off;                                  /* can't use end() val  */
@@ -497,7 +497,7 @@ eventlist::link_notes (event::iterator eon, event::iterator eoff)
         eoff->link(eon);
         if (eon->timestamp() == eoff->timestamp())
         {
-            long ts = eon->timestamp();
+            long ts { eon->timestamp() };
             ts += m_zero_len_correction;
             eoff->set_timestamp(ts);
 #if defined RTL66_PLATFORM_DEBUG_TMI
@@ -547,8 +547,8 @@ eventlist::verify_and_link (midi::pulse slength, bool wrap)
     clear_links();                          /* unlink and unmark all events */
     sort();                                 /* important, but be careful... */
 
-    bool wrap_em = m_link_wraparound || wrap;       /* a Stazed extension   */
-    bool result = link_new(wrap_em);
+    bool wrap_em { m_link_wraparound || wrap };     /* a Stazed extension   */
+    bool result { link_new(wrap_em) };
     if (slength > 0)
     {
         if (mark_out_of_range(slength))
@@ -588,7 +588,7 @@ eventlist::clear ()
 bool
 eventlist::clear_links ()
 {
-    bool result = false;
+    bool result { false };
     for (auto & e : m_events)
     {
         if (e.is_linked())
@@ -603,7 +603,7 @@ eventlist::clear_links ()
 int
 eventlist::playable_count () const
 {
-    int result = 0;
+    int result { 0 };
     for (const auto & e : m_events)
     {
         if (e.is_playable())
@@ -615,7 +615,7 @@ eventlist::playable_count () const
 bool
 eventlist::is_playable () const
 {
-    bool result = false;
+    bool result { false };
     for (const auto & e : m_events)
     {
         if (e.is_playable())
@@ -630,7 +630,7 @@ eventlist::is_playable () const
 int
 eventlist::note_count () const
 {
-    int result = 0;
+    int result { 0 };
     for (const auto & e : m_events)
     {
         if (e.is_note_on())
@@ -648,20 +648,20 @@ eventlist::note_count () const
 bool
 eventlist::first_notes (midi::pulse & ts, int & n, midi::pulse snap) const
 {
-    bool result = false;
-    bool doaverage = snap > 0;
+    bool result { false };
+    bool doaverage { snap > 0 };
     if (doaverage)
     {
-        midi::pulse ts_first = (-1);
-        int note_avg = 0;
-        int note_count = 0;
+        midi::pulse ts_first { (-1) };
+        int note_avg { 0 };
+        int note_count { 0 };
         for (const auto & e : m_events)
         {
             if (e.is_note_on())
             {
                 result = true;
 
-                midi::pulse ts_temp = e.timestamp();
+                midi::pulse ts_temp { e.timestamp() };
                 if (ts_first == (-1))
                     ts_first = ts_temp;
 
@@ -717,17 +717,17 @@ eventlist::first_notes (midi::pulse & ts, int & n, midi::pulse snap) const
 bool
 eventlist::edge_fix (midi::pulse snap, midi::pulse len)
 {
-    bool result = false;
+    bool result { false };
     for (auto & e : m_events)
     {
         if (e.is_selected_note_on() && e.is_linked())
         {
-            midi::pulse onstamp = e.timestamp();
-            midi::pulse maximum = len - snap / 2;
+            midi::pulse onstamp { e.timestamp() };
+            midi::pulse maximum { len - snap / 2 };
             if (onstamp > maximum)
             {
-                midi::pulse delta = len - onstamp;
-                midi::pulse offstamp = e.link()->timestamp();
+                midi::pulse delta { len - onstamp };
+                midi::pulse offstamp { e.link()->timestamp() };
                 if (offstamp < onstamp)
                 {
                     e.set_timestamp(0);             /* move to beginning    */
@@ -751,7 +751,7 @@ eventlist::edge_fix (midi::pulse snap, midi::pulse len)
 bool
 eventlist::remove_unlinked_notes ()
 {
-    bool result = false;
+    bool result { false };
     for (auto i = m_events.begin(); i != m_events.end(); /*++i*/)
     {
         if (i->is_note_unlinked())
@@ -823,17 +823,17 @@ eventlist::quantize_events
     int divide, bool fixlink
 )
 {
-    bool result = false;
-    midi::pulse len = length();
-    bool tight = divide == 2;
+    bool result { false };
+    midi::pulse len { length() };
+    bool tight { divide == 2 };
     for (auto & er : m_events)
     {
         if (er.is_selected())
         {
             midi::byte d0, d1;
             er.get_data(d0, d1);
-            bool match = er.match_status(astatus);
-            bool canselect = false;
+            bool match { er.match_status(astatus) };
+            bool canselect { false };
             if (er.is_marked())                 /* ignore marked events     */
             {
                 er.unmark();
@@ -857,14 +857,14 @@ eventlist::quantize_events
                      * are closer than half the snap, add the snap.
                      */
 
-                    event::iterator f = er.link();
+                    event::iterator f { er.link() };
                     if (tight)
                         f->tighten(snap, len);
                     else
                         f->quantize(snap, len);
 
-                    midi::pulse ts1 = er.timestamp();
-                    midi::pulse ts2 = f->timestamp();
+                    midi::pulse ts1 { er.timestamp() };
+                    midi::pulse ts2 { f->timestamp() };
                     if (ts2 >= ts1)
                     {
                         if (ts2 - ts1 < (snap / 2))
@@ -909,15 +909,15 @@ eventlist::quantize_events
 bool
 eventlist::quantize_events (int snap, int divide, bool all)
 {
-    bool result = false;
-    bool tight = divide == 2;
-    bool found_note = false;
-    midi::pulse len = length();
+    bool result { false };
+    bool tight { divide == 2 };
+    bool found_note { false };
+    midi::pulse len { length() };
     for (auto & er : m_events)
     {
         if (all || er.is_selected())
         {
-            bool ok = tight ? er.tighten(snap, len) : er.quantize(snap, len) ;
+            bool ok { tight ? er.tighten(snap, len) : er.quantize(snap, len) };
             if (ok)
                 result = true;
 
@@ -952,9 +952,9 @@ eventlist::quantize_events (int snap, int divide, bool all)
 bool
 eventlist::quantize_notes (int snap, int divide, bool all)
 {
-    bool result = false;
-    midi::pulse len = length();
-    bool tight = divide == 2;
+    bool result { false };
+    midi::pulse len { length() };
+    bool tight { divide == 2 };
     for (auto & er : m_events)
     {
         if (all || er.is_selected_note())
@@ -967,14 +967,14 @@ eventlist::quantize_notes (int snap, int divide, bool all)
             result = tight ? er.tighten(snap, len) : er.quantize(snap, len) ;
             if (er.is_note_on_linked())
             {
-                event::iterator f = er.link();
+                event::iterator f { er.link() };
                 if (tight)
                     f->tighten(snap, len);
                 else
                     f->quantize(snap, len);
 
-                midi::pulse ts1 = er.timestamp();
-                midi::pulse ts2 = f->timestamp();
+                midi::pulse ts1 { er.timestamp() };
+                midi::pulse ts2 { f->timestamp() };
                 if (ts2 >= ts1)
                 {
                     if (ts2 - ts1 < (snap / 2))
@@ -1023,13 +1023,13 @@ eventlist::quantize_notes (int snap, int divide, bool all)
 midi::pulse
 eventlist::adjust_timestamp (event & er, midi::pulse delta_tick)
 {
-    static const bool s_allow_wrap = true;  /* wrap: note on after note-off */
-    midi::pulse result = er.timestamp() + delta_tick;
-    midi::pulse len = length();
+    static const bool s_allow_wrap { true };    /* wrap NoteOn post NoteOff */
+    midi::pulse result { er.timestamp() + delta_tick };
+    midi::pulse len { length() };
     if (result > len)
         result -= len;
 
-    if (result < 0)                         /* only if midi::pulse is signed  */
+    if (result < 0)                             /* if midi::pulse signed    */
     {
         if (s_allow_wrap)
             result += len;
@@ -1046,7 +1046,7 @@ eventlist::adjust_timestamp (event & er, midi::pulse delta_tick)
                 result = note_off_margin();
         }
     }
-    else                                    /* if (wrap)                    */
+    else
     {
         if (result == len)
         {
@@ -1083,15 +1083,15 @@ eventlist::adjust_timestamp (event & er, midi::pulse delta_tick)
 bool
 eventlist::move_selected_notes (midi::pulse delta_tick, int delta_note)
 {
-    bool result = false;
+    bool result { false };
     for (auto & er : m_events)
     {
         if (er.is_selected_note())                  /* moveable event?      */
         {
-            int newnote = er.get_note() + delta_note;
+            int newnote { er.get_note() + delta_note };
             if (newnote >= 0 && newnote < c_notes_count)
             {
-                midi::pulse newts = adjust_timestamp(er, delta_tick);
+                midi::pulse newts { adjust_timestamp(er, delta_tick) };
                 if (er.is_note())                   /* Note On or Note Off  */
                     er.set_note(midi::byte(newnote));
 
@@ -1113,12 +1113,12 @@ eventlist::move_selected_notes (midi::pulse delta_tick, int delta_note)
 bool
 eventlist::move_selected_events (midi::pulse delta_tick)
 {
-    bool result = false;
+    bool result { false };
     for (auto & er : m_events)
     {
         if (er.is_selected() && ! er.is_note())
         {
-            midi::pulse newts = adjust_timestamp(er, delta_tick);
+            midi::pulse newts { adjust_timestamp(er, delta_tick) };
             er.set_timestamp(newts);
             result = true;
         }
@@ -1141,17 +1141,17 @@ eventlist::move_selected_events (midi::pulse delta_tick)
 bool
 eventlist::align_left (bool relink)
 {
-    bool result = ! empty();
+    bool result { ! empty() };
     if (result)
     {
-        const auto startev = m_events.begin();
-        midi::pulse shift = startev->timestamp();
+        const auto startev { m_events.begin() };
+        midi::pulse shift { startev->timestamp() };
         result = shift > 0;
         if (result)
         {
             for (auto & ev : m_events)
             {
-                midi::pulse newstamp = ev.timestamp() - shift;
+                midi::pulse newstamp { ev.timestamp() - shift };
                 if (newstamp >= 0)
                 {
                     ev.set_timestamp(newstamp);
@@ -1189,15 +1189,15 @@ eventlist::align_right (bool relink)
     bool result = ! empty();
     if (result)
     {
-        const auto endev = m_events.rbegin();
-        midi::pulse endts = length();
-        midi::pulse shift = endts - endev->timestamp() - 1;
+        const auto endev { m_events.rbegin() };
+        midi::pulse endts { length() };
+        midi::pulse shift { endts - endev->timestamp() - 1 };
         result = shift > 0;
         if (result)
         {
             for (auto & ev : m_events)
             {
-                midi::pulse newstamp = ev.timestamp() + shift;
+                midi::pulse newstamp { ev.timestamp() + shift };
                 if (newstamp < endts)
                 {
                     ev.set_timestamp(newstamp);
@@ -1225,7 +1225,7 @@ eventlist::align_right (bool relink)
 void
 eventlist::scale_note_off (event & noteoff, double factor)
 {
-    midi::pulse stamp = noteoff.timestamp();
+    midi::pulse stamp { noteoff.timestamp() };
     stamp += note_off_margin();                     /* remove the margin    */
     stamp *= factor;                                /* scale the note off   */
     stamp -= note_off_margin();                     /* put back the margin  */
@@ -1263,23 +1263,23 @@ eventlist::scale_note_off (event & noteoff, double factor)
 midi::pulse
 eventlist::apply_time_factor (double factor, bool savenotelength, bool relink)
 {
-    midi::pulse result = 0;
+    midi::pulse result { 0 };
     bool ok = ! empty() && factor > 0.01;
     if (ok)
     {
         for (auto & ev : m_events)
         {
-            midi::pulse stamp = ev.timestamp();
-            bool linked = ev.is_linked();           /* do note on and off   */
+            midi::pulse stamp { ev.timestamp() };
+            bool linked { ev.is_linked() };         /* do note on and off   */
             if (ev.is_note_on())
             {
-                midi::pulse newstamp = midi::pulse(stamp * factor);
+                midi::pulse newstamp { midi::pulse(stamp * factor) };
                 if (linked)
                 {
-                    midi::pulse offstamp = ev.link()->timestamp();
+                    midi::pulse offstamp { ev.link()->timestamp() };
                     if (savenotelength)
                     {
-                        midi::pulse len = offstamp - stamp;
+                        midi::pulse len { offstamp - stamp };
                         ev.link()->set_timestamp(newstamp + len);
                     }
                     else
@@ -1297,7 +1297,7 @@ eventlist::apply_time_factor (double factor, bool savenotelength, bool relink)
             }
             else
             {
-                midi::pulse newstamp = midi::pulse(stamp * factor);
+                midi::pulse newstamp { midi::pulse(stamp * factor) };
                 ev.set_timestamp(newstamp);
             }
         }
@@ -1325,22 +1325,22 @@ eventlist::apply_time_factor (double factor, bool savenotelength, bool relink)
 bool
 eventlist::reverse_events (bool inplace, bool relink)
 {
-    bool result = ! empty();
+    bool result { ! empty() };
     if (result)
     {
-        midi::pulse offset = inplace ? get_min_timestamp() : 0;
-        midi::pulse ending = inplace ? get_max_timestamp() : length() - 1 ;
+        midi::pulse offset { inplace ? get_min_timestamp() : 0 };
+        midi::pulse ending { inplace ? get_max_timestamp() : length() - 1 };
         for (auto & ev : m_events)
         {
-            midi::pulse stamp = ev.timestamp();
-            midi::pulse newstamp = ending - stamp + offset;
+            midi::pulse stamp { ev.timestamp() };
+            midi::pulse newstamp { ending - stamp + offset };
             if (ev.is_note_on())
             {
-                bool linked = ev.is_linked();   /* do note on and off   */
+                bool linked { ev.is_linked() };     /* do note on and off   */
                 if (linked)
                 {
-                    midi::pulse offstamp = ev.link()->timestamp();
-                    midi::pulse duration = offstamp - stamp + 1;
+                    midi::pulse offstamp { ev.link()->timestamp() };
+                    midi::pulse duration { offstamp - stamp + 1 };
                     newstamp = ending - offstamp + offset;
                     ev.set_timestamp(newstamp);
                     ev.link()->set_timestamp(newstamp + duration);
@@ -1350,7 +1350,7 @@ eventlist::reverse_events (bool inplace, bool relink)
             }
             else if (ev.is_note_off())
             {
-                if (! ev.is_linked())           /* correction needed    */
+                if (! ev.is_linked())               /* correction needed    */
                     ev.set_timestamp(newstamp);
             }
             else
@@ -1394,7 +1394,7 @@ eventlist::reverse_events (bool inplace, bool relink)
 bool
 eventlist::randomize (midi::byte astatus, int range, bool all)
 {
-    bool result = false;
+    bool result { false };
     if (range > 0)
     {
         for (auto & e : m_events)
@@ -1429,7 +1429,7 @@ eventlist::randomize (midi::byte astatus, int range, bool all)
 bool
 eventlist::randomize_note_velocities (int range, bool all)
 {
-    bool result = range > 0;
+    bool result { range > 0 };
     if (result)
     {
         result = false;                             /* ca 2025-06-18        */
@@ -1485,7 +1485,7 @@ eventlist::randomize_note_pitches
     int range, scales s, keys keyofpattern, bool all
 )
 {
-    bool result = range > 0;
+    bool result { range > 0 };
     if (result)
     {
 #if defined SEQ66_PLATFORM_DEBUG_TMI
@@ -1500,15 +1500,15 @@ eventlist::randomize_note_pitches
         (void) verify_and_link();                       /* play safe & sort */
         for (auto & e : m_events)
         {
-            bool ok = all ? e.is_note() : e.is_selected_note() ;
+            bool ok { all ? e.is_note() : e.is_selected_note() };
             if (ok)                                     /* randomizable?    */
             {
 #if defined SEQ66_USE_UNIFORM_INT_DISTRIBUTION
-                int delta = midi::randomize_uniformly(range);
+                int delta { midi::randomize_uniformly(range) };
 #else
-                int delta = midi::randomize(range);
+                int delta { midi::randomize(range) };
 #endif
-                int p = int(e.get_note());
+                int p { int(e.get_note()) };
                 if (s == scales::off)
                 {
                     p += delta;
@@ -1518,7 +1518,7 @@ eventlist::randomize_note_pitches
                     p += delta;
                     for (int offset = 0; ; ++offset)    /* find legal note  */
                     {
-                        int testp = p + offset;
+                        int testp { p + offset };
                         if (scales_policy(s, keyofpattern, testp))
                         {
                             p = testp;
@@ -1593,10 +1593,10 @@ eventlist::randomize_note_pitches
 bool
 eventlist::jitter_events (int snap, int jitr)
 {
-    bool result = false;
+    bool result { false };
     if (jitr > 0)
     {
-        bool note_changed = false;
+        bool note_changed { false };
         for (auto & e : m_events)
         {
             if (e.is_marked())                  /* ignore marked events     */
@@ -1620,11 +1620,11 @@ eventlist::jitter_events (int snap, int jitr)
                      * Hmmmm, how about the zero-length correction???
                      */
 
-                    event::iterator f = e.link();
+                    event::iterator f { e.link() };
                     f->jitter(snap, jitr, length());
 
-                    midi::pulse ts1 = e.timestamp();
-                    midi::pulse ts2 = f->timestamp();
+                    midi::pulse ts1 { e.timestamp() };
+                    midi::pulse ts2 { f->timestamp() };
                     if (ts2 >= ts1)
                     {
                         if (ts2 - ts1 < (snap / 2))
@@ -1670,7 +1670,7 @@ eventlist::jitter_events (int snap, int jitr)
 bool
 eventlist::jitter_notes (int snap, int jitr, bool all)
 {
-    bool result = false;
+    bool result { false };
     if (jitr > 0)
     {
         for (auto & e : m_events)
@@ -1732,7 +1732,7 @@ eventlist::scan_meta_events ()
 bool
 eventlist::link_tempos ()
 {
-    bool result = false;
+    bool result { false };
     clear_tempo_links();
     for (auto t = m_events.begin(); t != m_events.end(); ++t)
     {
@@ -1762,7 +1762,7 @@ eventlist::link_tempos ()
 bool
 eventlist::clear_tempo_links ()
 {
-    bool result = false;
+    bool result { false };
     for (auto & e : m_events)
     {
         if (e.is_tempo())
@@ -1785,7 +1785,7 @@ eventlist::clear_tempo_links ()
 bool
 eventlist::mark_selected ()
 {
-    bool result = false;
+    bool result { false };
     for (auto & e : m_events)
     {
         if (e.is_selected())
@@ -1807,7 +1807,7 @@ eventlist::mark_selected ()
 bool
 eventlist::mark_all ()
 {
-    bool result = false;
+    bool result { false };
     for (auto & e : m_events)
     {
         result = true;
@@ -1823,13 +1823,13 @@ eventlist::mark_all ()
 bool
 eventlist::unmark_all ()
 {
-    bool result = false;
+    bool result { false };
     for (auto & e : m_events)
     {
         if (e.is_marked())
         {
             result = true;
-        e.unmark();
+            e.unmark();
         }
     }
     return result;
@@ -1859,10 +1859,10 @@ eventlist::unmark_all ()
 bool
 eventlist::mark_out_of_range (midi::pulse slength)
 {
-    bool result = false;
+    bool result { false };
     for (auto & e : m_events)
     {
-        bool prune = e.timestamp() > slength;   /* WAS ">=", SEE BANNER */
+        bool prune { e.timestamp() > slength }; /* WAS ">=", SEE BANNER */
         if (! prune)
             prune = e.timestamp() < 0;
 
@@ -1897,10 +1897,10 @@ eventlist::mark_out_of_range (midi::pulse slength)
 bool
 eventlist::remove_event (event & e)
 {
-    bool result = false;
+    bool result { false };
     for (auto i = m_events.begin(); i != m_events.end(); ++i)
     {
-        event & er = dref(i);
+        event & er { dref(i) };
         if (&e == &er)                  /* comparing pointers, not values   */
         {
             (void) remove(i);           /* an iterator is required here     */
@@ -1938,11 +1938,11 @@ eventlist::remove_event (event & e)
 event::iterator
 eventlist::find_first_match (const event & e, midi::pulse starttick)
 {
-    event::iterator result = m_events.end();
+    event::iterator result { m_events.end() };
     for (auto i = m_events.begin(); i != m_events.end(); ++i)
     {
-        event & er = dref(i);
-        midi::pulse t = er.timestamp();
+        event & er { dref(i) };
+        midi::pulse t { er.timestamp() };
         if (t >= starttick)
         {
             if (er.match(e))                /* compares values, not ptrs    */
@@ -1960,12 +1960,12 @@ eventlist::find_first_match (const event & e, midi::pulse starttick)
 event::iterator
 eventlist::find_next_match (const event & e)
 {
-    event::iterator result = m_events.end();
+    event::iterator result { m_events.end() };
     if (m_match_iterating)
     {
         for (auto i = m_match_iterator; i != m_events.end(); ++i)
         {
-            event & er = dref(i);
+            event & er { dref(i) };
             if (er.match(e))            /* comparing values, not pointers   */
             {
                 result = i;
@@ -1995,13 +1995,13 @@ eventlist::find_next_match (const event & e)
 bool
 eventlist::remove_time_signature (midi::pulse target)
 {
-    bool result = false;
+    bool result { false };
     for (auto i = m_events.begin(); i != m_events.end(); ++i)
     {
-        event & er = dref(i);
+        event & er { dref(i) };
         if (er.is_time_signature())
         {
-            midi::pulse t = er.timestamp();
+            midi::pulse t { er.timestamp() };
             if (t == target)
             {
                 (void) remove(i);
@@ -2029,11 +2029,11 @@ eventlist::remove_time_signature (midi::pulse target)
 bool
 eventlist::remove_first_match (const event & e, midi::pulse starttick)
 {
-    bool result = false;
+    bool result { false };
     for (auto i = m_events.begin(); i != m_events.end(); ++i)
     {
-        event & er = dref(i);
-        midi::pulse t = er.timestamp();
+        event & er { dref(i) };
+        midi::pulse t { er.timestamp() };
         if (t >= starttick)
         {
             if (er.match(e))                /* comparing values, not ptrs   */
@@ -2060,12 +2060,12 @@ eventlist::remove_first_match (const event & e, midi::pulse starttick)
 bool
 eventlist::remove_marked ()
 {
-    bool result = false;
+    bool result { false };
     for (auto i = m_events.begin(); i != m_events.end(); /*++i*/)
     {
         if (i->is_marked())
         {
-            auto t = remove(i);
+            auto t { remove(i) };
             i = t;
             result = true;
         }
@@ -2095,7 +2095,7 @@ eventlist::remove_marked ()
 bool
 eventlist::remove_trailing_events (midi::pulse limit)
 {
-    bool result = false;
+    bool result { false };
     for (auto i = m_events.begin(); i != m_events.end(); /*++i*/)
     {
         if (i->timestamp() >= limit)
@@ -2112,7 +2112,7 @@ eventlist::remove_trailing_events (midi::pulse limit)
         {
             if (i->is_note_on_linked())
             {
-                auto ioff = i->link();
+                auto ioff { i->link() };
                 if (ioff->timestamp() >= limit)
                     ioff->set_timestamp(limit - 1);
             }
@@ -2139,12 +2139,12 @@ eventlist::remove_trailing_events (midi::pulse limit)
 bool
 eventlist::remove_selected ()
 {
-    bool result = false;
+    bool result { false };
     for (auto i = m_events.begin(); i != m_events.end(); /*++i*/)
     {
         if (i->is_selected())
         {
-            auto t = remove(i);
+            auto t { remove(i) };
             i = t;
             result = true;
         }
@@ -2179,7 +2179,7 @@ eventlist::unpaint_all ()
 int
 eventlist::count_selected_notes () const
 {
-    int result = 0;
+    int result { 0 };
     for (auto & er : m_events)
     {
         if (er.is_selected_note_on())
@@ -2200,7 +2200,7 @@ eventlist::count_selected_notes () const
 bool
 eventlist::any_selected_notes () const
 {
-    bool result = false;
+    bool result { false };
     for (auto & er : m_events)
     {
         if (er.is_selected_note_on())
@@ -2232,7 +2232,7 @@ eventlist::any_selected_notes () const
 int
 eventlist::count_selected_events (midi::byte status, midi::byte cc) const
 {
-    int result = 0;
+    int result { 0 };
     for (auto & er : m_events)
     {
         if (er.is_selected() && er.is_desired(status, cc))
@@ -2251,7 +2251,7 @@ eventlist::count_selected_events (midi::byte status, midi::byte cc) const
 bool
 eventlist::any_selected_events () const
 {
-    bool result = false;
+    bool result { false };
     for (auto & er : m_events)
     {
         if (er.is_selected())
@@ -2275,7 +2275,7 @@ eventlist::any_selected_events () const
 bool
 eventlist::any_selected_events (midi::byte status, midi::byte cc) const
 {
-    bool result = false;
+    bool result { false };
     for (auto & er : m_events)
     {
         if (er.is_selected() && er.is_desired(status, cc))
@@ -2301,7 +2301,7 @@ eventlist::select_all ()
 void
 eventlist::select_by_channel (int channel)
 {
-    midi::byte target = midi::byte(channel);
+    midi::byte target { midi::byte(channel) };
     for (auto & er : m_events)
     {
         if (er.channel() == target)
@@ -2317,7 +2317,7 @@ eventlist::select_by_channel (int channel)
 void
 eventlist::select_notes_by_channel (int channel)
 {
-    midi::byte target = midi::byte(channel);
+    midi::byte target { midi::byte(channel) };
     for (auto & er : m_events)
     {
         if (er.is_note() && er.channel() == target)
@@ -2340,8 +2340,8 @@ eventlist::select_notes_by_channel (int channel)
 bool
 eventlist::set_channels (int channel)
 {
-    bool result = false;
-    midi::byte target = midi::byte(channel);
+    bool result { false };
+    midi::byte target { midi::byte(channel) };
     for (auto & er : m_events)
     {
         if (er.has_channel())
@@ -2400,7 +2400,7 @@ eventlist::select_events
     midi::byte status, midi::byte cc, select action
 )
 {
-    int result = 0;
+    int result { 0 };
     for (auto & er : m_events)
     {
         if (event_in_range(er, status, tick_s, tick_f))
@@ -2489,8 +2489,8 @@ eventlist::select_event_handle
     midi::byte data
 )
 {
-    int result = 0;
-    bool have_selected_note_ons = false;
+    int result { 0 };
+    bool have_selected_note_ons { false };
     if (is_note_on_msg(astatus))
     {
         if (count_selected_events(astatus, cc) > 0)
@@ -2504,7 +2504,7 @@ eventlist::select_event_handle
     {
         if (event_in_range(er, astatus, tick_s, tick_f)) /* in time-range   */
         {
-            bool isctrl = is_controller_msg(astatus);
+            bool isctrl { is_controller_msg(astatus) };
             if (isctrl && er.is_desired(astatus, cc, data)) /* in range     */
             {
                 unselect_all();                         /* or unmark()      */
@@ -2514,7 +2514,7 @@ eventlist::select_event_handle
             }
             if (! isctrl)                               /* chan. pressure?  */
             {
-                bool twobytes = is_two_byte_msg(astatus);
+                bool twobytes { is_two_byte_msg(astatus) };
                 if (twobytes)
                 {
                     if (er.is_data_in_handle_range(data))   /* checks d1()  */
@@ -2640,16 +2640,16 @@ eventlist::select_note_events
     midi::pulse tick_f, int note_l, select action
 )
 {
-    int result = 0;
+    int result { 0 };
     for (auto & er : m_events)
     {
-        int n = int(er.get_note());                 /* gets byte m_data[0]  */
+        int n { int(er.get_note()) };                 /* gets byte m_data[0]  */
         if (er.is_note() && n <= note_h && n >= note_l)
         {
-            midi::pulse stick = 0, ftick = 0;
+            midi::pulse stick { 0 }, ftick { 0 };
             if (er.is_linked())
             {
-                event::iterator ev = er.link();
+                event::iterator ev { er.link() };
                 if (er.is_note_off())
                 {
                     stick = ev->timestamp();    /* time of the Note On  */
@@ -2675,9 +2675,9 @@ eventlist::select_note_events
                  * However, then we cannot click on a note to select it.  Odd!
                  */
 
-                bool tand = (stick <= tick_f) && (ftick >= tick_s);
-                bool tor = (stick <= tick_f) || (ftick >= tick_s);
-                bool ok = tand || ((stick > ftick) && tor);
+                bool tand { (stick <= tick_f) && (ftick >= tick_s) };
+                bool tor { (stick <= tick_f) || (ftick >= tick_s) };
+                bool ok { tand || ((stick > ftick) && tor) };
                 if (ok)
                 {
                     if (action == select::selecting)
@@ -2827,9 +2827,10 @@ eventlist::event_in_range
     midi::pulse tick_s, midi::pulse tick_f
 ) const
 {
-    bool result = e.match_status(status) || e.is_tempo() ||
-        e.is_time_signature();
-
+    bool result
+    {
+        e.match_status(status) || e.is_tempo() || e.is_time_signature()
+    };
     if (result)
         result = e.timestamp() >= tick_s && e.timestamp() <= tick_f;
 
@@ -2842,9 +2843,15 @@ eventlist::get_selected_events_interval
     midi::pulse & first, midi::pulse & last
 ) const
 {
-    bool result = false;
-    midi::pulse first_ev = midi::pulse(0x7fffffff);     /* timestamp lower limit */
-    midi::pulse last_ev = midi::pulse(0x00000000);      /* timestamp upper limit */
+    bool result { false };
+    midi::pulse first_ev
+    {
+        midi::pulse(0x7fffffff)                 /* timestamp lower limit */
+    };
+    midi::pulse last_ev
+    {
+        midi::pulse(0x00000000)                 /* timestamp upper limit */
+    };
     for (auto & er : m_events)
     {
         if (er.is_selected())
@@ -2903,23 +2910,24 @@ bool
 eventlist::stretch_selected (midi::pulse delta)
 {
     midi::pulse first_ev, last_ev;
-    bool result = get_selected_events_interval(first_ev, last_ev);
+    bool result { get_selected_events_interval(first_ev, last_ev) };
     if (result)
     {
-        midi::pulse old_len = last_ev - first_ev;
-        midi::pulse new_len = old_len + delta;
+        midi::pulse old_len { last_ev - first_ev };
+        midi::pulse new_len { old_len + delta };
         if (new_len > 1 && old_len > 0)
         {
-            float ratio = float(new_len) / float(old_len);
+            float ratio { float(new_len) / float(old_len) };
             result = false;
             for (auto & er : m_events)
             {
                 if (er.is_selected())
                 {
-                    midi::pulse t = er.timestamp();
-                    midi::pulse nt = midi::pulse(ratio * (t - first_ev)) +
-                        first_ev;
-
+                    midi::pulse t { er.timestamp() };
+                    midi::pulse nt
+                    {
+                        midi::pulse(ratio * (t - first_ev)) + first_ev
+                    };
                     er.set_timestamp(nt);
                     result = true;
                 }
@@ -2975,7 +2983,7 @@ eventlist::stretch_selected (midi::pulse delta)
 bool
 eventlist::grow_selected (midi::pulse delta, int snap)
 {
-    bool result = false;
+    bool result { false };
     for (auto & er : m_events)
     {
         if (er.is_selected())
@@ -2984,20 +2992,20 @@ eventlist::grow_selected (midi::pulse delta, int snap)
             {
                 if (er.is_note_on() && er.is_linked())
                 {
-                    event::iterator off = er.link();
-                    midi::pulse offtime = off->timestamp();
-                    midi::pulse newtime = trim_timestamp(offtime + delta);
+                    event::iterator off { er.link() };
+                    midi::pulse offtime { off->timestamp() };
+                    midi::pulse newtime { trim_timestamp(offtime + delta) };
                     off->set_timestamp(newtime);    /* new off-time         */
                     result = true;
                 }
             }
             else                                    /* non-Note event       */
             {
-                midi::pulse ontime = er.timestamp();
-                midi::pulse newtime = clip_timestamp
-                (
-                    ontime, ontime + delta, snap
-                );
+                midi::pulse ontime { er.timestamp() };
+                midi::pulse newtime
+                {
+                    clip_timestamp(ontime, ontime + delta, snap)
+                };
                 er.set_timestamp(newtime);          /* adjust time-stamp    */
                 result = true;
             }
@@ -3012,7 +3020,7 @@ eventlist::grow_selected (midi::pulse delta, int snap)
 bool
 eventlist::copy_selected (eventlist & clipbd)
 {
-    bool result = false;
+    bool result { false };
     for (auto & e : m_events)
     {
         if (e.is_selected())
@@ -3020,12 +3028,12 @@ eventlist::copy_selected (eventlist & clipbd)
     }
     if (! clipbd.empty())
     {
-        midi::pulse first_tick = dref(clipbd.begin()).timestamp();
+        midi::pulse first_tick { dref(clipbd.begin()).timestamp() };
         if (first_tick >= 0)
         {
             for (auto & e : clipbd)                     /* 2019-09-12       */
             {
-                midi::pulse t = e.timestamp();
+                midi::pulse t { e.timestamp() };
                 if (t >= first_tick)
                 {
                     e.set_timestamp(t - first_tick);    /* slide left!      */
@@ -3042,29 +3050,29 @@ eventlist::copy_selected (eventlist & clipbd)
 bool
 eventlist::paste_selected (eventlist & clipbd, midi::pulse tick, int note)
 {
-    bool result = false;
+    bool result { false };
     if (! clipbd.empty())
     {
         int highest_note = 0;
         for (auto & e : clipbd)
         {
-            midi::pulse t = e.timestamp();
+            midi::pulse t { e.timestamp() };
             e.set_timestamp(t + tick);
             result = true;
             if (e.is_note())                    /* includes Aftertouch      */
             {
-                midi::byte n = e.get_note();
+                midi::byte n { e.get_note() };
                 if (n > highest_note)
                     highest_note = n;
             }
         }
 
-        int note_delta = note - highest_note;
+        int note_delta { note - highest_note };
         for (auto & e : clipbd)
         {
             if (e.is_note())                    /* includes Aftertouch      */
             {
-                midi::byte n = e.get_note();
+                midi::byte n { e.get_note() };
                 e.set_note(n + note_delta);
                 result = true;
             }
@@ -3164,7 +3172,7 @@ eventlist::print_notes (const std::string & tag) const
 std::string
 eventlist::to_string () const
 {
-    std::string result = "Events (";
+    std::string result { "Events (" };
     result += std::to_string(count());
     result += "):\n";
     for (auto & e : m_events)

@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2024-07-29
+ * \updates       2025-09-05
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -258,7 +258,7 @@ using midi_name_map = std::map<midi::byte, std::string>;
 int
 status_msg_size (byte s)
 {
-    int result = (-1);
+    int result { -1 };
     if (is_two_byte_msg(s) || s == 0xF2)        /* status = song_pos        */
     {
         result = 3;                             /* status + d0 + d1         */
@@ -302,7 +302,7 @@ status_msg_size (byte s)
 int
 meta_msg_size (byte m)
 {
-    int result = (-1);
+    int result { -1 };
     if (m == 0x51)                      /* set_tempo                        */
     {
         result = 6;
@@ -470,7 +470,7 @@ midi_controller_name (int index)
     std::string result;
     if (index < c_byte_data_max)
     {
-        std::string name = c_midi_controller_names[index].name;
+        std::string name { c_midi_controller_names[index].name };
         result = std::to_string(index);
         result += " ";
         result += name;
@@ -624,7 +624,7 @@ gm_program_name (int index)
     std::string result;
     if (index < c_byte_data_max)
     {
-        std::string name = c_gm_program_names[index].name;
+        std::string name { c_gm_program_names[index].name };
         result = std::to_string(index);
         result += " ";
         result += name;
@@ -727,7 +727,7 @@ gm_percussion_name (int index)
     std::string result;
     if (index >= 35 && index < 82)      /* see the numbers above */
     {
-        std::string name = c_gm_program_names[index].name;
+        std::string name { c_gm_program_names[index].name };
         result = std::to_string(index);
         result += " ";
         result += name;
@@ -758,7 +758,7 @@ static const std::string sm_meta_text_labels [] =
 std::string
 meta_text_label (byte m)
 {
-    std::string result{"Unknown"};
+    std::string result { "Unknown" };
     if (m < 8)
     {
         result = sm_meta_text_labels[int(m)];
@@ -814,8 +814,8 @@ static const midi_name_map s_status_names
 std::string
 status_label (byte m)
 {
-    std::string result{"Unknown"};
-    const auto iter = s_status_names.find(m);
+    std::string result { "Unknown" };
+    const auto iter { s_status_names.find(m) };
     if (iter != s_status_names.end())
         result = iter->second;
 
@@ -851,8 +851,8 @@ static const midi_name_map s_meta_names
 std::string
 meta_label (byte m)
 {
-    std::string result{"Unknown"};
-    const auto iter = s_meta_names.find(m);
+    std::string result { "Unknown" };
+    const auto iter { s_meta_names.find(m) };
     if (iter != s_meta_names.end())
         result = iter->second;
 
@@ -869,10 +869,10 @@ using rpnpair = struct
     std::string name;
 };
 
-const int c_rpn_value_count = 8;
+const int c_rpn_value_count { 8 };
 
 static rpnpair
-s_rpn_names [c_rpn_value_count] =
+s_rpn_names [c_rpn_value_count]
 {
     {   0x0000,     "Pitch Bend Range"            },
     {   0x0001,     "Fine Tuning"                 },
@@ -932,11 +932,11 @@ rpn_name (int index)
 bool
 rpn_number_to_bytes (short rpnn, midi::byte out [2])
 {
-    bool result = rpnn >= 0 && rpnn < 16384;
+    bool result { rpnn >= 0 && rpnn < 16384 };
     if (result)
     {
-        unsigned short rpnn_lsb = rpnn & 0x3F;
-        unsigned short rpnn_msb = rpnn & 0x3F80;    /* rpnn - rpnn_lsb ?    */
+        unsigned short rpnn_lsb { rpnn & 0x3F };
+        unsigned short rpnn_msb { rpnn & 0x3F80 };  /* rpnn - rpnn_lsb ?    */
         out[0] = midi::byte(rpnn_lsb);
         out[1] = midi::byte(rpnn_msb);
     }
@@ -946,7 +946,7 @@ rpn_number_to_bytes (short rpnn, midi::byte out [2])
 short
 bytes_to_rpn_number (const midi::byte in [2])
 {
-    short result = short(in[1]);                    /* the MSB 7 bits       */
+    short result { short(in[1]) };                  /* the MSB 7 bits       */
     result <<= 7;
     result += short(in[0]);
     return result;

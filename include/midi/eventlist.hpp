@@ -363,7 +363,7 @@ public:
 
     midi::event::iterator remove (midi::event::iterator ie)
     {
-        midi::event::iterator result = m_events.erase(ie);
+        midi::event::iterator result { m_events.erase(ie) };
         m_is_modified = true;
         return result;
     }

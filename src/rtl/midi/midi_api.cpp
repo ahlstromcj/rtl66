@@ -55,24 +55,29 @@ midi_api::midi_api () :
     m_queue_size                (0)
 {
     /*
-     * Currently we use midi::port::io::output for probing for an exsiting API
+     * Currently we use midi::port::io::output for probing for an existing API
      * [see the rtl::find_midi_api() function.]
      */
 }
 
-midi_api::midi_api (midi::port::io iotype, unsigned queuesize) :
+midi_api::midi_api (midi::port::io iotype, unsigned qsize) :
     api_base                    (),
     m_port_io_type              (iotype),
     m_port_number               (-1),
-    m_input_data                (),             /* a small structure        */
+    m_input_data                (qsize),        /* input data structure     */
     m_master_bus                (),             /* a potential shared ptr   */
     m_has_master                (false),        /* true ==> midi::bus       */
     m_api_data                  (nullptr),
     m_is_connected              (false),
-    m_queue_size                (queuesize)
+    m_queue_size                (qsize)
 {
-    if (iotype == midi::port::io::input)
-        m_input_data.queue().allocate(queuesize);
+    /*
+     * Now done in the rtmidi_in_data class. If a non-zero queue size
+     * is provided, that implies an input port.
+     *
+     *  if (iotype == midi::port::io::input && qsize > 0)
+     *      m_input_data.queue().allocate(qsize);
+     */
 }
 
 midi_api::~midi_api ()

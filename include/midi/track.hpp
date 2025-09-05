@@ -349,10 +349,10 @@ private:
 public:
 
     track (number tn = 0);
-    track (const track & rhs) = delete;                 /* default; */
-    track (track &&) = delete;                          /* forced by mutex */
-    track & operator = (const track & rhs) = delete;    /* default; */
-    track & operator = (track &&) = delete;             /* forced by mutex */
+    track (const track & rhs) = delete;                 /* default;         */
+    track (track &&) = delete;                          /* forced by mutex  */
+    track & operator = (const track & rhs) = delete;    /* default;         */
+    track & operator = (track &&) = delete;             /* forced by mutex  */
     virtual ~track () = default;
 
     /*

@@ -468,7 +468,7 @@ event::is_desired (midi::byte s, midi::byte cc) const
     }
     else
     {
-        midi::byte stb = midi::mask_status(s);
+        midi::byte stb { midi::mask_status(s) };
         result = stb == m_message[0];                      /* d0 */
         if (result && midi::is_controller_msg(s))
             result = m_message[1] == cc;                   /* d1 */
@@ -535,12 +535,12 @@ event::is_desired_ex (midi::byte s, midi::byte cc) const
 bool
 event::is_data_in_handle_range (midi::byte target) const
 {
-    bool result = false;
+    bool result { false };
     if (is_tempo())
     {
-        static const midi::bpm s_delta = note_value_to_tempo(4);
-        midi::bpm t = tempo();
-        midi::bpm tdesired = note_value_to_tempo(target);
+        static const midi::bpm s_delta { note_value_to_tempo(4) };
+        midi::bpm t { tempo() };
+        midi::bpm tdesired { note_value_to_tempo(target) };
         result = t >= (tdesired - s_delta) && t <= (tdesired + s_delta);
     }
     else if (is_program_change())
@@ -549,9 +549,9 @@ event::is_data_in_handle_range (midi::byte target) const
     }
     else
     {
-        static const midi::byte s_delta = 4;    /* 2? seq32 provision  */
-        static const midi::byte max = midi::c_byte_value_max - s_delta;
-        midi::byte datum = is_one_byte() ? d0() : d1() ;
+        static const midi::byte s_delta { 4 };      /* 2? seq32 provision   */
+        static const midi::byte max { midi::c_byte_value_max - s_delta };
+        midi::byte datum { is_one_byte() ? d0() : d1() };
         result = target >= s_delta && target <= max;
         if (result)
         {
@@ -604,7 +604,7 @@ event::set_channel (midi::byte channel)
     }
     else
     {
-        int chan = mask_channel(channel);           /* clears status nybble */
+        int chan { mask_channel(channel) };         /* clears status nybble */
         m_channel = chan;
         if (has_channel())                          /* a channel message    */
             m_message[0] = add_channel(m_message[0], channel);
@@ -709,7 +709,7 @@ event::set_status_keep_channel (midi::byte eventcode)
 void
 event::set_note_off (int note, midi::byte channel)
 {
-    midi::byte chan = mask_channel(channel);
+    midi::byte chan { mask_channel(channel) };
     m_message[0] = add_channel(midi::to_byte(status::note_off), chan);
     set_data(midi::byte(note), 0);
 }
@@ -747,8 +747,8 @@ event::set_midi_event
     size_t count
 )
 {
-    midi::byte eventstatus = buffer[0];
-    bool result = is_below_sysex_msg(eventstatus);          /* < 0xf0       */
+    midi::byte eventstatus { buffer[0] };
+    bool result { is_below_sysex_msg(eventstatus) };        /* < 0xf0       */
     set_timestamp(timestamp);
     if (result)
     {
@@ -801,7 +801,7 @@ event::set_midi_event
         else
             result = false;
 #endif
-        midi::status s = midi::to_status(eventstatus);
+        midi::status s { midi::to_status(eventstatus) };
         result = true;
         reset_sysex();                      /* set up for sysex if needed   */
         switch (s)
@@ -941,7 +941,7 @@ event::set_text (const std::string & s)
 bool
 event::append_sysex (midi::byte data)
 {
-    bool firstbyte = m_message.empty();
+    bool firstbyte { m_message.empty() };
     m_message.push(data);
     return firstbyte || ! midi::is_sysex_end_msg(data);
 }
@@ -968,7 +968,7 @@ event::append_sysex (midi::byte data)
 bool
 event::append_sysex (const midi::byte * data, size_t dsize)
 {
-    bool result = not_nullptr(data) && (dsize > 0);
+    bool result { not_nullptr(data) && (dsize > 0) };
     if (result)
     {
         for (size_t i = 0; i < dsize; ++i)
@@ -1020,7 +1020,7 @@ event::append_meta_data
     const midi::bytes & data
 )
 {
-    midi::bytes vlen = varinum_to_bytes(midi::ulong(data.size()));
+    midi::bytes vlen { varinum_to_bytes(midi::ulong(data.size())) };
     m_message.clear();                  /* empty it to reconstruct it       */
     m_message.push(0);                  /* allocate message::m_message[0]   */
     m_message.push(0);                  /* allocate message::m_message[1]   */
@@ -1051,7 +1051,7 @@ event::append_meta_data
 void
 event::print (const std::string & tag) const
 {
-    std::string buffer = to_string();
+    std::string buffer { to_string() };
     if (tag.empty())
         printf("%s", buffer.c_str());
     else
@@ -1063,10 +1063,10 @@ event::print_note (bool showlink) const
 {
     if (is_note())
     {
-        bool shownote = is_note_on() || (is_note_off() && ! showlink);
+        bool shownote { is_note_on() || (is_note_off() && ! showlink) };
         if (shownote)
         {
-            std::string type = is_note_on() ? "On " : "Off" ;
+            std::string type { is_note_on() ? "On " : "Off" };
             char channel[8];
             if (m_channel == null_channel())
             {
@@ -1085,7 +1085,7 @@ event::print_note (bool showlink) const
             );
             if (is_linked() && showlink)
             {
-                const_iterator mylink = link();
+                const_iterator mylink { link() };
                 printf(" --> ");
                 mylink->print_note(false);
             }
@@ -1108,14 +1108,14 @@ event::print_note (bool showlink) const
 std::string
 event::to_string () const
 {
-    midi::pulse ts = timestamp();           /* normal event timestamp       */
+    midi::pulse ts { timestamp() };         /* normal event timestamp       */
     if (is_sysex() || is_meta())
         ts = get_message().time_stamp();    /* message jack/pulse timestamp */
 
     char tmp[64];
     (void) snprintf(tmp, sizeof tmp, "[%06ld] (", long(ts));
 
-    std::string result = tmp;
+    std::string result { tmp };
     if (is_sysex())
     {
         result += "SysEx) ";
@@ -1202,8 +1202,8 @@ event::get_rank () const
     }
     else
     {
-        midi::byte eventcode = mask_status(status_byte());
-        midi::status s = to_status(eventcode);
+        midi::byte eventcode { mask_status(status_byte()) };
+        midi::status s { to_status(eventcode) };
         switch (s)
         {
             case midi::status::note_off:
@@ -1248,7 +1248,7 @@ event::get_rank () const
 midi::bpm
 event::tempo () const
 {
-    midi::bpm result = 0.0;
+    midi::bpm result { 0.0 };
     if (is_tempo() && sysex_size() == 3)
     {
         /*
@@ -1276,7 +1276,7 @@ event::tempo () const
 bool
 event::set_tempo (midi::bpm tempo)
 {
-    double us = tempo_us_from_bpm(tempo);
+    double us { double(tempo_us_from_bpm(tempo)) };
     midi::bytes tt;
     return tempo_us_to_bytes(tt, midi::bpm(us)) ? set_sysex(tt) : 0 ;
 }
@@ -1284,8 +1284,8 @@ event::set_tempo (midi::bpm tempo)
 bool
 event::set_tempo (const midi::bytes & tt)
 {
-    double ttus = tempo_us_from_bytes(tt);
-    bool result = ttus > 0.0;
+    double ttus { tempo_us_from_bytes(tt) };
+    bool result { ttus > 0.0 };
     if (result)
         set_sysex(tt);
 
@@ -1311,20 +1311,20 @@ event::set_tempo (const midi::bytes & tt)
 bool
 event::randomize (int range)
 {
-    bool result = range > 0;
+    bool result { range > 0 };
     if (result)
     {
-        bool twobytes = is_two_bytes();
-        int datum = int(twobytes ? m_message[1] : m_message[0]);
+        bool twobytes { is_two_bytes() };
+        int datum { int(twobytes ? m_message[1] : m_message[0]) };
 #if defined RTL66_USE_UNIFORM_INT_DISTRIBUTION
-        int delta = midi::randomize_uniformly(range);
+        int delta { midi::randomize_uniformly(range) };
 #else
-        int delta = midi::randomize(range);
+        int delta { midi::randomize(range) };
 #endif
         result = delta != 0;
         if (result)
         {
-            midi::byte d = clamp_midi_value(datum + delta);
+            midi::byte d { clamp_midi_value(datum + delta) };
             if (twobytes)
                 m_message[1] = d;
             else
@@ -1347,13 +1347,13 @@ event::randomize (int range)
 bool
 event::jitter (int snap, int range, midi::pulse seqlength)
 {
-    bool result = range > 0;
+    bool result { range > 0 };
     if (result)
     {
 #if defined RTL66_USE_UNIFORM_INT_DISTRIBUTION
-        midi::pulse delta = midi::pulse(midi::randomize_uniformly(range));
+        midi::pulse delta { midi::pulse(midi::randomize_uniformly(range)) };
 #else
-        midi::pulse delta = midi::pulse(midi::randomize(range));
+        midi::pulse delta { midi::pulse(midi::randomize(range)) };
 #endif
         result = delta != 0;
         if (result)
@@ -1363,7 +1363,7 @@ event::jitter (int snap, int range, midi::pulse seqlength)
             else if (delta > snap)
                 delta = snap - 1;
 
-            midi::pulse tstamp = timestamp() + delta;
+            midi::pulse tstamp { timestamp() + delta };
             if (tstamp >= seqlength)
                 tstamp = seqlength - 1;
             else if (tstamp < 0)
@@ -1392,11 +1392,11 @@ event::jitter (int snap, int range, midi::pulse seqlength)
 bool
 event::tighten (int snap, midi::pulse seqlength)
 {
-    bool result = snap > 0;
+    bool result { snap > 0 };
     if (result)
     {
-        midi::pulse t = timestamp();
-        midi::pulse tremainder = t % snap;
+        midi::pulse t { timestamp() };
+        midi::pulse tremainder { t % snap };
         midi::pulse tdelta;
         if (tremainder < snap / 2)
             tdelta = -(tremainder / 2);
@@ -1435,11 +1435,11 @@ event::tighten (int snap, midi::pulse seqlength)
 bool
 event::quantize (int snap, midi::pulse seqlength)
 {
-    bool result = snap > 0;
+    bool result { snap > 0 };
     if (result)
     {
-        midi::pulse t = timestamp();
-        midi::pulse tremainder = t % snap;
+        midi::pulse t { timestamp() };
+        midi::pulse tremainder { t % snap };
         midi::pulse tdelta;
         if (tremainder < snap / 2)
             tdelta = -tremainder;
@@ -1594,15 +1594,15 @@ event
 create_event (midi::pulse tstamp, const midi::bytes & dbytes)
 {
     event result;
-    bool is_set = result.set_midi_event(tstamp, dbytes, dbytes.size());
+    bool is_set { result.set_midi_event(tstamp, dbytes, dbytes.size()) };
     if (! is_set)
     {
-        midi::status eventstatus = to_status(dbytes[0]);
+        midi::status eventstatus { to_status(dbytes[0]) };
         if (eventstatus == midi::status::meta_msg)
         {
-            midi::byte metatype = dbytes[1];
-            int index = 2;
-            midi::ulong len = extract_varinum(dbytes, index);
+            midi::byte metatype { dbytes[1] };
+            int index { 2 };
+            midi::ulong len { extract_varinum(dbytes, index) };
             result.set_meta_status(metatype);
             (void) result.set_sysex(dbytes.data() + index, len);
         }
