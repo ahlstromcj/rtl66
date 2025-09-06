@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24        (seq66::midi_port_info)
- * \updates       2025-08-28
+ * \updates       2025-09-06
  * \license       See above.
  *
  *  Contains information about a single MIDI port, as determined by
@@ -49,7 +49,7 @@ namespace midi
 /**
  *  In the latest versions of JACK, 0xFFFE is the macro "NO_PORT".  Although
  *  krufty, we can use this value in Seq66 no matter the version of JACK, or
- *  even what API is used.
+ *  even what API is used. Another value used is -1.
  */
 
 inline uint32_t
@@ -122,26 +122,33 @@ private:
      *  We provide a default constructor rather than set defaults here.
      *  Compare this set to the seq66::portslist::io structure. The only
      *  concept missing here is the "nick-name".
+     *
+     *  Also, note that the port number (in ALSA) comes from a query and
+     *  indicates the number re a particular client. For example,
+     *  "Midi Through:Midi Through Port-0" has a client:port number
+     *  pair of "14:0". But for applications, we need an index value
+     *  for the port, for lookup purposes. Hence the m_port_id number.
      */
 
-    int m_buss_number { -1 };          /**< *Major buss number of the port. */
-    std::string m_buss_name { };       /**< *System's name for the buss.    */
-    int m_port_number { -1 };          /**< *Minor port number of the port. */
-    std::string m_port_name { };       /**< *System's name for the port.    */
-    int m_queue_number { -1 };         /**< xA number used in some APIs.    */
-    io m_io_type { io::dummy };        /**< *Indicates input versus output. */
-    kind m_port_type                   /**< *Flags normal/virt/system port. */
+    int m_buss_number { -1 };           /**< Major buss number of the port. */
+    std::string m_buss_name { };        /**< System's name for the buss.    */
+    int m_port_number { -1 };           /**< Minor port number of the port. */
+    std::string m_port_name { };        /**< System's name for the port.    */
+    int m_queue_number { -1 };          /**< A number used in some APIs.    */
+    io m_io_type { io::dummy };         /**< Indicates input versus output. */
+    kind m_port_type                    /**< Flags normal/virt/system port. */
     {
         kind::undetermined
     };
-    std::string m_port_alias { };      /**< *Non-empty in some JACK setups. */
-    uint32_t m_internal_id             /**< xInternal port number.          */
+    std::string m_port_alias { };       /**< Non-empty in some JACK setups. */
+    int m_port_id { -1 };               /**< Application port-number/index. */
+    uint32_t m_internal_id              /**< Internal port number.          */
     {
         null_system_port_id()
     };
-    clocking m_io_status               /**< *On, off (disabled), clocking...*/
+    clocking m_io_status                /**< *On off (disabled) clocking... */
     {
-        clocking::none                 /**< basic flag for "port enabled".  */
+        clocking::none                  /**< Basic flag for "port enabled". */
     };
 
 public:
@@ -155,6 +162,7 @@ public:
         const std::string & portname,
         io iotype,
         kind porttype,
+        int portid,                     // NEW
         int queuenumber                 = (-1),
         const std::string & aliasname   = ""
     );
@@ -181,6 +189,11 @@ public:                                 /* getters                          */
     int port_number () const
     {
         return m_port_number;
+    }
+
+    int port_id () const
+    {
+        return m_port_id;
     }
 
     const std::string & port_name () const
@@ -243,6 +256,11 @@ public:                                 /* setters                          */
     void port_number (int p)
     {
         m_port_number = p;
+    }
+
+    void port_id (int p)
+    {
+        m_port_id = p;
     }
 
     void port_name (const std::string & pn)

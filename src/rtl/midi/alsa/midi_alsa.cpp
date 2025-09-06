@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-05
+ * \updates       2025-09-06
  * \license       See above.
  *
  */
@@ -1920,7 +1920,7 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                         SND_SEQ_CLIENT_SYSTEM, "system",
                         SND_SEQ_PORT_SYSTEM_ANNOUNCE, "announce",
                         midi::port::io::input, midi::port::kind::system,
-                        0   // TEMPORARY global_queue()
+                        0 /*index*/  // TEMPORARY global_queue()
                     );
                     ++result;
                 }
@@ -1969,7 +1969,7 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                     ioports.add
                     (
                         client, clientname, portnumber, portname,
-                        iotype, midi::port::kind::normal
+                        iotype, midi::port::kind::normal, result   /* index */
                     );
                     ++result;
                 }

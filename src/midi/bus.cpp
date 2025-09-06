@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-09-04
+ * \updates       2025-09-06
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -187,8 +187,8 @@ bus::bus
                 "  I/O Status: '%s'\n"
                 ,
                 index,
-                bus_id(), bus_name().c_str(),
-                port_id(), port_name().c_str(), port_alias().c_str(),
+                bus_number(), bus_name().c_str(),
+                port_number(), port_name().c_str(), port_alias().c_str(),
                 io_to_string(io_type()).c_str(),
                 kind_to_string(port_type()).c_str(),
                 clocking_to_string(clock_type()).c_str()
@@ -311,7 +311,7 @@ bus::set_name
             snprintf
             (
                 name, sizeof name, "[%d] %d:%d %s:%s",
-                bus_index(), bus_id(), port_id(),
+                bus_index(), bus_number(), port_number(),
                 appname.c_str(), portname.c_str()
             );
             bus_name(appname);
@@ -320,12 +320,6 @@ bus::set_name
     }
     else
     {
-        /*
-         * See banner.
-         *
-         * Old: std::string bname = usr().bus_name(port_id());
-         */
-
         char alias[80];                                     /* was 128  */
         std::string bname { "TODO" };       // usr().bus_name(m_bus_index);
         if (is_output_port() && ! bname.empty())
@@ -350,7 +344,7 @@ bus::set_name
         snprintf                            /* copy the client name parts */
         (
             name, sizeof name, "[%d] %d:%d %s",
-            bus_index(), bus_id(), port_id(), alias
+            bus_index(), bus_number(), port_number(), alias
         );
     }
     display_name(name);
@@ -403,7 +397,7 @@ bus::set_alt_name
         snprintf                            /* copy the client name parts */
         (
             alias, sizeof alias, "[%d] %d:%d %s",
-            bus_index(), bus_id(), port_id(), pname.c_str()
+            bus_index(), bus_number(), port_number(), pname.c_str()
         );
         bus_name(bname);
         port_name(pname);
@@ -553,7 +547,7 @@ bus::show_bus_values ()
         "bus type:          %s %s %s\n"
         "clock & enabling:  %d & %s\n"
         ,
-        client_id(), bus_id(), port_id(),
+        client_id(), bus_number(), port_number(),
         display_name().c_str(), connect_name().c_str(),
         bus_name().c_str(), port_name().c_str(),
         vport, iport, sport,

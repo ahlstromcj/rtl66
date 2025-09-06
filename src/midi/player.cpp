@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-08-21
+ * \updates       2025-09-05
  * \license       GNU GPLv2 or above
  *
  */
@@ -599,23 +599,31 @@ player::create_master_bus (clientinfo & ci)
             if (m_master_bus)
             {
                 midi::masterbus * mmb = m_master_bus.get();
-                if (mmb->client_info_reset(ci))
+                result = mmb->client_info_reset(ci);
+                if (result)
                 {
-#if DERIVED_CLASS
-                    mmb->filter_by_channel(m_filter_by_channel);
-                    mmb->set_port_statuses(m_clocks, m_inputs);
-                    midi_control_out().set_master_bus(mmb);
+                    result = mmb->engine_initialize(ci);
+                    if (result)
+                        result = mmb->engine_activate();
+
+                    if (result)
+                    {
+#if DERIVED_CLASS       // for the Future!
+
+                        mmb->filter_by_channel(m_filter_by_channel);
+                        mmb->set_port_statuses(m_clocks, m_inputs);
+                        midi_control_out().set_master_bus(mmb);
 #endif
-                    m_transport_info.time_signature
-                    (
-                        ci.global_beats_per_bar(),
-                        ci.global_beat_width()
-                    );
-                    m_transport_info.time_resolution
-                    (
-                        ci.global_ppqn(), ci.global_bpm()
-                    );
-                    result = true;
+                        m_transport_info.time_signature
+                        (
+                            ci.global_beats_per_bar(),
+                            ci.global_beat_width()
+                        );
+                        m_transport_info.time_resolution
+                        (
+                            ci.global_ppqn(), ci.global_bpm()
+                        );
+                    }
                 }
             }
         }

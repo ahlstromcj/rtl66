@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05        (seq66::midi_port_info)
- * \updates       2025-08-26
+ * \updates       2025-09-06
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -131,14 +131,15 @@ public:
     bool add (const midi::port & p);
     bool add
     (
-        int bussnumber,                   // buss number/ID
-        const std::string & bussname,     // buss name
-        int portnumber,
-        const std::string & portname,
+        int bussnumber,                     /* example: "14" for MIDI thru  */
+        const std::string & bussname,       /* example: "Midi Through"      */
+        int portnumber,                     /* example: "0"                 */
+        const std::string & portname,       /* e.g. "Midi Through Port-0:   */
         midi::port::io iotype,
         midi::port::kind porttype,
+        int portid,                         /* an index value from 0 on up  */
         int queuenumber             = (-1),
-        const std::string & alias   = ""    // not always available
+        const std::string & alias   = ""    /* not always available         */
     );
 
     /**

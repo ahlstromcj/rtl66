@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-08-28
+ * \updates       2025-09-06
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -561,7 +561,8 @@ busarray::get_midi_bus_name (int b) const
                 snprintf
                 (
                     tmp, sizeof tmp, "[%d] %d:%d %s",
-                    b, bptr->bus_id(), bptr->port_id(), portname.c_str()
+                    b, bptr->bus_number(), bptr->port_number(),
+                    portname.c_str()
                 );
                 result = tmp;
             }

@@ -66,9 +66,9 @@ bus_out::bus_out
     midi::masterbus & master,
     int index
 ) :
-    midi::bus (master, index, midi::port::io::output),
+    midi::bus       (master, index, midi::port::io::output),
     m_rtmidi_out    (master),
-    m_last_tick (0)
+    m_last_tick     (0)
 {
     if (not_nullptr(midi_api_ptr()))            /* midi_api object's ptr    */
     {

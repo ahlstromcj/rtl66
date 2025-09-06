@@ -1,9 +1,10 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-09-05
+2019-04-13 to 2025-09-06
 
 Hot:
 
+    -   Still need to get play to work.
     -   In create_track(), use the initial track number as a parameter.
     -   In event::append_meta_data(), the message is actually cleared
         before appending. Rename the function or add a bool 'clear' flag.

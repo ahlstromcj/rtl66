@@ -24,14 +24,14 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-10
- * \updates       2024-10-28
+ * \updates       2025-09-06
  * \license       See above.
  *
  *  This class is meant to specify system MIDI information about client/buss
  *  number, buss numbers, and buss names, and hold it for usage (e.g. when
  *  creating midi::bus objects).
  *
- *  CURRENTLY NOT USED. See clientinfo.
+ *  CURRENTLY NOT USED, though compiled. See clientinfo.
  *
  */
 
@@ -98,6 +98,7 @@ bussdata::bussdata
         portname,
         iotype,
         busstype,
+        (-1),                                   /* portid not included yet  */
         queuenumber,
         aliasname
     ),

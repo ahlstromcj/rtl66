@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-08-17
+ * \updates       2025-09-06
  * \license       See above.
  *
  * Classes defined:
@@ -130,6 +130,7 @@ ports::add
     const std::string & portname,
     port::io iotype,
     port::kind porttype,
+    int portid,                     // NEW
     int queuenumber,
     const std::string & alias
 )
@@ -137,7 +138,7 @@ ports::add
     port temp
     (
         clientnumber, clientname, portnumber, portname,
-        iotype, porttype, queuenumber, alias
+        iotype, porttype, portid, queuenumber, alias
     );
     // m_port_container.push_back(temp);
     // m_port_count = int(m_port_container.size());
@@ -152,33 +153,16 @@ ports::add
     char str[128];
     snprintf
     (
-        str, sizeof str, "Added port \"%s:%s\" %s (%s %s %s)",
-        clientname.c_str(), portname.c_str(), alias.c_str(),
+        str, sizeof str,
+        "Added port #%d \"%s:%s\" [%d:%d] %s (%s %s %s)",
+        portid, clientname.c_str(), portname.c_str(),
+        clientnumber, portnumber, alias.c_str(),
         vport, iport, sport
     );
     (void) util::info_message(str);
 #endif
     return add(temp);
 }
-
-#if defined USE_MIDI_BUS
-
-/**
- *  Adds values from a midibus (actually a midibase-derived class).
- */
-
-void
-ports::add (const midibus * m)
-{
-    add
-    (
-        m->bus_id(), m->bus_name(),
-        m->port_id(), m->port_name(),
-        m->io_type(), m->port_type()
-    );
-}
-
-#endif
 
 /**
  *  Retrieve the index of a client:port combination (e.g. in ALSA, the output
@@ -193,7 +177,8 @@ ports::add (const midibus * m)
  * \return
  *      Returns the index of the pair in the port container, which will match
  *      up with the listing one sees in the "MIDI Input" or "MIDI Clocks"
- *      pages in the "Preferences" dialog.  If not found, a -1 is returned.
+ *      pages in the "Preferences" dialog.  If not found, a -1 (ie. the
+ *      value of null_buss()] is returned.
  */
 
 bussbyte

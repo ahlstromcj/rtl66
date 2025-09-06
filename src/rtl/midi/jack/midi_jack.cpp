@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-31
+ * \updates       2025-09-06
  * \license       See above.
  *
  *  Engine candidates:
@@ -1038,7 +1038,8 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
             ioports.add
             (
                 clientnumber, clientname, portnumber, portname,
-                midi::port::io::input, midi::port::kind::manual
+                midi::port::io::input, midi::port::kind::manual,
+                result
             );
             ++result;
 #endif
@@ -1079,7 +1080,7 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
                 (
                     clientnumber, clientname, count, portname,
                     iotype, midi::port::kind::normal,
-                    0, alias
+                    result, 0, alias
                 );
                 ++count;
             }

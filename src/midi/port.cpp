@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24
- * \updates       2025-09-01
+ * \updates       2025-09-06
  * \license       See above.
  *
  *  midi::port. A class holding data about a port.  This class is meant to
@@ -53,6 +53,7 @@ port::port
     const std::string & portname,
     io iotype,
     kind porttype,
+    int portid,
     int queuenumber,
     const std::string & alias
 ) :
@@ -63,7 +64,8 @@ port::port
     m_queue_number  (queuenumber),
     m_io_type       (iotype),
     m_port_type     (porttype),
-    m_port_alias    (alias)
+    m_port_alias    (alias),
+    m_port_id       (portid)
 
     /*
      *  m_internal_id   (null_system_port_id())

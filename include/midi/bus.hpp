@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-08-28
+ * \updates       2025-09-06
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -415,14 +415,19 @@ public:
         return m_client_id;
     }
 
-    int bus_id () const
+    int bus_number () const
     {
         return midi_port().buss_number();
     }
 
-    int port_id () const
+    int port_number () const
     {
         return midi_port().port_number();
+    }
+
+    int port_id () const
+    {
+        return midi_port().port_id();
     }
 
     /**
@@ -431,7 +436,7 @@ public:
 
     bool match (int b, int p)
     {
-        return (port_id() == p) && (bus_id() == b);
+        return (port_number() == p) && (bus_number() == b);
     }
 
     port::kind port_type () const
@@ -538,7 +543,7 @@ public:
      *  assigned by ALSA.  (That value ranges from 128 to 191.)
      */
 
-    void set_bus_id (int id)
+    void set_bus_number (int id)
     {
         midi_port().buss_number(id);
     }
