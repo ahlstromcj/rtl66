@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-08-27
+ * \updates       2025-09-07
  * \license       See above.
  *
  */
@@ -252,6 +252,7 @@ static const char * s_help_text_fmt =
 "                   cannot be initialized.\n"
 #endif
 #endif              // defined PLATFORM_LINUX
+"  --test name      Run only the selected test.\n"
 "  --virtual        Use virtual ports (not available to some MIDI engines).\n"
 "  --auto-connect   For non-virtual ports, get the existing system ports and\n"
 "                   try to connect to them.\n"
@@ -376,6 +377,24 @@ rt_test_port_name ()
 }
 
 /**
+ *  Allows for selecting a particular test in a test application.
+ */
+
+static std::string s_test_name;                    /* empty to start   */
+
+void
+set_rt_test_name (const std::string & portname)
+{
+    s_test_name = portname;
+}
+
+const std::string &
+rt_test_name ()
+{
+    return s_test_name;
+}
+
+/**
  *  Specifies the test data-length (where applicable).
  */
 
@@ -454,6 +473,14 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
         }
 #endif
 #endif          // defined PLATFORM_LINUX
+        else if (arg == "--test")
+        {
+            if (i + 1 < argc)
+            {
+                std::string value = std::string(argv[i + 1]);
+                set_rt_test_name(value);
+            }
+        }
         else if (arg == "--virtual")
         {
             set_virtual_test_port(true);

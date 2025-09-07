@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2025-08-20
+ * \updates       2025-09-06
  * \license       GNU GPLv2 or above
  *
  *  This class is important when writing the MIDI and track data out to a
@@ -691,7 +691,7 @@ track::set_parent (player * p, lib66::toggler sorting)
         midi::pulse barlength { ppnote * beats_per_bar() };
         m_parent = p;
         manufacturer_id(p->manufacturer_id());
-        master_midi_bus(p->master_bus());
+        master_midi_bus(p->master_bus_ptr());
         if (sorting == lib66::toggler::on)
             sort_events();                  /* sort the events now          */
 

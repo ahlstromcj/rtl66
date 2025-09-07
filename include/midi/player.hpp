@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-10
- * \updates       2025-08-20
+ * \updates       2025-09-07
  * \license       GNU GPLv2 or above
  *
  *  The player class is a severely cut-down version of seq66::performer, with
@@ -544,14 +544,8 @@ public:
         }
     }
 
-    void off_tracks ()
-    {
-        for (auto & trk : track_list().tracks())
-        {
-            if (trk->active())
-                trk->set_armed(false);
-        }
-    }
+    bool arm_all_tracks ();             /* useful in the test applications  */
+    bool off_tracks ();
 
     midi::pulse left_tick () const
     {
@@ -944,17 +938,17 @@ public:
         m_needs_update = flag;
     }
 
-    const masterbus * master_bus () const
+    const masterbus * master_bus_ptr () const
+    {
+        return m_master_bus.get();
+    }
+
+    masterbus * master_bus_ptr ()
     {
         return m_master_bus.get();
     }
 
 protected:
-
-    masterbus * master_bus ()
-    {
-        return m_master_bus.get();
-    }
 
     rtl::iothread & out_thread ()
     {

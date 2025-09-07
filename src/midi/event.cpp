@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-08-22
+ * \updates       2025-09-06
  * \license       GNU GPLv2 or above
  *
  *  A MIDI event (i.e. "track event") is encapsulated by the midi::event
@@ -94,7 +94,9 @@ namespace midi
  *  we currently insure it has three data bytes for easier modification.
  */
 
-event::event () :
+event::event ()
+#if 0
+ :
     m_input_buss    (null_buss()),              /* 0xFF                     */
     m_timestamp     (0),
     m_message       (),                         /* now a midi::message      */
@@ -108,10 +110,37 @@ event::event () :
 #else
     m_marked        (false)
 #endif
+#endif
 {
     m_message.push(midi::to_byte(status::note_off));
     m_message.push(0);
     m_message.push(0);
+}
+
+/**
+ *  This constructor just copies the midi::message bytes.
+ */
+
+event::event (const midi::message & msg) :
+#if 0
+    m_input_buss    (null_buss()),              /* 0xFF                     */
+    m_timestamp     (msg.time_stamp()),
+#endif
+    m_message       (msg)
+#if 0
+    m_channel       (null_channel()),           /* 0x80                     */
+    m_linked        (),
+    m_has_link      (false),
+    m_selected      (false),
+#if defined RTL66_SUPPORT_PAINTED_EVENTS
+    m_marked        (false),
+    m_painted       (false)
+#else
+    m_marked        (false)
+#endif
+#endif
+{
+    // no code, but we might need more parsing
 }
 
 /**
@@ -134,18 +163,18 @@ event::event () :
  */
 
 event::event (midi::pulse tstamp, midi::byte s, midi::byte d0, midi::byte d1) :
-    m_input_buss    (null_buss()),          /* 0xFF                         */
+//  m_input_buss    (null_buss()),          /* 0xFF                         */
     m_timestamp     (tstamp),
-    m_message       (),                     /* now a midi::message          */
-    m_channel       (mask_channel(s)),
-    m_linked        (),
-    m_has_link      (false),
-    m_selected      (false),
+//  m_message       (),                     /* now a midi::message          */
+    m_channel       (mask_channel(s))
+//  m_linked        (),
+//  m_has_link      (false),
+//  m_selected      (false),
 #if defined RTL66_SUPPORT_PAINTED_EVENTS
-    m_marked        (false),
-    m_painted       (false)
+//  m_marked        (false),
+//  m_painted       (false)
 #else
-    m_marked        (false)
+//  m_marked        (false)
 #endif
 {
     m_message.push(s);
@@ -158,18 +187,18 @@ event::event (midi::pulse tstamp, midi::byte s, midi::byte d0, midi::byte d1) :
  */
 
 event::event (midi::pulse tstamp, midi::bpm tempo) :
-    m_input_buss    (null_buss()),
+//  m_input_buss    (null_buss()),
     m_timestamp     (tstamp),
-    m_message       (),
-    m_channel       (midi::to_byte(meta::set_tempo)),
-    m_linked        (),
-    m_has_link      (false),
-    m_selected      (false),
+//  m_message       (),
+    m_channel       (midi::to_byte(meta::set_tempo))
+//  m_linked        (),
+//  m_has_link      (false),
+//  m_selected      (false),
 #if defined RTL66_SUPPORT_PAINTED_EVENTS
-    m_marked        (false),
-    m_painted       (false)
+//  m_marked        (false),
+//  m_painted       (false)
 #else
-    m_marked        (false)
+//  m_marked        (false)
 #endif
 {
     set_tempo(tempo);                       /* fills the m_message vector      */
@@ -183,18 +212,18 @@ event::event
 (
     midi::pulse tstamp, midi::meta metatype, const midi::bytes & data
 ) :
-    m_input_buss    (null_buss()),
+//  m_input_buss    (null_buss()),
     m_timestamp     (tstamp),
-    m_message       (),
-    m_channel       (midi::to_byte(metatype)),
-    m_linked        (),
-    m_has_link      (false),
-    m_selected      (false),
+//  m_message       (),
+    m_channel       (midi::to_byte(metatype))
+//  m_linked        (),
+//  m_has_link      (false),
+//  m_selected      (false),
 #if defined RTL66_SUPPORT_PAINTED_EVENTS
-    m_marked        (false),
-    m_painted       (false)
+//  m_marked        (false),
+//  m_painted       (false)
 #else
-    m_marked        (false)
+//  m_marked        (false)
 #endif
 {
     (void) append_meta_data(metatype, data);
@@ -212,18 +241,18 @@ event::event
     int note,
     int velocity
 ) :
-    m_input_buss    (null_buss()),
+//  m_input_buss    (null_buss()),
     m_timestamp     (tstamp),
-    m_message       (),
-    m_channel       (channel),
-    m_linked        (),
-    m_has_link      (false),
-    m_selected      (false),
+//  m_message       (),
+    m_channel       (channel)
+//  m_linked        (),
+//  m_has_link      (false),
+//  m_selected      (false),
 #if defined RTL66_SUPPORT_PAINTED_EVENTS
-    m_marked        (false),
-    m_painted       (false)
+//  m_marked        (false),
+//  m_painted       (false)
 #else
-    m_marked        (false)
+//  m_marked        (false)
 #endif
 {
     if (is_null_channel(channel))

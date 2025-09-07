@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-07-31
+ * \updates       2025-09-07
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -66,7 +66,7 @@ namespace midi
  *  amount of text in the song info edit field.
  */
 
-const size_t c_meta_text_limit = 32767;     /* good for a sanity check, too */
+const size_t c_meta_text_limit { 32767 };   /* good for a sanity check, too */
 
 /**
  *  Provides events for management of MIDI events.
@@ -147,7 +147,7 @@ private:
      *  value is unusable: null_buss() from the midi::bytes.hpp module.
      */
 
-    midi::bussbyte m_input_buss;
+    midi::bussbyte m_input_buss { null_buss() };
 
     /**
      *  Provides the MIDI timestamp in ticks, otherwise known as the "pulses"
@@ -155,7 +155,7 @@ private:
      *  m_message member holds a double version of the timestamp.
      */
 
-    midi::pulse m_timestamp;
+    midi::pulse m_timestamp { 0 };
 
     /**
      *  The event status byte. now folded into the first byte of the
@@ -180,25 +180,25 @@ private:
      *
      *  The channel is included when recording MIDI, but, once a track with
      *  a matching channel is found, the channel nybble is cleared for
-     *  storage.  The channel will be added back on the MIDI bus upon
-     *  playback.  The high nybble = type of event; The low nybble = channel.
+     *  storage. The channel will be added back on the MIDI bus upon
+     *  playback. The high nybble = type of event; The low nybble = channel.
      *  Bit 7 is present in all status bytes.
      *
      *  Note that, for status values of 0xF0 (Sysex) or 0xFF (Meta), special
-     *  handling of the event can occur.  We would like to eventually use
+     *  handling of the event can occur. We would like to eventually use
      *  inheritance to keep the event class simple, but that would interfere
      *  with event containment by copy (we don't want to manage event
      *  pointers).
      */
 
-    midi::message m_message;                           /* status, d0, d1, ...  */
+    midi::message m_message { };                    /* status, d0, d1, ...  */
 
     /**
      *  In order to be able to handle MIDI channel-splitting of an SMF 0 file,
      *  we need to store the channel, even if we override it when playing the
      *  MIDI data.
      *
-     *  Overload:  For Meta events, where is_meta() is true, this value holds
+     *  Overload: For Meta events, where is_meta() is true, this value holds
      *  the type of Meta event. See the editable_event::sm_meta_event_names[]
      *  array.
      *
@@ -206,7 +206,7 @@ private:
      *        that one.
      */
 
-    midi::byte m_channel;
+    midi::byte m_channel { null_channel() };
 
     /**
      *  The data buffer for SYSEX messages.  Adapted from Stazed's Seq32
@@ -228,20 +228,20 @@ private:
      *  a small circle for each tempo event.
      */
 
-    iterator m_linked;
+    iterator m_linked { };
 
     /**
      *  Indicates that a link has been made.  This item is used [via
      *  the get_link() and link() accessors] in the sequence class.
      */
 
-    bool m_has_link;
+    bool m_has_link { false };
 
     /**
      *  Answers the question "is this event selected in editing."
      */
 
-    bool m_selected;
+    bool m_selected { false };
 
     /**
      *  Answers the question "is this event marked in processing."  This
@@ -249,7 +249,7 @@ private:
      *  events.
      */
 
-    bool m_marked;
+    bool m_marked { false };
 
 #if defined RTL66_SUPPORT_PAINTED_EVENTS
 
@@ -259,13 +259,14 @@ private:
      *  true (it defaults to false).
      */
 
-    bool m_painted;
+    bool m_painted { false };
 
 #endif
 
 public:
 
     event ();
+    event (const midi::message & msg);
     event
     (
         midi::pulse tstamp,

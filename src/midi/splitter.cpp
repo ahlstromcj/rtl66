@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-11-24
- * \updates       2022-12-02
+ * \updates       2025-09-06
  * \license       GNU GPLv2 or above
  *
  *  We have recently updated this module to put Set Tempo events into the
@@ -209,8 +209,8 @@ splitter::make_track_settings
     midi::track::number chan
 )
 {
-    trk.master_midi_bus(p.master_bus());
-    trk.midi_bus(chan, 0);                  /* TODO */
+    trk.master_midi_bus(p.master_bus_ptr());
+    trk.midi_bus(chan, 0);                      /* TODO */
     trk.midi_channel(chan);
     trk.track_name(name);
 }

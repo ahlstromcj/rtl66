@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-08-17
+ * \updates       2025-09-07
  * \license       See above.
  *
  *  Note that these functions are not in a namespace so that most of them
@@ -57,10 +57,12 @@ extern bool rt_virtual_test_port ();
 extern int rt_test_port ();
 extern int rt_test_port_in ();
 extern int rt_test_port_out ();
+extern const std::string  & rt_test_name ();
 extern void set_rt_test_port (int portno);
 extern void set_rt_test_port_in (int portno);
 extern void set_rt_test_port_out (int portno);
 extern void set_rt_test_port_name (const std::string & portname);
+extern void set_rt_test_name (const std::string & portname);
 extern bool rt_test_port_valid (int portno);
 extern void set_test_data_length (int len);
 extern int rt_test_data_length ();

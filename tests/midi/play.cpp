@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-09-05
+ * \updates       2025-09-07
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -45,6 +45,7 @@
 #include <iostream>                     /* std::cout and std::cerr          */
 
 #include "cfg/appinfo.hpp"              /* cfg::set_client_name()           */
+#include "midi/bus_out.hpp"             /* midi::bus_out class              */
 #include "midi/player.hpp"              /* midi::player class               */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
@@ -105,7 +106,15 @@ bool play_it (midi::player & p, std::string & errmsg)
      p.print_tracks("Play");                /* show all events in tracks    */
 #endif
 
-    bool result { p.simple_play() };
+    /*
+     * bool result { p.simple_play() };
+     */
+
+
+    bool result { p.arm_all_tracks() };
+    if (result)
+        result = p.play();
+
     if (! result)
     {
         if (p.error_pending())
@@ -232,6 +241,20 @@ main (int argc, char * argv [])
             midi::player p { rt_test_port() };
             ci.output_portnumber(rt_test_port());
             can_run = p.launch();
+            if (can_run)
+            {
+                midi::masterbus * const masterptr { p.master_bus_ptr() };
+                if (not_nullptr(masterptr))
+                {
+                    midi::bus & outbus
+                    {
+                        masterptr->get_out_bus(rt_test_port())
+                    };
+                    can_run = outbus.initialize();
+                }
+                else
+                    can_run = false;
+            }
             if (can_run)
             {
                 std::string tag

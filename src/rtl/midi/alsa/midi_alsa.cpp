@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-06
+ * \updates       2025-09-07
  * \license       See above.
  *
  */
@@ -238,7 +238,7 @@ midi_alsa_handler (void * ptr)
         midi_alsa::static_data_cast(rtidata->api_data())
     };
 
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
         printf("ALSA handler handle = %p\n", (void *)(ncdata->alsa_client()));
 #endif
 
@@ -340,13 +340,13 @@ midi_alsa_handler (void * ptr)
         switch (ev->type )
         {
         case SND_SEQ_EVENT_PORT_SUBSCRIBED:
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
             debug_print("midi_alsa_handler()", "port subscribed");
 #endif
             break;
 
         case SND_SEQ_EVENT_PORT_UNSUBSCRIBED:
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
             debug_print("midi_alsa_handler()", "port unsubscribed");
             std::cout
                 << "sender = " << (int) ev->data.connect.sender.client << ":"
@@ -817,7 +817,7 @@ midi_alsa::engine_connect ()
         if (not_nullptr(result))
         {
             set_seq_client_name(client_handle(), client_name());
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
             printf("masterbus client handle = %p\n", (void *)(client_handle()));
 #endif
         }
@@ -960,7 +960,7 @@ midi_alsa::connect ()
     ::snd_seq_t * c { client_handle(engine_connect()) };
     bool result { not_nullptr(c) };
 
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
     printf
     (
         "ALSA %s connect handle = %p\n",
@@ -1104,7 +1104,7 @@ midi_alsa::drain_output () const
     midi_alsa_data & ncdata { const_cast<midi_alsa_data &>(data) };
     int rc { ::snd_seq_drain_output(ncdata.alsa_client()) };
     bool result { rc >= 0 };
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
         printf
         (
             "ALSA client handle = %p, %s\n",
@@ -1213,7 +1213,7 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
         ::snd_seq_port_info_t * dest_pinfo { nullptr }; /* output only      */
         result = nsrc > 0;
 
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
         printf
         (
             "open_port() %s #%d client handle = %p\n",
@@ -1775,53 +1775,37 @@ midi_alsa::send_message (const midi::byte * msg, size_t sz) const
             b[i] = msg[i];
     }
     else
-    {
         error(rterror::kind::driver_error, "send_message(): null buffer");
-    }
 
     ::snd_midi_event_t * parser { data.event_parser() };
     int rc { ::snd_midi_event_new(data.buffer_size(), &parser) };
     if (rc < 0)
-    {
-        error
-        (
-            rterror::kind::driver_error,
-            "send_message(): error init'ing event parser"
-        );
-    }
+        error(rterror::kind::driver_error, "send_message(): out of memory");
 
     size_t offset { 0 };
     while (offset < nbytes)
     {
         ::snd_seq_event_t ev;
-        snd_seq_ev_clear(&ev);
+        :: snd_seq_ev_clear(&ev);
         snd_seq_ev_set_source(&ev, data.vport());   /* macro? */
         snd_seq_ev_set_subs(&ev);
         snd_seq_ev_set_direct(&ev);
+
         long rc
         {
             ::snd_midi_event_encode
             (
-                parser, b + offset,
-                long(nbytes - offset), &ev
+                parser, b + offset, long(nbytes - offset), &ev
             )
         };
         if (rc < 0)
         {
-            error
-            (
-                rterror::kind::warning,
-                "send_message(): event parsing error"
-            );
+            error(rterror::kind::warning, "send_message(): parsing error");
             return false;
         }
         if (ev.type == SND_SEQ_EVENT_NONE)
         {
-            error
-            (
-                rterror::kind::warning,
-                "send_message(): incomplete message"
-            );
+            error(rterror::kind::warning, "send_message(): incomplete message");
             return false;
         }
         offset += rc;
@@ -1829,11 +1813,7 @@ midi_alsa::send_message (const midi::byte * msg, size_t sz) const
         int ec { ::snd_seq_event_output(data.alsa_client(), &ev) };
         if (ec < 0)
         {
-            error
-            (
-                rterror::kind::warning,
-                "send_message(): event output error"
-            );
+            error(rterror::kind::warning, "send_message(): output error");
             return false;
         }
     }
@@ -2340,10 +2320,10 @@ midi_alsa::get_midi_event (midi::event * inev)
      */
 
     const size_t buffersize = 256;              /* 12 enough but for SysEx  */
-    midi::bytes buff(buffersize);             /* pre-allocate the data    */
-    ::snd_midi_event_t * midi_ev;               /* make ALSA MIDI parser    */
-    int rc = ::snd_midi_event_new(buffersize, &midi_ev);
-    if (rc < 0 || is_nullptr(midi_ev))
+    midi::bytes buff(buffersize);               /* pre-allocate the data    */
+    ::snd_midi_event_t * mididev;               /* make ALSA MIDI parser    */
+    int rc = ::snd_midi_event_new(buffersize, &mididev);
+    if (rc < 0 || is_nullptr(mididev))
     {
         error_print("snd_midi_event_new()", "failed");
         return false;
@@ -2358,7 +2338,7 @@ midi_alsa::get_midi_event (midi::event * inev)
 
     long bytecount = ::snd_midi_event_decode
     (
-        midi_ev, buff.data(), long(buffersize), ev
+        mididev, buff.data(), long(buffersize), ev
     );
     if (bytecount > 0)
     {
@@ -2376,7 +2356,7 @@ midi_alsa::get_midi_event (midi::event * inev)
 #endif
             bool sysex = inev->is_sysex();
             inev->set_input_bus(b);
-#if defined PLATFORM_DEBUG  // _TMI
+#if defined PLATFORM_DEBUG_TMI
             warnprintf("Input on buss %d\n", int(b));
 #endif
             while (sysex)           /* sysex might be more than one message */
@@ -2384,7 +2364,7 @@ midi_alsa::get_midi_event (midi::event * inev)
                 int remcount = ::snd_seq_event_input(sseq, &ev);
                 bytecount = ::snd_midi_event_decode
                 (
-                    midi_ev, buff.data(), long(buffersize), ev
+                    mididev, buff.data(), long(buffersize), ev
                 );
                 if (bytecount > 0)
                 {
@@ -2396,7 +2376,7 @@ midi_alsa::get_midi_event (midi::event * inev)
                     sysex = false;
             }
         }
-        ::snd_midi_event_free(midi_ev);
+        ::snd_midi_event_free(mididev);
         return true;
     }
     else
@@ -2405,7 +2385,7 @@ midi_alsa::get_midi_event (midi::event * inev)
          * This happens even at startup, before anything is really happening.
          */
 
-        ::snd_midi_event_free(midi_ev);
+        ::snd_midi_event_free(mididev);
         return false;
     }
 }
@@ -2428,38 +2408,80 @@ midi_alsa::get_midi_event (midi::event * inev)
  *      mask it into the event status.
  */
 
+#if defined USE_BROKEN_SEND_EVENT
+
+/*
+ * Not sure why this does not work. As a workaround we will call
+ * send_message() using the byte pointer and size values stored
+ * in the midi::event. See the "#else" clause.
+ */
+
 bool
 midi_alsa::send_event (const midi::event * evp, midi::byte channel) const
 {
     midi_alsa_data & ncdata { const_cast<midi_alsa_data &>(alsa_data()) };
-    ::snd_midi_event_t * midi_ev;                       /* MIDI parser      */
-    int rc { ::snd_midi_event_new(c_event_size_max, &midi_ev) };
+    const midi::message & msg { evp->get_message() };
+    size_t sz { msg.size() };
+    ::snd_midi_event_t * mididev;                       /* MIDI parser      */
+    int rc { ::snd_midi_event_new(sz, &mididev) };
     if (rc == 0)
     {
-        ::snd_seq_event_t ev;                             /* event memory     */
-        midi::byte buff[4];                             /* temp data        */
-        buff[0] = evp->get_status(channel);             /* status+channel   */
-        evp->get_data(buff[1], buff[2]);                /* set the data     */
-        ::snd_seq_ev_clear(&ev);                          /* clear event      */
-        ::snd_midi_event_encode(midi_ev, buff, 3, &ev); /* 3 raw bytes      */
-        ::snd_midi_event_free(midi_ev);                 /* free parser      */
+        midi::bytes buff(sz);                           /* temp data        */
+        if (channel != midi::null_channel())
+        {
+            if (sz >= 3)
+            {
+                buff[0] = evp->get_status(channel);     /* status+channel   */
+                evp->get_data(buff[1], buff[2]);        /* set the data     */
+            }
+            else if (sz == 2)
+            {
+                buff[0] = evp->get_status(channel);     /* status+channel   */
+                evp->get_data(buff[1]);
+            }
+        }
+
+        ::snd_seq_event_t ev;                           /* event memory     */
+        ::snd_seq_ev_clear(&ev);                        /* clear event      */
         snd_seq_ev_set_source(&ev, ncdata.vport());     /* set source       */
         snd_seq_ev_set_subs(&ev);                       /* subscriber       */
         snd_seq_ev_set_direct(&ev);                     /* immediate        */
-        snd_seq_event_output(ncdata.alsa_client(), &ev);    /* pump to q    */
+
+        long bytecount
+        {
+            ::snd_midi_event_encode(mididev, buff.data(), sz, &ev)
+        };
+        if (bytecount >= 0)
+        {
+            snd_seq_event_output(ncdata.alsa_client(), &ev); /* pump to q   */
+        }
+        else
+        {
+            error(rterror::kind::warning, "send_event(): parsing error");
+            ::snd_midi_event_free(mididev);             /* free parser      */
+            return false;
+        }
+        ::snd_midi_event_free(mididev);                 /* free parser      */
         return true;
     }
     else
-    {
-        error
-        (
-            rterror::kind::warning,
-            "send_event(): out of memory"
-        );
-        return false;
-    }
+        error(rterror::kind::driver_error, "send_event(): out of memory");
+
     return true;
 }
+
+#else
+
+bool
+midi_alsa::send_event (const midi::event * evp, midi::byte channel) const
+{
+    const midi::message & msg { evp->get_message() };
+    const midi::byte * data { msg.data_ptr() };
+    size_t sz { msg.size() };
+    return send_message(data, sz);
+}
+
+#endif  // defined USE_BROKEN_SEND_EVENT
 
 #if defined RTL66_ALSA_REMOVE_QUEUED_ON_EVENTS
 

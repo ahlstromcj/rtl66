@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-09-05
+ * \updates       2025-09-07
  * \license       GNU GPLv2 or above
  *
  */
@@ -353,6 +353,44 @@ player::set_ppqn (midi::ppqn ppq)
     return result;
 }
 
+bool
+player::arm_all_tracks ()
+{
+    auto & trklist { track_list().tracks() };
+    bool result { ! trklist.empty() };
+    if (result)
+    {
+        for (auto trk : trklist)                    /* pointers */
+        {
+            if (trk->active())
+            {
+                result = true;
+                trk->set_armed(true);
+            }
+        }
+    }
+    return result;
+}
+
+bool
+player::off_tracks ()
+{
+    auto & trklist { track_list().tracks() };
+    bool result { ! trklist.empty() };
+    if (result)
+    {
+        for (auto trk : trklist)                    /* pointers */
+        {
+            if (trk->active())
+            {
+                result = true;
+                trk->set_armed(false);
+            }
+        }
+    }
+    return result;
+}
+
 /**
  *  Locks on m_condition_var [accessed by function cv()].  Then, if not
  *  is_running(), the playback mode is set to the given state.  If that state
@@ -645,10 +683,15 @@ player::done () const
  *  Creates the master MIDI buss. At the end of this function, the
  *  caller can display the ports that were found and enable/disable them.
  *
- *  [1] These values start out as the values in the midi::clientinfo object,
- *      but are copied to the transport::info object. The former is normally
- *      unchanged, the latter might change during song composition and
- *      playback.
+ *  The values in midi::clientinfo start out as the programmed values.
+ *
+ *  The updates are copied to the transport::info object. TODO TODO
+ *
+ *  The former is normally unchanged after startup, but the latter might
+ *  change during song composition and playback.
+ *
+ *  Note that create_master_bus() also calls engine_initialize(), no need
+ *  to do that here.
  *
  *  Calls the MIDI buss and JACK initialization functions and the input/output
  *  thread-launching functions.  This function is called in main().
@@ -659,15 +702,10 @@ player::done () const
 bool
 player::launch (clientinfo & ci)
 {
-    // TODO: ci is the global, but why not initialized?????
-
     bool result = create_master_bus(ci);
     if (result)
-    {
         result = init_transport();
-        if (result)
-            result = m_master_bus->engine_initialize(ci);       /* note [1] */
-    }
+
     if (result)
     {
         result = activate();

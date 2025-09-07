@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2025-08-26
- * \updates       2025-09-01
+ * \updates       2025-09-07
  * \license       See above.
  *
  *      This application has elements of the play test application,
@@ -37,12 +37,16 @@
 #include <iostream>
 
 #include "midi/bus_out.hpp"             /* midi::bus_out class              */
+#include "midi/event.hpp"               /* midi::event class                */
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
 #include "midi/message.hpp"             /* midi::message class              */
 #include "rtl/midi/find_midi_api.hpp"   /* rtl::find_midi_api() module      */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
+
+namespace
+{
 
 /**
  *  Client info
@@ -72,7 +76,7 @@ midi::client_defaults s_clientinfo_defaults
  *  The port-numbers can be changed, so this item is not const.
  */
 
-static midi::clientinfo s_clientinfo { s_clientinfo_defaults };
+midi::clientinfo s_clientinfo { s_clientinfo_defaults };
 
 /**
  *  Provides a masterbus object, of which only a few facilties will be
@@ -80,7 +84,7 @@ static midi::clientinfo s_clientinfo { s_clientinfo_defaults };
  *  player::create_master_bus() and the follow-on code in launch().
  */
 
-static midi::masterbus &
+midi::masterbus &
 master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
 {
     if (rapi == rtl::rtmidi::api::unspecified)
@@ -105,6 +109,36 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
     }
     return s_master_bus;
 }
+
+/**
+ *  Chooses which function to use to send the event / message and
+ *  sends it.
+ *
+ *  Chooses the usage of bus_out::send_message() vs bus_out::send_event().
+ */
+
+bool
+send_the_message (midi::bus_out & b, const midi::message & msg)
+{
+    std::string testname { rt_test_name() };
+    bool result;
+    if (testname == "event")
+    {
+        midi::event ev(msg);            /* convert the bytes to an event    */
+        result = b.send_event(&ev);
+    }
+    else
+    {
+        testname = "message";
+        result = b.send_message(msg);
+    }
+    if (! result)
+        printf("send_%s failed\n", testname.c_str());
+
+    return result;
+}
+
+}           // namespace anonymous
 
 /**
  *  The main routine.
@@ -154,39 +188,39 @@ main (int argc, char * argv [])
                     midi::message msg;
                     msg.push(midi::status::program_change); // 0xC0 [ 192 ]
                     msg.push(5);                            // Electric Piano?
-                    (void) busout.send_message(msg);
+                    (void) send_the_message(busout, msg);
                     rt_test_sleep(500);
 
                     msg.clear();
                     msg.push(midi::status::quarter_frame);  // 0xF1
                     msg.push(60);                           // ??
-                    (void) busout.send_message(msg);
+                    (void) send_the_message(busout, msg);
 
                     msg.clear();
                     msg.push(midi::status::control_change); // 0xB0 [ 176 ]
                     msg.push(midi::ctrl::volume);           // 0x07
                     msg.push(100);                          // volume level
-                    busout.send_message(msg);
+                    (void) send_the_message(busout, msg);
 
                     msg.clear();
                     msg.push(midi::status::note_on);        // 0x90 [ 144 ]
                     msg.push(64);                           // note number
                     msg.push(90);                           // velocity
-                    (void) busout.send_message(msg);
+                    (void) send_the_message(busout, msg);
                     rt_test_sleep(500);
 
                     msg.clear();
                     msg.push(midi::status::note_off);       // 0x80 [ 128 ]
                     msg.push(64);                           // note number
                     msg.push(40);                           // velocity
-                    (void) busout.send_message(msg);
+                    (void) send_the_message(busout, msg);
                     rt_test_sleep(500);
 
                     msg.clear();
                     msg.push(midi::status::control_change); // 0xB0 [ 176 ]
                     msg.push(midi::ctrl::volume);           // 0x07
                     msg.push(40);                           // volume level
-                    (void) busout.send_message(msg);
+                    (void) send_the_message(busout, msg);
                     rt_test_sleep(500);
 
                     msg.clear();
@@ -196,7 +230,7 @@ main (int argc, char * argv [])
                     msg.push(3);                            // ??
                     msg.push(2);                            // ??
                     msg.push(midi::status::sysex_end);      // 0xF7 [ 247 ]
-                    (void) busout.send_message(msg);
+                    (void) send_the_message(busout, msg);
                 }
                 catch (rtl::rterror & error)
                 {

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-09
- * \updates       2024-05-26
+ * \updates       2025-09-07
  * \license       GNU GPLv2 or above
  *
  *  This class is meant to hold each "track" (midi::track) as read in
@@ -48,7 +48,7 @@ namespace midi
 class tracklist
 {
 
-private:
+public:
 
     /**
      *  We use a vector as per the discussion at the top of the cpp module.
@@ -57,6 +57,8 @@ private:
      */
 
     using container = std::vector<midi::track::pointer>;
+
+private:
 
     /**
      *  Contains the ordered lists of track pointers.  These can
@@ -105,9 +107,14 @@ public:
         return tracks().size();
     }
 
+    bool empty () const
+    {
+        return tracks().empty();
+    }
+
     void clear ()
     {
-        if (! tracks().empty())
+        if (! empty())
             modify();
 
         tracks().clear();

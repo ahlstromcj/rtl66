@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-08-20
+ * \updates       2025-09-06
  * \license       GNU GPLv2 or above
  *
  *  A midi::file is file-header data plus the data in each of the tracks of
@@ -547,7 +547,7 @@ file::create_track ()
     track * result = new (std::nothrow) track();        /* track 0  */
     if (not_nullptr(result))
     {
-        midi::masterbus * masterbus = coordinator().master_bus();
+        midi::masterbus * masterbus = coordinator().master_bus_ptr();
         if (not_nullptr(masterbus))
             result->master_midi_bus(masterbus);
     }
