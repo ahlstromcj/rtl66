@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2017-01-02
- * \updates       2025-08-26
+ * \updates       2025-09-10
  * \license       See above.
  *
  */
@@ -273,12 +273,12 @@ public:
         return m_transport_info.start_frame(nf);
     }
 
-    static void ticks_per_beat (double tpb)             // double????
+    static bool ticks_per_beat (double tpb)
     {
         return m_transport_info.ticks_per_beat(tpb);
     }
 
-    static void beats_per_minute (midi::bpm bp)
+    static bool beats_per_minute (midi::bpm bp)
     {
         return m_transport_info.beats_per_minute(bp);
     }
@@ -308,7 +308,7 @@ public:
         return m_transport_info.cycle_time_us(jt);
     }
 
-    static void pulse_time_us (jack_time_t jt)
+    static bool pulse_time_us (jack_time_t jt)
     {
         return m_transport_info.pulse_time_us(jt);
     }

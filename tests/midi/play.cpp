@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-09-07
+ * \updates       2025-09-08
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -107,14 +107,23 @@ bool play_it (midi::player & p, std::string & errmsg)
 #endif
 
     /*
+     * The first call just zips through playback, ignoring time-stamps.
+     * The second call does not start playback properly. The third
+     * does not return a status value.
+     *
      * bool result { p.simple_play() };
+     * bool result = p.play();
+     * p.start_playing();
      */
 
 
     bool result { p.arm_all_tracks() };
     if (result)
-        result = p.play();
-
+    {
+        result = p.auto_pause();            /* vs auto_play(), auto_stop()  */
+        while (! p.at_song_end())
+            ;
+    }
     if (! result)
     {
         if (p.error_pending())

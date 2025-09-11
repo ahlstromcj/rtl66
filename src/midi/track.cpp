@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2025-09-06
+ * \updates       2025-09-11
  * \license       GNU GPLv2 or above
  *
  *  This class is important when writing the MIDI and track data out to a
@@ -65,8 +65,8 @@ track::track (number tn) :
     m_length            (0),
     m_measures          (0),
     m_unit_measure      (0),
-    m_beats_per_bar     (4),
-    m_beat_width        (4),
+//  m_beats_per_bar     (4),
+//  m_beat_width        (4),
     m_last_tick         (0),
     m_note_on_velocity  (96),
     m_note_off_velocity (0),
@@ -700,8 +700,13 @@ track::set_parent (player * p, lib66::toggler sorting)
             set_length(barlength, false);
 
         (void) midi_bus(nominal_bus());     /* but player::set_midi_bus()!  */
+        if (track_number() == 0)            /* i.e. the first/tempo track   */
+        {
+        }
+
         // beats_per_bar(p->get_beats_per_bar());
         // beat_width(p->get_beat_width());
+        set_active(true);
         unmodify();
     }
 }
@@ -752,7 +757,10 @@ bool
 track::midi_bus (midi::bussbyte nominalbus, bool user_change)
 {
     xpc::automutex locker(m_mutex);
-    bool result { nominalbus != m_nominal_bus && is_good_buss(nominalbus) };
+    bool result { nominalbus != m_nominal_bus || ! user_change };
+    if (result)
+        result = is_good_buss(nominalbus);
+
     if (result)
     {
         off_playing_notes();                /* off notes except initial     */
@@ -796,7 +804,7 @@ bool
 track::midi_channel (midi::byte ch, bool user_change)
 {
     xpc::automutex locker(m_mutex);
-    bool result { ch != m_midi_channel };
+    bool result { ch != m_midi_channel || ! user_change };
     if (result)
         result = is_valid_channel(ch);      /* 0 to 15 or null_channel()    */
 
@@ -918,8 +926,8 @@ track::measures_to_ticks (int measures) const
 {
     return midi::measures_to_ticks                  /* see "calculations"   */
     (
-        int(m_beats_per_bar), int(parent()->get_ppqn()),
-        int(m_beat_width), measures
+        int(beats_per_bar()), int(parent()->get_ppqn()),
+        int(beat_width()), measures
     );
 }
 
@@ -1000,27 +1008,29 @@ track::calculate_measures (bool reset) const
  *      This change can happen at load time, which is not a modification.
  */
 
-void
+bool
 track::beats_per_bar (int bpb, bool user_change)
 {
     xpc::automutex locker(m_mutex);
     bool modded { false };
-    if (bpb != int(m_beats_per_bar))
+    bool result { bpb != beats_per_bar() || ! user_change };
+    if (result)
     {
-        m_beats_per_bar = bpb;
+        info().timesig_info().beats_per_bar(bpb);
         if (user_change)
             modded = true;
-    }
 
-    int m { get_measures() };
-    if (m != m_measures)
-    {
-        m_measures = m;
-        if (user_change)
-            modded = true;
+        int m { get_measures() };
+        if (m != m_measures)
+        {
+            m_measures = m;
+            if (user_change)
+                modded = true;
+        }
+        if (modded)
+            modify();
     }
-    if (modded)
-        modify();
+    return result;
 }
 
 /**
@@ -1034,27 +1044,49 @@ track::beats_per_bar (int bpb, bool user_change)
  *      This change can happen at load time, which is not a modification.
  */
 
-void
+bool
 track::beat_width (int bw, bool user_change)
 {
     xpc::automutex locker(m_mutex);
     bool modded { false };
-    if (bw != int(m_beat_width))
+    bool result { bw != int(beat_width()) || ! user_change };
+    if (result)
     {
-        m_beat_width = bw;
+        info().timesig_info().beat_width(bw);
         if (user_change)
             modded = true;
-    }
 
-    int m { get_measures() };
-    if (m != m_measures)
-    {
-        m_measures = m;
-        if (user_change)
-            modded = true;
+        int m { get_measures() };
+        if (m != m_measures)
+        {
+            m_measures = m;
+            if (user_change)
+                modded = true;
+        }
+        if (modded)
+            modify();
     }
-    if (modded)
-        modify();
+    return result;
+}
+
+/**
+ *  Setting for beats-per-minute, which should occur only with track
+ *  0 or the first track.
+ */
+
+bool
+track::beats_per_minute (midi::bpm bpmin, bool user_change)
+{
+    xpc::automutex locker(m_mutex);
+    bool modded { false };
+    bool result { bpmin != int(beat_width()) || ! user_change };
+    if (result)
+    {
+        info().tempo_info().beats_per_minute(bpmin);
+        if (user_change)
+            modify();
+    }
+    return result;
 }
 
 /**

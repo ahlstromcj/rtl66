@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-09-07
+ * \updates       2025-09-08
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -669,18 +669,36 @@ public:
             m_message.resize(len);
     }
 
-    size_t sysex_size () const
+    /*
+     *  The size of the message, including every byte from F0 to F7.
+     *
+     *  Compare to meta_data_size().
+     */
+
+    size_t sysex_msg_size () const
     {
         return is_sysex() ? m_message.event_byte_count() : 0 ;
     }
 
     /**
-     *  The size of the message minus the header data.
+     *  The putative size of the meta data in "FF nn len metabytes".
+     *  This value is the third byte.
      */
 
-    size_t meta_data_size () const
+    size_t meta_size () const
     {
-        return int(m_message.event_byte_count());
+        return is_meta() ? size_t(m_message[2]) : 0 ;
+    }
+
+    /**
+     *  The size of the message, including the "FF xx len" values.
+     *
+     *  Compare to sysex_size().
+     */
+
+    size_t meta_msg_size () const
+    {
+        return is_meta() ? size_t(m_message.event_byte_count()) : 0 ;
     }
 
     /**

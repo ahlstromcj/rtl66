@@ -86,36 +86,6 @@
 namespace midi
 {
 
-#if 0   // moved to the header and returned via inline functions.
-
-/**
- *  This value represent the smallest horizontal unit in a Sequencer66 grid.
- *  It is the number of pixels in the smallest increment between vertical
- *  lines in the grid.  For a zoom of 2, this number gets doubled.
- */
-
-static const int c_pixels_per_substep = 6;
-
-/**
- *  This value represents the fundamental beats-per-bar.
- */
-
-static const int c_qn_beats = 4;
-
-/**
- *  Taken from rtl66 usrsettings.
- *
- *      static const midi::bpm c_def_beats_per_minute =  120.0;
- *      static const int c_def_bpm_precision    =    0;
- *      static const int c_min_bpm_precision    =    0;
- */
-
-static const midi::bpm c_min_beats_per_minute =    2.0;
-static const midi::bpm c_max_beats_per_minute =  600.0;
-static const int c_max_bpm_precision          =    2;
-
-#endif  // 0
-
 /**
  *  Convenience function. We don't want to use seq66::string_to_int()
  *  because that uses a leading "0" or "0x" to determine the base of the

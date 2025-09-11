@@ -24,7 +24,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2022-11-10
- * \updates       2025-08-20
+ * \updates       2025-09-09
  * \license       See above.
  *
  *  GitHub issue #165: enabled a build and run with no JACK support.
@@ -50,10 +50,7 @@ info::info
     midi::bpm bpmin,
     midi::ppqn ppq
 ) :
-    m_beats_per_bar         (bpb),
-    m_beat_width            (bw),
-    m_beats_per_minute      (bpmin),
-    m_ppqn                  (ppq)
+    m_time_values   (bpb, bw, bpmin, ppq)
 {
     // no other code
 }

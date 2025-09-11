@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-09-01
+ * \updates       2025-09-10
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -203,7 +203,7 @@ masterbus::void_client_handle (void * clienthandle)
     m_void_client_handle = clienthandle;
     client_info().void_client_handle(clienthandle);
 
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
     printf("masterbus client handle = %p\n", clienthandle);
 #endif
 }
@@ -238,7 +238,7 @@ masterbus::engine_query ()
     bool result = client_info().get_all_port_info(selected_api());
     if (result)
     {
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
         std::string msg = client_info().to_string("engine_query()");
         infoprint(msg.c_str());
 #endif
@@ -259,6 +259,9 @@ masterbus::engine_connect ()
  *  Set the PPQN value (parts per quarter note). Then call the
  *  implementation-specific API function to complete the PPQN setting.
  *
+ *  We do this even if the PPQN is not different from the nominal PPQN,
+ *  to guarantee the change at startup.
+ *
  *  TODO: do we want to use choose_ppqn(). Compare to
  *        mastermidibase::set_ppqn().
  *
@@ -272,18 +275,19 @@ bool
 masterbus::PPQN (midi::ppqn ppq)
 {
     xpc::automutex locker(m_mutex);
-    bool result = m_ppqn != ppq;
+    bool result { engine().PPQN(ppq) };
     if (result)
-    {
-        if (engine().PPQN(ppq))
-            m_ppqn = ppq;
-    }
+        m_ppqn = ppq;
+
     return result;
 }
 
 /**
  *  Set the BPM value (beats per minute).  Then call the
  *  implementation-specific API function to complete the BPM setting.
+ *
+ *  We do this even if the BPM is not different from the nominal BPM,
+ *  to guarantee the change at startup.
  *
  * \threadsafe
  *
@@ -295,12 +299,10 @@ bool
 masterbus::BPM (midi::bpm bp)
 {
     xpc::automutex locker(m_mutex);
-    bool result = m_beats_per_minute != bp;
+    bool result { engine().BPM(bp) };
     if (result)
-    {
-        if (engine().BPM(bp))
-            m_beats_per_minute = bp;
-    }
+        m_beats_per_minute = bp;
+
     return result;
 }
 
@@ -471,7 +473,7 @@ masterbus::set_clock (midi::bussbyte b, midi::clocking clocktype)
 bool
 masterbus::save_clock (midi::bussbyte /*b*/, midi::clocking /*clk*/)
 {
-#if 0
+#if THIS_CODE_IS_READY
     bool result = m_master_clocks.set(b, clk);
     if (! result)
     {
@@ -575,7 +577,7 @@ masterbus::save_input (midi::bussbyte b, bool inputing)
     {
         for (int i = currentcount; i <= b; ++i)
         {
-#if 0
+#if THIS_CODE_IS_READY
             bool value = false;
             if (i == int(bs))
                 value = inputing;
@@ -823,7 +825,7 @@ masterbus::set_track_input (bool state, track * trk)
     return result;
 }
 
-#if 0
+#if THIS_CODE_IS_READY
 
 /**
  *  This function augments the recording functionality by looking for a
@@ -971,6 +973,8 @@ masterbus::engine_initialize (const clientinfo & ci)
             // to clientinfo at setup time. Also need to create
             // the set_virtual_name() function, or maybe have
             // a class virtualbus : public midibus
+            //
+            // Also don't forget to set ci.is_connected()
         }
         else
         {
@@ -1085,60 +1089,6 @@ masterbus::make_bus
     }
     return result;
 }
-
-#if 0
-
-/**
- *  Creates the bus objects based on the I/O port numbers.  This base class
- *  version can create only one input port and one output port.
- *
- * \param autoconnect
- *      If true, the ports created are connected to the corresponding system
- *      ports.  Not supported in this base implementation.
- *
- * \param inputport
- *      Provides the number of the port to create.  The name of the port is
- *      based on the clientname.  A value of -1 means to create all of the input
- *      ports and perhaps auto-connect them.
- *
- * \param outputport
- *      Provides the number of the port to create.  The name of the port is
- *      based on the clientname.  A value of -1 means to create all of the
- *      output ports and perhaps auto-connect them.
- *
- * \return
- *      Returns true if the buses could be created (and autoconnected).
- */
-
-bool
-masterbus::engine_make_busses (bool is_input, bool is_virtual)
-{
-    bool result = false;
-    if (result)
-    {
-        if (is_virtual)
-        {
-            if (is_input)
-            {
-            }
-            else
-            {
-            }
-        }
-        else
-        {
-            if (is_input)
-            {
-            }
-            else
-            {
-            }
-        }
-    }
-    return result;
-}
-
-#endif
 
 /*---------------------------------------------------------------------------
  * Virtual clock functions

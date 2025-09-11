@@ -64,7 +64,7 @@ rtlconfiguration::~rtlconfiguration ()
     // no code so far
 }
 
-#if 0
+#if THIS_CODE_IS_READY
 
 /**
  *      -   Parse log option.

@@ -297,7 +297,7 @@ rescale_tick (midi::pulse tick, int newppqn, int oldppqn)
  *  Converts tempo (e.g. 120 beats/minute) to microseconds.
  *  This function is the inverse of bpm_from_tempo_us().
  *
- * \param bpm
+ * \param bp
  *      The value of beats-per-minute.  If this value is 0, we'll get an
  *      arithmetic exception.
  *
@@ -309,7 +309,7 @@ rescale_tick (midi::pulse tick, int newppqn, int oldppqn)
 inline midi::microsec
 tempo_us_from_bpm (midi::bpm bp)
 {
-    return midi::microsec(bp > 0.009999999 ? (60000000.0 / bp) : 0.0);
+    return midi::microsec(bp > 1.0 ? (60000000.0 / bp) : 0.0);
 }
 
 /**

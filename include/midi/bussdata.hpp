@@ -182,17 +182,6 @@ public:
         return ignore_test(ignore_midi_flags(), ignore::active_sense);
     }
 
-    /*----------------------------------------------------------------------
-     * Setters
-     *----------------------------------------------------------------------*/
-
-#if 0
-    void set_ignore_midi {bussdata::ignore f}
-    {
-        m_ignore_midi_flags = f;
-    }
-#endif
-
 protected:
 
     std::string construct_bus_name (const std::string & appname);

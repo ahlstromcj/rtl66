@@ -284,39 +284,6 @@ busarray::add (midi::bus * b)
     return p_impl->add(b);
 }
 
-#if 0
-
-/**
- *  Adds a new midi::bus object to the list.  Then the inputing value
- *  is set.  This function is meant for input ports.
- *
- *  We need to belay the initialization until later, when we know the
- *  configured inputing settings for the input ports.  So initialization
- *  has been removed from the constructor and moved to the initialize()
- *  function. However, now we know the configured status and can apply
- *  it right away.
- *
- * \param b
- *      The midi::bus to be hooked into the array of busses.
- *
- * \param inputing
- *      The input flag value for the bus.  If true, this value indicates that
- *      the user has selected this bus to be the input MIDI bus.
- *
- * \return
- *      Returns true if the bus was added successfully, though, really, it
- *      cannot fail.
- */
-
-bool
-busarray::add (midi::bus * b, bool inputing)
-{
-    clocking c = bool_to_clocking(inputing);
-    return add(b, c);
-}
-
-#endif
-
 int
 busarray::client_id (midi::bussbyte b)
 {

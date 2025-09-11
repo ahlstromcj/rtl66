@@ -471,15 +471,6 @@ protected:
         return m_queue_size;
     }
 
-#if 0
-
-    void queue_size (int qsz)
-    {
-        m_queue_size = qsz;
-    }
-
-#endif
-
 protected:
 
     /*

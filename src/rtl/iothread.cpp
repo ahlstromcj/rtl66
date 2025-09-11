@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2024-05-22
- * \updates       2024-06-01
+ * \updates       2025-09-08
  * \license       GNU GPLv2 or above
  *
  *  Thread functions`:
@@ -119,14 +119,18 @@ iothread::~iothread ()
  *      if (ok) ...
  *
  *      m_io_thread = std::thread(&iothread::output_func, this);
+ *
+ *  Now, as soon as the thread is reset, the function f is called,
+ *  immediately!
  */
 
 bool
 iothread::launch (functor f)
 {
-    bool result = true;
+    bool result = false;
     if (! m_launched)
     {
+        m_active = true;
         m_io_thread.reset(new (std::nothrow) std::thread(f));
         if (m_io_thread)
         {
@@ -138,7 +142,7 @@ iothread::launch (functor f)
 #if defined RTL66_PLATFORM_UNIX
                     util::warn_message("Thread priority elevated");
 #endif
-                    m_launched = true;
+                    result = m_launched = true;
                 }
                 else
                 {
@@ -152,10 +156,13 @@ iothread::launch (functor f)
                 }
             }
             else
-                m_launched = true;
+                result = m_launched = true;
         }
         else
             errprint("Could not start thread");
+
+        if (! result)
+            deactivate();
     }
     return result;
 }
@@ -167,18 +174,14 @@ iothread::launch (functor f)
 bool
 iothread::finish ()
 {
-    bool result = false;
-    if (m_launched)
+    bool result = m_launched;
+    if (result)
     {
-        if (done())
-        {
-            result = true;
-            m_active = false;                   /* set done() for predicate */
-            if (joinable())
-                join();
+        deactivate();                       /* set done() for predicate */
+        if (joinable())
+            join();
 
-            m_launched = false;
-        }
+        m_launched = false;
     }
     return result;
 }

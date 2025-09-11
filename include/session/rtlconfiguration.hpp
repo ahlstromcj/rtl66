@@ -109,7 +109,7 @@ public:
         // TODO
     }
 
-#if 0
+#if THIS_CODE_IS_READY
     virtual int parse_command_line
     (
         int argc, char * argv [], std::string & errmessage

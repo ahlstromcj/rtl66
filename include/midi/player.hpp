@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-10
- * \updates       2025-09-07
+ * \updates       2025-09-08
  * \license       GNU GPLv2 or above
  *
  *  The player class is a severely cut-down version of seq66::performer, with
@@ -115,7 +115,7 @@ class player
 public:
 
     /**
-     *  A nest class to provide an implementation of the synchronizer
+     *  A nested class to provide an implementation of the synchronizer
      *  class.
      */
 
@@ -165,13 +165,13 @@ private:
      *  byte is variable then.
      */
 
-    midi::bytes m_manufacturer_id;
+    midi::bytes m_manufacturer_id { 0x24, 0x24, 0x00 };
 
     /**
-     *  Provides our MIDI buss.  We changed this item to a pointer so that we
+     *  Provides our MIDI buss. We changed this item to a pointer so that we
      *  can delay the creation of this object until after all settings have
-     *  been read.  Use a smart pointer! Seems like unique_ptr<> is best
-     *  here.  See the master_bus() accessors below.
+     *  been read. Use a smart pointer! Seems like unique_ptr<> is best
+     *  here. See the master_bus() accessors below.
      */
 
     std::unique_ptr<midi::masterbus> m_master_bus;
@@ -181,8 +181,8 @@ private:
      *  if the port number is greater than or equal to 0 and the port exists.
      */
 
-    int m_in_portnumber;
-    int m_out_portnumber;
+    int m_in_portnumber { -1 };
+    int m_out_portnumber { -1 };
 
     /**
      *  Contains all tracks that are (heh heh) in play.
@@ -192,54 +192,54 @@ private:
 
     /**
      *  Keeps track of created sequences, whether or not they are active.
-     *  Used by the install_track() function.  Note that this value is not
+     *  Used by the install_track() function. Note that this value is not
      *  a suitable replacement for m_track_max, because there can be
      *  inactive sequences amidst the active sequences.
      */
 
-    int m_track_count;
+    int m_track_count { 0 };
 
     /**
      *  Actually, this value could go up to 2047... 2048 is used
-     *  to indicate that there is no background sequence.  See track::limit().
+     *  to indicate that there is no background sequence. See track::limit().
      */
 
-    midi::track::number m_track_max;
+    midi::track::number m_track_max { 1024 };
 
     /**
-     *  Indicates the highest-number sequence.  This value starts as -1, to
+     *  Indicates the highest-number sequence. This value starts as -1, to
      *  indicate no sequences loaded, and then contains the highest sequence
      *  number hitherto loaded, plus 1 so that it can be used as a for-loop
-     *  limit similar to m_track_max.  It's maximum value should be
+     *  limit similar to m_track_max. It's maximum value should be
      *  m_track_max.
      *
      *  Currently meant only for limited context to try to squeeze a little
-     *  extra speed out of playback.  There's no easy way to lower this value
+     *  extra speed out of playback. There's no easy way to lower this value
      *  when the highest sequence is deleted, though.
      */
 
-    midi::track::number m_track_high;
+    midi::track::number m_track_high { midi::track::unassigned() };
 
     /**
      *  If true (the default is false, the events in a track are sorted
      *  when the track is installed.
      */
 
-    bool m_sort_on_install;
+    bool m_sort_on_install { false };
 
     /**
      *  Indicates the format of this file, either SMF 0 or SMF 1.
      *  Note that Seq66 always converts files from SMF 0 to SMF 1,
-     *  and saves them to default to SMF 1.  This setting, if set to 0,
+     *  and saves them to default to SMF 1. This setting, if set to 0,
      *  indicates that the song has been converted to SMF 0, for export only.
      */
 
-    int m_smf_format;
+    int m_smf_format { 1 };
 
 private:                            /* key, midi, and op container section  */
 
     /**
-     *  Provides information for managing threads.  Provides a "handle" to
+     *  Provides information for managing threads. Provides a "handle" to
      *  the input and output threads.
      */
 
@@ -247,23 +247,23 @@ private:                            /* key, midi, and op container section  */
     rtl::iothread m_in_thread;
 
     /**
-     *  Indicates that playback is running.  However, this flag is conflated
+     *  Indicates that playback is running. However, this flag is conflated
      *  with some JACK support, and we have to supplement it with another
      *  flag, m_is_pattern_playing.
      */
 
-    std::atomic<bool> m_is_running;
+    std::atomic<bool> m_is_running { false };
 
     /**
-     *  Indicates that a pattern is playing.  It replaces rc_settings ::
+     *  Indicates that a pattern is playing. It replaces rc_settings ::
      *  is_pattern_playing(), which is gone, since the player is now
      *  visible to all classes that care about it.
      */
 
-    bool m_is_pattern_playing;
+    bool m_is_pattern_playing { false };
 
     /**
-     *  Holds the current PPQN from a MIDI file that has been read.  It might
+     *  Holds the current PPQN from a MIDI file that has been read. It might
      *  be 0. Moved to transport::info.
      *
      *      midi::ppqn m_file_ppqn;
@@ -274,7 +274,7 @@ private:                            /* key, midi, and op container section  */
      *  playback.
      */
 
-    midi::microsec m_delta_us;
+    midi::microsec m_delta_us { 0 };
 
     /**
      *  Holds a bunch of JACK transport settings. Also holds pulse-counting
@@ -284,25 +284,40 @@ private:                            /* key, midi, and op container section  */
     transport::jack::scratchpad m_jack_pad;
 
     /**
+     *  MIDI Clock support. The m_tick member holds the tick to be used in
+     *  displaying the progress bars and the maintime pill. It is mutable
+     *  because sometimes we want to adjust it in a const function for pause
+     *  functionality.
+     */
+
+    mutable midi::pulse m_tick { 0 };
+
+    /**
      *  Let's try to save the last JACK pad structure tick for re-use with
      *  resume after pausing.
      */
 
-    midi::pulse m_jack_tick;
+    midi::pulse m_jack_tick { 0 };
+
+    /**
+     *  Holds the full length of the currently loaded song.
+     */
+
+    midi::pulse m_max_extent { 0 };
 
     /**
      *  Support for pause, which does not reset the "last tick" when playback
-     *  stops/starts.  All this member is used for is keeping the last tick
+     *  stops/starts. All this member is used for is keeping the last tick
      *  from being reset.
      */
 
-    bool m_dont_reset_ticks;
+    bool m_dont_reset_ticks { false };
 
     /**
-     *  A condition variable to protect playback.  It is signalled if playback
-     *  has been started.  The output thread function waits on this variable
-     *  until m_is_running and m_io_active are false.  This variable is also
-     *  signalled in the player destructor.  This implementation is
+     *  A condition variable to protect playback. It is signalled if playback
+     *  has been started. The output thread function waits on this variable
+     *  until m_is_running and m_io_active are false. This variable is also
+     *  signalled in the player destructor. This implementation is
      *  new for 0.98.0, and it avoids segfaults, exit-hangs, and high CPU
      *  usage in Windows that have occurred with other implmentations.
      */
@@ -319,8 +334,8 @@ private:                            /* key, midi, and op container section  */
 
     /**
      *  Consolidates a number of ALSA/JACK/etc. transport parameters. It
-     *  includes settings and live values.  The accessor is transportinfo().
-     *  Also see the rtl::midi_clock_info member.  If set, then transport
+     *  includes settings and live values. The accessor is transportinfo().
+     *  Also see the rtl::midi_clock_info member. If set, then transport
      *  will be initialized. It will either be one of the JACK options,
      *  or midiclock.
      */
@@ -330,8 +345,8 @@ private:                            /* key, midi, and op container section  */
 #if defined RTL66_BUILD_JACK
 
     /**
-     *  A wrapper object for the JACK support of this application.  It
-     *  implements most of the JACK stuff.  Not used on Windows (we use
+     *  A wrapper object for the JACK support of this application. It
+     *  implements most of the JACK stuff. Not used on Windows (we use
      *  PortMidi instead).
      */
 
@@ -341,7 +356,7 @@ private:                            /* key, midi, and op container section  */
 
     /**
      *  Indicates that an internal setup error occurred (e.g. a device could
-     *  not be set up in PortMidi).  In this case, we will eventually want to
+     *  not be set up in PortMidi). In this case, we will eventually want to
      *  emit an error prompt, though we keep going in order to populate the
      *  "rc" file correctly.
      */
@@ -356,7 +371,7 @@ private:                            /* key, midi, and op container section  */
 
     /**
      *  It may be a good idea to eventually centralize all of the dirtiness of
-     *  a performance here.  All the GUIs use a player.
+     *  a performance here. All the GUIs use a player.
      */
 
     bool m_modified;
@@ -437,7 +452,7 @@ public:
     void print_tracks (const std::string & tag = "");
 
     /*
-     * Transport Information functions.  Some have inline wrappers for
+     * Transport Information functions. Some have inline wrappers for
      * the caller's convenience.
      */
 
@@ -468,7 +483,7 @@ public:
         return transportinfo().get_ppqn();
     }
 
-    bool set_ppqn (midi::ppqn ppq);
+    bool set_ppqn (midi::ppqn ppq, bool user_change = false);
 
     midi::pulse tick () const
     {
@@ -589,8 +604,8 @@ public:
     bool modified () const;
 
     /**
-     *  This setter only sets the modified-flag to true.  The setter that can
-     *  falsify it, unmodify(), is private.  No one but player and its friends
+     *  This setter only sets the modified-flag to true. The setter that can
+     *  falsify it, unmodify(), is private. No one but player and its friends
      *  should falsify this flag.
      */
 
@@ -616,7 +631,7 @@ public:
 
 public:
 
-#if 0
+#if THIS_CODE_IS_READY
     midi::ppqn file_ppqn () const
     {
         return m_file_ppqn;
@@ -815,6 +830,11 @@ public:
 #endif
     }
 
+    midi::pulse get_tick () const
+    {
+        return transportinfo().tick();
+    }
+
 #if defined RTL66_BUILD_JACK
     void jack_stop_tick (midi::pulse tick)
     {
@@ -886,7 +906,6 @@ public:
     bool play (midi::pulse tick = 0);
     bool simple_play (midi::pulse tick = 0);
     void all_notes_off ();
-
     bool panic ();                                      /* from kepler43    */
     void set_tick (midi::pulse tick, bool dontreset = false);
 
@@ -904,7 +923,9 @@ public:
 
     bool install_track
     (
-        midi::track * seq, midi::track::number & trkno, bool fileload = false
+        midi::track * seq,
+        midi::track::number & trkno,
+        bool fileload = false
     );
     void inner_start ();
     void inner_stop (bool midiclock = false);
@@ -927,6 +948,7 @@ public:
     void pause_playing ();
     void stop_playing ();
     midi::pulse get_max_extent () const;
+    bool at_song_end ();
 
     bool needs_update () const
     {

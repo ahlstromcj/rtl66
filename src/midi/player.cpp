@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-09-07
+ * \updates       2025-09-11
  * \license       GNU GPLv2 or above
  *
  */
@@ -92,38 +92,16 @@ static const int c_thread_priority = 1;
  */
 
 /**
- *  Principal constructor.
+ *  Principal constructor. Note that most of the members are default in
+ *  the class header (i.e. "in-class").
  */
 
 player::player (int out_portnumber, int in_portnumber) :
-    m_manufacturer_id       {0},                /* 1 to 4 bytes             */
-    m_master_bus            (),                 /* unique pointer           */
     m_in_portnumber         (in_portnumber),
     m_out_portnumber        (out_portnumber),
-    m_track_list            (),
-    m_track_count           (0),
-    m_track_max             (1024),
-    m_track_high            (track::unassigned()),
-    m_sort_on_install       (false),
-    m_smf_format            (1),
-    m_out_thread            (),
-    m_in_thread             (),
-    m_is_running            (false),
-    m_is_pattern_playing    (false),
-    m_delta_us              (0),
-    m_jack_pad              (),                 /* data for JACK... & ALSA  */
-    m_jack_tick             (0),
-    m_dont_reset_ticks      (false),            /* support for pausing      */
     m_condition_var         (*this),            /* private access via cv()  */
-    m_clock_info            (),
-    m_transport_info        (),
 #if defined RTL66_BUILD_JACK
-    m_jack_transport                // TODO: use transportinfo() as a parameter.
-    (
-        *this, 120.0,                           /* beats per minute         */
-        transportinfo().get_ppqn(), 4,          /* beats per bar (measure)  */
-        4                                       /* beat width (denominator) */
-    ),
+    m_jack_transport        (*this),            /* must fix after file load */
 #endif
     m_error_pending         (false),
     m_error_messages        (),
@@ -155,17 +133,17 @@ void
 player::append_error_message (const std::string & msg) const
 {
     static std::vector<std::string> s_old_msgs;
-    std::string newmsg = msg;
+    std::string newmsg { msg };
     m_error_pending = true;                         /* a mutable boolean    */
     if (newmsg.empty())
         newmsg = "Player error";
 
     if (! m_error_messages.empty())
     {
-        const auto finding = std::find
-        (
-            s_old_msgs.cbegin(), s_old_msgs.cend(), newmsg
-        );
+        const auto finding
+        {
+            std::find(s_old_msgs.cbegin(), s_old_msgs.cend(), newmsg)
+        };
         if (finding == s_old_msgs.cend())
         {
             m_error_messages += " ";
@@ -202,7 +180,7 @@ player::unmodify (lib66::notification n)
 bool
 player::modified () const
 {
-    bool result = m_modified;
+    bool result { m_modified };
     if (! result)
         result = track_list().modified();
 
@@ -216,15 +194,13 @@ player::modified () const
  */
 
 /**
- *  It assumes values have
- *  already been checked.  It does not set the "is modified" flag, since
- *  adding a track by loading a MIDI file should not set it.
- *  This function *does not* delete the track already present
- *  with the given track number; instead, it keeps incrementing the
- *  track number until an open slot is found.
+ *  It assumes values have already been checked.  It does not set the "is
+ *  modified" flag, since adding a track by loading a MIDI file should not
+ *  set it.  This function *does not* delete the track already present with
+ *  the given track number; instead, it keeps incrementing the track number
+ *  until an open slot is found.
  *
- * \param seq
- *      The pointer to the pattern/track to add.
+ * \param seq The pointer to the pattern/track to add.
  *
  * \param trkno
  *      The track number of the pattern to be added.  Not validated, to
@@ -247,23 +223,34 @@ player::install_track
     bool fileload
 )
 {
-    bool result = track_list().add(trkno, trk); /* access tracklist, add    */
+    bool result { track_list().add(trkno, trk) };   /* add to track-list    */
     if (result)
     {
         trkno = trk->track_number();            /* side-effect              */
+        if (trkno == 0)                         /* first track/tempo track  */
+        {
+            /*
+             * This is a better location than track::set_parent().
+             */
+
+            (void) beats_per_bar(trk->beats_per_bar());
+            (void) beat_width(trk->beat_width());
+            (void) beats_per_minute(trk->beats_per_minute());
+        }
         if (trkno > track_high())
             m_track_high = trkno;
 
 #if defined PLATFORM_DEBUG_TMI
-        std::string label = "Installed track ";
+        std::string label { "Installed track " };
         label += std::to_string(trk->track_number());
         label += ": ";
         label += trk->track_name();
         printf("%s\n", label.c_str());
 #endif
-        lib66::toggler sorting = m_sort_on_install ?
-            lib66::toggler::on : lib66::toggler::off ;
-
+        lib66::toggler sorting
+        {
+            m_sort_on_install ? lib66::toggler::on : lib66::toggler::off
+        };
         trk->set_parent(this, sorting);         /* also sets a lot of stuff */
         if (! fileload)
             modify();
@@ -298,14 +285,14 @@ player::install_track
 bool
 player::new_track (track::number & finalseq, track::number trkno)
 {
-    track * trkptr = new (std::nothrow) track();    // transportinfo().get_ppqn());
-    bool result = not_nullptr(trkptr);
+    track * trkptr { new (std::nothrow) track() };
+    bool result { not_nullptr(trkptr) };
     if (result && trkno != track::unassigned())
     {
         result = install_track(trkptr, trkno);
         if (result)                                 /* new 2021-10-01   */
         {
-            const track::pointer t = get_track(trkno);
+            const track::pointer t { get_track(trkno) };
             result = not_nullptr(t);
             if (result)
             {
@@ -341,9 +328,9 @@ player::new_track (track::number & finalseq, track::number trkno)
  */
 
 bool
-player::set_ppqn (midi::ppqn ppq)
+player::set_ppqn (midi::ppqn ppq, bool user_change)
 {
-    bool result = ppq != transportinfo().get_ppqn(); // && ppqn_in_range(p);
+    bool result { ppq != transportinfo().get_ppqn() || ! user_change };
     if (result)
     {
         transportinfo().set_ppqn(ppq);
@@ -481,15 +468,16 @@ player::inner_stop (bool midiclock)
  */
 
 bool
-player::beats_per_minute (midi::bpm bpmin, bool userchange)
+player::beats_per_minute (midi::bpm bpmin, bool user_change)
 {
-    bool result = bpmin != transportinfo().beats_per_minute();
+    bool result
+    {
+        bpmin != transportinfo().beats_per_minute() || ! user_change
+    };
     if (result)
     {
         bpmin = fix_tempo(bpmin);
-        transportinfo().beats_per_minute(bpmin);
         result = jack_set_beats_per_minute(bpmin);  /* not just JACK though */
-        (void) userchange;
     }
     return result;
 }
@@ -509,14 +497,14 @@ player::beats_per_minute (midi::bpm bpmin, bool userchange)
 bool
 player::jack_set_beats_per_minute (midi::bpm bpmin)
 {
-    bool result = true;
+    bool result { bpmin >= 24.0 };      /* currently only a sanity check    */
     if (result)
     {
 #if defined RTL66_BUILD_JACK
-        m_jack_transport.beats_per_minute(bpmin);  /* see banner note */
+        m_jack_transport.beats_per_minute(bpmin);   /* see banner note      */
 #endif
-        if (m_master_bus)
-            m_master_bus->BPM(bpmin);
+        if (master_bus_ptr())
+            master_bus_ptr()->BPM(bpmin);
 
         transportinfo().us_per_quarter_note(tempo_us_from_bpm(bpmin));
         transportinfo().beats_per_minute(bpmin);
@@ -581,8 +569,8 @@ player::clear_all (bool clearplaylist)
 void
 player::reset_tracks (bool p)
 {
-    void (track::* f) (bool) = p ? &track::pause : &track::stop ;
-    bool songmode = false;                              // song_mode();
+    void (track::* f) (bool) { p ? &track::pause : &track::stop };
+    bool songmode { false };
     for (auto & trk : track_list().tracks())
     {
         track * trkptr = trk.get();       // (trk->*f)(songmode);
@@ -592,8 +580,8 @@ player::reset_tracks (bool p)
     /*
      * Alread flushed in the loop above.
      *
-     * if (m_master_bus)
-     *     m_master_bus->flush();
+     * if (master_bus_ptr())
+     *     master_bus_ptr()->flush();
      */
 }
 
@@ -609,7 +597,7 @@ player::reset_tracks (bool p)
 bool
 player::create_master_bus (clientinfo & ci)
 {
-    bool result = bool(m_master_bus);
+    bool result { bool(master_bus_ptr()) };
     if (! result)                               /* no master buss yet?      */
     {
         /*
@@ -619,7 +607,7 @@ player::create_master_bus (clientinfo & ci)
          *      rtl::rtmidi::api midiapi = rtl::rtmidi::selected(api);
          */
 
-        rtl::rtmidi::api midiapi = rtl::find_midi_api();
+        rtl::rtmidi::api midiapi { rtl::find_midi_api() };
         if (midiapi != rtl::rtmidi::api::unspecified)
         {
             /*
@@ -634,9 +622,9 @@ player::create_master_bus (clientinfo & ci)
             (
                 new (std::nothrow) midi::masterbus(midiapi)
             );
-            if (m_master_bus)
+            if (master_bus_ptr())
             {
-                midi::masterbus * mmb = m_master_bus.get();
+                midi::masterbus * mmb { master_bus_ptr() };
                 result = mmb->client_info_reset(ci);
                 if (result)
                 {
@@ -649,6 +637,9 @@ player::create_master_bus (clientinfo & ci)
 #if DERIVED_CLASS       // for the Future!
 
                         mmb->filter_by_channel(m_filter_by_channel);
+                        mmb->set_port_statuses(m_clocks, m_inputs);
+                        mmb->record_by_buss(m_record_by_buss);
+                        mmb->record_by_channel(m_record_by_channel);
                         mmb->set_port_statuses(m_clocks, m_inputs);
                         midi_control_out().set_master_bus(mmb);
 #endif
@@ -702,7 +693,7 @@ player::done () const
 bool
 player::launch (clientinfo & ci)
 {
-    bool result = create_master_bus(ci);
+    bool result { create_master_bus(ci) };
     if (result)
         result = init_transport();
 
@@ -717,7 +708,7 @@ player::launch (clientinfo & ci)
              * clocks and inputs now have names.  These calls are necessary to
              * populate the port lists the first time Seq66 is run.
              *
-             * m_master_bus->get_port_statuses(m_clocks, m_inputs); the
+             * master_bus_ptr()->get_port_statuses(m_clocks, m_inputs); the
              * statuses from e.g. midi_jack_info are already obtained in the
              * call stack of create_master_bus().
              */
@@ -728,8 +719,8 @@ player::launch (clientinfo & ci)
              * Not defined in the base class yet.
              */
 
-            m_master_bus->copy_io_busses();
-            m_master_bus->get_port_statuses(m_clocks, m_inputs);
+            master_bus_ptr()->copy_io_busses();
+            master_bus_ptr()->get_port_statuses(m_clocks, m_inputs);
 #endif
 
             if (m_in_portnumber >= 0)
@@ -751,9 +742,12 @@ player::launch (clientinfo & ci)
  */
 
 bool
-player::beats_per_bar (int bpmeasure, bool /* user_change */)
+player::beats_per_bar (int bpmeasure, bool user_change)
 {
-    bool result = bpmeasure != transportinfo().beats_per_bar();
+    bool result
+    {
+        bpmeasure != transportinfo().beats_per_bar() || ! user_change
+    };
     if (result)
     {
         /* MUST also sets in jack_transport  */
@@ -763,7 +757,7 @@ player::beats_per_bar (int bpmeasure, bool /* user_change */)
         (
             [bpmeasure, user_change] (track::pointer sp, track::number /*sn*/)
             {
-                bool result = bool(sp);
+                bool result { bool(sp) };
                 if (result)
                 {
                     sp->set_beats_per_bar(bpmeasure, user_change);
@@ -789,9 +783,12 @@ player::beats_per_bar (int bpmeasure, bool /* user_change */)
  */
 
 bool
-player::beat_width (int bw, bool /* user_change */)
+player::beat_width (int bw, bool user_change)
 {
-    bool result = bw != transportinfo().beat_width();
+    bool result
+    {
+        bw != transportinfo().beat_width() || ! user_change
+    };
     if (result)
     {
         transportinfo().beat_width(bw);
@@ -801,7 +798,7 @@ player::beat_width (int bw, bool /* user_change */)
         (
             [bw, user_change] (track::pointer sp, track::number /*sn*/)
             {
-                bool result = bool(sp);
+                bool result { bool(sp) };
                 if (result)
                 {
                     sp->set_beat_width(bw, user_change);
@@ -849,7 +846,10 @@ player::beat_width (int bw, bool /* user_change */)
 bool
 player::launch_output_thread ()
 {
-    rtl::iothread::functor threadfunc = std::bind(&player::input_func, this);
+    rtl::iothread::functor threadfunc
+    {
+        std::bind(&player::output_func, this)
+    };
     return out_thread().launch(threadfunc);
 }
 
@@ -861,7 +861,10 @@ player::launch_output_thread ()
 bool
 player::launch_input_thread ()
 {
-    rtl::iothread::functor threadfunc = std::bind(&player::input_func, this);
+    rtl::iothread::functor threadfunc
+    {
+        std::bind(&player::input_func, this)
+    };
     return in_thread().launch(threadfunc);
 }
 
@@ -887,7 +890,7 @@ player::launch_input_thread ()
 bool
 player::finish ()
 {
-    bool result = true;
+    bool result { true };
     if (! done())
     {
         stop_playing();                     /* see notes in banner          */
@@ -908,9 +911,9 @@ player::finish ()
          * We're supporting only one of each I/O port here.
          */
 
-        result = bool(m_master_bus);
+        result = bool(master_bus_ptr());
         if (result)
-            m_master_bus->get_port_statuses(m_clocks, m_inputs);
+            master_bus_ptr()->get_port_statuses(m_clocks, m_inputs);
 #endif
 
         result = ok && result;
@@ -936,9 +939,9 @@ player::activate ()
      * Currently just returns true (see midi_api::engine_activate().
      */
 
-    bool result = m_master_bus && m_master_bus->engine_activate();
+    bool result { master_bus_ptr() && master_bus_ptr()->engine_activate() };
     if (result)
-        result = m_master_bus->activate();
+        result = master_bus_ptr()->activate();
 
 #if defined RTL66_BUILD_JACK_ACTIVATE_HERE // init_jack_transport() instead
     if (result)
@@ -955,13 +958,13 @@ player::activate ()
  */
 
 void
-player::set_tick (midi::pulse tick, bool dontreset)
+player::set_tick (midi::pulse t, bool dontreset)
 {
-    transportinfo().tick(tick);
+    transportinfo().tick(t);
     if (dontreset)
     {
         m_dont_reset_ticks = true;
-        transportinfo().start_tick(tick);
+        transportinfo().start_tick(t);
     }
 }
 
@@ -1024,9 +1027,10 @@ player::right_tick (midi::pulse tick)
         transportinfo().right_tick(tick);
         if (transportinfo().right_tick() <= transportinfo().left_tick())
         {
-            midi::pulse lefttick = transportinfo().left_tick() -
-                transportinfo().one_measure();
-
+            midi::pulse lefttick
+            {
+                transportinfo().left_tick() - transportinfo().one_measure()
+            };
             start_tick(lefttick);
             transportinfo().reposition(false);
             if (is_jack_master())
@@ -1045,7 +1049,8 @@ void
 player::left_tick_snap (midi::pulse tick, midi::pulse snap)
 {
     tick = transportinfo().left_tick_snap(tick, snap);
-    midi::pulse remainder = tick % snap;
+
+    midi::pulse remainder { tick % snap };
     if (remainder > (snap / 2))
         tick += snap - remainder;               /* move up to next snap     */
     else
@@ -1067,7 +1072,8 @@ void
 player::right_tick_snap (midi::pulse tick, midi::pulse snap)
 {
     tick = transportinfo().right_tick_snap(tick, snap);
-    midi::pulse remainder = tick % snap;
+
+    midi::pulse remainder { tick % snap };
     if (remainder > (snap / 2))
         tick += snap - remainder;               /* move up to next snap     */
     else
@@ -1099,7 +1105,7 @@ player::right_tick_snap (midi::pulse tick, midi::pulse snap)
 bool
 player::set_midi_bus (track::number trkno, int b)
 {
-    track::pointer tp = get_track(trkno);
+    track::pointer tp { get_track(trkno) };
     bool result = bool(tp);
     if (result)
         result = tp->midi_bus(b, true);                 /* a user change    */
@@ -1115,7 +1121,7 @@ player::set_midi_bus (track::number trkno, int b)
 bool
 player::set_midi_bus (int b)
 {
-    bool result = false;
+    bool result { false };
     for (auto & trk : track_list().tracks())
     {
         if (trk)
@@ -1153,8 +1159,8 @@ player::set_midi_bus (int b)
 bool
 player::set_midi_channel (track::number trkno, int channel)
 {
-    track::pointer s = get_track(trkno);
-    bool result = bool(s);
+    track::pointer s { get_track(trkno) };
+    bool result { bool(s) };
     if (result)
     {
         if (channel >= c_channel_max)                   /* 0 to 15, Free    */
@@ -1172,11 +1178,11 @@ player::set_midi_channel (track::number trkno, int channel)
 bool
 player::set_track_name (track::ref t, const std::string & name)
 {
-    bool result = name != t.track_name();
+    bool result { name != t.track_name() };
     if (result)
     {
-//      track::number trkno = t.track_number();
         t.track_name(name);
+//      track::number trkno = t.track_number();
 //      set_needs_update();             /* tell GUIs to refresh. FIXME  */
     }
     return result;
@@ -1239,8 +1245,8 @@ player::set_recording
     track::number trkno, bool recordon, track::record r, bool toggle
 )
 {
-    track * tp = get_track(trkno).get();
-    bool result = not_nullptr(tp);
+    track * tp { get_track(trkno).get() };
+    bool result { not_nullptr(tp) };
     if (result)
         result = set_recording(*tp, recordon, r, toggle);
 
@@ -1286,8 +1292,8 @@ player::set_thru (track::ref t, bool thruon, bool toggle)
 bool
 player::set_thru (track::number trkno, bool thruon, bool toggle)
 {
-    track * tp = get_track(trkno).get();
-    bool result = not_nullptr(tp);
+    track * tp { get_track(trkno).get() };
+    bool result { not_nullptr(tp) };
     if (result)
         result = set_thru(*tp, thruon, toggle);
 
@@ -1309,7 +1315,10 @@ bool
 player::jack_transport () const
 {
 #if defined RTL66_BUILD_JACK
-    bool is_jack_api = m_master_bus->selected_api() == rtl::rtmidi::api::jack;
+    bool is_jack_api
+    {
+        master_bus_ptr()->selected_api() == rtl::rtmidi::api::jack
+    };
     return is_jack_api && transportinfo().jack_transport();
 #else
     return false;
@@ -1404,7 +1413,7 @@ player::set_jack_mode (bool connect)
 void
 player::jack_reposition (midi::pulse tick, midi::pulse stoptick)
 {
-    midi::pulse diff = tick - stoptick;
+    midi::pulse diff { tick - stoptick };
     if (diff != 0)
     {
         set_reposition(true);
@@ -1451,7 +1460,7 @@ player::jack_reposition (midi::pulse tick, midi::pulse stoptick)
  *
  *      Figure out how much time we need to sleep, and do it.  Then we want to
  *      trigger every c_thread_trigger_width_us; it took delta_us microseconds
- *      to play().  Also known as the "sleeping_us".  Check the MIDI clock
+ *      to play().  Also known as the "sleeping_us". Check the MIDI clock
  *      adjustment:  60000000.0f / PPQN * / bpm.
  *
  *      With the long patterns in a rendition of Kraftwerk's "Europe Endless",
@@ -1536,23 +1545,23 @@ player::output_func ()
          * Check jack_set_beats_per_minute() and change_ppqn()
          */
 
-        double bwdenom = 4.0 / beat_width();
-        midi::bpm bpmfactor = m_master_bus->BPM() * bwdenom;
-        int ppq = m_master_bus->PPQN();
-        int bpm_times_ppqn = bpmfactor * ppq;
-        double dct = double_ticks_from_ppqn(ppq);
-        double pus = pulse_length_us(bpmfactor, ppq);
-        long current;                           /* current time             */
-        long elapsed_us, delta_us;              /* current - last           */
-        long last = xpc::microtime();           /* beginning time           */
+        double bwdenom { 4.0 / beat_width() };
+        midi::bpm bpmfactor { master_bus_ptr()->BPM() * bwdenom };
+        int ppq { master_bus_ptr()->PPQN() };
+        int bpm_times_ppqn { int(bpmfactor) * ppq };
+        double dct { double_ticks_from_ppqn(ppq) };
+        double pus { pulse_length_us(bpmfactor, ppq) };
+        long current;                                   /* current time     */
+        long elapsed_us, delta_us;                      /* current - last   */
+        long last { xpc::microtime() };                 /* beginning time   */
         transportinfo().resolution_change_clear();
         while (is_running())
         {
             if (transportinfo().resolution_change())    /* atomic boolean   */
             {
                 bwdenom = 4.0 / beat_width();
-                bpmfactor = m_master_bus->BPM() * bwdenom;
-                ppq = m_master_bus->PPQN();
+                bpmfactor = master_bus_ptr()->BPM() * bwdenom;
+                ppq = master_bus_ptr()->PPQN();
                 bpm_times_ppqn = bpmfactor * ppq;
                 dct = double_ticks_from_ppqn(ppq);
                 pus = pulse_length_us(bpmfactor, ppq);
@@ -1575,7 +1584,7 @@ player::output_func ()
 
             long delta_tick = long(delta_tick_num / 60000000LL);
             pad().js_delta_tick_frac = long(delta_tick_num % 60000000LL);
-#if 0
+#if USE_OLD_CODE
             if (m_usemidiclock)
             {
                 delta_tick = m_midiclocktick;       /* int to long          */
@@ -1594,7 +1603,7 @@ player::output_func ()
             }
 #endif
 
-            bool jackrunning = jack_output(pad());
+            bool jackrunning { jack_output(pad()) };
             if (jackrunning)
             {
                 // No additional code needed besides the output() call above.
@@ -1622,7 +1631,7 @@ player::output_func ()
 
             if (pad().js_init_clock)
             {
-                m_master_bus->handle_clock
+                master_bus_ptr()->handle_clock
                 (
                     midi::clock::action::init, midi::pulse(pad().js_clock_tick)
                 );
@@ -1637,8 +1646,8 @@ player::output_func ()
                      * code, so it is now permanent code.
                      */
 
-                    static bool jack_position_once = false;
-                    midi::pulse rtick = right_tick();     /* can change? */
+                    static bool jack_position_once { false };
+                    midi::pulse rtick { right_tick() };     /* can change?  */
                     if (pad().js_current_tick >= rtick)
                     {
                         if (is_jack_master() && ! jack_position_once)
@@ -1647,14 +1656,14 @@ player::output_func ()
                             jack_position_once = true;
                         }
 
-                        double leftover_tick = pad().js_current_tick - rtick;
+                        double leftover_tick { pad().js_current_tick - rtick };
                         if (jack_transport_not_starting())  /* no FF/RW xrun */
                         {
                             play(rtick - 1);
                         }
                         reset_tracks();
 
-                        midi::pulse ltick = left_tick();
+                        midi::pulse ltick { left_tick() };
                         set_last_ticks(ltick);
                         pad().js_current_tick = double(ltick) + leftover_tick;
                     }
@@ -1678,7 +1687,7 @@ player::output_func ()
                  */
 
                 set_jack_tick(pad().js_current_tick);
-                m_master_bus->handle_clock
+                master_bus_ptr()->handle_clock
                 (
                     midi::clock::action::emit, midi::pulse(pad().js_clock_tick)
                 );
@@ -1733,7 +1742,10 @@ player::output_func ()
 
         if (! m_dont_reset_ticks)
         {
-            midi::pulse start = song_mode() ? transportinfo().left_tick() : 0 ;
+            midi::pulse start
+            {
+                song_mode() ? transportinfo().left_tick() : 0
+            };
             if (is_jack_master())
                 position_jack(song_mode(), start);
             else if (! m_clock_info.usemidiclock() && ! is_jack_running())
@@ -1745,10 +1757,8 @@ player::output_func ()
          * if m_usemidiclock == true.
          */
 
-        m_master_bus->flush();
-#if defined USE_MASTER_BUS
-        m_master_bus->stop();
-#endif
+        master_bus_ptr()->flush();
+        // (void) master_bus_ptr()->handle_clock(midi::clock::action::stop);
     }
     (void) xpc::set_timer_services(false);
     return true;
@@ -1784,9 +1794,9 @@ player::input_func ()
 bool
 player::poll_cycle ()
 {
-    bool result = ! done();
+    bool result { ! done() };
     if (result)
-        result = m_master_bus->poll_for_midi() > 0;
+        result = master_bus_ptr()->poll_for_midi() > 0;
 
     if (result)
     {
@@ -1800,7 +1810,7 @@ player::poll_cycle ()
 
             event ev;
 #if defined USE_MASTER_BUS
-            bool incoming = m_master_bus->get_midi_event(&ev);
+            bool incoming = master_bus_ptr()->get_midi_event(&ev);
 #else
             bool incoming = false;
 #endif
@@ -1813,13 +1823,13 @@ player::poll_cycle ()
                     util::status_message("MIDI event", estr);
 #endif
 #if defined USE_MASTER_BUS
-                    if (m_master_bus->is_dumping())         /* see banner   */
+                    if (master_bus_ptr()->is_dumping())         /* see banner   */
                     {
                         ev.set_timestamp(tick());
                         if (m_filter_by_channel)
-                            m_master_bus->dump_midi_input(ev);
+                            master_bus_ptr()->dump_midi_input(ev);
                         else
-                            m_master_bus->get_track()->stream_event(ev);
+                            master_bus_ptr()->get_track()->stream_event(ev);
                     }
 #endif
                 }
@@ -1868,7 +1878,7 @@ player::poll_cycle ()
                     /* ignore the event */
                 }
             }
-        } while (m_master_bus->is_more_input());
+        } while (master_bus_ptr()->is_more_input());
     }
     return result;
 }
@@ -2036,7 +2046,7 @@ player::midi_song_pos (const event & ev)
 void
 player::midi_sysex (const event & ev)
 {
-     m_master_bus->sysex(/*port/buss number */ 0, &ev);     // TODO
+     master_bus_ptr()->sysex(/*port/buss number */ 0, &ev);     // TODO
 }
 
 /**
@@ -2092,7 +2102,7 @@ player::midi_sysex (const event & ev)
 void
 player::start_playing ()
 {
-    if (is_jack_master() && ! m_dont_reset_ticks)       // ca 2021-05-20
+    if (is_jack_master() && ! m_dont_reset_ticks)
         position_jack(false, 0);
 
     start_jack();
@@ -2218,6 +2228,31 @@ player::delay_stop ()
      */
 }
 
+midi::pulse
+player::get_max_extent () const
+{
+    midi::pulse result { 0 };
+    for (const auto & trk : track_list().tracks())
+    {
+        midi::pulse t { trk->get_max_timestamp() };
+        if (t > result)
+            result = t;
+    }
+    return result;
+}
+
+bool
+player::at_song_end ()
+{
+    if (get_tick() < m_max_extent)
+    {
+        xpc::millisleep(100);
+        return false;
+    }
+    else
+        return true;
+}
+
 /**
  *  Starts the playing of all the patterns/tracks.  This function just runs
  *  down the list of tracks and has them dump their events.  It skips
@@ -2244,7 +2279,7 @@ player::play (midi::pulse tick)
 {
     if (tick != transportinfo().tick() || tick == 0)    /* avoid replays    */
     {
-        bool songmode = song_mode();
+        bool songmode { song_mode() };
         set_tick(tick);
         for (const auto & trk : track_list().tracks())
         {
@@ -2253,7 +2288,7 @@ player::play (midi::pulse tick)
             else
                 append_error_message("play() on null track");
         }
-        m_master_bus->flush();                          /* flush MIDI buss  */
+        master_bus_ptr()->flush();                      /* flush MIDI buss  */
     }
     return true;
 }
@@ -2271,7 +2306,7 @@ player::simple_play (midi::pulse tick)
             else
                 append_error_message("simple_play() on null track");
         }
-        m_master_bus->flush();                          /* flush MIDI buss  */
+        master_bus_ptr()->flush();                      /* flush MIDI buss  */
     }
     return true;
 }
@@ -2284,8 +2319,8 @@ player::simple_play (midi::pulse tick)
 void
 player::all_notes_off ()
 {
-    if (m_master_bus)
-        m_master_bus->flush();                      /* flush MIDI buss  */
+    if (master_bus_ptr())
+        master_bus_ptr()->flush();                      /* flush MIDI buss  */
 }
 
 /**
@@ -2296,7 +2331,7 @@ player::all_notes_off ()
 bool
 player::panic ()
 {
-    bool result = bool(m_master_bus);
+    bool result { bool(master_bus_ptr()) };
     stop_playing();
     inner_stop();                                   /* force inner stop     */
     transportinfo().tick(0);
@@ -2337,8 +2372,8 @@ player::panic ()
 bool
 player::track_playing_toggle (track::number trkno)
 {
-    track::pointer tp = get_track(trkno);
-    bool result = bool(tp);
+    track::pointer tp { get_track(trkno) };
+    bool result { bool(tp) };
     if (result)
     {
         tp->toggle_playing(tick(), resume_note_ons());   /* kepler34 */
@@ -2360,8 +2395,8 @@ player::track_playing_toggle (track::number trkno)
 bool
 player::track_playing_change (track::number trkno, bool on)
 {
-    track::pointer tp = get_track(trkno);
-    bool result = bool(tp);
+    track::pointer tp { get_track(trkno) };
+    bool result { bool(tp) };
     if (result)
         tp->track_playing_change(trkno, on);
 
@@ -2416,10 +2451,14 @@ player::read_midi_file
 )
 {
     errmsg.clear();
-    bool result = midi::read_midi_file(*this, fn, errmsg);
+
+    bool result { midi::read_midi_file(*this, fn, errmsg) };
     if (result)
     {
         (void) addtorecent;
+        m_max_extent = get_max_extent();
+
+        // TODO? Get PPQN?
     }
     return result;
 }
@@ -2451,7 +2490,8 @@ player::write_midi_file
 )
 {
     errmsg.clear();
-    bool result = midi::write_midi_file(*this, fn, errmsg, eventsonly);
+
+    bool result { midi::write_midi_file(*this, fn, errmsg, eventsonly) };
     if (result)
     {
         // to do?
@@ -2471,7 +2511,7 @@ player::print_tracks (const std::string & tag)
     {
         if (trk)
         {
-            std::string trkstring {trk->to_string() };
+            std::string trkstring { trk->to_string() };
             printf("%s\n", trkstring.c_str());
         }
         else

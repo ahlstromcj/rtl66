@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-22
- * \updates       2024-06-01
+ * \updates       2025-09-08
  * \license       GNU GPLv2 or above
  *
  *  The iothread class encapsulates the management of the I/O threads of
@@ -128,9 +128,9 @@ private:
 
     void join ()
     {
+        deactivate();                           /* set done() for predicate */
         m_io_thread->join();
         m_launched = false;
-        m_active = false;                       /* set done() for predicate */
     }
 
     std::thread & io_thread ()                  /* call only if launched    */

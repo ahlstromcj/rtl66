@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-09-06
+ * \updates       2025-09-08
  * \license       GNU GPLv2 or above
  *
  *  A MIDI event (i.e. "track event") is encapsulated by the midi::event
@@ -94,22 +94,12 @@ namespace midi
  *  we currently insure it has three data bytes for easier modification.
  */
 
-event::event ()
-#if 0
- :
-    m_input_buss    (null_buss()),              /* 0xFF                     */
-    m_timestamp     (0),
-    m_message       (),                         /* now a midi::message      */
-    m_channel       (null_channel()),           /* 0x80                     */
-    m_linked        (),
-    m_has_link      (false),
-    m_selected      (false),
+event::event () :
 #if defined RTL66_SUPPORT_PAINTED_EVENTS
     m_marked        (false),
     m_painted       (false)
 #else
     m_marked        (false)
-#endif
 #endif
 {
     m_message.push(midi::to_byte(status::note_off));
@@ -122,22 +112,12 @@ event::event ()
  */
 
 event::event (const midi::message & msg) :
-#if 0
-    m_input_buss    (null_buss()),              /* 0xFF                     */
-    m_timestamp     (msg.time_stamp()),
-#endif
-    m_message       (msg)
-#if 0
-    m_channel       (null_channel()),           /* 0x80                     */
-    m_linked        (),
-    m_has_link      (false),
-    m_selected      (false),
+    m_message       (msg),
 #if defined RTL66_SUPPORT_PAINTED_EVENTS
     m_marked        (false),
     m_painted       (false)
 #else
     m_marked        (false)
-#endif
 #endif
 {
     // no code, but we might need more parsing
@@ -817,7 +797,7 @@ event::set_midi_event
     }
     else
     {
-#if 0
+#if THIS_CODE_IS_READY
         if (midi::is_sysex_msg(buffer[0]))
         {
             reset_sysex();            /* set up for sysex if needed   */
@@ -1278,15 +1258,8 @@ midi::bpm
 event::tempo () const
 {
     midi::bpm result { 0.0 };
-    if (is_tempo() && sysex_size() == 3)
+    if (is_tempo() && meta_size() == 3)
     {
-        /*
-        midi::byte b[3];
-        b[0] = m_message[1];                  // convert vector to array type //
-        b[1] = m_message[2];
-        b[2] = m_message[3];
-        result = bpm_from_bytes(b);
-        */
         midi::bytes tt;
         tt.push_back(m_message[3]);
         tt.push_back(m_message[4]);

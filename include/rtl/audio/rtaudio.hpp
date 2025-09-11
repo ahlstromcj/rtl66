@@ -284,12 +284,10 @@ protected:
         unsigned queuesize              = 0     /* useful with input ports  */
     ) = 0;
 
-#if 0
     api ctor_common_setup
     (
         api rapi, const std::string & clientname
     );
-#endif
 
 };          // class rtaudio
 

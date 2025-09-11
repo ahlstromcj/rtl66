@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2025-08-20
+ * \updates       2025-09-11
  * \license       GNU GPLv2 or above
  *
  *  This class is meant to hold the bytes that represent MIDI events and other
@@ -58,21 +58,23 @@ namespace midi
  *  This class holds a container of MIDI track information.  It adds the
  *  ability to write a track to a file stream.
  *
- *  Note the protected inheritance.  It means that track is implemented in
- *  terms of trackdata and trackinfo, so that their functions can be
- *  called directly, eliminating a goodly number of pass-through functions.
- *  This may evolve as time goes on.
+ * Hmmmm:
+ *
+ *      Note the protected inheritance.  It means that track is implemented
+ *      in terms of trackdata and trackinfo, so that their functions can be
+ *      called directly, eliminating a goodly number of pass-through
+ *      functions.  This may evolve as time goes on.
  *
  * trackdata:
  *
- *  Holds the midi::eventlist which contains all the midi::events for this
- *  track. It also provides a midi::bytes vector to use when converting
- *  the events to raw data (and vice versa).
+ *      Holds the midi::eventlist which contains all the midi::events for this
+ *      track. It also provides a midi::bytes vector to use when converting
+ *      the events to raw data (and vice versa).
  *
  * trackinfo:
  *
- *  Holds the more common MIDI track parameters in convenient structures.
- *  Includes information on key signature, time signature, etc.
+ *      Holds the more common MIDI track parameters in convenient structures.
+ *      Includes information on key signature, time signature, etc.
  */
 
 class track
@@ -273,9 +275,9 @@ private:
      *  the user-interface.
      *
      *  See transport::info and midi::timesiginfo.
-     */
 
     unsigned short m_beats_per_bar;
+     */
 
     /**
      *  Provides with width of a beat.  Defaults to 4, which means the beat is
@@ -284,9 +286,9 @@ private:
      *  user-interface.
      *
      *  See transport::info and midi::timesiginfo.
-     */
 
     unsigned short m_beat_width;
+     */
 
     /**
      *  This member manages where we are in the playing of this sequence.
@@ -405,8 +407,8 @@ public:
     void set_timesig_info (const timesiginfo & tsi)
     {
         info().timesig_info() = tsi;
-        m_beats_per_bar = tsi.beats_per_bar();
-        m_beat_width = tsi.beat_width();
+//      m_beats_per_bar = tsi.beats_per_bar();
+//      m_beat_width = tsi.beat_width();
     }
 
     keysiginfo & key_sig_info ()
@@ -471,6 +473,16 @@ public:
     const midi::eventlist & events () const
     {
         return data().m_events;
+    }
+
+    midi::pulse get_min_timestamp () const
+    {
+        return events().get_min_timestamp();
+    }
+
+    midi::pulse get_max_timestamp () const
+    {
+        return events().get_max_timestamp();
     }
 
     /*-----------------------------------------------------------------------
@@ -606,17 +618,23 @@ public:
      *  merely sets the member variables.
      */
 
-    void beats_per_bar (int beatspermeasure, bool user_change = false);
-    void beat_width (int beatwidth, bool user_change = false);
+    bool beats_per_bar (int beatspermeasure, bool user_change = false);
+    bool beat_width (int beatwidth, bool user_change = false);
+    bool beats_per_minute (midi::bpm bpmin, bool user_change = false);
 
     int beats_per_bar () const
     {
-        return int(m_beats_per_bar);
+        return info().timesig_info().beats_per_bar();
     }
 
     int beat_width () const
     {
-        return int(m_beat_width);
+        return info().timesig_info().beat_width();
+    }
+
+    midi::bpm beats_per_minute () const
+    {
+        return tempo_info().beats_per_minute();
     }
 
 public:
@@ -627,7 +645,8 @@ public:
 
     virtual void set_parent
     (
-        player * p, lib66::toggler sorting = lib66::toggler::off
+        player * p,
+        lib66::toggler sorting = lib66::toggler::off
     );
     virtual bool set_length (midi::pulse len = 0, bool verify = true);
     virtual bool master_midi_bus (const midi::masterbus * mmb);

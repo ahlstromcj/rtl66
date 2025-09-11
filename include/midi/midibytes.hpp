@@ -170,17 +170,6 @@ using bpm = double;
 
 using ppqn = short;
 
-#if 0
-
-/*
- *  Container types.  The next few type are common enough to warrant aliasing
- *  in this file.
- */
-
-using string = std::basic_string<byte>;         /* remember, midi::string   */
-
-#endif
-
 /**
  *  Provides a convenient way to package a number of booleans, such as
  *  mute-group values or a screenset's sequence statuses.

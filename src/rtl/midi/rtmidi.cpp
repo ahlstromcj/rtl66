@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-04
+ * \updates       2025-09-08
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -168,7 +168,7 @@ rtmidi::set_master_bus (midi::masterbus * mb)
             mb->void_client_handle(rvch);       /* first log client handle  */
             result = set_master_bus_ptr(mb);    /* then log the masterbus   */
         }
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
         printf
         (
             "set_master_bus() pointers:\n"
@@ -197,7 +197,7 @@ bool
 rtmidi::set_master_bus_ptr (midi::masterbus * mb)
 {
     bool result { not_nullptr(mb) && not_nullptr(rt_api_ptr()) };
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
         printf("masterbus * mb = %p\n", (void *)(mb));
 #endif
     if (result)

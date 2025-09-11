@@ -27,15 +27,15 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-05
- * \updates       2025-09-04
+ * \updates       2025-09-09
  * \license       See above.
  *
  * Introduction:
  *
  *      We have two ways of configuring the build for the rtl66 library. This
- *      file presents features that depend upon the build platform, and
- *      build options that might be considered permanent, such as the option
- *      to pick from various JACK-processing callbacks.
+ *      file presents features that depend upon the build platform, and build
+ *      options that might be considered permanent, such as the option to pick
+ *      from various JACK-processing callbacks.
  */
 
 #include "platform_macros.h"            /* generic detecting of OS platform */
@@ -65,9 +65,7 @@
  * provisionally written.
  */
 
-#if 0
-#define RTL66_RTMIDI_VERSION "6.0.0"        /* RtMidi revision at fork time */
-#endif
+#define RTL66_RTMIDI_VERSION_2  "6.0.0"     /* RtMidi revision at fork time */
 
 /*
  * https://github.com/thestk/rtaudio.git
@@ -113,10 +111,11 @@
 #define RTL66_DEFAULT_PPQN          384         /* pulses per quarter note  */
 #define RTL66_DEFAULT_BPM           120.0       /* beats per minute         */
 #define RTL66_DEFAULT_Q_SIZE        100         /* input queue size         */
-#define RTL66_DEFAULT_BEATS           4         /* beats per bar            */
+#define RTL66_DEFAULT_BEATS_PER_BAR   4         /* beats per bar            */
 #define RTL66_DEFAULT_BEAT_WIDTH      4         /* quarter note             */
 #define RTL66_DEFAULT_METRO_CLOCKS   24         /* clocks per metronome     */
 #define RTL66_DEFAULT_32NDS_PER_Q     8         /* 32nds per quarter        */
+#define RTL66_DEFAULT_US_PER_Q   500000         /* microseconds per quarter */
 
 /**
  *  What Platform APIS to build? A few notes:

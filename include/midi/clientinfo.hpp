@@ -168,7 +168,7 @@ struct client_defaults
      */
 
     int cd_global_beat_width { RTL66_DEFAULT_BEAT_WIDTH };
-    int cd_global_beats_per_bar { RTL66_DEFAULT_BEATS };
+    int cd_global_beats_per_bar { RTL66_DEFAULT_BEATS_PER_BAR };
 
     /**
      *  Holds the global PPQN value.  This is an addition to the RtMidi

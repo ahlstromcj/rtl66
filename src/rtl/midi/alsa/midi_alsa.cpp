@@ -2476,9 +2476,22 @@ bool
 midi_alsa::send_event (const midi::event * evp, midi::byte channel) const
 {
     const midi::message & msg { evp->get_message() };
-    const midi::byte * data { msg.data_ptr() };
+    midi::bytes & buff { const_cast<midi::bytes &>(msg.event_bytes()) };
     size_t sz { msg.size() };
-    return send_message(data, sz);
+    if (channel != midi::null_channel())
+    {
+        if (sz >= 3)
+        {
+            buff[0] = evp->get_status(channel);     /* status+channel   */
+            evp->get_data(buff[1], buff[2]);        /* set the data     */
+        }
+        else if (sz == 2)
+        {
+            buff[0] = evp->get_status(channel);     /* status+channel   */
+            evp->get_data(buff[1]);
+        }
+    }
+    return send_message(buff.data(), sz);
 }
 
 #endif  // defined USE_BROKEN_SEND_EVENT

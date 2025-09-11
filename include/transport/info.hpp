@@ -27,17 +27,17 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2017-11-10
- * \updates       2025-08-20
+ * \updates       2025-09-09
  * \license       See above.
  */
 
-#if defined USE_ATOMIC_RESOLUTION_CHANGE_FLAG
+#if defined RTL_ATOMIC_RESOLUTION_CHANGE_FLAG
 #include <atomic>                       /* std::atomic template             */
 #endif
 
+#include "midi/midibytes.hpp"           /* midi::midibyte, other aliases    */
+#include "midi/timing.hpp"              /* midi::timing class               */
 #include "rtl/rtl_build_macros.h"       /* PPQN, BPM, and other macros      */
-#include "midi/calculations.hpp"        /* midi::tempo_us_from_bpm()        */
-#include "midi/midibytes.hpp"           /* rtl66::midibyte, other aliases   */
 
 namespace transport
 {
@@ -85,6 +85,14 @@ enum class timebase
 class info
 {
     /**
+     *  Encapsulates beats/minute, beats/bar, beat width, PPQN, and items
+     *  related to the MIDI tempo event. Access them via time_values()
+     *  functions.
+     */
+
+    midi::timing m_time_values;
+
+    /**
      *  What role is transport playing?
      */
 
@@ -99,42 +107,13 @@ class info
     bool m_is_running { false };
 
     /**
-     *  Holds the beats/bar value as obtained from the MIDI file.
-     *  The default value is 4. Also called "beats per measure".
-     */
-
-    int m_beats_per_bar { RTL66_DEFAULT_BEATS };                /* 4        */
-
-    /**
-     *  Holds the beat width value as obtained from the MIDI file.  The default
-     *  value is 4.  Also called "beat length" or "beat type".
-     */
-
-    int m_beat_width { RTL66_DEFAULT_BEAT_WIDTH };              /* 4        */
-
-    /**
-     *  Holds the current BPM for the song (beats per minute).
-     *  ALSA and JACK can use this value internally.
-     */
-
-    midi::bpm m_beats_per_minute { RTL66_DEFAULT_BPM };         /* 120.0    */
-
-    /**
-     *  Holds the current PPQN (pulses per quarternote) for usage in various
-     *  actions.  Unlike in the "legacy" Seq66, this will hold the file PPQN
-     *  if provided. ALSA and JACK can use this value internally.
-     */
-
-    midi::ppqn m_ppqn { RTL66_DEFAULT_PPQN };                   /* 192      */
-
-    /**
      *  Indicates if the BPM or PPQN value has changed, for internal handling in
      *  output_func(). Note that atomic-bool has a deleted copy constructor.
      *  This ripples down the info class hierarchy, so we will punt and hope we
      *  can figure out a better way later.
      */
 
-#if defined USE_ATOMIC_RESOLUTION_CHANGE_FLAG
+#if defined RTL_ATOMIC_RESOLUTION_CHANGE_FLAG
     std::atomic<bool> m_resolution_change { true };
 #else
     bool m_resolution_change { true };
@@ -152,36 +131,6 @@ class info
      */
 
     midi::microsec m_pulse_time_us { 0 };
-
-    /**
-     *  Augments the beats/bar and beat-width with the additional values
-     *  included in a Time Signature meta event.  This value provides the
-     *  number of MIDI clocks between metronome clicks.  The default value of
-     *  this item is 24.  It can also be read from some SMF 1 files, such as
-     *  our hymne.mid example.
-     */
-
-    int m_clocks_per_metronome { RTL66_DEFAULT_METRO_CLOCKS };  /* 24       */
-
-    /**
-     *  Augments the beats/bar and beat-width with the additional values
-     *  included in a Time Signature meta event.  Useful in export.  A
-     *  duplicate of the same member in the sequence class.
-     */
-
-    int m_32nds_per_quarter{ RTL66_DEFAULT_32NDS_PER_Q };       /* 8        */
-
-    /**
-     *  The duration of a quarter note (or beat as well?) in microseconds.
-     *  Augments the beats/bar and beat-width with the additional values
-     *  included in a Tempo meta event.  Useful in export.  A duplicate of the
-     *  same member in the sequence class.
-     */
-
-    midi::microsec m_us_per_quarter_note
-    {
-        midi::tempo_us_from_bpm(m_beats_per_minute)
-    };
 
     /**
      *  Holds the "one measure's worth" of pulses (ticks), which is normally
@@ -230,6 +179,16 @@ public:
     info & operator = (const info &) = default;
     ~info () = default;
 
+    midi::timing & time_values ()
+    {
+        return m_time_values;
+    }
+
+    const midi::timing & time_values () const
+    {
+        return m_time_values;
+    }
+
     bool is_running () const
     {
         return m_is_running;
@@ -262,17 +221,17 @@ public:
 
     int beat_width () const
     {
-        return m_beat_width;
+        return time_values().BW();
     }
 
     int beats_per_bar () const
     {
-        return m_beats_per_bar;
+        return time_values().BPB();
     }
 
     midi::bpm beats_per_minute () const
     {
-        return m_beats_per_minute;
+        return time_values().BPM();
     }
 
     double ticks_per_beat () const
@@ -301,7 +260,7 @@ public:
 
     midi::ppqn get_ppqn () const
     {
-        return m_ppqn;
+        return time_values().PPQN();
     }
 
     midi::microsec pulse_time_us () const
@@ -318,17 +277,17 @@ public:
 
     int clocks_per_metronome () const
     {
-        return m_clocks_per_metronome;
+        return time_values().clocks_per_metronome();
     }
 
     int get_32nds_per_quarter () const
     {
-        return m_32nds_per_quarter;
+        return time_values().get_32nds_per_quarter();
     }
 
     midi::microsec us_per_quarter_note () const
     {
-        return m_us_per_quarter_note;
+        return time_values().us_per_quarter_note();
     }
 
     midi::pulse one_measure () const
@@ -382,7 +341,7 @@ public:
 
     void beat_width (int bw)
     {
-        m_beat_width = bw;
+        time_values().BW(bw);
 #if defined RTL66_BUILD_JACK_HERE
         m_jack_transport.set_beat_width(bw);
 #endif
@@ -393,53 +352,65 @@ public:
      * set_beats_per_measure().
      */
 
-    void beats_per_bar (int bpb)
+    bool beats_per_bar (int bpb)
     {
-        m_beats_per_bar = bpb;
+        bool result = time_values().BPB(bpb);
+        if (result)
+        {
 #if defined RTL66_BUILD_JACK_HERE
         m_jack_transport.set_beats_per_measure(bpb);
 #endif
+        }
+        return result;
     }
 
-    void beats_per_minute (midi::bpm bp)
+    bool beats_per_minute (midi::bpm bp)
     {
-        m_beats_per_minute = bp;
+        return time_values().BPM(bp);
     }
 
-    void ticks_per_beat (double tpb)
+    bool ticks_per_beat (double tpb)
     {
         m_ticks_per_beat = tpb;
+        return true;
     }
 
-    void set_ppqn (midi::ppqn ppq)
+    bool set_ppqn (midi::ppqn ppq)
     {
-        m_ppqn = ppq;
+        return time_values().PPQN(ppq);
     }
 
-    void pulse_time_us (midi::microsec jt)
+    bool pulse_time_us (midi::microsec jt)
     {
         m_pulse_time_us = jt;
+        return true;
     }
 
-    void clocks_per_metronome (int cpm)
+    bool clocks_per_metronome (int cpm)
     {
-        m_clocks_per_metronome = cpm;
+        return time_values().clocks_per_metronome(cpm);
     }
 
-    void set_32nds_per_quarter (int tpq)
+    bool set_32nds_per_quarter (int tpq)
     {
-        m_32nds_per_quarter = tpq;
+        return time_values().set_32nds_per_quarter(tpq);
     }
 
-    void us_per_quarter_note (midi::microsec upqn)
+    bool us_per_quarter_note (midi::microsec upqn)
     {
-        m_us_per_quarter_note = upqn;
+        return time_values().us_per_quarter_note(upqn);
     }
 
-    void one_measure (midi::pulse p)
+    bool one_measure (midi::pulse p)
     {
-        m_one_measure = p * 4;              /* simplistic */
-        m_right_tick = m_one_measure * 4;   /* simplistic */
+        if (p > 0)
+        {
+            m_one_measure = p * 4;              /* simplistic */
+            m_right_tick = m_one_measure * 4;   /* simplistic */
+            return true;
+        }
+        else
+            return false;
     }
 
     void reposition (bool flag)

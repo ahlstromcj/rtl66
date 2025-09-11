@@ -105,28 +105,6 @@ public:
         return m_output_handle;
     }
 
-#if 0
-    int port_number () const
-    {
-        return m_portnum;
-    }
-
-    size_t buffer_size () const
-    {
-        return m_buffer_size;
-    }
-
-    midi::byte * buffer ()
-    {
-        return m_buffer;
-    }
-
-    bool valid_buffer () const
-    {
-        return not_nullptr(m_buffer);
-    }
-#endif
-
 public:
 
     void in_client (HMIDIIN hin)
@@ -139,22 +117,6 @@ public:
         m_output_handle = hout;
     }
 
-#if 0
-    void port_number (int p)
-    {
-        m_portnum = p;
-    }
-
-    void buffer_size (size_t sz)
-    {
-        m_buffer_size = sz;
-    }
-
-    void buffer (midi::byte * b)
-    {
-        m_buffer = b;
-    }
-#endif
 
     void last_time (DWORD lt)
     {

@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-23
- * \updates       2022-12-01
+ * \updates       2025-09-11
  * \license       GNU GPLv2 or above
  *
  *  This class contains a number of functions that used to reside in the
@@ -182,7 +182,7 @@ private:
      *  client, can issue commands and retrieve status information from JACK.
      */
 
-    mutable jack_client_t * m_jack_client;
+    mutable jack_client_t * m_jack_client { nullptr };
 
     /**
      *  A new member to hold the actual name of the client assigned by JACK.
@@ -203,14 +203,14 @@ private:
      *  call to jack_get_current_transport_frame().
      */
 
-    jack_nframes_t m_frame_current;
+    jack_nframes_t m_frame_current { 0 };
 
     /**
      *  Holds the last frame number we got from JACK, so that progress can be
      *  tracked.  Also used in incrementing m_jack_tick.
      */
 
-    jack_nframes_t m_frame_last;
+    jack_nframes_t m_frame_last { 0 };
 
     /**
      *  Provides positioning information on JACK playback.  This structure is
@@ -226,33 +226,43 @@ private:
      *  JackTransportStopped, JackTransportRolling, and JackTransportLooping.
      */
 
-    jack_transport_state_t m_transport_state;
+    jack_transport_state_t m_transport_state { JackTransportStopped };
 
     /**
      *  Holds the last JACK transport state.
      */
 
-    jack_transport_state_t m_transport_state_last;
+    jack_transport_state_t m_transport_state_last { JackTransportStopped };
 
     /**
      *  The tick/pulse value derived from the current frame number, the
      *  ticks/beat value, the beats/minute value, and the frame rate.
      */
 
-    double m_jack_tick;
+    double m_jack_tick { 0.0 };
 
     /**
      *  Indicates if JACK Sync has been enabled successfully.
      */
 
-    bool m_jack_running;
+    bool m_jack_running { false };
 
     /**
      *  Indicates if JACK Sync has been enabled successfully, with the
      *  application running as JACK Master.
      */
 
-    timebase m_timebase;
+    timebase m_timebase { timebase::none };
+
+#if defined ENABLE_PROPOSED_FUNCTIONS
+
+    /**
+     *  We don't remember what this was for...
+     */
+
+    m_timebase_tracking { -1 };
+
+#endif
 
     /**
      *  Holds the current frame rate.  Just in case.  QJackCtl does not always
@@ -260,27 +270,27 @@ private:
      *  calculations displayed in qjackctl.
      */
 
-    jack_nframes_t m_frame_rate;
+    jack_nframes_t m_frame_rate { 0 };
 
     /**
      *  Ostensibly a toggle, the functions that access this member are called
      *  "jack_mode" functions.
      */
 
-    bool m_toggle_jack;
+    bool m_toggle_jack { false };
 
     /**
      *  Used in jack_process_callback() to reposition when JACK transport is
      *  not rolling or starting.  Repositions the transport marker.
      */
 
-    midi::pulse m_jack_stop_tick;
+    midi::pulse m_jack_stop_tick { 0 };
 
     /**
      *  Indicates to follow JACK transport.
      */
 
-    bool m_follow_transport;
+    bool m_follow_transport { true };
 
     /**
      *  Holds the global PPQN value for the Seq66 session.  It is used
@@ -288,36 +298,38 @@ private:
      *  position.
      */
 
-    midi::ppqn m_ppqn;
+    midi::ppqn m_ppqn { RTL66_DEFAULT_PPQN };
 
     /**
      *  Holds the song's beats/measure value for using in setting JACK
      *  position.
      */
 
-    int m_beats_per_measure;
+    int m_beats_per_measure { RTL66_DEFAULT_BEATS_PER_BAR };
 
     /**
      *  Holds the song's beat width value (denominator of the time signature)
      *  for using in setting JACK position.
      */
 
-    int m_beat_width;
+    int m_beat_width { RTL66_DEFAULT_BEAT_WIDTH };
 
     /**
      *  Holds the song's beats/minute (BPM) value for using in setting JACK
      *  position.
      */
 
-    midi::bpm m_beats_per_minute;
+    midi::bpm m_beats_per_minute { RTL66_DEFAULT_BPM };
 
 public:
 
     transport
     (
         midi::player & parent,
-        midi::bpm bpminute, midi::ppqn ppq,
-        int bpmeasure, int beatwidth
+        midi::bpm bpminute  = 0.0,
+        midi::ppqn ppq      = 0,
+        int bpmeasure       = 0,
+        int beatwidth       = 0
     );
     ~transport ();
 

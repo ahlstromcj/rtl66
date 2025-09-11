@@ -501,11 +501,9 @@ protected:  // API implementations
     bool port_start (int client, int port);     // TODO
     bool port_exit (int client, int port);      // TODO
     bool set_track_input (bool state, midi::track * trk);
-#if 0
-    void dump_midi_input (midi::event ev);
-#endif
 
 #if defined THIS_CODE_IS_READY
+    void dump_midi_input (midi::event ev);
     void api_set_ppqn_and_beats_per_minute (midi::ppqn,  midi::bpm);
     void api_init (midi::ppqn, midi::bpm); // = 0;
     void api_start ();

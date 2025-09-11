@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-14
- * \updates       2022-12-01
+ * \updates       2025-09-11
  * \license       GNU GPLv2 or above
  *
  *  For the summaries of the JACK functions used in this module, and how
@@ -193,13 +193,13 @@ transport::save_jack_parameters
     int alsanperiod
 )
 {
-    jack_position_t & currpos = sm_jack_parameters.position;
-    bool result =
-    (
+    jack_position_t & currpos { sm_jack_parameters.position };
+    bool result
+    {
         (p.ticks_per_beat != currpos.ticks_per_beat) ||
         (p.beats_per_minute != currpos.beats_per_minute) ||
         (p.frame_rate != currpos.frame_rate)
-    );
+    };
     if (result)
     {
         currpos = p;
@@ -228,7 +228,7 @@ transport::get_jack_parameters ()
  *  10.
  */
 
-static const int c_jack_factor = 10;
+static const int c_jack_factor { 10 };
 
 #if defined USE_JACK_DEBUG_PRINT
 
@@ -262,21 +262,21 @@ jack_debug_print
     double ticks_delta
 )
 {
-    static long s_output_counter = 0;
+    static long s_output_counter { 0 };
     if ((s_output_counter++ % 100) == 0)
     {
-        const jack_position_t & p = jack.jack_pos();
-        double jtick = jack.get_jack_tick();
+        const jack_position_t & p { jack.jack_pos() };
+        double jtick { jack.get_jack_tick() };
 
         /*
          * double jack_tick = (p.bar-1) * (p.ticks_per_beat * p.beats_per_bar ) +
          *  (p.beat-1) * p.ticks_per_beat + p.tick;
          */
 
-        long pbar = long(jtick) / long(p.ticks_per_beat * p.beats_per_bar);
-        long pbeat = long(jtick) % long(p.ticks_per_beat * p.beats_per_bar);
+        long pbar { long(jtick) / long(p.ticks_per_beat * p.beats_per_bar) };
+        long pbeat { long(jtick) % long(p.ticks_per_beat * p.beats_per_bar) };
+        long ptick { long(jtick) % long(p.ticks_per_beat) };
         pbeat /= long(p.ticks_per_beat);
-        long ptick = long(jtick) % long(p.ticks_per_beat);
         printf
         (
             "* curtick=%4.2f delta=%4.2f BBT=%ld:%ld:%ld "
@@ -307,7 +307,7 @@ jack_debug_print
 int
 jack_dummy_callback (jack_nframes_t nframes, void * arg)
 {
-    transport * j = static_cast<transport *>(arg);
+    transport * j { static_cast<transport *>(arg) };
     if (is_nullptr(j))
         nframes = 0;
 
@@ -356,19 +356,19 @@ jack_dummy_callback (jack_nframes_t nframes, void * arg)
 int
 jack_transport_callback (jack_nframes_t /*nframes*/, void * arg)
 {
-    transport * j = static_cast<transport *>(arg);
+    transport * j { static_cast<transport *>(arg) };
     if (not_nullptr(j))
     {
         jack_position_t pos;
-        jack_transport_state_t s = ::jack_transport_query(j->client(), &pos);
-        midi::player & p = j->parent();
+        jack_transport_state_t s { ::jack_transport_query(j->client(), &pos) };
+        midi::player & p { j->parent() };
         if (p.is_running())
         {
             if (j->is_slave())
             {
                 if (pos.beats_per_minute > 1.0)         /* a sanity check   */
                 {
-                    static double s_old_bpm = 0.0;
+                    static double s_old_bpm { 0.0 };
                     if (pos.beats_per_minute != s_old_bpm)
                     {
                         s_old_bpm = pos.beats_per_minute;
@@ -377,7 +377,7 @@ jack_transport_callback (jack_nframes_t /*nframes*/, void * arg)
                 }
             }
 
-            long tick = j->current_jack_position();
+            long tick { j->current_jack_position() };
             p.jack_reposition(tick, j->jack_stop_tick());
         }
         else
@@ -392,7 +392,7 @@ jack_transport_callback (jack_nframes_t /*nframes*/, void * arg)
             {
                 if (pos.beats_per_minute > 1.0)         /* a sanity check   */
                 {
-                    static double s_old_bpm = 0.0;
+                    static double s_old_bpm { 0.0 };
                     if (pos.beats_per_minute != s_old_bpm)
                     {
                         s_old_bpm = pos.beats_per_minute;
@@ -407,7 +407,7 @@ jack_transport_callback (jack_nframes_t /*nframes*/, void * arg)
             }
             else                            /* reposition transport marker  */
             {
-                long tick = j->current_jack_position();
+                long tick { j->current_jack_position() };
                 p.jack_reposition(tick, j->jack_stop_tick());
             }
         }
@@ -472,18 +472,18 @@ jack_transport_callback (jack_nframes_t /*nframes*/, void * arg)
 jack_client_t *
 create_jack_client (std::string clientname, std::string uuid)
 {
-    jack_client_t * result = nullptr;
-    const char * name = clientname.c_str();
+    jack_client_t * result { nullptr };
+    const char * name { clientname.c_str() };
     jack_status_t status;
-    jack_status_t * ps = &status;
-    jack_options_t options = JackNoStartServer;
+    jack_status_t * ps { &status };
+    jack_options_t options { JackNoStartServer };
     if (uuid.empty())
     {
         result = ::jack_client_open(name, options, ps);
     }
     else
     {
-        const char * uid = uuid.c_str();
+        const char * uid { uuid.c_str() };
         options = static_cast<jack_options_t>(JackNoStartServer|JackSessionID);
         result = ::jack_client_open(name, options, ps, uid);
         if (not_nullptr(result))    //  && rc().investigate())
@@ -528,17 +528,17 @@ get_jack_client_uuid (jack_client_t * jc)
 {
     std::string result;
 #if defined RTL66_JACK_SESSION          /* deprecated, use Non Session Mgr. */
-    char * luuid = ::jack_client_get_uuid(jc);
+    char * luuid { ::jack_client_get_uuid(jc) };
     if (not_nullptr(luuid))
     {
         result = luuid;                 /* see note in the banner           */
         jack_free(luuid);
     }
 #else
-    char * lname = ::jack_get_client_name(jc);
+    char * lname { ::jack_get_client_name(jc) };
     if (not_nullptr(lname))
     {
-        char * luuid = jack_get_uuid_for_client_name(jc, lname);
+        char * luuid { jack_get_uuid_for_client_name(jc, lname) };
         if (not_nullptr(luuid))
         {
             result = luuid;
@@ -578,18 +578,18 @@ set_jack_client_property
     const std::string & type
 )
 {
-    std::string uuid = get_jack_client_uuid(jc);
-    bool result = ! uuid.empty();
+    std::string uuid { get_jack_client_uuid(jc) };
+    bool result { ! uuid.empty();
     if (result)
     {
-        jack_uuid_t u2 = JACK_UUID_EMPTY_INITIALIZER;
-        int rc = ::jack_uuid_parse(uuid.c_str(), &u2);
+        jack_uuid_t u2 { JACK_UUID_EMPTY_INITIALIZER };
+        int rc { ::jack_uuid_parse(uuid.c_str(), &u2) };
         result = rc == 0;
         if (result)
         {
-            const char * k = key.c_str();
-            const char * v = value.c_str();
-            const char * t = type.c_str();
+            const char * k { key.c_str() };
+            const char * v { value.c_str() };
+            const char * t { type.c_str() };
             rc = ::jack_set_property(jc, u2, k, v, t);
             result = rc == 0;
         }
@@ -607,11 +607,11 @@ set_jack_port_property
     const std::string & type
 )
 {
-    jack_uuid_t uuid = ::jack_port_uuid(jp);
-    const char * k = key.c_str();
-    const char * v = value.c_str();
-    const char * t = type.empty() ? NULL : type.c_str() ;   /* important!   */
-    int rc = ::jack_set_property(jc, uuid, k, v, t);
+    jack_uuid_t uuid { ::jack_port_uuid(jp) };
+    const char * k { key.c_str() };
+    const char * v { value.c_str() };
+    const char * t { type.empty() ? NULL : type.c_str() };  /* important!   */
+    int rc { ::jack_set_property(jc, uuid, k, v, t) };
     return rc == 0;
 }
 
@@ -629,12 +629,12 @@ set_jack_port_property
     const std::string & type
 )
 {
-    jack_port_t * jp = ::jack_port_by_name(jc, portname.c_str());
-    jack_uuid_t uuid = ::jack_port_uuid(jp);
-    const char * k = key.c_str();
-    const char * v = value.c_str();
-    const char * t = type.empty() ? NULL : type.c_str() ;   /* important!   */
-    int rc = ::jack_set_property(jc, uuid, k, v, t);    // use t == NULL?
+    jack_port_t * jp { ::jack_port_by_name(jc, portname.c_str()) };
+    jack_uuid_t uuid { ::jack_port_uuid(jp) };
+    const char * k { key.c_str() };
+    const char * v { value.c_str( });
+    const char * t { type.empty() ? NULL : type.c_str() };  /* important!   */
+    int rc { ::jack_set_property(jc, uuid, k, v, t) };      /* t == NULL?   */
     return rc == 0;
 }
 
@@ -646,7 +646,7 @@ set_jack_port_property
  */
 
 jack_status_pair_t
-s_status_pairs [] =
+s_status_pairs []
 {
     {
         JackFailure,
@@ -733,7 +733,7 @@ s_status_pairs [] =
 void
 show_jack_statuses (unsigned bits)
 {
-    jack_status_pair_t * jsp = &s_status_pairs[0];
+    jack_status_pair_t * jsp { &s_status_pairs[0] };
     while (jsp->jf_bit != 0)
     {
         if (bits & jsp->jf_bit)
@@ -788,17 +788,25 @@ jack_ticks_delta (int framediff, const jack_position_t & pos)
  *
  * \param bpminute
  *      The beats/minute to set up JACK to use (applies to Master setup).
+ *      Defaults to 0; in this case the setting must be made later (e.g
+ *      after loading a MIDI file.)
  *
  * \param ppq
  *      The parts-per-quarter-note setting in force for the present tune.
+ *      Defaults to 0; in this case the setting must be made later (e.g
+ *      after loading a MIDI file.)
  *
  * \param bpmeasure
  *      The beats/measure (time signature numerator) in force for the present
- *      tune.
+ *      tune. Defaults to 0; in this case the setting must be made later (e.g
+ *      after loading a MIDI file.)
  *
  * \param beatwidth
  *      The beat-width (time signature denominator)  in force for the present
- *      tune.
+ *      tune. Defaults to 0; in this case the setting must be made later (e.g
+ *      after loading a MIDI file.)
+ *
+ *  Note that most of the members are defaulted "in-class".
  */
 
 transport::transport
@@ -810,24 +818,6 @@ transport::transport
     int beatwidth
 ) :
     m_jack_parent               (parent),
-    m_jack_client               (nullptr),
-    m_jack_client_name          (),
-    m_jack_client_uuid          (),
-    m_frame_current             (0),
-    m_frame_last                (0),
-    m_jack_pos                  (),
-    m_transport_state           (JackTransportStopped),
-    m_transport_state_last      (JackTransportStopped),
-    m_jack_tick                 (0.0),
-    m_jack_running              (false),
-    m_timebase                  (timebase::none),   /* or slave, master...  */
-#if defined ENABLE_PROPOSED_FUNCTIONS
-    m_timebase_tracking         (-1),
-#endif
-    m_frame_rate                (0),
-    m_toggle_jack               (false),
-    m_jack_stop_tick            (0),
-    m_follow_transport          (true),
     m_ppqn                      (ppq),              // choose_ppqn(ppq)),
     m_beats_per_measure         (bpmeasure),
     m_beat_width                (beatwidth),
@@ -873,7 +863,7 @@ transport::get_jack_client_info ()
         m_jack_client_uuid = get_jack_client_uuid(m_jack_client);
         if (! m_jack_client_uuid.empty())               /* this test okay?? */
         {
-#if 0
+#if THIS_CODE_IS_READY
             if (rc().jack_session().empty())
                 rc().jack_session(m_jack_client_uuid);
 #endif
@@ -953,7 +943,7 @@ transport::init ()
     bool result = /* rc().with_jack_transport() && */ ! m_jack_running;
     if (result)
     {
-#if 0
+#if THIS_CODE_IS_READY
         std::string kind = rc().with_jack_master() ? "master" : "slave" ;
         std::string package = rc().app_client_name() + kind;
 #endif
@@ -1000,10 +990,7 @@ transport::init ()
             }
             else
             {
-#if 0
-                if (rc().investigate_disabled())
-#endif
-                    util::info_message("JACK session callback set");
+                util::info_message("JACK session callback set");
             }
         }
 #endif

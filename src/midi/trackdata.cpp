@@ -24,13 +24,13 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2025-07-31
+ * \updates       2025-09-11
  *
  * \license       GNU GPLv2 or above
  *
  *  This class is important when writing the MIDI and sequencer data out to a
- *  MIDI file, or reading it in. The data handled here are specific to a single
- *  sequence/pattern/track.
+ *  MIDI file, or reading it in. The data handled here are specific to a
+ *  single sequence/pattern/track.
  *
  *      -   Reads a whole file into the byte-vector.
  *      -   Write the byte-vector to a file.
@@ -486,7 +486,7 @@ trackdata::extract_tempo (track & trk, event & e)
     {
 #if defined USE_THIS_CODE
         static bool gotfirst = false;
-        if (tracknumber == 0)
+        if (trk.track_number() == 0)
         {
             midi::bpm bp = bpm_from_tempo_us(tempo_us);
             if (! gotfirst)
@@ -494,6 +494,7 @@ trackdata::extract_tempo (track & trk, event & e)
                 player & p = coordinator();
                 p.beats_per_minute(bp);
                 p.us_per_quarter_note(int(tempo_us));
+                // trk.us_per_quarter_note(int(tempo_us));
                 gotfirst = true;
             }
             if (! gotfirst)
@@ -665,7 +666,7 @@ trackdata::checklen (midi::ulong len, midi::byte type)
     if (! result)
     {
         printf("bad data length for meta type 0x%02X \n", type);
-#if 0
+#if THIS_CODE_IS_READY
         char m[40];
         snprintf(m, sizeof m, "bad data length for meta type 0x%02X", type);
         (void) set_error_dump(m);
@@ -1056,14 +1057,14 @@ trackdata::put_ex_event (const event & e, midi::pulse deltatime)
     put_varinum(midi::ulong(deltatime));        /* encode delta_time        */
     if (e.is_sysex())
     {
-        size_t count = e.sysex_size();          /* includes F0 ... F7       */
+        size_t count = e.sysex_msg_size();      /* includes F0 ... F7       */
         put_varinum(midi::ulong(count));
         for (size_t i = 0; i < count; ++i)
             put(e.get_message(i));
     }
     else if (e.is_meta())
     {
-        size_t count = e.meta_data_size();      /* includes FF nn len....   */
+        size_t count = e.meta_msg_size();       /* includes FF nn len....   */
         for (size_t i = 0; i < count; ++i)
             put(e.get_message(i));
     }
@@ -1735,13 +1736,6 @@ trackdata::parse_track
             else
             {
                 errprint("Unexpected meta code");
-#if 0
-                // This is in midi::file
-                (void) set_error_dump
-                (
-                    "Unexpected meta code", midi::ulong(bstatus)
-                );
-#endif
             }
             break;
 
