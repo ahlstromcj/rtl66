@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-09
- * \updates       2024-05-22
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  *  This class is important when writing the MIDI and sequencer data out to a
@@ -109,11 +109,11 @@ tracklist::unmodify (lib66::notification n)
 bool
 tracklist::add (track::number trkno, track * trk)
 {
-    bool result = not_nullptr(trk);
+    bool result { not_nullptr(trk) };
     if (result)
     {
-        track::pointer trkptr = track::pointer(trk);
-        track::number tn = trkno;
+        track::pointer trkptr { track::pointer(trk) };
+        track::number tn { trkno };
         if (track::is_unassigned(trkno))
             tn = track::number(tracks().size());
 
@@ -140,7 +140,7 @@ tracklist::at (track::number trkno)
 {
     try
     {
-        track::pointer result = tracks().at(trkno);
+        track::pointer result { tracks().at(trkno) };
         return result;
     }
     catch (const std::out_of_range &)
@@ -155,7 +155,7 @@ tracklist::at (track::number trkno) const
 {
     try
     {
-        track::pointer result = tracks().at(trkno);
+        track::pointer result { tracks().at(trkno) };
         return result;
     }
     catch (const std::out_of_range &)
@@ -168,7 +168,7 @@ tracklist::at (track::number trkno) const
 }           // namespace midi
 
 /*
- * track.cpp
+ * tracklist.cpp
  *
  * vim: sw=4 ts=4 wm=4 et ft=cpp
  */

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-09-06
+ * \updates       2025-09-11
  * \license       GNU GPLv2 or above
  *
  *  A midi::file is file-header data plus the data in each of the tracks of
@@ -130,14 +130,14 @@ namespace midi
  * Bytes:                 4   +   4   +   2  +   2   +   2   = 14
  */
 
-static const size_t c_midi_header_size = 14;
+static const size_t c_midi_header_size { 14 };
 
 /**
  *  A manifest constant for controlling the length of the stream buffering
  *  array in a MIDI file. This value is 0x0400.
  */
 
-static const int c_midi_line_max = 1024;
+static const int c_midi_line_max    { 1024 };
 
 #endif
 
@@ -145,7 +145,7 @@ static const int c_midi_line_max = 1024;
  *  Highlights the MIDI file header value, "MThd".
  */
 
-static const midi::tag c_mthd_tag  = 0x4D546864;      /* magic number 'MThd'  */
+static const midi::tag c_mthd_tag   { 0x4D546864 }; /* magic number 'MThd'  */
 
 /**
  *  The chunk header value for the Seq66 proprietary/SeqSpec section.  We
@@ -326,10 +326,10 @@ file::parse (const std::string & tag)
 int
 file::read_header ()
 {
-    int result = 0;
-    bool ok = true;
-    midi::ulong ID = read_long();                       /* hdr chunk magic  */
-    midi::ulong hdrlength = read_long();                /* MThd length      */
+    int result { 0 };
+    bool ok { true };
+    midi::ulong ID { read_long() };                     /* hdr chunk magic  */
+    midi::ulong hdrlength { read_long() };              /* MThd length      */
     clear_errors();
     if (ID != c_mthd_tag || hdrlength != 6)             /* magic 'MThd'     */
     {
@@ -338,7 +338,7 @@ file::read_header ()
 
     if (ok)
     {
-        midi::ushort Format = read_short();             /* 0, 1, or 2       */
+        midi::ushort Format { read_short() };           /* 0, 1, or 2       */
         if (Format == 0)
         {
             m_smf0_splitter.initialize();               /* SMF 0 support    */
@@ -359,8 +359,8 @@ file::read_header ()
     }
     if (ok)
     {
-        midi::ushort trackcount = read_short();
-        midi::ushort fppqn = read_short();
+        midi::ushort trackcount { read_short() };
+        midi::ushort fppqn { read_short() };
         file_ppqn(midi::ppqn(fppqn));
         coordinator().set_ppqn(file_ppqn());            /* let player know  */
         result = int(trackcount);
@@ -386,7 +386,7 @@ file::read_header ()
 bool
 file::parse_smf_0 ()
 {
-    bool result = parse_smf_1();                    /* format 0 conversion  */
+    bool result { parse_smf_1() };                  /* format 0 conversion  */
     if (result)
     {
         if (smf0_split())
@@ -397,7 +397,7 @@ file::parse_smf_0 ()
         }
         else
         {
-            track::pointer trkptr = coordinator().get_track(0);
+            track::pointer trkptr { coordinator().get_track(0) };
             if (trkptr)
             {
                 trkptr->midi_channel(null_channel());
@@ -442,19 +442,19 @@ file::parse_smf_0 ()
 bool
 file::parse_smf_1 ()
 {
-    bool result = true;
+    bool result { true };
     size_t offset;                              /* used/adjusted in loop    */
-    int track_count = read_header();
+    int track_count { read_header() };
     track_list().clear();
     for (int trk = 0; trk < track_count; ++trk)
     {
-        const size_t s_track_header_size = 8;   /* size of ID and length    */
-        midi::ulong ID = read_long();           /* get track marker 'MTrk'  */
-        midi::ulong tracklen = read_long();     /* get track length         */
+        const size_t s_track_header_size { 8 }; /* size of ID and length    */
+        midi::ulong ID { read_long() };         /* get track marker 'MTrk'  */
+        midi::ulong tracklen { read_long() };   /* get track length         */
         if (ID == c_mtrk_tag)                   /* magic number 'MTrk'?     */
         {
 
-            track * sp = create_track();        /* create new track         */
+            track * sp { create_track() };      /* create new track         */
             bool ok = not_nullptr(sp);
             if (ok)
             {
@@ -475,7 +475,7 @@ file::parse_smf_1 ()
                 ok = offset > 0;
                 if (ok)
                 {
-                    track::number trkno = sp->track_number();
+                    track::number trkno { sp->track_number() };
 
                     // TODO
                     // if (! is_null_buss(buss_override))
@@ -506,7 +506,7 @@ file::parse_smf_1 ()
                             set_position(offset);
                             if (trk == (track_count - 1))
                             {
-                                size_t r = remainder();
+                                size_t r { remainder() };
                                 if (r >= s_track_header_size)
                                 {
                                     ++track_count;          /* BEWARE!!!    */
@@ -544,10 +544,10 @@ file::parse_smf_1 ()
 track *
 file::create_track ()
 {
-    track * result = new (std::nothrow) track();        /* track 0  */
+    track * result { new (std::nothrow) track() };
     if (not_nullptr(result))
     {
-        midi::masterbus * masterbus = coordinator().master_bus_ptr();
+        midi::masterbus * masterbus { coordinator().master_bus_ptr() };
         if (not_nullptr(masterbus))
             result->master_midi_bus(masterbus);
     }
@@ -572,10 +572,10 @@ file::create_track ()
 bool
 file::finalize_track (track * trk, int trkno)
 {
-    bool result = not_nullptr(trk);
+    bool result { not_nullptr(trk) };
     if (result)
     {
-        int preferred_seqnum = trkno;
+        int preferred_seqnum { trkno };
         result = coordinator().install_track(trk, preferred_seqnum, true);
     }
     return result;
@@ -646,11 +646,11 @@ file::put_header (int numtracks, int smfformat)
 bool
 file::put_track (/*const*/ midi::track & trk)
 {
-    trackdata & trkdata = trk.data();
-    bool result = trkdata.put_track(trk, 0, false); // tempotrack, doseqspec
+    trackdata & trkdata { trk.data() };
+    bool result { trkdata.put_track(trk, 0, false) }; // tempotrack, doseqspec
     if (result)
     {
-        midi::ulong tracksize = midi::ulong(trkdata.size());
+        midi::ulong tracksize { midi::ulong(trkdata.size()) };
         if (tracksize > 0)
         {
             put_long(c_mtrk_tag);               /* magic number 'MTrk'      */
@@ -676,11 +676,11 @@ file::put_track (/*const*/ midi::track & trk)
 bool
 file::put_track_events (/*const*/ midi::track & trk)
 {
-    trackdata & trkdata = trk.data();
-    bool result = trkdata.put_track_events(trk);
+    trackdata & trkdata { trk.data() };
+    bool result { trkdata.put_track_events(trk) };
     if (result)
     {
-        midi::ulong tracksize = midi::ulong(trkdata.size());
+        midi::ulong tracksize { midi::ulong(trkdata.size()) };
         if (tracksize > 0)
         {
             put_long(c_mtrk_tag);               /* magic number 'MTrk'      */
@@ -721,9 +721,9 @@ file::put_track_events (/*const*/ midi::track & trk)
 bool
 file::write (bool eventsonly)
 {
-    int numtracks = 0;
-    int trackhigh = coordinator().track_high() + 1; /* convert to a count   */
-    int smfformat = coordinator().smf_format();
+    int numtracks { 0 };
+    int trackhigh { coordinator().track_high() + 1 }; /* convert to a count  */
+    int smfformat { coordinator().smf_format() };
     clear();                                        /* clear errors+buffer  */
     for (int i = 0; i < trackhigh; ++i)
     {
@@ -732,10 +732,10 @@ file::write (bool eventsonly)
     }
     file_ppqn(coordinator().get_ppqn());
 
-    bool result = put_header(numtracks, smfformat);
+    bool result { put_header(numtracks, smfformat) };
     if (result)
     {
-        std::string caption = "Writing MIDI SMF ";
+        std::string caption { "Writing MIDI SMF " };
         caption += std::to_string(smfformat);
         caption += " MIDI file ";
         caption += std::to_string(m_file_ppqn);
@@ -743,7 +743,7 @@ file::write (bool eventsonly)
         util::file_message(caption, m_file_spec);
         for (int t = 0; t < trackhigh; ++t)
         {
-            track::pointer trkptr = coordinator().get_track(t);
+            track::pointer trkptr { coordinator().get_track(t) };
             if (trkptr)
             {
 #if defined PLATFORM_DEBUG_TMI
@@ -794,12 +794,13 @@ make_midi_file_object
     bool smf0split
 )
 {
-    file * result = nullptr;
-    bool is_midi =
+    file * result { nullptr };
+    bool is_midi
+    {
         util::file_extension_match(filespec, "mid")  ||
         util::file_extension_match(filespec, "midi") ||
             util::file_extension_match(filespec, "smf")
-        ;
+    };
 
     if (is_midi)
         result = new (std::nothrow) file(filespec, p, smf0split);
@@ -842,7 +843,7 @@ read_midi_file
     std::string & errmsg
 )
 {
-    bool result = util::file_readable(fn);
+    bool result { util::file_readable(fn) };
     if (result)
     {
         std::unique_ptr<file> mf(make_midi_file_object(p, fn));
@@ -853,7 +854,10 @@ read_midi_file
                 result = mf->parse("Read");         /* add a tag string?    */
 
             if (result)
+            {
                 util::file_message("Read MIDI file", fn);
+                p.set_ppqn(mf->file_ppqn());
+            }
             else
                 errmsg = mf->error_message();
         }
@@ -878,7 +882,7 @@ write_midi_file
     bool eventsonly
 )
 {
-    bool result = false;
+    bool result { false };
     if (fn.empty())
     {
         errmsg = "No file-name to write";

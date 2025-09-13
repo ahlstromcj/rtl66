@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-09-06
+ * \updates       2025-09-13
  * \license       See above.
  *
  * Classes defined:
@@ -76,9 +76,9 @@ namespace midi
 bool
 ports::add (const port & p)
 {
-    size_t count = m_port_container.size();
+    size_t count { m_port_container.size() };
 #if defined USE_THIS_CODE
-    std::string nick = extract_nickname(p.portname());
+    std::string nick { extract_nickname(p.portname()) };
     p.nick_name(nick);
 #endif
     m_port_container.push_back(p);
@@ -144,12 +144,12 @@ ports::add
     // m_port_count = int(m_port_container.size());
 
 #if defined PLATFORM_DEBUG
-    bool makevirtual = porttype == port::kind::manual;
-    bool makesystem = porttype == port::kind::system;
-    bool makeinput =  iotype == port::io::input;
-    const char * vport = makevirtual ? "virtual" : "auto" ;
-    const char * iport = makeinput ? "input" : "output" ;
-    const char * sport = makesystem ? "system" : "device" ;
+    bool makevirtual { porttype == port::kind::manual };
+    bool makesystem { porttype == port::kind::system };
+    bool makeinput {  iotype == port::io::input };
+    const char * vport { makevirtual ? "virtual" : "auto" };
+    const char * iport { makeinput ? "input" : "output" };
+    const char * sport { makesystem ? "system" : "device" };
     char str[128];
     snprintf
     (
@@ -184,7 +184,7 @@ ports::add
 bussbyte
 ports::get_port_index (int bussnum, int portnum) const
 {
-    bussbyte result = null_buss();
+    bussbyte result { null_buss() };
     for (int i = 0; i < m_port_count; ++i)
     {
         if (m_port_container[i].m_buss_number != bussnum)
@@ -209,10 +209,10 @@ ports::get_port_index (int bussnum, int portnum) const
 std::string
 ports::get_connect_name (int index) const
 {
-    std::string result = get_bus_name(index);
+    std::string result { get_bus_name(index) };
     if (! result.empty())
     {
-        std::string pname = get_port_name(index);
+        std::string pname { get_port_name(index) };
         if (! pname.empty())
         {
             result += ":";
@@ -229,7 +229,7 @@ ports::get_connect_name (int index) const
 std::string
 ports::to_string (const std::string & tagmsg) const
 {
-    std::string result = tagmsg;
+    std::string result { tagmsg };
     result += ":\n";
     for (const auto & information : m_port_container)
     {

@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-09-06
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -70,16 +70,11 @@ namespace midi
 int bus::m_clock_mod { 16 * 4 };
 
 /**
- *  Default constructor, useful for a reference to a dummy bus.
+ *  Default constructor, useful for a reference to a dummy bus. All members
+ *  initialize "in-class".
  */
 
-bus::bus () :
-    m_master_bus        (nullptr),
-    m_initialized       (false),
-    m_bus_index         (-1),
-    m_port              (),
-    m_io_active         (false),
-    m_display_name      ()
+bus::bus ()
 {
     io_type(midi::port::io::dummy);
 }
@@ -153,11 +148,7 @@ bus::bus
     midi::port::io iotype
 ) :
     m_master_bus        (&master),
-    m_initialized       (false),
-    m_bus_index         (index),
-    m_port              (),
-    m_io_active         (false),
-    m_display_name      ()
+    m_bus_index         (index)
 {
     bool ok
     {

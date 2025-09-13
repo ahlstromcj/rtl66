@@ -107,7 +107,7 @@ track::song_put_track
     bool hastimesig, bool hastempo
 )
 {
-    bool result = exportable;   // events().track_info().is_exportable();
+    bool result { exportable };   // events().track_info().is_exportable();
     if (result)
     {
         clear();
@@ -139,17 +139,17 @@ track::song_put_track
 void
 track::put_triggers (const track & seq)
 {
-    midi::pulse last_ts = 0;
-    const auto & trigs = seq.get_triggers();
+    midi::pulse last_ts { 0 };
+    const auto & trigs { seq.get_triggers() };
     for (auto & t : trigs)
         last_ts = song_put_seq_event(t, last_ts);
 
-    const trigger & ender = trigs.back();
-    midi::pulse seqend = ender.tick_end();
-    midi::pulse measticks = seq.measures_to_ticks();
+    const trigger & ender { trigs.back() };
+    midi::pulse seqend { ender.tick_end() };
+    midi::pulse measticks { seq.measures_to_ticks() };
     if (measticks > 0)
     {
-        midi::pulse remainder = seqend % measticks;
+        midi::pulse remainder { seqend % measticks };
         if (remainder != (measticks - 1))
             seqend += measticks - remainder - 1;
     }
@@ -208,7 +208,7 @@ track::put_seqspecs (const track & seq)  // was put_proprietary
      *  Generally only drum patterns will not be transposable.
      */
 
-    bool transpose = seq.transposable();
+    bool transpose { seq.transposable() };
     put_seqspec(seq66::seqspec::transpose, 1);                  /* byte     */
     put(midi::byte(transpose));
     if (seq.color() != c_seq_color_none)
@@ -261,11 +261,11 @@ track::song_put_seq_event
    midi::pulse prev_timestamp
 )
 {
-    midi::pulse len = seq.length();
-    midi::pulse trig_offset = trig.offset() % len;
-    midi::pulse start_offset = trig.tick_start() % len;
-    midi::pulse time_offset = trig.tick_start() + trig_offset - start_offset;
-    int times_played = 1 + (trig.length() - 1) / len;
+    midi::pulse len { seq.length() };
+    midi::pulse trig_offset { trig.offset() % len };
+    midi::pulse start_offset { trig.tick_start() % len };
+    midi::pulse time_offset { trig.tick_start() + trig_offset - start_offset };
+    int times_played { 1 + (trig.length() - 1) / len };
     if (trig_offset > start_offset)                 /* offset len too far   */
         time_offset -= len;
 
@@ -275,10 +275,10 @@ track::song_put_seq_event
 
     for (int p = 0; p <= times_played; ++p, time_offset += len)
     {
-        midi::pulse delta_time = 0;
+        midi::pulse delta_time { 0 };
         for (auto e : seq.events())               /* use a copy of event  */
         {
-            midi::pulse timestamp = e.timestamp() + time_offset;
+            midi::pulse timestamp { e.timestamp() + time_offset };
             if (timestamp >= trig.tick_start())     /* at/after trigger     */
             {
                 /*
@@ -287,7 +287,7 @@ track::song_put_seq_event
 
                 if (e.is_note())                    /* includes aftertouch  */
                 {
-                    midi::byte note = e.get_note();
+                    midi::byte note { e.get_note() };
                     if (trig.transposed())
                         e.transpose_note(trig.transpose());
 
@@ -399,19 +399,19 @@ track::put_track (int track, int tempotrack, bool doseqspec)
          * calculated differently for c_trig_transpose versus c_triggers_ex.
          */
 
-        const triggers::container & triggerlist = seq().triggerlist();
-        bool transtriggers = ! rc().save_old_triggers();
+        const triggers::container & triggerlist { seq().triggerlist() };
+        bool transtriggers { ! rc().save_old_triggers() };
         if (transtriggers)
             transtriggers = seq().any_trigger_transposed();
 
         if (transtriggers)
         {
-            int datasize = seq().triggers_datasize(c_trig_transpose);
+            int datasize { seq().triggers_datasize(c_trig_transpose) };
             put_seqspec(c_trig_transpose, datasize);
         }
         else
         {
-            int datasize = seq().triggers_datasize(c_triggers_ex);
+            int datasize { seq().triggers_datasize(c_triggers_ex) };
             put_seqspec(c_triggers_ex, datasize);
         }
         for (auto & t : triggerlist)
@@ -475,15 +475,16 @@ track::put_track (int track, int tempotrack, bool doseqspec)
 midi::ulong
 file::parse_seqspec_header (int file_size)
 {
-    midi::ulong result = 0;
+    midi::ulong result { 0 };
     if ((file_size - m_pos) > int(sizeof(midi::ulong)))
     {
         result = read_long();                   /* status (new), or c_xxxx  */
-        midi::byte bstatus = (result & 0x00FF0000) >> 16;   /* 2-byte shift */
+        midi::byte bstatus { (result & 0x00FF0000) >> 16 }; /* 2-byte shift */
         if (midi::is_meta_msg(bstatus))
         {
             skip(-2);                           /* back up to meta type     */
-            midi::byte type = read_byte();      /* get meta type            */
+
+            midi::byte type { read_byte() };    /* get meta type            */
             if (midi::is_meta_seq_spec(type))   /* 0x7F event marker        */
             {
                 (void) read_varinum();          /* prop section length      */
@@ -547,11 +548,11 @@ file::parse_seqspec_header (int file_size)
 bool
 file::parse_seqspec_track (track * trkptr, int file_size)
 {
-    bool result = true;
-    midi::ulong ID = read_long();                      /* Get ID + Length      */
+    bool result { true };
+    midi::ulong ID { read_long() };                 /* Get ID + Length      */
     if (ID == c_prop_chunk_tag)                     /* magic number 'MTrk'  */
     {
-        midi::ulong tracklength = read_long();
+        midi::ulong tracklength { read_long() };
         if (tracklength > 0)
         {
             /*
@@ -560,11 +561,14 @@ file::parse_seqspec_track (track * trkptr, int file_size)
              * saving) this number.
              */
 
-            int sn = read_seq_number();
-            bool ok = (sn == c_prop_seq_number) || (sn == c_prop_seq_number_old);
+            int sn { read_seq_number() };
+            bool ok
+            {
+                (sn == c_prop_seq_number) || (sn == c_prop_seq_number_old)
+            };
             if (ok)                                 /* sanity check         */
             {
-                std::string trackname = read_track_name();
+                std::string trackname { read_track_name() };
                 result = ! trackname.empty();
 
                 /*
@@ -614,7 +618,7 @@ file::parse_seqspec_track (track * trkptr, int file_size)
 long
 file::track_name_size (const std::string & trackname) const
 {
-    long result = 0;
+    long result { 0 };
     if (! trackname.empty())
     {
         result += 3;                                    /* 0x00 0xFF 0x03   */
@@ -700,11 +704,11 @@ file::write_seqspec_header (midi::ulong control_tag, long len)
 bool
 trackdataex::write_seqspec_track (const track * trkptr)
 {
-    const mutegroups & mutes = p.mutes();
-    long tracklength = 0;
-    int cnotesz = 2;                            /* first value is short     */
-    int highset = p.highest_set();              /* high set number re 0     */
-    int maxsets = c_max_sets;                   /* i.e. 32                  */
+    const mutegroups & mutes { p.mutes() };
+    long tracklength { 0 };
+    int cnotesz { 2 };                          /* first value is short     */
+    int highset { p.highest_set() };            /* high set number re 0     */
+    int maxsets { c_max_sets };                 /* i.e. 32                  */
     if (highset >= maxsets)
         maxsets = highset + 1;
 
@@ -712,17 +716,17 @@ trackdataex::write_seqspec_track (const track * trkptr)
     {
         if (s <= highset)                       /* unused tracks = no name  */
         {
-            const std::string & note = p.set_name(s);
+            const std::string & note { p.set_name(s) };
             cnotesz += 2 + note.length();       /* short + note length      */
         }
     }
 
-    unsigned groupcount = c_max_groups;         /* 32, the maximum          */
-    unsigned groupsize = p.screenset_size();
-    int gmutesz = 0;
+    unsigned groupcount { c_max_groups };       /* 32, the maximum          */
+    unsigned groupsize { p.screenset_size() };
+    int gmutesz { 0 };
     if (mutes.saveable_to_midi())
     {
-        groupcount = unsigned(mutes.count());   /* includes unused groups   */
+        groupcount = unsigned(mutes.count());  /* includes unused groups   */
         groupsize = unsigned(mutes.group_count());
         if (rc().save_old_mutes())
             gmutesz = 4 + groupcount * (4 + groupsize * 4); /* 4-->longs    */
@@ -768,7 +772,7 @@ trackdataex::write_seqspec_track (const track * trkptr)
      *  We should probably sanity-check the BPM at some point.
      */
 
-    midi::ulong scaled_bpm = usr().scaled_bpm(p.get_beats_per_minute());
+    midi::ulong scaled_bpm { usr().scaled_bpm(p.get_beats_per_minute()) };
     write_long(scaled_bpm);                         /* 4 bytes              */
     return true;
 }

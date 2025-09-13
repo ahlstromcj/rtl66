@@ -221,19 +221,8 @@ event::event
     int note,
     int velocity
 ) :
-//  m_input_buss    (null_buss()),
     m_timestamp     (tstamp),
-//  m_message       (),
     m_channel       (channel)
-//  m_linked        (),
-//  m_has_link      (false),
-//  m_selected      (false),
-#if defined RTL66_SUPPORT_PAINTED_EVENTS
-//  m_marked        (false),
-//  m_painted       (false)
-#else
-//  m_marked        (false)
-#endif
 {
     if (is_null_channel(channel))
     {
@@ -433,8 +422,8 @@ event::operator < (const event & rhs) const
 bool
 event::match (const event & target) const
 {
-    bool result = false;
-    bool ignore_ts = is_null_pulse(target.timestamp());
+    bool result { false };
+    bool ignore_ts { is_null_pulse(target.timestamp()) };
     if (ignore_ts || timestamp() == target.timestamp())
     {
         result =
@@ -515,7 +504,7 @@ bool
 event::is_desired_ex (midi::byte s, midi::byte cc) const
 {
     bool result;                            /* is_desired_cc_or_not_cc      */
-    bool match = match_status(s);
+    bool match { match_status(s) };
     if (midi::is_controller_msg(s))
     {
         result = match && m_message[1] == cc;  /* correct status & correct CC  */
@@ -599,7 +588,7 @@ event::set_data
 void
 event::transpose_note (int tn)
 {
-    int note = int(m_message[0]) + tn;
+    int note { int(m_message[0]) + tn };
     if (note >= 0 && note < midi::data_max)
         m_message[0] = midi::byte(note);
 }

@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2022-11-17
- * \updates       2022-12-01
+ * \updates       2025-09-13
  * \license       See above.
  *
  */
@@ -53,34 +53,39 @@ private:
      *  MIDI clock support.
      */
 
-    bool m_usemidiclock;
+    bool m_usemidiclock { false };
 
     /**
      *  MIDI clock support.  Indicates if the MIDI clock is stopped or
      *  started.
      */
 
-    bool m_midiclockrunning;
+    bool m_midiclockrunning { false };
 
     /**
      *  MIDI clock support.
      */
 
-    int m_midiclocktick;
+    int m_midiclocktick { 0 };
 
     /**
      *  We need to adjust the clock increment for the PPQN that is in force.
      *  Higher PPQN need a longer increment than 8 in order to get 24 clocks
      *  per quarter note.
+     *
+     *      midi_clock_beats_per_qn() --> c_midi_clocks_per_metronome = 24
+     *      (see calculations.hpp and midibytes.hpp).
+     *
+     *      clock_ticks_from_ppqn(ppq) --> ppq / midi_clock_beats_per_qn();
      */
 
-    int m_midiclockincrement;
+    int m_midiclockincrement { RTL66_DEFAULT_PPQN / 24 };
 
     /**
      *  MIDI clock support.
      */
 
-    int m_midiclockpos;
+    int m_midiclockpos { 0 };
 
 public:
 
@@ -89,7 +94,7 @@ public:
     info & operator = (const info &) = default;
     ~info () = default;
 
-    long adjust_midi_tick ();
+    long adjust_midi_tick (midi::pulse & clockpos);
     void clock_start ();
     void clock_continue (midi::pulse tick);
     void clock_stop (midi::pulse tick);

@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2024-05-22
- * \updates       2025-09-08
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  *  Thread functions`:
@@ -75,14 +75,14 @@ namespace rtl
  *  It also had a "lookahead" time of 2 ms, not used however.
  */
 
-static const int c_thread_trigger_width_us = 4 * 1000;
+static const int c_thread_trigger_width_us { 4 * 1000 };
 
 /**
  *  This high-priority value is used if the --priority option is specified.
  *  Needs more testing, we really haven't needed it yet.
  */
 
-static const int c_thread_priority = 1;
+static const int c_thread_priority { 1 };
 
 #endif
 
@@ -92,9 +92,7 @@ static const int c_thread_priority = 1;
 
 iothread::iothread (int priority) :
     m_io_thread     (),                 /* unique_ptr<std::thread>          */
-    m_priority      (priority),         /* requires root to elevate it      */
-    m_launched      (false),            /* is the thread running?           */
-    m_active        (false)             /* is it supposed to do anything?   */
+    m_priority      (priority)          /* requires root to elevate it      */
 {
     // no code
 }
@@ -127,7 +125,7 @@ iothread::~iothread ()
 bool
 iothread::launch (functor f)
 {
-    bool result = false;
+    bool result { false };
     if (! m_launched)
     {
         m_active = true;
@@ -136,7 +134,7 @@ iothread::launch (functor f)
         {
             if (m_priority > 0)
             {
-                bool ok = xpc::set_thread_priority(io_thread(), m_priority);
+                bool ok { xpc::set_thread_priority(io_thread(), m_priority) };
                 if (ok)
                 {
 #if defined RTL66_PLATFORM_UNIX
@@ -174,7 +172,7 @@ iothread::launch (functor f)
 bool
 iothread::finish ()
 {
-    bool result = m_launched;
+    bool result { m_launched };
     if (result)
     {
         deactivate();                       /* set done() for predicate */

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-01
+ * \updates       2025-09-13
  * \license       See above.
  *
  */
@@ -187,6 +187,7 @@ protected:
 
     virtual bool open_virtual_port (const std::string & name = "") override;
     virtual bool close_port () override;
+    virtual void close_midi_tempo_queue () override;
     virtual bool set_client_name (const std::string & clientname) override;
     virtual bool set_port_name (const std::string & name) override;
     virtual int get_port_count () override;

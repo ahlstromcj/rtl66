@@ -1,8 +1,26 @@
-MIDI Tests Directory for the rtl66 library
+MIDI Tests Directory [ tests/midi ] for the rtl66 library
 Chris Ahlstrom
-2022-06-04 to 2024-04-29
+2022-06-04 to 2025-09-13
 
 This directory is where all test products for MIDI will reside.
 See build/README for more information.
+
+Basic rtl66 tests:
+
+    tests/midi/api_names.cpp
+    tests/midi/cbmidiin.cpp
+    tests/midi/midiclock.cpp
+    tests/midi/midiout.cpp
+    tests/midi/midiprobe.cpp
+    tests/midi/midiprobeex.cpp
+    tests/midi/qmidiin.cpp
+    tests/midi/smoke.cpp
+    tests/midi/sysextest.cpp
+    tests/midi/test_c_api.c
+
+Advanced masterbus paradigm tests:
+
+    tests/midi/busout.cpp
+    tests/midi/play.cpp
 
 # vim: sw=4 ts=4 wm=8 et ft=sh

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2025-09-11
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  *  This class is important when writing the MIDI and track data out to a
@@ -44,38 +44,14 @@ namespace midi
 {
 
 /**
- *  Default constructor.
+ *  Default constructor. Most members initialized in the class header
+ *  ("in-class" initialization).
  */
 
 track::track (number tn) :
-    m_parent            (nullptr),          /* set when track installed     */
-    m_data              (),                 /* holds events and raw bytes   */
-    m_info              (),                 /* holds various "signatures"   */
-    m_mutex             (),
-    m_track_number      (tn),
-    m_active            (false),
-    m_notes_on          (0),
-    m_master_bus        (nullptr),
-    m_playing_notes     (),                 /* an array                     */
-    m_armed             (false),
-    m_recording         (false),
-    m_recording_type    (record::normal),
-    m_is_dirty          (false),
-    m_modified          (false),
-    m_length            (0),
-    m_measures          (0),
-    m_unit_measure      (0),
-//  m_beats_per_bar     (4),
-//  m_beat_width        (4),
-    m_last_tick         (0),
-    m_note_on_velocity  (96),
-    m_note_off_velocity (0),
-    m_nominal_bus       (0),
-    m_true_bus          (0),
-    m_midi_channel      (0),
-    m_free_channel      (false)
+    m_track_number (tn)
 {
-    // copy_events(evlist);
+    // No code
 }
 
 /**
@@ -97,7 +73,7 @@ bool
 track::set_armed (bool p)
 {
     xpc::automutex locker(m_mutex);
-    bool result = p != armed();
+    bool result { p != armed() };
     if (result)
     {
         armed(p);
@@ -139,7 +115,7 @@ track::set_recording (bool recordon, record r, bool toggle)
     if (toggle)
         recordon = ! m_recording;
 
-    bool result = toggle || recordon != m_recording;
+    bool result { toggle || recordon != m_recording };
 #if defined USE_MASTER_BUS
     if (result)
         result = master_bus()->set_sequence_input(recordon, this);
@@ -154,7 +130,9 @@ track::set_recording (bool recordon, record r, bool toggle)
         }
         else
         {
-            // m_recording = m_quantized_recording = m_tightened_recording = false;
+            // m_recording = m_quantized_recording =
+            //      m_tightened_recording = false;
+
             m_recording = false;
         }
         if (r != record::normal)
@@ -184,7 +162,7 @@ track::set_thru (bool thruon, bool toggle)
     if (toggle)
         thruon = ! m_thru;
 
-    bool result = thruon != m_thru;
+    bool result { thruon != m_thru };
     if (result)
     {
         /*
@@ -220,8 +198,8 @@ void
 track::play_note_on (int note)
 {
     xpc::automutex locker(m_mutex);
-    midi::byte channel = track_midi_channel();
-    midi::byte nvalue = midi::byte(note);
+    midi::byte channel { track_midi_channel() };
+    midi::byte nvalue { midi::byte(note) };
     event e(0, midi::status::note_on, channel, nvalue, m_note_on_velocity);
     master_bus()->play_and_flush(true_bus(), &e, play_channel(e));
 }
@@ -241,8 +219,8 @@ void
 track::play_note_off (int note)
 {
     xpc::automutex locker(m_mutex);
-    midi::byte channel = track_midi_channel();
-    midi::byte nvalue = midi::byte(note);
+    midi::byte channel { track_midi_channel() };
+    midi::byte nvalue { midi::byte(note) };
     event e(0, midi::status::note_off, channel, nvalue, m_note_off_velocity);
     master_bus()->play_and_flush(m_true_bus, &e, play_channel(e));
 }
@@ -279,6 +257,7 @@ track::toggle_playing (midi::pulse tick, bool resumenoteons)
         resume_note_ons(tick);
 
     // off_from_snap(false);    // related to queuing
+
     return armed();
 }
 
@@ -313,7 +292,7 @@ void
 track::off_playing_notes ()
 {
     xpc::automutex locker(m_mutex);
-    int channel = 0;    // TODO: free_channel() ? 0 : seq_midi_channel() ;
+    int channel { 0 } ;    // TODO: free_channel() ? 0 : seq_midi_channel() };
     event e(0, midi::status::note_off, channel, 0, 0);
     for (int x = 0; x < c_notes_count; ++x)
     {
@@ -343,7 +322,7 @@ track::off_playing_notes ()
 void
 track::stop (bool songmode)
 {
-    bool state = armed();
+    bool state { armed() };
     off_playing_notes();
     zero_markers();                         /* sets the "last-tick" value   */
     set_armed(songmode ? false : state);
@@ -363,7 +342,7 @@ track::stop (bool songmode)
 void
 track::pause (bool song_mode)
 {
-    bool state = armed();
+    bool state { armed() };
     off_playing_notes();
     if (! song_mode)
         set_armed(state);
@@ -433,17 +412,18 @@ void
 track::live_play (midi::pulse tick)
 {
     xpc::automutex locker(m_mutex);
-    midi::pulse start_tick = m_last_tick;
-    midi::pulse end_tick = tick;              /* ditto                        */
+    midi::pulse start_tick { m_last_tick };
+    midi::pulse end_tick { tick };
     if (armed())                            /* play notes in the frame      */
     {
-        midi::pulse len = length() > 0 ?
-            length() : parent()->get_ppqn() ;
-
-        midi::pulse start_tick_offset = start_tick + len;
-        midi::pulse end_tick_offset = end_tick + len;
-        midi::pulse times_played = m_last_tick / len;
-        midi::pulse offset_base = times_played * len;
+        midi::pulse len
+        {
+            length() > 0 ?  length() : parent()->get_ppqn()
+        };
+        midi::pulse start_tick_offset { start_tick + len };
+        midi::pulse end_tick_offset { end_tick + len };
+        midi::pulse times_played { m_last_tick / len };
+        midi::pulse offset_base { times_played * len };
 #if defined USE_LOOP_COUNT
 
         // This code will go into the derived class.
@@ -461,11 +441,11 @@ track::live_play (midi::pulse tick)
         }
 #endif
 
-        auto e = events().begin();
+        auto e { events().begin() };
         while (e != events().end())
         {
-            event & er = eventlist::dref(e);
-            midi::pulse stamp = er.timestamp() + offset_base;
+            event & er { eventlist::dref(e) };
+            midi::pulse stamp { er.timestamp() + offset_base };
             if (stamp >= start_tick_offset && stamp <= end_tick_offset)
             {
 #if defined SUPPORT_TEMPO_IN_LIVE_PLAY
@@ -525,17 +505,15 @@ track::play
 )
 {
     xpc::automutex locker(m_mutex);
-    midi::pulse start_tick = m_last_tick;
+    midi::pulse start_tick { m_last_tick };
     if (armed())                                    /* play notes in frame  */
     {
-        midi::pulse len = length() > 0 ?
-            length() : parent()->get_ppqn() ;
-
-        midi::pulse offset = len;
-        midi::pulse start_tick_offset = start_tick + offset;
-        midi::pulse end_tick_offset = tick + offset;
-        midi::pulse times_played = m_last_tick / len;
-        midi::pulse offset_base = times_played * len;
+        midi::pulse len { length() > 0 ? length() : parent()->get_ppqn() };
+        midi::pulse offset { len };
+        midi::pulse start_tick_offset { start_tick + offset };
+        midi::pulse end_tick_offset { tick + offset };
+        midi::pulse times_played { m_last_tick / len };
+        midi::pulse offset_base { times_played * len };
 #if defined USE_LOOP_COUNT
 
         // This code will go into the derived class.
@@ -553,12 +531,12 @@ track::play
         }
 #endif
 
-        auto e = events().begin();
+        auto e { events().begin() };
         while (e != events().end())
         {
-            event & er = eventlist::dref(e);
-            midi::pulse ts = er.timestamp();
-            midi::pulse stamp = ts + offset_base;
+            event & er { eventlist::dref(e) };
+            midi::pulse ts { er.timestamp() };
+            midi::pulse stamp { ts + offset_base };
             if (stamp >= start_tick_offset && stamp <= end_tick_offset)
             {
                 if (er.is_tempo())
@@ -610,7 +588,7 @@ track::simple_play (midi::pulse tick)
     };
 
     midi::pulse end_tick_offset { tick + len };
-    auto e = events().begin();
+    auto e { events().begin() };
 #if defined PLATFORM_DEBUG
     int count { events().count() };
     int playcount { events().playable_count() };
@@ -654,7 +632,7 @@ track::simple_play (midi::pulse tick)
 void
 track::track_name (const std::string & n)
 {
-    bool change = n != info().track_name();
+    bool change { n != info().track_name() };
     info().track_name(n);
     if (change)
         set_dirty();
@@ -706,6 +684,7 @@ track::set_parent (player * p, lib66::toggler sorting)
 
         // beats_per_bar(p->get_beats_per_bar());
         // beat_width(p->get_beat_width());
+
         set_active(true);
         unmodify();
     }
@@ -1078,7 +1057,6 @@ bool
 track::beats_per_minute (midi::bpm bpmin, bool user_change)
 {
     xpc::automutex locker(m_mutex);
-    bool modded { false };
     bool result { bpmin != int(beat_width()) || ! user_change };
     if (result)
     {
@@ -1123,6 +1101,9 @@ track::put_event_on_bus (const event & ev)
     {
         event evout;
         evout.prep_for_send(m_parent->tick(), ev);          /* issue #100   */
+#if defined PLATFORM_DEBUG_TMI
+        evout.print();
+#endif
         master_bus()->play_and_flush(true_bus(), &evout, play_channel(evout));
     }
 }

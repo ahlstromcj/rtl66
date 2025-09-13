@@ -72,10 +72,10 @@ private:
      *  Error handling.
      */
 
-    mutable std::string m_error_string;
-    rterror::callback_t m_error_callback;
-    mutable bool m_first_error;
-    void * m_error_callback_user_data;
+    mutable std::string m_error_string { };
+    rterror::callback_t m_error_callback { nullptr };
+    mutable bool m_first_error { false };
+    void * m_error_callback_user_data { nullptr };
 
 public:
 

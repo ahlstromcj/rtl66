@@ -229,10 +229,10 @@ tokenize_string
 {
     static std::string s_delims { ":. " };
     int result { 0 };
-    tokens.clear();
-    auto pos = source.find_first_not_of(s_delims);
+    auto pos { source.find_first_not_of(s_delims) };
     if (pos != std::string::npos)
     {
+        tokens.clear();
         for (;;)
         {
             auto depos { source.find_first_of(s_delims, pos) };
@@ -299,7 +299,7 @@ pulses_to_measurestring (midi::pulse p, const midi::timing & seqparms)
 {
     midi::measures m;                               /* bars, beats, ticks   */
     char tmp[32];
-    int width = 3;
+    int width { 3 };
     if (is_null_pulse(p))
     {
         p = 0;                                      /* punt the runt!       */
@@ -624,7 +624,7 @@ measurestring_to_pulses
     const midi::timing & seqparms
 )
 {
-    midi::pulse result = 0;
+    midi::pulse result { 0 };
     if (! measures.empty())
     {
         std::string m, b, d, dummy;
@@ -1027,9 +1027,6 @@ log2_of_power_of_2 (int tsd)
         return (-1);
 }
 
-#if defined CFG66_USE_EXTRA_PULSE_CALCULATIONS
-#endif  // defined CFG66_USE_EXTRA_PULSE_CALCULATIONS
-
 /**
  *
  *  A candidate to move to a zoomer class.
@@ -1244,7 +1241,7 @@ next_power_of_2 (int value)
 int
 power (int base, int exponent)
 {
-    int result = 0;
+    int result { 0 };
     if (exponent > 1)
     {
         result = base;
@@ -1261,8 +1258,8 @@ power (int base, int exponent)
 
 /**
  *  Calculates the base-2 log of a number. This number is truncated to an
- *  integer byte value, as it is used in calculating values to be written to a
- *  MIDI file.
+ *  integer byte value, as it is used in calculating values to be written
+ *  to a MIDI file.
  *
  * \param value
  *      The integer value for which log2(value) is needed.
@@ -1283,7 +1280,6 @@ beat_log2 (int value)
  *  a Tempo event in a MIDI file.
  *
  *  Is it correct to simply cast the bytes to a double value?
- *  It might be worthwhile to provide an std::vector version at some point.
  *
  * \param tt
  *      Provides the 3-byte vector of values making up the raw tempo data.
@@ -1916,12 +1912,12 @@ static bool
 check_metatext (const midi::bytes & bdata)
 {
     static size_t s_min_metatext_size { 4 };    /* FF xx len onecharacter   */
-    bool result =
-    (
+    bool result
+    {
         bdata.size() >= s_min_metatext_size &&
         midi::is_meta(bdata[0]) &&
         midi::is_meta_text_msg(bdata[1])
-    );
+    };
     return result;
 }
 

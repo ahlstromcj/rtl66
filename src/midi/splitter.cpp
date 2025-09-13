@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-11-24
- * \updates       2025-09-06
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  *  We have recently updated this module to put Set Tempo events into the
@@ -108,7 +108,7 @@ splitter::increment (int channel)
 bool
 splitter::log_main_events (midi::track & trk, midi::track::number trkno)
 {
-    bool result = smf0_unlogged();              /* no main track or number  */
+    bool result { smf0_unlogged() };            /* no main track or number  */
     if (result)
     {
         result = trkno >= 0;
@@ -162,17 +162,20 @@ splitter::log_main_events (midi::track & trk, midi::track::number trkno)
 bool
 splitter::split (midi::player & p)
 {
-    bool result = smf0_logged();
+    bool result { smf0_logged() };
     if (result)
     {
         if (m_smf0_channels_count > 0)
         {
-            int trkno = 0;
+            int trkno { 0 };
             for (int chan = 0; chan < c_channel_max; ++chan, ++trkno)
             {
                 if (m_smf0_channels[chan])
                 {
-                    midi::track * tptr = new (std::nothrow) midi::track(chan);
+                    midi::track * tptr
+                    {
+                        new (std::nothrow) midi::track(chan)
+                    };
                     if (not_nullptr(tptr))
                     {
                         if (split_channel(p, *m_smf0_main_track, *tptr, chan))
@@ -183,9 +186,8 @@ splitter::split (midi::player & p)
 
                 }
             }
-            // m_smf0_main_track->track_info().channel(null_channel());
             m_smf0_main_track->midi_channel(null_channel());
-            p.install_track(m_smf0_main_track, trkno, true);    /* file load */
+            p.install_track(m_smf0_main_track, trkno, true);   /* file load */
         }
     }
     return result;
@@ -259,20 +261,21 @@ splitter::split_channel
     int chan
 )
 {
-    bool result = false;
+    bool result { false };
     char tmp[64];
-    std::string main_name = maintrk.track_name();
+    std::string main_name { maintrk.track_name() };
     if (main_name.empty())
         snprintf(tmp, sizeof tmp, "Track %d", chan + 1);
     else
         snprintf(tmp, sizeof tmp, "%d: %.20s", chan + 1, main_name.c_str());
 
     make_track_settings(p, trk, std::string(tmp), track::number(chan));
-    midi::pulse length_in_ticks = 0;            /* accumulates delta times  */
-    const midi::eventlist & evl = maintrk.events();
+
+    midi::pulse length_in_ticks { 0 };          /* accumulates delta times  */
+    const midi::eventlist & evl { maintrk.events() };
     for (auto i = evl.cbegin(); i != evl.cend(); ++i)
     {
-        const midi::event & er = midi::eventlist::cdref(i);
+        const midi::event & er { midi::eventlist::cdref(i) };
         if (er.is_ex_data())
         {
             if (chan == 0 || er.is_sysex())

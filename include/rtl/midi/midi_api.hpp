@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-01
+ * \updates       2025-09-13
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -47,6 +47,10 @@
 #include "midi/message.hpp"             /* midi::message class              */
 #include "midi/ports.hpp"               /* midi::ports                      */
 #include "rtl/midi/rtmidi_in_data.hpp"  /* rtl::rtmidi_in_data class        */
+
+/*
+ * Note the support for the namespaces of midi and rtl.
+ */
 
 namespace midi
 {
@@ -98,14 +102,14 @@ private:
      *  The type of port: input, output, duplex, or engine.
      */
 
-    midi::port::io m_port_io_type;
+    midi::port::io m_port_io_type { midi::port::io::engine };
 
     /**
      *  Holds the port number (an index starting at 0). Defaults to
      *  -1, and set in open_port().
      */
 
-    int m_port_number;
+    int m_port_number { -1 };
 
     /**
      *  Data for usage by input ports.  Among the items it contains are a
@@ -117,7 +121,7 @@ private:
      *  pointer to user data).
      */
 
-    rtmidi_in_data m_input_data;
+    rtmidi_in_data m_input_data { };
 
     /**
      *  Holds optional application-wide information about the MIDI ports.
@@ -130,32 +134,38 @@ private:
      *  since the masterbus owns this pointer.
      */
 
-    midi::masterbus * m_master_bus;     /* this is a paradigm changer!!!    */
+    midi::masterbus * m_master_bus { nullptr }; /* a paradigm changer!!!    */
 
     /**
      *  Quicker than checking the pointer.
      */
 
-    bool m_has_master;
+    bool m_has_master { false };
 
     /**
      *  Data specific to each API.  Includes the client handle as an exact
      *  type. Might point to a member variable.
      */
 
-    void * m_api_data;
+    void * m_api_data { nullptr };
 
     /**
      *  Indicates if the port (or client???) is connected and usable.
      */
 
-    bool m_is_connected;
+    bool m_is_connected { false };
 
     /**
      *  Current input queue size, if applicable.
      */
 
-    int m_queue_size;
+    int m_queue_size { 0 };
+
+    /**
+     *  Optional MIDI tempo queue. Set only by the ALSA API.
+     */
+
+    int m_midi_tempo_queue { -1 };
 
 public:
 
@@ -263,6 +273,23 @@ public:
     virtual void void_client_handle (void *) = 0;
     virtual midi::ppqn PPQN () const;
     virtual midi::bpm BPM () const;
+
+protected:
+
+    int midi_tempo_queue () const
+    {
+        return m_midi_tempo_queue;
+    }
+
+    void midi_tempo_queue (int mtq)
+    {
+        m_midi_tempo_queue = mtq;
+    }
+
+    virtual void close_midi_tempo_queue ()
+    {
+        // implemented only in the ALSA MIDI API
+    }
 
 public:
 

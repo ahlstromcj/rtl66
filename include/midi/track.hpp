@@ -130,7 +130,7 @@ private:
      *  the track does not own the parent.
      */
 
-    midi::player * m_parent;
+    midi::player * m_parent { nullptr };
 
     /**
      *  This list holds the current track events.  Now inherited or contained
@@ -143,7 +143,7 @@ private:
      *  Holds the events and raw-data bytes.
      */
 
-    mutable trackdata m_data;
+    mutable trackdata m_data { };
 
     /**
      *  Holds stock items of information:
@@ -158,7 +158,7 @@ private:
      *  TODO: handle multiple time-sigs as in Seq66.
      */
 
-    trackinfo m_info;
+    trackinfo m_info { };
 
     /**
      *  Provides locking for the sequence.  Made mutable for use in
@@ -167,14 +167,14 @@ private:
      *  a partial-copy function.
      */
 
-    mutable xpc::recmutex m_mutex;
+    mutable xpc::recmutex m_mutex { };
 
     /**
      *  Indicates the track number.  This value is used for ordering the
      *  tracks and indicating their place in a potential grid of tracks.
      */
 
-    number m_track_number;
+    number m_track_number { 0 };
 
     /**
      *  Each boolean value in this array is set to true if a sequence is
@@ -185,14 +185,14 @@ private:
      *  the sequence potentially contains some MIDI data.
      */
 
-    bool m_active;
+    bool m_active { false };
 
     /**
      *  Provides a member to hold the polyphonic step-edit note counter.  We
      *  will never come close to the short limit of 32767.
      */
 
-    short m_notes_on;
+    short m_notes_on { 0 };
 
     /**
      *  Provides the master MIDI buss which handles the output of the track to
@@ -200,7 +200,7 @@ private:
      *  buss.
      */
 
-    midi::masterbus * m_master_bus;
+    midi::masterbus * m_master_bus { nullptr };
 
     /**
      *  Provides a "map" for Note On events.  It is used when muting, to shut
@@ -215,34 +215,34 @@ private:
      *  other words, the sequence is armed.
      */
 
-    bool m_armed;
+    bool m_armed { false };
 
     /**
      *  True if sequence recording currently is in progress for this sequence.
      */
 
-    bool m_recording;
-    record m_recording_type;
+    bool m_recording { false };
+    record m_recording_type { record::normal };
 
     /**
      *  True if recording in MIDI-through mode.
      */
 
-    bool m_thru;
+    bool m_thru { false };
 
     /**
      *  Indicates if the track has been altered and should be redisplayed.
      *  This is a weaker version of the "modified" flag.
      */
 
-    mutable std::atomic<bool> m_is_dirty;
+    mutable std::atomic<bool> m_is_dirty { false };
 
     /**
      *  Indicates if the track has been modified (by the user via editing or
      *  recording.
      */
 
-    mutable std::atomic<bool> m_modified;
+    mutable std::atomic<bool> m_modified { false };
 
     /**
      *  Holds the length of the sequence in pulses (ticks).  This value should
@@ -251,7 +251,7 @@ private:
      *  number of measures.
      */
 
-    midi::pulse m_length;
+    midi::pulse m_length { 0 };
 
     /**
      *  Holds the last number of measures, purely for detecting changes that
@@ -260,41 +260,28 @@ private:
      *  beat-width to a smaller value could increase the number of measures.
      */
 
-    mutable int m_measures;
+    mutable int m_measures { 0 };
 
     /**
      *  Hold the current unit for a measure.
      *  It is calculated when needed (lazy evaluation).
      */
 
-    mutable midi::pulse m_unit_measure;
+    mutable midi::pulse m_unit_measure { 0 };
 
     /**
-     *  Provides the number of beats per bar used in this sequence.  Defaults
-     *  to 4.  Used by the sequence editor to mark things in correct time on
-     *  the user-interface.
+     *  Provides the time-signature values. Moved to
+     *  transport::info and midi::timesiginfo.
      *
-     *  See transport::info and midi::timesiginfo.
-
-    unsigned short m_beats_per_bar;
-     */
-
-    /**
-     *  Provides with width of a beat.  Defaults to 4, which means the beat is
-     *  a quarter note.  A value of 8 would mean it is an eighth note.  Used
-     *  by the sequence editor to mark things in correct time on the
-     *  user-interface.
-     *
-     *  See transport::info and midi::timesiginfo.
-
-    unsigned short m_beat_width;
+     *      unsigned short m_beats_per_bar;
+     *      unsigned short m_beat_width;
      */
 
     /**
      *  This member manages where we are in the playing of this sequence.
      */
 
-    midi::pulse m_last_tick;          /**< Provides the last tick played.     */
+    midi::pulse m_last_tick { 0 };
 
     /**
      *  The Note On velocity used, set to usr().note_on_velocity().  If the
@@ -303,14 +290,14 @@ private:
      *  we use (-1) for flagging preserving the velocity of incoming notes.
      */
 
-    short m_note_on_velocity;
+    short m_note_on_velocity { 96 };
 
     /**
      *  The Note Off velocity used, set to usr().note_on_velocity(), and
      *  currently unmodifiable.  A "stazed" feature.
      */
 
-    short m_note_off_velocity;
+    short m_note_off_velocity { 0 };
 
     /**
      *  Contains the nominal output MIDI bus number for this sequence/pattern.
@@ -320,14 +307,14 @@ private:
      *  so the nominal bus is the same as the true buss.
      */
 
-    midi::bussbyte m_nominal_bus;
+    midi::bussbyte m_nominal_bus { 0 };
 
     /**
      *  Contains the actual buss number to be used in output.  In this base
      *  class, this is always the same as the nominal buss.
      */
 
-    midi::bussbyte m_true_bus;
+    midi::bussbyte m_true_bus { 0 };
 
     /**
      *  Contains the global MIDI channel for this sequence.  However, if this
@@ -338,7 +325,7 @@ private:
      *  will be forced on notes created via painting in the seqroll.
      */
 
-    midi::byte m_midi_channel;          /* pattern's global MIDI channel    */
+    midi::byte m_midi_channel { 0 };    /* pattern's global MIDI channel    */
 
     /**
      *  This value indicates that the global MIDI channel associated with this
@@ -346,7 +333,7 @@ private:
      *  used.  This is true when m_midi_channel == null_channel().
      */
 
-    bool m_free_channel;
+    bool m_free_channel { false };
 
 public:
 

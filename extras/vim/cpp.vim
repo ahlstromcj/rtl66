@@ -4,7 +4,7 @@
 "
 "  Language:      C/C++
 "  Maintainer:    Chris Ahlstrom <ahlstromcj@users.sourceforge.net>
-"  Last Change:   2006-09-04 to 2025-01-31
+"  Last Change:   2006-09-04 to 2025-04-01
 "  Project:       XPC Suite library project
 "  Usage:
 "
@@ -100,7 +100,13 @@ syn keyword cType my_data_t
 " Our slough of macros
 "------------------------------------------------------------------------------
 
-syn keyword cConstant xxxxxxx
+syn keyword cConstant xxx
+syn keyword cDefine CPTR
+syn keyword cDefine CSTR
+syn keyword cDefine OPTR
+syn keyword cDefine SPTR
+syn keyword cDefine STR
+syn keyword cDefine V
 syn keyword cDefine SCUZZGOZIO
 
 "------------------------------------------------------------------------------

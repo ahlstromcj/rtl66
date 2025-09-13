@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-09-08
+ * \updates       2025-09-13
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -50,6 +50,10 @@
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
+
+#if defined PLATFORM_DEBUG_TMI
+#include "xpc/timing.hpp"               /* xpc::millisleep()                */
+#endif
 
 /**
  *  Client info
@@ -89,10 +93,10 @@ static const std::string s_base_directory { "tests/data/midi" };
 static const lib66::tokenization s_test_files
 {
     "1Bar-export.mid",                      /* a simple standard MIDI file  */
-//  "play.mid",
-//  "1Bar.midi",
-//  "simpleblast-ch1-8th-notes.midi",
-//  "simpleblast-ch1-8th-notes-960.midi"
+    "1Bar.midi",
+    "simpleblast-ch1-8th-notes.midi",
+    "simpleblast-ch1-8th-notes-960.midi",
+    "smoke.mid",
 };
 
 /**
@@ -121,8 +125,21 @@ bool play_it (midi::player & p, std::string & errmsg)
     if (result)
     {
         result = p.auto_pause();            /* vs auto_play(), auto_stop()  */
-        while (! p.at_song_end())
-            ;
+        if (result)
+        {
+#if defined PLATFORM_DEBUG_TMI
+            while (! p.at_song_end())
+            {
+                midi::pulse t = p.get_tick();
+                printf("tick %d\n", int(t));
+            }
+            xpc::millisleep(192);
+#else
+            while (! p.at_song_end())       /* plus an extra PPQN / 4       */
+                ;
+#endif
+            (void) p.auto_stop();
+        }
     }
     if (! result)
     {

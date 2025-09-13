@@ -76,9 +76,9 @@ const size_t c_meta_text_limit { 32767 };   /* good for a sanity check, too */
  *      -#  Status byte, 1sssnnnn, where the 1sss bits specify the type of
  *          message, and the nnnn bits denote the channel number, 0 to 15.
  *          The status byte always starts with 1.
- *      -#  The first data byte, 0xxxxxxx, where the data byte always
- *          start with 0, and the xxxxxxx values range from 0 to 127.
- *      -#  The second data byte, 0xxxxxxx.
+ *      -#  The first data byte, 0x0nnnnnnn, where the data byte always
+ *          start with 0, and the 0nnnnnnn values range from 0 to 127.
+ *      -#  The second data byte, 0nnnnnnnn.
  *
  *  This class may have too many member functions.
  */

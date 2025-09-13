@@ -1,18 +1,15 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-09-08
+2019-04-13 to 2025-09-13
 
 Hot:
 
-    -   Still need to get play to work with tempo. Also a tempo event
-        has a 0 value due to 0 bytes instead of 3 bytes.
+    -   midiprobeex doubles the number of ports.
     -   In create_track(), use the initial track number as a parameter.
     -   In event::append_meta_data(), the message is actually cleared
         before appending. Rename the function or add a bool 'clear' flag.
     -   Make sure trackdata::parse() sets track number correctly.
     -   Update rterror to print the client-tag in error messages.
-    -   Make sure the default move constructor/operator = are implemented and
-        work.
 
 NSM:
 

@@ -47,7 +47,7 @@ namespace seq66
 /*
  * WARNING:
  *
- *  These Seq66 "c_xxxxx" SeqSpec values MUST be replaced by the
+ *  These Seq66 "c_xxx" SeqSpec values MUST be replaced by the
  *  "enum class seqspec" values in include/seq66/midi/seqspec.hpp.
  *
  *  The usage of s_tag_names_container MUST be done through the

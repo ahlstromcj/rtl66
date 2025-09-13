@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2024-06-30
+ * \updates       2025-09-11
  * \license       GNU GPLv2 or above
  *
  */
@@ -33,7 +33,7 @@
 
 #include <stdexcept>                    /* std::invalid_argument            */
 
-#include "midi/midibytes.hpp"           /* midi::byte and other types   */
+#include "midi/midibytes.hpp"           /* midi::byte and other types       */
 
 namespace midi
 {
@@ -62,16 +62,16 @@ std::string
 hex_bytes_string (const bytes & b, int limit)
 {
     std::string result;
-    int count = int(b.size());
-    bool no_0x = limit > 0;
-    int len = count;
+    int count { int(b.size()) };
+    bool no_0x { limit > 0 };
+    int len { count };
     if (no_0x && (limit < count))
         len = limit;
 
     if (len > 0)
     {
         char tmp[8];
-        const char * fmt = no_0x ? "%02X" : "0x%02x" ;
+        const char * fmt { no_0x ? "%02X" : "0x%02x" };
         for (int i = 0; i < len; ++i)
         {
             (void) snprintf(tmp, sizeof tmp, fmt, unsigned(b[i]));
@@ -127,10 +127,10 @@ bytes_to_string (const bytes & b)
 byte
 string_to_byte (const std::string & s, byte defalt)
 {
-    byte result = defalt;
+    byte result { defalt };
     try
     {
-        int temp = std::stoi(s, nullptr, 0);
+        int temp { std::stoi(s, nullptr, 0) };
         if (temp >= 0 && temp <= UCHAR_MAX)
             result = byte(temp);
     }
@@ -151,13 +151,13 @@ booleans
 fix_booleans (const booleans & mbs, int newsz)
 {
     booleans result;
-    int sz = int(mbs.size());
+    int sz { int(mbs.size()) };
     if (newsz >= sz)
     {
         result = mbs;
         if (newsz > sz)
         {
-            int diff = newsz - sz;
+            int diff { newsz - sz };
             for (int i = 0; i < diff; ++i)
                 result.push_back(0);
         }

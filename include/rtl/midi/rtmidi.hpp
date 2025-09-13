@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-04
+ * \updates       2025-09-13
  * \license       See above.
  *
  *      Also contains some additional capabilities.
@@ -410,7 +410,7 @@ extern const std::string & get_rtmidi_patch_version () noexcept;
 
 /*------------------------------------------------------------------------
  * rtmidi API-detection function declarations.  Each is defined in the
- * appropriate midi_xxxxx module. Also included are some slightly useful
+ * appropriate midi_xxx module. Also included are some slightly useful
  * helper functions.
  *------------------------------------------------------------------------*/
 

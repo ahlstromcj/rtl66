@@ -166,10 +166,10 @@ std::string
 bussdata::construct_bus_name (const std::string & appname)
 {
     std::string result;
-    std::string busname = buss_name();
-    std::string portname = port_name();
-    bool is_output = io_type() == port::io::output;
-    bool is_virtual = port_type() == port::kind::manual;
+    std::string busname { buss_name() };
+    std::string portname { port_name() };
+    bool is_output { io_type() == port::io::output };
+    bool is_virtual { port_type() == port::kind::manual };
     char name[256];
     if (is_virtual)
     {

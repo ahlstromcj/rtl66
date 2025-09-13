@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-09-10
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -235,11 +235,11 @@ masterbus::void_client_handle (void * clienthandle)
 bool
 masterbus::engine_query ()
 {
-    bool result = client_info().get_all_port_info(selected_api());
+    bool result { client_info().get_all_port_info(selected_api()) };
     if (result)
     {
 #if defined PLATFORM_DEBUG_TMI
-        std::string msg = client_info().to_string("engine_query()");
+        std::string msg { client_info().to_string("engine_query()") };
         infoprint(msg.c_str());
 #endif
     }
@@ -314,7 +314,7 @@ masterbus::BPM (midi::bpm bp)
 bool
 masterbus::activate ()
 {
-    bool result = inbus_array().initialize();
+    bool result { inbus_array().initialize() };
     if (result)
         result = outbus_array().initialize();
 
@@ -348,7 +348,7 @@ bool
 masterbus::panic (int displaybuss)
 {
     xpc::automutex locker(m_mutex);
-    bool result = true;
+    bool result { true };
     for (int b = 0; b < c_busscount_max; ++b)
     {
         if (b == displaybuss)             /* do not clear the Launchpad   */
@@ -383,7 +383,7 @@ bool
 masterbus::sysex (midi::bussbyte b, const event * ev)
 {
     xpc::automutex locker(m_mutex);
-    bool result = not_nullptr(ev);
+    bool result { not_nullptr(ev) };
     if (result)
         m_outbus_array.send_sysex(b, ev);
 
@@ -444,7 +444,7 @@ bool
 masterbus::set_clock (midi::bussbyte b, midi::clocking clocktype)
 {
     xpc::automutex locker(m_mutex);
-    bool result = m_outbus_array.set_clock(b, clocktype);
+    bool result { m_outbus_array.set_clock(b, clocktype) };
     if (result)
     {
         flush();
@@ -474,14 +474,14 @@ bool
 masterbus::save_clock (midi::bussbyte /*b*/, midi::clocking /*clk*/)
 {
 #if THIS_CODE_IS_READY
-    bool result = m_master_clocks.set(b, clk);
+    bool result { m_master_clocks.set(b, clk) };
     if (! result)
     {
-        int currentcount = m_master_clocks.count();
+        int currentcount { m_master_clocks.count() };
         errprint("mmb::save_clock(): missing bus");
         for (int i = currentcount; i <= b; ++i)
         {
-            clocking value = clocking::disabled;
+            clocking value { clocking::disabled };
             if (i == int(b))
             {
                 value = clock;
@@ -538,7 +538,7 @@ bool
 masterbus::set_input (midi::bussbyte b, bool inputing)
 {
     xpc::automutex locker(m_mutex);
-    bool result = m_inbus_array.set_input(b, inputing);
+    bool result { m_inbus_array.set_input(b, inputing) };
     if (result)
     {
         result = flush();
@@ -571,14 +571,14 @@ masterbus::set_input (midi::bussbyte b, bool inputing)
 bool
 masterbus::save_input (midi::bussbyte b, bool inputing)
 {
-    int currentcount = inbus_array().count();
-    bool result = inbus_array().set_input(b, inputing);
+    int currentcount { inbus_array().count() };
+    bool result { inbus_array().set_input(b, inputing) };
     if (! result)
     {
         for (int i = currentcount; i <= b; ++i)
         {
 #if THIS_CODE_IS_READY
-            bool value = false;
+            bool value { false };
             if (i == int(bs))
                 value = inputing;
 
@@ -689,7 +689,7 @@ int
 masterbus::poll_for_midi () const
 {
     xpc::automutex locker(m_mutex);
-    int result = inbus_array().poll_for_midi();
+    int result { inbus_array().poll_for_midi() };
     if (result > 0)
     {
         if (result <= 2)
@@ -700,6 +700,13 @@ masterbus::poll_for_midi () const
         (void) xpc::microsleep(xpc::std_sleep_us());
     }
     return result;
+}
+
+bool
+masterbus::get_midi_event (midi::event * inev)
+{
+    xpc::automutex locker(m_mutex);
+    return engine().get_midi_event(inev);
 }
 
 /**
@@ -796,7 +803,7 @@ bool
 masterbus::set_track_input (bool state, track * trk)
 {
     xpc::automutex locker(m_mutex);
-    bool result = not_nullptr(trk);
+    bool result { not_nullptr(trk) };
     if (result)
     {
         /*
@@ -846,7 +853,7 @@ masterbus::set_track_input (bool state, track * trk)
 void
 masterbus::dump_midi_input (event /*& ev*/)
 {
-    size_t sz = m_vector_sequence.size();
+    size_t sz { m_vector_sequence.size() };
     for (size_t i = 0; i < sz; ++i)
     {
         if (is_nullptr(m_vector_sequence[i]))          // error check
@@ -941,7 +948,7 @@ masterbus::engine_activate ()
 bool
 masterbus::engine_initialize ()
 {
-    bool result = client_info_reset();
+    bool result { client_info_reset() };
     if (result)
         result = engine_initialize(m_client_info);
 
@@ -963,76 +970,82 @@ masterbus::engine_initialize (const clientinfo & ci)
     bool result { ci.port_type() == port::io::duplex };
     if (result)
     {
-        (void) PPQN(ci.global_ppqn());
-        (void) BPM(ci.global_bpm());
-        if (ci.virtual_ports())
-        {
-            // TODO
-            //
-            // Perhaps we should just add virtual port's information
-            // to clientinfo at setup time. Also need to create
-            // the set_virtual_name() function, or maybe have
-            // a class virtualbus : public midibus
-            //
-            // Also don't forget to set ci.is_connected()
-        }
-        else
-        {
-            result = ci.ports_queried();
-            if (result)
-            {
-                bool swap_io
-                {
-                    rtl::rtmidi::selected_api() == rtl::rtmidi::api::jack
-                };
-                bool isinput { ! swap_io };
-                midi::port::io iotype
-                {
-                    isinput ? midi::port::io::input : midi::port::io::output
-                };
-                int pcount { ci.port_count(iotype) };
-                midi::busarray & busarray_1
-                {
-                    isinput ? inbus_array() : outbus_array()
-                };
-                for (int p = 0; p < pcount; ++p)
-                {
-                    midi::bus * b = make_bus(p, iotype);
-                    if (not_nullptr(b))
-                    {
-                        bool ok = busarray_1.add(b);    /* store unique_ptr */
-                        if (! ok)
-                        {
-                            result = false;
-                            break;
-                        }
-                    }
-                    else
-                        break;                          /* error            */
-                }
-                isinput = ! isinput;
-                iotype = isinput ?
-                    midi::port::io::input : midi::port::io::output;
+        result = PPQN(ci.global_ppqn());
+        if (result)
+            result = BPM(ci.global_bpm());
 
-                pcount = ci.port_count(iotype);
-                midi::busarray & busarray_2
+        if (result)
+        {
+            if (ci.virtual_ports())
+            {
+                // TODO
+                //
+                // Perhaps we should just add virtual port's information
+                // to clientinfo at setup time. Also need to create
+                // the set_virtual_name() function, or maybe have
+                // a class virtualbus : public midibus
+                //
+                // Also don't forget to set ci.is_connected()
+            }
+            else
+            {
+                result = ci.ports_queried();
+                if (result)
                 {
-                    isinput ? inbus_array() : outbus_array()
-                };
-                for (int p = 0; p < pcount; ++p)
-                {
-                    midi::bus * b = make_bus(p, iotype);
-                    if (not_nullptr(b))
+                    bool swap_io
                     {
-                        bool ok = busarray_2.add(b);    /* store unique_ptr */
-                        if (! ok)
+                        rtl::rtmidi::selected_api() == rtl::rtmidi::api::jack
+                    };
+                    bool isinput { ! swap_io };
+                    midi::port::io iotype
+                    {
+                        isinput ?
+                            midi::port::io::input : midi::port::io::output
+                    };
+                    int pcount { ci.port_count(iotype) };
+                    midi::busarray & busarray_1
+                    {
+                        isinput ? inbus_array() : outbus_array()
+                    };
+                    for (int p = 0; p < pcount; ++p)
+                    {
+                        midi::bus * b = make_bus(p, iotype);
+                        if (not_nullptr(b))
                         {
-                            result = false;
-                            break;
+                            bool ok = busarray_1.add(b);  /* add unique_ptr */
+                            if (! ok)
+                            {
+                                result = false;
+                                break;
+                            }
                         }
+                        else
+                            break;                        /* error          */
                     }
-                    else
-                        break;                          /* error            */
+                    isinput = ! isinput;
+                    iotype = isinput ?
+                        midi::port::io::input : midi::port::io::output;
+
+                    pcount = ci.port_count(iotype);
+                    midi::busarray & busarray_2
+                    {
+                        isinput ? inbus_array() : outbus_array()
+                    };
+                    for (int p = 0; p < pcount; ++p)
+                    {
+                        midi::bus * b = make_bus(p, iotype);
+                        if (not_nullptr(b))
+                        {
+                            bool ok = busarray_2.add(b);  /* add unique_ptr */
+                            if (! ok)
+                            {
+                                result = false;
+                                break;
+                            }
+                        }
+                        else
+                            break;                          /* error            */
+                    }
                 }
             }
         }
@@ -1080,7 +1093,7 @@ masterbus::make_bus
     midi::bus * result { nullptr };
     if (iotype == midi::port::io::input)
     {
-        const unsigned qsize = 0;                       /* TODO */
+        const unsigned qsize { 0 };                       /* TODO */
         result = new (std::nothrow) midi::bus_in(*this, busno, qsize);
     }
     else if (iotype == midi::port::io::output)
@@ -1097,7 +1110,7 @@ masterbus::make_bus
 bool
 masterbus::handle_clock (midi::clock::action act, midi::pulse ts)
 {
-    bool result = ts >= 0;
+    bool result { ts >= 0 };
     if (result)
     {
         xpc::automutex locker(m_mutex);

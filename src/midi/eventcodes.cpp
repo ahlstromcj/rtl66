@@ -893,7 +893,7 @@ rpn_name (int index)
 
     if (index >= 0 && index < c_rpn_value_count)
     {
-        std::string name = s_rpn_names[index].name;
+        std::string name { s_rpn_names[index].name };
         result = std::to_string(index);
         result += " ";
         result += name;

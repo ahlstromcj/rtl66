@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-09-11
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  */
@@ -50,7 +50,7 @@ namespace midi
  *  It also had a "lookahead" time of 2 ms, not used however.
  */
 
-static const int c_thread_trigger_width_us = 4 * 1000;
+static const int c_thread_trigger_width_us { 4 * 1000 };
 
 #if defined UNUSED_VARIABLE
 
@@ -59,7 +59,7 @@ static const int c_thread_trigger_width_us = 4 * 1000;
  *  Needs more testing, we really haven't needed it yet.
  */
 
-static const int c_thread_priority = 1;
+static const int c_thread_priority { 1 };
 
 #endif
 
@@ -333,6 +333,9 @@ player::set_ppqn (midi::ppqn ppq, bool user_change)
     bool result { ppq != transportinfo().get_ppqn() || ! user_change };
     if (result)
     {
+        if (master_bus_ptr())
+            master_bus_ptr()->PPQN(ppq);
+
         transportinfo().set_ppqn(ppq);
         if (transportinfo().one_measure() == 0)
             transportinfo().one_measure(ppq);
@@ -437,7 +440,7 @@ player::inner_stop (bool midiclock)
 {
     is_running(false);
     reset_tracks();                  /* resets, and flushes the buss     */
-    m_clock_info.usemidiclock(midiclock);
+    clockinfo().usemidiclock(midiclock);
 }
 
 /**
@@ -573,7 +576,7 @@ player::reset_tracks (bool p)
     bool songmode { false };
     for (auto & trk : track_list().tracks())
     {
-        track * trkptr = trk.get();       // (trk->*f)(songmode);
+        track * trkptr { trk.get() };
         (trkptr->*f)(songmode);
     }
 
@@ -856,6 +859,8 @@ player::launch_output_thread ()
 /**
  *  Creates the input thread using input_thread_func().  This might be a good
  *  candidate for a small thread class derived from a small base class.
+ *  The creation of a thread can have boosted priority, but the default is
+ *  no change.
  */
 
 bool
@@ -1106,7 +1111,7 @@ bool
 player::set_midi_bus (track::number trkno, int b)
 {
     track::pointer tp { get_track(trkno) };
-    bool result = bool(tp);
+    bool result { bool(tp) };
     if (result)
         result = tp->midi_bus(b, true);                 /* a user change    */
 
@@ -1551,9 +1556,9 @@ player::output_func ()
         int bpm_times_ppqn { int(bpmfactor) * ppq };
         double dct { double_ticks_from_ppqn(ppq) };
         double pus { pulse_length_us(bpmfactor, ppq) };
+        long last { xpc::microtime() };                 /* beginning time   */
         long current;                                   /* current time     */
         long elapsed_us, delta_us;                      /* current - last   */
-        long last { xpc::microtime() };                 /* beginning time   */
         transportinfo().resolution_change_clear();
         while (is_running())
         {
@@ -1579,10 +1584,11 @@ player::output_func ()
             current = xpc::microtime();
             delta_us = elapsed_us = current - last;
 
-            long long delta_tick_num = bpm_times_ppqn * delta_us +
-                pad().js_delta_tick_frac;
-
-            long delta_tick = long(delta_tick_num / 60000000LL);
+            long long delta_tick_num
+            {
+                bpm_times_ppqn * delta_us + pad().js_delta_tick_frac
+            };
+            long delta_tick { long(delta_tick_num / 60000000LL) };
             pad().js_delta_tick_frac = long(delta_tick_num % 60000000LL);
 #if USE_OLD_CODE
             if (m_usemidiclock)
@@ -1597,9 +1603,12 @@ player::output_func ()
                 }
             }
 #else
-            if (m_clock_info.usemidiclock())
+            if (clockinfo().usemidiclock())
             {
-                delta_tick = m_clock_info.adjust_midi_tick();
+                midi::pulse clockpos;
+                delta_tick = clockinfo().adjust_midi_tick(clockpos);
+                if (clockinfo().midiclockpos() == (-1))
+                    pad().set_current_tick(clockpos);
             }
 #endif
 
@@ -1611,7 +1620,7 @@ player::output_func ()
             else
             {
 #if defined USE_THIS_STAZED_CODE_WHEN_READY
-                if (! m_clock_info.usemidiclock() && transportinfo().reposition())
+                if (! clockinfo().usemidiclock() && transportinfo().reposition())
                 {
                     current_tick = clock_tick;
                     delta_tick = transportinfo().start_tick() - clock_tick;
@@ -1703,8 +1712,8 @@ player::output_func ()
             elapsed_us = current - last;
             delta_us = c_thread_trigger_width_us - elapsed_us;
 
-            double next_clock_delta = dct - 1;
-            double next_clock_delta_us = next_clock_delta * pus;
+            double next_clock_delta { dct - 1 };
+            double next_clock_delta_us { next_clock_delta * pus };
             if (next_clock_delta_us < (c_thread_trigger_width_us * 2.0))
                 delta_us = long(next_clock_delta_us);
 
@@ -1748,7 +1757,7 @@ player::output_func ()
             };
             if (is_jack_master())
                 position_jack(song_mode(), start);
-            else if (! m_clock_info.usemidiclock() && ! is_jack_running())
+            else if (! clockinfo().usemidiclock() && ! is_jack_running())
                 transportinfo().tick(start);
         }
 
@@ -1809,17 +1818,13 @@ player::poll_cycle ()
             }
 
             event ev;
-#if defined USE_MASTER_BUS
-            bool incoming = master_bus_ptr()->get_midi_event(&ev);
-#else
-            bool incoming = false;
-#endif
+            bool incoming { master_bus_ptr()->get_midi_event(&ev) };
             if (incoming)
             {
                 if (ev.is_below_sysex())                    /* below 0xF0   */
                 {
 #if defined RTL66_PLATFORM_DEBUG_TMI
-                    std::string estr = ev.to_string();
+                    std::string estr { ev.to_string() };
                     util::status_message("MIDI event", estr);
 #endif
 #if defined USE_MASTER_BUS
@@ -1930,9 +1935,12 @@ player::poll_cycle ()
 void
 player::midi_start ()
 {
-    (void) auto_stop();
-    (void) auto_play();
-    m_clock_info.clock_start();
+    /*
+     * (void) auto_stop(); (void) auto_play();
+     */
+
+    start_playing();
+    clockinfo().clock_start();
 }
 
 /**
@@ -1948,8 +1956,16 @@ player::midi_start ()
 void
 player::midi_continue ()
 {
-    m_clock_info.clock_continue(tick());
-    (void) auto_pause(); (void) auto_play();
+    // song_start_mode(sequence::playback::live);
+
+    clockinfo().clock_continue(tick());
+    m_dont_reset_ticks = false;
+
+    /*
+     * (void) auto_pause(); (void) auto_play();
+     */
+
+    start_playing();
 }
 
 /**
@@ -1972,7 +1988,8 @@ void
 player::midi_stop ()
 {
     all_notes_off();
-    m_clock_info.clock_stop(tick());
+    clockinfo().clock_stop(tick());
+    m_dont_reset_ticks = false;
     (void) auto_stop();
 }
 
@@ -1993,7 +2010,7 @@ player::midi_stop ()
 void
 player::midi_clock ()
 {
-    m_clock_info.clock_increment();
+    clockinfo().clock_increment();
 }
 
 /**
@@ -2017,7 +2034,7 @@ player::midi_song_pos (const event & ev)
 {
     midi::byte d0, d1;
     ev.get_data(d0, d1);
-    m_clock_info.midiclockpos(combine_bytes(d0, d1));
+    clockinfo().midiclockpos(combine_bytes(d0, d1));
 }
 
 /**
@@ -2144,7 +2161,7 @@ player::pause_playing ()
     is_running(! is_running());
     stop_jack();
     if (! is_jack_running())
-        m_clock_info.usemidiclock(false);
+        clockinfo().usemidiclock(false);
 
     reset_tracks(true);                      /* don't reset "last-tick"  */
 }
@@ -2168,8 +2185,8 @@ player::stop_playing ()
 bool
 player::auto_play ()
 {
-    bool onekey = false;                /* keys().start() == keys().stop(); */
-    bool result = false;                /* was isplaying                    */
+    bool onekey { false };              /* keys().start() == keys().stop(); */
+    bool result { false };              /* was isplaying                    */
     if (onekey)
     {
         if (is_running())
@@ -2194,7 +2211,7 @@ player::auto_play ()
 bool
 player::auto_pause ()
 {
-    bool isplaying = false;
+    bool isplaying { false };
     if (is_running())
     {
         pause_playing();
@@ -2241,10 +2258,16 @@ player::get_max_extent () const
     return result;
 }
 
+/**
+ *  This function is mainly for testing. See the tests/midi/play.cpp
+ *  module. Currently, this ends at the right time, but some additional
+ *  wait is needed to play the last event. Need to find out why.
+ */
+
 bool
 player::at_song_end ()
 {
-    if (get_tick() < m_max_extent)
+    if (get_tick() < (max_extent() + get_ppqn() / 4))
     {
         xpc::millisleep(100);
         return false;
@@ -2458,7 +2481,7 @@ player::read_midi_file
         (void) addtorecent;
         m_max_extent = get_max_extent();
 
-        // TODO? Get PPQN?
+        // TODO? Get PPQN and BPM? Update clientinfo?
     }
     return result;
 }

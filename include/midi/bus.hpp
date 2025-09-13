@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-09-06
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -143,7 +143,8 @@ public:
 private:
 
     /**
-     *  This is another name for "16 * 4".
+     *  This is another name for "16 * 4". Must be initialized
+     *  in the cpp file.
      */
 
     static int m_clock_mod;
@@ -155,20 +156,20 @@ private:
      *  does not own the pointer, as indicated by use of a bare pointer.
      */
 
-    masterbus * m_master_bus;
+    masterbus * m_master_bus { nullptr };
 
     /**
      *  Set to true if the bus has been successfully initialized.
      */
 
-    bool m_initialized;
+    bool m_initialized { false };
 
     /**
      *  Provides the index of the bus object in either the input list or
      *  the output list.  Otherwise, it is currently -1.
      */
 
-    const int m_bus_index;
+    const int m_bus_index { -1 };
 
     /**
      *  The client ID of the Seq66 application as determined by the MIDI
@@ -182,13 +183,13 @@ private:
      *  For JACK, this is currently set to the same value as the buss ID.
      */
 
-    int m_client_id;
+    int m_client_id { -1 };
 
     /**
      *  Consolidates a number of previously separate members.
      */
 
-    midi::port m_port;
+    midi::port m_port { };
 
     /**
      *  The buss ID of the bus object as determined by the MIDI subsystem
@@ -196,22 +197,16 @@ private:
      *  midibase object represents *other* MIDI devices and applications
      *  (besides Seq66) present at Seq66 startup.  For example, on one system
      *  the IDs are 14 (MIDI Through), 20 (LaunchPad Mini), 128 (TiMidity),
-     *  and 129 (Yoshimi).
-     *
-     *  See ports::get_bus_id() and port::m_client_number.
+     *  and 129 (Yoshimi). See ports::get_bus_id() and port::m_client_number.
      *
      *      int m_bus_id;                   // port::m_buss_number
-     */
-
-    /**
+     *
      *  The port ID of the bus object. Numbering starts at 0.
      *
      *  See ports::get_port_id() and port::m_port_number.
      *
      *      int m_port_id;                  // port::m_port_number
-     */
-
-    /**
+     *
      *  The type of clock to use.  The special value clocking::disabled means
      *  we will not be using the port, so that a failure in setting up the
      *  port is not a "fatal error".  We could have added an "m_outputing"
@@ -231,14 +226,14 @@ private:
      *  and deactivate() functions.
      */
 
-    bool m_io_active;
+    bool m_io_active { false };
 
     /**
      *  Holds the full display name of the bus, index, ID numbers, and item
      *  names.  Assembled by the set_name() function.
      */
 
-    std::string m_display_name;
+    std::string m_display_name { };
 
     /**
      *  The name of the MIDI buss.  This should be something like a major device
@@ -246,25 +241,19 @@ private:
      *  See ports::get_bus_name() and port::m_client_number.
      *
      *      std::string m_bus_name;         // port::m_buss_name
-     */
-
-    /**
+     *
      *  The name of the MIDI port.  This should be the name of a specific device
      *  or port on a major device.  This value, for JACK is reconstructed by
      *  set_alt_name() so that it is essentially the "short" port name that JACK
      *  recognizes. See get_port_name() and ports::m_port_name.
      *
      *      std::string m_port_name;        // port::m_port_name
-     */
-
-    /**
+     *
      *  The alias of the MIDI port.  This item is specific to JACK, and is
      *  empty for other APIs.  See get_port_alias() and ports::m_port_alias.
      *
      *      std::string m_port_alias;       // port::m_port_alias
-     */
-
-    /**
+     *
      *  Indicates if the port is to be an input (versus output) port.
      *  It matters when we are creating the name of the port, where we don't
      *  want an input virtual port to have the same name as an output virtual
@@ -273,9 +262,7 @@ private:
      *  See port::get_input() and port::m_io_type.
      *
      *      midi::port::io m_io_type;       // port::m_io_type
-     */
-
-    /**
+     *
      *  Indicates if the port is a system port.  Two examples are the ALSA
      *  System Timer buss and the ALSA System Announce bus, the latter being
      *  necessary for input subscription and notification.  For most ports,
@@ -292,7 +279,7 @@ private:
      *  Locking mutex. This one is based on std:::recursive_mutex.
      */
 
-    xpc::recmutex m_mutex;
+    xpc::recmutex m_mutex { };
 
 public:
 

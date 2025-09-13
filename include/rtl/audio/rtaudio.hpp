@@ -318,7 +318,7 @@ extern const std::string & get_rtaudio_patch_version () noexcept;
 
 /*------------------------------------------------------------------------
  * rtaudio API-detection function declarations.  Each is defined in the
- * appropriate audio_xxxxx module. Also included are some slightly useful
+ * appropriate audio_xxx module. Also included are some slightly useful
  * helper functions.
  *------------------------------------------------------------------------*/
 

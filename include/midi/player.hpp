@@ -864,6 +864,11 @@ public:
         transportinfo().reposition(postype);
     }
 
+    midi::pulse max_extent () const
+    {
+        return m_max_extent;
+    }
+
 public:
 
     bool set_track_name (midi::track::ref s, const std::string & name);

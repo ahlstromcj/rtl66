@@ -230,7 +230,7 @@ get_global_port_info (rtl::rtmidi::api rapi)
 bool
 set_global_client_info (const clientinfo & ci)
 {
-    clientinfo & gci = global_client_info();
+    clientinfo & gci { global_client_info() };
     gci = ci;
     return true;
 }

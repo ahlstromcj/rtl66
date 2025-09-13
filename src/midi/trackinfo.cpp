@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2025-08-21
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  *  This container now can indicate if certain Meta events (time-signaure or
@@ -351,7 +351,7 @@ std::map<int, std::string> keysiglist     // see "Key" columns above
 std::string
 keysiginfo::key_name ()
 {
-    std::string result = keysiglist[m_sharp_flat_count];
+    std::string result { keysiglist[m_sharp_flat_count] };
     result += is_minor_scale() ? "minor" : "major" ;
     return result;
 }
@@ -408,7 +408,7 @@ trackinfo::trackinfo
 std::string
 trackinfo::to_string () const
 {
-    std::string result = "Time Sig ";
+    std::string result { "Time Sig " };
     result += timesig_info().timesiginfo_labelled();
     result += "\n";
     result += tempo_info().bpm_labelled();

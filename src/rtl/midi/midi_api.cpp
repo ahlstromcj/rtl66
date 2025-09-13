@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-01
+ * \updates       2025-09-13
  * \license       See above.
  *
  */
@@ -44,7 +44,8 @@ namespace rtl
  *------------------------------------------------------------------------*/
 
 midi_api::midi_api () :
-    api_base                    (),
+    api_base ()
+#if 0
     m_port_io_type              (midi::port::io::engine),
     m_port_number               (-1),
     m_input_data                (),             /* a small structure        */
@@ -53,6 +54,7 @@ midi_api::midi_api () :
     m_api_data                  (nullptr),
     m_is_connected              (false),
     m_queue_size                (0)
+#endif
 {
     /*
      * Currently we use midi::port::io::output for probing for an existing API
@@ -63,12 +65,12 @@ midi_api::midi_api () :
 midi_api::midi_api (midi::port::io iotype, unsigned qsize) :
     api_base                    (),
     m_port_io_type              (iotype),
-    m_port_number               (-1),
+//  m_port_number               (-1),
     m_input_data                (qsize),        /* input data structure     */
-    m_master_bus                (),             /* a potential shared ptr   */
-    m_has_master                (false),        /* true ==> midi::bus       */
-    m_api_data                  (nullptr),
-    m_is_connected              (false),
+//  m_master_bus                (),             /* a potential shared ptr   */
+//  m_has_master                (false),        /* true ==> midi::bus       */
+//  m_api_data                  (nullptr),
+//  m_is_connected              (false),
     m_queue_size                (qsize)
 {
     /*

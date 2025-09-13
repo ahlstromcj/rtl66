@@ -463,7 +463,6 @@ eventlist::link_new_note ()
 
 #endif  // defined SEQ66_LINK_NEWEST_NOTE_ON_RECORD
 
-
 /**
  *  If we're in legacy merge mode for a loop, the Note Off is actually earlier
  *  than the Note On.  And in replace mode, the Note On is cleared, leaving us
@@ -490,7 +489,7 @@ eventlist::link_new_note ()
 bool
 eventlist::link_notes (event::iterator eon, event::iterator eoff)
 {
-    bool result = eon->off_linkable(eoff);
+    bool result { eon->off_linkable(eoff) };
     if (result)
     {
         eon->link(eoff);
@@ -756,7 +755,7 @@ eventlist::remove_unlinked_notes ()
     {
         if (i->is_note_unlinked())
         {
-            auto t = remove(i);
+            auto t { remove(i) };
             i = t;
             result = true;
         }
@@ -1264,7 +1263,7 @@ midi::pulse
 eventlist::apply_time_factor (double factor, bool savenotelength, bool relink)
 {
     midi::pulse result { 0 };
-    bool ok = ! empty() && factor > 0.01;
+    bool ok { ! empty() && factor > 0.01 };
     if (ok)
     {
         for (auto & ev : m_events)
@@ -2104,7 +2103,7 @@ eventlist::remove_trailing_events (midi::pulse limit)
              * TODO: handled linked notes
              */
 
-            auto t = remove(i);
+            auto t { remove(i) };
             i = t;
             result = true;
         }
@@ -2879,7 +2878,7 @@ eventlist::get_selected_events_interval
 bool
 eventlist::rescale (midi::ppqn newppqn, midi::ppqn oldppqn)
 {
-    bool result = oldppqn > 0;
+    bool result { oldppqn > 0 };
     if (result)
     {
         for (auto & er : m_events)
@@ -3053,7 +3052,7 @@ eventlist::paste_selected (eventlist & clipbd, midi::pulse tick, int note)
     bool result { false };
     if (! clipbd.empty())
     {
-        int highest_note = 0;
+        int highest_note { 0 };
         for (auto & e : clipbd)
         {
             midi::pulse t { e.timestamp() };

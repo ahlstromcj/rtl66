@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2022-12-18
- * \updates       2023-07-20
+ * \updates       2025-09-12
  * \license       GNU GPLv2 or above
  *
  */
@@ -51,7 +51,7 @@ namespace midi
 bool
 contains (const std::string & original, const std::string & target)
 {
-    auto pos = original.find(target);
+    auto pos { original.find(target) };
     return pos != std::string::npos;
 }
 
@@ -88,14 +88,14 @@ extract_port_names
     std::string & portname
 )
 {
-    bool result = ! fullname.empty();
+    bool result { ! fullname.empty() };
     clientname.clear();
     portname.clear();
     if (result)
     {
         std::string cname;
         std::string pname;
-        std::size_t colonpos = fullname.find_first_of(":"); /* not last! */
+        std::size_t colonpos { fullname.find_first_of(":") };  /* not last! */
         if (colonpos != std::string::npos)
         {
             /*
@@ -134,7 +134,7 @@ extract_port_names
 std::string
 extract_bus_name (const std::string & fullname)
 {
-    std::size_t colonpos = fullname.find_first_of(":");  /* not last! */
+    std::size_t colonpos { fullname.find_first_of(":") };   /* not last!    */
     return (colonpos != std::string::npos) ?
         fullname.substr(0, colonpos) : std::string("");
 }
@@ -157,7 +157,7 @@ extract_bus_name (const std::string & fullname)
 std::string
 extract_port_name (const std::string & fullname)
 {
-    std::size_t colonpos = fullname.find_first_of(":");  /* not last! */
+    std::size_t colonpos { fullname.find_first_of(":") };   /* not last!    */
     return (colonpos != std::string::npos) ?
         fullname.substr(colonpos + 1) : fullname ;
 }
@@ -189,7 +189,7 @@ detect_short_name (const std::string & portname)
         "output",
         ""                              /* empty string is a terminator     */
     };
-    bool result = portname.empty();
+    bool result { portname.empty() };
     if (! result)
     {
         for (int i = 0; /* forever */; ++i)
@@ -213,7 +213,7 @@ detect_short_name (const std::string & portname)
 static int
 count_colons (const std::string & name)
 {
-    int result = 0;
+    int result { 0 };
     for (std::string::size_type cpos = 0; ; ++cpos)
     {
         cpos = name.find_first_of(":", cpos + 1);
@@ -255,12 +255,12 @@ std::string
 extract_nickname (const std::string & name)
 {
     std::string result;
-    int colons = count_colons(name);
+    int colons { count_colons(name) };
     if (colons > 2)
     {
         if (rtl::rtmidi::selected_api() == rtl::rtmidi::api::jack)
         {
-            auto cpos = name.find_last_of(":");
+            auto cpos { name.find_last_of(":") };
             ++cpos;
             if (name[cpos] == ' ')
                 cpos = name.find_first_not_of(" ", cpos);
@@ -269,8 +269,8 @@ extract_nickname (const std::string & name)
         }
         else
         {
-            auto cpos = name.find_first_of(":");
-            auto spos = name.find_first_of(" ", cpos);
+            auto cpos { name.find_first_of(":") };
+            auto spos { name.find_first_of(" ", cpos) };
             if (spos != std::string::npos)
             {
                 ++spos;
@@ -281,7 +281,7 @@ extract_nickname (const std::string & name)
     }
     else
     {
-        auto cpos = name.find_last_of(":");
+        auto cpos { name.find_last_of(":") };
         if (cpos != std::string::npos)
         {
             ++cpos;
@@ -303,16 +303,16 @@ extract_nickname (const std::string & name)
     if (detect_short_name(result))
     {
         std::string clientname, portname;
-        bool extracted = extract_port_names(name, clientname, portname);
+        bool extracted { extract_port_names(name, clientname, portname) };
         if (extracted)
             result = clientname + ":" + portname;
 
         if (result == name)
-            result = util::simplify(result);    /* can we call only this?? */
+            result = util::simplify(result);
     }
     else
     {
-        auto ppos = result.find_first_of("(");  /* happens with fluidsynth  */
+        auto ppos { result.find_first_of("(") };    /* a fluidsynth issue  */
         if (ppos != std::string::npos && ppos > 1)
         {
             --ppos;
@@ -366,7 +366,7 @@ extract_a2j_port_name (const std::string & alias)
     std::string result;
     if (contains(alias, "a2j"))
     {
-        auto lpos = alias.find_first_of(":");
+        auto lpos { alias.find_first_of(":") };
         if (lpos != std::string::npos)
         {
             lpos = alias.find_first_of(":", lpos + 1);

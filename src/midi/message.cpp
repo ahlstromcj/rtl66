@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-12-01
- * \updates       2025-01-16
+ * \updates       2025-09-11
  * \license       See above.
  *
  *  Provides a basic type for the (heavily-factored) rtl66 library, very
@@ -138,7 +138,7 @@ namespace midi
  */
 
 #if defined RTL66_PLATFORM_DEBUG
-unsigned message::sm_msg_number = 0;
+unsigned message::sm_msg_number { 0 };
 #endif
 
 /**
@@ -226,12 +226,12 @@ message::message (const midi::bytes & mbs) :
 std::string
 message::to_string () const
 {
-    size_t counter = 12;
-    bool incomplete = event_byte_count() > counter;
+    size_t counter { 12 };
+    bool incomplete { event_byte_count() > counter };
     char bcount[8];
     (void) snprintf(bcount, sizeof bcount, "%3zd", event_byte_count());
 
-    std::string result = bcount;
+    std::string result { bcount };
     result += " hex bytes";
 
     if (! incomplete)

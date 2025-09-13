@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-09-07
+ * \updates       2025-09-12
  * \license       See above.
  *
  */
@@ -82,9 +82,9 @@ rt_test_sleep (int ms)
 int
 rt_choose_port_number (bool isoutput)
 {
-    int result = (-1);
-    int portcount = 0;
-    std::string direction = isoutput ? _("output") : _("input") ;
+    int result { (-1) };
+    int portcount { 0 };
+    std::string direction { isoutput ? _("output") : _("input") };
     std::string portname;
     std::unique_ptr<rtl::rtmidi> rt;
     try
@@ -175,14 +175,14 @@ template<typename RTMIDI_TYPE>
 bool
 choose_midi_port (RTMIDI_TYPE & rt, bool isoutput)
 {
-    bool result = true;
+    bool result { true };
     if (rt_virtual_test_port())
     {
         rt.open_virtual_port();
     }
     else
     {
-        int portno = rt_choose_port_number(isoutput);
+        int portno { rt_choose_port_number(isoutput) };
         result = portno >= 0;
         if (result)
         {
@@ -225,8 +225,8 @@ rt_choose_output_port (rtl::rtmidi_out & rtout)
  *  TO DO: Mark this for translation.
  */
 
-static const char * s_help_text_fmt =
-
+static const char * s_help_text_fmt
+{
 "Usage: %s [ options ]\n\n"
 "Runs basic tests for some APIs of Rtl66 library, v. %s.\n"
 "It is based on a greatly refactored adaptation of RtMidi v. %s library.\n\n"
@@ -266,13 +266,13 @@ static const char * s_help_text_fmt =
 "  --length p       Set the amount of test data, if applicable.\n"
 "  -h, --help       Show this help text.\n"
 "\n"
-;
+};
 
 /**
  *  Specifies to create a single virtual port for testing.
  */
 
-static bool s_virtual_test_port = false;
+static bool s_virtual_test_port { false };
 
 static void
 set_virtual_test_port (bool flag)
@@ -295,14 +295,14 @@ rt_virtual_test_port ()
  *      -   s_test_port_out. Provides the output port for a two-way test.
  */
 
-static int s_test_port = (-1);
-static int s_test_port_in = (-1);
-static int s_test_port_out = (-1);
+static int s_test_port { (-1) };
+static int s_test_port_in { (-1) };
+static int s_test_port_out { (-1) };
 
 static int
 string_to_int (const std::string & s)
 {
-    int result = (-1);
+    int result { -1 };
     try
     {
         result = std::stoi(s);
@@ -445,7 +445,7 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
     midi::global_client_info().app_name(appname);
     for (int i = 1; i < argc; ++i)
     {
-        std::string arg = argv[i];
+        std::string arg { argv[i] };
         if (arg == "--help" || arg == "-h")
         {
             set_show_help(true);
@@ -498,9 +498,9 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
             {
                 try
                 {
-                    std::string value = std::string(argv[i + 1]);
-                    int v = string_to_int(value);
-                    midi::ppqn ppq = static_cast<midi::ppqn>(v);
+                    std::string value { std::string(argv[i + 1]) };
+                    int v { string_to_int(value) };
+                    midi::ppqn ppq { static_cast<midi::ppqn>(v) };
                     midi::global_client_info().global_ppqn(ppq);
                 }
                 catch (const std::invalid_argument &)
@@ -519,9 +519,9 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
             {
                 try
                 {
-                    std::string value = std::string(argv[i + 1]);
-                    double v = std::stod(value);
-                    midi::bpm b = static_cast<midi::ppqn>(v);
+                    std::string value { std::string(argv[i + 1]) };
+                    double v { std::stod(value) };
+                    midi::bpm b { midi::bpm(static_cast<midi::ppqn>(v)) };
                     midi::global_client_info().global_bpm(b);
                 }
                 catch (const std::invalid_argument &)
@@ -538,7 +538,7 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
         {
             if (i + 1 < argc)
             {
-                std::string value = std::string(argv[i + 1]);
+                std::string value { std::string(argv[i + 1]) };
                 midi::global_client_info().client_name(value);
             }
         }
@@ -546,8 +546,8 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
         {
             if (i + 1 < argc)
             {
-                std::string value = std::string(argv[i + 1]);
-                int v = string_to_int(value);
+                std::string value { std::string(argv[i + 1]) };
+                int v { string_to_int(value) };
                 set_rt_test_data_length(v);
             }
         }
@@ -555,8 +555,8 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
         {
             if (i + 1 < argc)
             {
-                std::string value = std::string(argv[i + 1]);
-                int v = string_to_int(value);
+                std::string value { std::string(argv[i + 1]) };
+                int v { string_to_int(value) };
                 set_rt_test_port(v);
             }
         }
@@ -564,8 +564,8 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
         {
             if (i + 1 < argc)
             {
-                std::string value = std::string(argv[i + 1]);
-                int v = string_to_int(value);
+                std::string value { std::string(argv[i + 1]) };
+                int v { string_to_int(value) };
                 set_rt_test_port_in(v);
             }
         }
@@ -573,8 +573,8 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
         {
             if (i + 1 < argc)
             {
-                std::string value = std::string(argv[i + 1]);
-                int v = string_to_int(value);
+                std::string value { std::string(argv[i + 1]) };
+                int v { string_to_int(value) };
                 set_rt_test_port_out(v);
             }
         }
@@ -582,7 +582,7 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
         {
             if (i + 1 < argc)
             {
-                std::string value = std::string(argv[i + 1]);
+                std::string value { std::string(argv[i + 1]) };
                 set_rt_test_port_name(value);
             }
         }

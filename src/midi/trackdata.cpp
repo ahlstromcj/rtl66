@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2025-09-11
+ * \updates       2025-09-13
  *
  * \license       GNU GPLv2 or above
  *
@@ -136,25 +136,25 @@ namespace midi
  *  The maximum length of a track name.
  */
 
-static const int c_trackname_max =  256;
+static const int c_trackname_max { 256 };
 
 /**
  *  The maximum allowed variable length value for a MIDI file, which allows
  *  the length to fit in a 32-bit integer.
  */
 
-static const int c_varlength_max = 0x0FFFFFFF;
+static const int c_varlength_max { 0x0FFFFFFF };
 
 /**
  *  Provides the track number for the SeqSpec data when using
  *  the new format.  (There is no track number for the legacy format.)
  *  Can't use numbers, such as 0xFFFF, that have MIDI meta tags in them,
  *  confuses our SeqSpec track parser.
-
-static const midi::ushort c_prop_seq_number_old = 0x7777;
+ *
+ *      static const midi::ushort c_prop_seq_number_old = 0x7777;
  */
 
-static const midi::ushort c_prop_seq_number     = 0x3FFF;
+static const midi::ushort c_prop_seq_number { 0x3FFF };
 
 /**
  *  Fills in the few members of this class.
@@ -199,7 +199,7 @@ trackdata::real_position () const
 static void
 show_byte (midi::byte b, size_t pos)
 {
-    static int s_counter = 0;
+    static int s_counter { 0 };
     printf("b[%03zx]=%02x ", pos, b);
     if ((++s_counter % 8) == 0)
         printf("\n");
@@ -208,7 +208,7 @@ show_byte (midi::byte b, size_t pos)
 midi::byte
 trackdata::get () const
 {
-    midi::byte b = m_data.get_byte();
+    midi::byte b { m_data.get_byte() };
     show_byte(b, position());
     return b;
 }
@@ -216,7 +216,7 @@ trackdata::get () const
 midi::byte
 trackdata::peek () const
 {
-    midi::byte b = m_data.peek_byte();
+    midi::byte b { m_data.peek_byte() };
     show_byte(b, position());
     return b;
 }
@@ -257,7 +257,7 @@ trackdata::extract_generic_meta
     midi::bytes metadata;
     for (size_t i = 0; i < len; ++i)
     {
-        midi::byte c = get();
+        midi::byte c { get() };
         metadata.push_back(c);
     }
 
@@ -296,14 +296,17 @@ trackdata::extract_generic_meta
 bool
 trackdata::extract_track_number (track & trk, event & e, size_t len)
 {
-    bool no_track = len == 0;
-    midi::ushort n = no_track ? trk.track_number() : get_short() ;
-    track::number tn = track::number(n);
+    bool no_track { len == 0 };
+    midi::ushort n
+    {
+        no_track ? midi::ushort(trk.track_number()) : get_short()
+    };
+    track::number tn { track::number(n) };
     midi::bytes b;
     b.push_back((n & 0xff00) >> 8);
     b.push_back(n & 0x00ff);
 
-    bool result = e.append_meta_data(midi::meta::seq_number, b);
+    bool result { e.append_meta_data(midi::meta::seq_number, b) };
     if (result)
     {
         result = append_event(e);
@@ -338,14 +341,14 @@ trackdata::extract_track_name (track & trk, event & e, size_t len)
     midi::bytes trackname;              /* track name from MIDI file data   */
     for (size_t i = 0; i < len; ++i)
     {
-        midi::byte c = get();
+        midi::byte c { get() };
         if (i < c_trackname_max)
             trackname.push_back(c);
         else
             break;
     }
 
-    bool result = e.append_meta_data(midi::meta::track_name, trackname);
+    bool result { e.append_meta_data(midi::meta::track_name, trackname) };
     if (result)
     {
         result = append_event(e);
@@ -367,8 +370,8 @@ trackdata::extract_track_name (track & trk, event & e, size_t len)
  *      lines 1782 and 1830] that will hold the track-name event.
  *
  * \param metatype
- *      The byte representing the type of meta text event, so it can be properly
- *      identified.
+ *      The byte representing the type of meta text event, so it can be
+ *      properly identified.
  *
  * \param len
  *      Holds the expected length of the track name. This value could be 0.
@@ -388,21 +391,22 @@ trackdata::extract_text_event
     midi::bytes metadata;
     for (size_t i = 0; i < len; ++i)
     {
-        midi::byte c = get();
+        midi::byte c { get() };
         metadata.push_back(c);
     }
 
-    bool result = e.append_meta_data(metatype, metadata);
+    bool result { e.append_meta_data(metatype, metadata) };
     if (result)
     {
         result = append_event(e);
         if (result)
         {
 #if defined RTL66_USE_SONG_INFO     // TO WORK OUT AT A LATER DATE
-            bool get_song_info = track == 0 &&
-                mtype == midi::meta::text_event &&
-                ! got_song_info
-                ;
+            bool get_song_info
+            {
+                track == 0 && mtype == midi::meta::text_event &&
+                    ! got_song_info
+            };
             if (get_song_info)
             {
                 got_song_info = true;
@@ -433,7 +437,7 @@ bool
 trackdata::extract_end_of_track (track & /* trk */, event & e)
 {
     midi::bytes nodata;
-    bool result = e.append_meta_data(midi::meta::end_of_track, nodata);
+    bool result { e.append_meta_data(midi::meta::end_of_track, nodata) };
     if (result)
     {
         result = append_event(e);
@@ -480,35 +484,37 @@ trackdata::extract_tempo (track & trk, event & e)
     bt.push_back(get());                    /* tt   */
     bt.push_back(get());                    /* tt   */
 
-    double tempo_us = tempo_us_from_bytes(bt);
-    bool result = tempo_us > 0;
+    double tempo_us { tempo_us_from_bytes(bt) };
+    bool result { tempo_us > 0 };
     if (result)
     {
 #if defined USE_THIS_CODE
-        static bool gotfirst = false;
+        static bool gotfirst { false };
         if (trk.track_number() == 0)
         {
-            midi::bpm bp = bpm_from_tempo_us(tempo_us);
+            midi::bpm bp { bpm_from_tempo_us(tempo_us) };
             if (! gotfirst)
             {
-                player & p = coordinator();
+                player & p { coordinator() };
                 p.beats_per_minute(bp);
                 p.us_per_quarter_note(int(tempo_us));
+
                 // trk.us_per_quarter_note(int(tempo_us));
+
                 gotfirst = true;
             }
             if (! gotfirst)
                 gotfirst = true;
         }
 #endif
-        bool result = e.append_meta_data(midi::meta::set_tempo, bt);
+        bool result { e.append_meta_data(midi::meta::set_tempo, bt) };
         if (result)
         {
             result = append_event(e);
             if (result)
             {
-                tempoinfo & rti = trk.tempo_info();
-                midi::bpm bp = bpm_from_tempo_us(tempo_us);
+                tempoinfo & rti { trk.tempo_info() };
+                midi::bpm bp { bpm_from_tempo_us(tempo_us) };
                 if (track::is_legal(trk.track_number()))
                     rti.tempo_track(int(trk.track_number()));
                 else
@@ -517,7 +523,7 @@ trackdata::extract_tempo (track & trk, event & e)
                 rti.beats_per_minute(bp);       /* us_per_quarter_note()    */
                 if (not_nullptr(trk.parent()))
                 {
-                    player & p = *trk.parent();
+                    player & p { *trk.parent() };
                     p.beats_per_minute(bp);
                     p.us_per_quarter_note(midi::microsec(tempo_us));
                 }
@@ -550,11 +556,11 @@ trackdata::extract_tempo (track & trk, event & e)
 bool
 trackdata::extract_time_signature (track & trk, event & e)
 {
-    int bpb = int(get());                   /* nn */
-    int logbase2 = int(get());              /* dd */
-    int cc = get();                         /* cc */
-    int bb = get();                         /* bb */
-    int bw = beat_power_of_2(logbase2);
+    int bpb { int(get()) };                 /* nn */
+    int logbase2 { int(get()) };            /* dd */
+    int cc { get() };                       /* cc */
+    int bb { get() };                       /* bb */
+    int bw { beat_power_of_2(logbase2) };
 
     midi::bytes bt;
     bt.push_back(midi::byte(bpb));
@@ -562,7 +568,7 @@ trackdata::extract_time_signature (track & trk, event & e)
     bt.push_back(midi::byte(cc));
     bt.push_back(midi::byte(bb));
 
-    bool result = e.append_meta_data(midi::meta::time_signature, bt);
+    bool result { e.append_meta_data(midi::meta::time_signature, bt) };
     if (result)
     {
         result = append_event(e);
@@ -579,15 +585,17 @@ trackdata::extract_time_signature (track & trk, event & e)
              * Should use c_perf_bp_mes and c_perf_bw instead in Seq66.
              */
 
-            int tracknumber = trk.track_number();
+            int tracknumber { trk.track_number() };
             if (tracknumber == 0)
             {
                 if (not_nullptr(trk.parent()))
                 {
-                    player & p = *trk.parent();
+                    player & p { *trk.parent() };
                     p.beats_per_bar(bpb);
                     p.beat_width(bw);
+
                     // p.clocks_per_metronome(cc);          // TODO
+
                     p.set_32nds_per_quarter(bb);
                 }
             }
@@ -624,14 +632,14 @@ trackdata::extract_key_signature (track & trk, event & e)
     bt.push_back(get());                        /* #/b no.                  */
     bt.push_back(get());                        /* min/maj                  */
 
-    bool result = e.append_meta_data(midi::meta::key_signature, bt);
+    bool result { e.append_meta_data(midi::meta::key_signature, bt) };
     if (result)
     {
         result = append_event(e);
         if (result)
         {
-            int scale = int(bt[0]);
-            bool ismajor = bt[1] == 0;
+            int scale { int(bt[0]) };
+            bool ismajor { bt[1] == 0 };
             keysiginfo ksi(scale, ismajor);
             trk.set_keysig_info(ksi);
         }
@@ -662,7 +670,7 @@ trackdata::extract_key_signature (track & trk, event & e)
 bool
 trackdata::checklen (midi::ulong len, midi::byte type)
 {
-    bool result = len <= c_varlength_max;                   /* 0x0FFFFFFF */
+    bool result { len <= c_varlength_max };                 /* 0x0FFFFFFF */
     if (! result)
     {
         printf("bad data length for meta type 0x%02X \n", type);
@@ -715,14 +723,14 @@ trackdata::checklen (midi::ulong len, midi::byte type)
 bool
 trackdata::extract_meta_msg (track & trk, event & e)
 {
-    midi::byte mtype = get();                   /* meta message type byte   */
-    midi::meta metatype = to_meta(mtype);       /* static_cast<> it         */
-    midi::ulong len = get_varinum();            /* get data length          */
-    bool it_checks = checklen(len, mtype);      /* mostly a sanity check    */
+    midi::byte mtype { get() };                 /* meta message type byte   */
+    midi::meta metatype { to_meta(mtype) };     /* static_cast<> it         */
+    midi::ulong len { get_varinum() };          /* get data length          */
+    bool it_checks { checklen(len, mtype) };    /* mostly a sanity check    */
     if (! it_checks)
         return false;
 
-    bool result = false;
+    bool result { false };
     switch (metatype)
     {
     case midi::meta::seq_number:                /* FF 00 02 ss ss; FF 00 00 */
@@ -810,7 +818,7 @@ trackdata::extract_meta_msg (track & trk, event & e)
          * if (rc().verbose())
          */
 
-        std::string m = "Illegal meta value skipped";
+        std::string m { "Illegal meta value skipped" };
         (void) m_data.set_error_dump(m, m_data.real_position());
         break;
     }
@@ -835,8 +843,8 @@ trackdata::put_meta_header
     midi::pulse deltatime
 )
 {
-    midi::byte metamarker = midi::to_byte(midi::status::meta_msg);
-    midi::byte metacode = midi::to_byte(metaevent);
+    midi::byte metamarker { midi::to_byte(midi::status::meta_msg) };
+    midi::byte metacode { midi::to_byte(metaevent) };
     put_varinum(midi::ulong(deltatime));
     put(metamarker);                                /* 0xFF meta marker     */
     put(metacode);                                  /* which meta event     */
@@ -962,8 +970,8 @@ trackdata::put_seqspec_data (midi::ulong spec, const midi::bytes & data)
 long
 trackdata::seqspec_item_size (long data_length) const
 {
-    long result = 0;
-    int len = data_length + 4;              /* data + sizeof(control_tag);  */
+    long result { 0 };
+    int len { int(data_length) + 4 };       /* data + sizeof(control_tag);  */
     result += 3;                            /* count delta time, meta bytes */
     result += varinum_size(len);            /* count the length bytes       */
     result += 4;                            /* write_long(control_tag);     */
@@ -995,14 +1003,14 @@ trackdata::seqspec_item_size (long data_length) const
 void
 trackdata::put_channel_event (const event & e, midi::pulse deltatime)
 {
-    midi::byte d0 = e.data(0);
-    midi::byte d1 = e.data(1);
-    midi::byte st = e.status_byte();
+    midi::byte d0 { e.data(0) };
+    midi::byte d1 { e.data(1) };
+    midi::byte st { e.status_byte() };
     put_varinum(midi::ulong(deltatime));        /* encode delta_time    */
     put(st);                                    /* add (fixed) status   */
     if (e.has_channel())
     {
-        midi::status s = midi::to_status(mask_status(st));
+        midi::status s { midi::to_status(mask_status(st)) };
         switch (s)
         {
         case midi::status::note_off:                            /* 0x80 */
@@ -1057,14 +1065,14 @@ trackdata::put_ex_event (const event & e, midi::pulse deltatime)
     put_varinum(midi::ulong(deltatime));        /* encode delta_time        */
     if (e.is_sysex())
     {
-        size_t count = e.sysex_msg_size();      /* includes F0 ... F7       */
+        size_t count { e.sysex_msg_size() };    /* includes F0 ... F7       */
         put_varinum(midi::ulong(count));
         for (size_t i = 0; i < count; ++i)
             put(e.get_message(i));
     }
     else if (e.is_meta())
     {
-        size_t count = e.meta_msg_size();       /* includes FF nn len....   */
+        size_t count { e.meta_msg_size() };     /* includes FF nn len....   */
         for (size_t i = 0; i < count; ++i)
             put(e.get_message(i));
     }
@@ -1118,7 +1126,7 @@ trackdata::put_track_number (int trkno)
 void
 trackdata::put_track_name (const std::string & name)
 {
-    size_t len = name.length();
+    size_t len { name.length() };
     put_meta_header(midi::meta::track_name, len);   /* 0x03, len bytes long */
     for (size_t i = 0; i < len; ++i)
         put(midi::byte(name[i]));
@@ -1144,7 +1152,7 @@ trackdata::put_time_sig
     int cpm, int get32pq
 )
 {
-    int bw = log2_of_power_of_2(beatwidth);
+    int bw { log2_of_power_of_2(beatwidth) };
     put_meta_header(midi::meta::time_signature, 4); /* 0x58 marker, 4 bytes */
     put(byte(bpb));
     put(byte(bw));
@@ -1276,9 +1284,9 @@ trackdata::put_tempo (int usperqn)
 bool
 trackdata::put_track (/*const*/ track & trk, int tempotrack, bool doseqspec)
 {
-    bool result = true;
-    int trkno = trk.track_number();
-    eventlist evl = events();
+    bool result { true };
+    int trkno { trk.track_number() };
+    eventlist evl { events() };
     evl.sort();                             /* hmmmm                        */
     clear_buffer();                         /* must reconstruct raw bytes   */
     put_track_number(trkno);                /* optional, but add it anyway  */
@@ -1292,9 +1300,9 @@ trackdata::put_track (/*const*/ track & trk, int tempotrack, bool doseqspec)
             put_tempo(trk.info().tempo_info().us_per_quarter_note());
     }
 
-    midi::pulse timestamp = 0;
-    midi::pulse deltatime = 0;
-    midi::pulse prevtimestamp = 0;
+    midi::pulse timestamp { 0 };
+    midi::pulse deltatime { 0 };
+    midi::pulse prevtimestamp { 0 };
     for (auto & e : evl)
     {
         timestamp = e.timestamp();
@@ -1310,8 +1318,8 @@ trackdata::put_track (/*const*/ track & trk, int tempotrack, bool doseqspec)
         {
             if (! trk.free_channel())           // || is_null_channel(channel))
             {
-                midi::byte channel = trk.track_midi_channel();
-                midi::byte st = midi::mask_status(e.status_byte());
+                midi::byte channel { trk.track_midi_channel() };
+                midi::byte st { midi::mask_status(e.status_byte()) };
                 st = st | channel;                  /* channel from track   */
                 e.set_status(st);
             }
@@ -1331,7 +1339,7 @@ trackdata::put_track (/*const*/ track & trk, int tempotrack, bool doseqspec)
      * make sure this can never happen.
      */
 
-    midi::pulse len = events().length();
+    midi::pulse len { events().length() };
     if (len < prevtimestamp)
         deltatime = 0;
     else
@@ -1359,14 +1367,14 @@ trackdata::put_track (/*const*/ track & trk, int tempotrack, bool doseqspec)
 bool
 trackdata::put_track_events (/*const*/ track & /*trk*/)
 {
-    bool result = true;
-    midi::pulse timestamp = 0;
-    midi::pulse deltatime = 0;
-    midi::pulse prevtimestamp = 0;
-    eventlist & evl = events();             /* access to midi::eventlist    */
+    bool result { true };
+    midi::pulse timestamp { 0 };
+    midi::pulse deltatime { 0 };
+    midi::pulse prevtimestamp { 0 };
+    eventlist & evl { events() };           /* access to midi::eventlist    */
     clear_buffer();                         /* must reconstruct raw bytes   */
 #if defined PLATFORM_DEBUG_TMI
-        std::string label = "Putting track ";
+        std::string label { "Putting track " };
         label += std::to_string(trk.track_number());
         label += ": ";
         label += trk.track_name();
@@ -1375,7 +1383,7 @@ trackdata::put_track_events (/*const*/ track & /*trk*/)
     for (const auto & e : evl)
     {
 #if defined PLATFORM_DEBUG_TMI
-        std::string label = "Track ";
+        std::string label { "Track " };
         label += std::to_string(trk.track_number());
         label += ": ";
         label += trk.track_name();
@@ -1545,22 +1553,22 @@ trackdata::parse_track
     size_t offset, size_t trklength
 )
 {
-    int evcount = 0;                        /* for sanity checking          */
+    int evcount { 0 };                      /* for sanity checking          */
 
 //  TODO
 //  bool timesig_set = false;               /* first time-sig wins          */
 //  bool error_reported = false;            /* for handling message         */
 //  TODO
 
-    size_t result = offset + trklength;     /* presumed next track offset   */
-    midi::pulse runningtime = 0;            /* reset timestamp accumulator  */
-    midi::pulse currenttime = 0;            /* adjust by PPQN?              */
-    midi::ushort trkno = c_ushort_max;      /* see midibytes.hpp            */
-    midi::byte runningstatus = 0;
-    midi::byte tentative_channel = null_channel();
-    midi::byte last_runningstatus = 0;      /* EXPERIMENTAL                 */
-    bool skip_to_end = false;               /* EXPERIMENTAL                 */
-    bool finished = false;
+    size_t result { offset + trklength };   /* presumed next track offset   */
+    midi::pulse runningtime { 0 };          /* reset timestamp accumulator  */
+    midi::pulse currenttime { 0 };          /* adjust by PPQN?              */
+    midi::ushort trkno { c_ushort_max };    /* see midibytes.hpp            */
+    midi::byte runningstatus { 0 };
+    midi::byte tentative_channel { null_channel() };
+    midi::byte last_runningstatus { 0 };
+    bool skip_to_end { false };
+    bool finished { false };
     clear_all();                            /* clear events and raw bytes   */
     m_data.assign(data.byte_list(), offset, trklength);
     while (! finished)                      /* get the events in the track  */
@@ -1581,8 +1589,8 @@ trackdata::parse_track
         event e;                            /* note-off, no channel default */
         midi::ulong len;                    /* important counter!           */
         midi::byte d0, d1;                  /* the two MIDI data bytes      */
-        midi::pulse delta = get_varinum();  /* time delta from previous ev  */
-        midi::byte bstatus = peek();        /* check the current event byte */
+        midi::pulse delta { get_varinum() }; /* time delta from previous ev */
+        midi::byte bstatus { peek() };      /* check the current event byte */
         if (fatal_error())
             break;
 
@@ -1637,9 +1645,9 @@ trackdata::parse_track
         e.set_timestamp(currenttime);
         e.set_status_keep_channel(bstatus);
 
-        midi::byte eventcode = midi::mask_status(bstatus);   /* F0 mask     */
-        midi::byte channel = midi::mask_channel(bstatus);    /* 0F mask     */
-        midi::status eventstat = to_status(eventcode);
+        midi::byte eventcode { midi::mask_status(bstatus) }; /* F0 mask     */
+        midi::byte channel { midi::mask_channel(bstatus) };  /* 0F mask     */
+        midi::status eventstat { to_status(eventcode) };
         switch (eventstat)
         {
         case midi::status::erroneous:                   /* 0 byte           */
@@ -1702,7 +1710,7 @@ trackdata::parse_track
                  * see the function banner for notes.
                  */
 
-                midi::byte check = get();               /* or peek()???     */
+                midi::byte check { get() };             /* or peek()???     */
                 if (is_sysex_special_id(check))
                 {
                     /*
@@ -1719,7 +1727,7 @@ trackdata::parse_track
 #else
                     while (len--)
                     {
-                        midi::byte b = get();
+                        midi::byte b { get() };
                         if (! e.append_sysex(b))        /* SysEx end byte?  */
                             break;
                     }
@@ -1764,7 +1772,7 @@ trackdata::parse_track
                  * TODO: add the track_error() infrastructure.
                  */
 
-                std::string msg = "Bad event";
+                std::string msg { "Bad event" };
                 skip_to_end = track_error(msg, trk);
                 if (m_running_status_action == rsaction::abort)
                     return true;    /* don't process more tracks    */
@@ -1789,7 +1797,7 @@ trackdata::parse_track
 #if defined THIS_CODE_IS_READY
     if (at_end() && ! done)         /* done == end-of-track found   */
     {
-        std::string msg = "Premature end-of-file";
+        std::string msg { "Premature end-of-file" };
         (void) track_error(msg, trk);
         if (m_running_status_action == rsaction::abort)
             break;
@@ -1839,7 +1847,7 @@ trackdata::parse_track
 size_t
 trackdata::get_array (midi::byte * b, size_t sz)
 {
-    size_t result = 0;
+    size_t result { 0 };
     if (not_nullptr(b) && sz > 0)
     {
         for (size_t i = 0; i < sz; ++i)
@@ -1878,7 +1886,7 @@ trackdata::get_array (midi::byte * b, size_t sz)
 size_t
 trackdata::get_array (midi::bytes & b, size_t sz)
 {
-    size_t result = 0;
+    size_t result { 0 };
     b.clear();
     if (sz > b.capacity())
         b.reserve(sz);
@@ -1919,7 +1927,7 @@ trackdata::get_array (midi::bytes & b, size_t sz)
 bool
 trackdata::get_string (std::string & b, size_t sz)
 {
-    size_t result = 0;
+    size_t result { 0 };
     b.clear();
     if (sz > b.capacity())
         b.reserve(sz);
@@ -1951,13 +1959,13 @@ trackdata::get_track_name ()
      */
 
     (void) get();                                   /* toss delta time      */
-    midi::byte msg = get();                         /* get meta marker      */
+    midi::byte msg { get() };                       /* get meta marker      */
     if (midi::is_meta_msg(msg))                                     /* 0xFF */
     {
         msg = get();
         if (midi::is_meta_msg(msg, midi::meta::track_name))         /* 0x03 */
         {
-            midi::ulong tl = get_varinum();         /* length of the name   */
+            midi::ulong tl { get_varinum() };       /* length of the name   */
             for (midi::ulong i = 0; i < tl; ++i)
                 result += get();
         }
@@ -1975,12 +1983,12 @@ trackdata::get_meta_text ()
      */
 
     (void) get();                                   /* toss delta time      */
-    midi::byte msg = get();                         /* get meta marker      */
+    midi::byte msg { get() };                       /* get meta marker      */
     if (midi::is_meta_text_msg(msg))                                /* 0xFF */
     {
         msg = get();                                /* get meta msg type    */
 
-        midi::ulong tl = get_varinum();         /* length of the text   */
+        midi::ulong tl { get_varinum() };       /* length of the text   */
         for (midi::ulong i = 0; i < tl; ++i)
             result += get();
     }
@@ -1998,9 +2006,9 @@ trackdata::get_meta_text ()
 int
 trackdata::get_track_number ()
 {
-    int result = -1;
+    int result { -1 };
     (void) get();                                   /* toss delta time      */
-    midi::byte msg = get();                         /* get seq-spec marker  */
+    midi::byte msg = get() };                       /* get seq-spec marker  */
     if (midi::is_meta_msg(msg))                                     /* 0xFF */
     {
         msg = get();
@@ -2020,9 +2028,9 @@ trackdata::get_track_number ()
 bool
 trackdata::get_tempo (midi::tempoinfo & destination)
 {
-    bool result = false;
+    bool result { false };
     (void) get();                                   /* toss delta time      */
-    midi::byte msg = get();                         /* get seq-spec marker  */
+    midi::byte msg { get() };                       /* get seq-spec marker  */
     if (midi::is_meta_msg(msg))                                     /* 0xFF */
     {
         msg = get();
@@ -2035,7 +2043,7 @@ trackdata::get_tempo (midi::tempoinfo & destination)
                 bt.push_back(get());                /* tt   */
                 bt.push_back(get());                /* tt   */
 
-                double tt = tempo_us_from_bytes(bt);
+                double tt { tempo_us_from_bytes(bt) };
                 destination.us_per_quarter_note(tt);    /* (also sets BPM)  */
                 result = true;
             }
@@ -2053,9 +2061,9 @@ trackdata::get_tempo (midi::tempoinfo & destination)
 bool
 trackdata::get_time_signature (midi::timesiginfo & destination)
 {
-    bool result = false;
+    bool result { false };
     (void) get();                                   /* toss delta time      */
-    midi::byte msg = get();                         /* get seq-spec marker  */
+    midi::byte msg { get() };                       /* get seq-spec marker  */
     if (midi::is_meta_msg(msg))                                     /* 0xFF */
     {
         msg = get();
@@ -2063,10 +2071,10 @@ trackdata::get_time_signature (midi::timesiginfo & destination)
         {
             if (get() == 4)
             {
-                int bpb = int(get());
-                int bw = int(get());
-                int cpm = int(get());
-                int n32perqn = int(get());
+                int bpb { int(get()) };
+                int bw { int(get()) };
+                int cpm { int(get()) };
+                int n32perqn { int(get()) };
                 result = true;
 
                 // TODO GET THE 4 values; and add string to the timesiginof
@@ -2088,9 +2096,9 @@ trackdata::get_time_signature (midi::timesiginfo & destination)
 bool
 trackdata::get_key_signature (midi::keysiginfo & destination)
 {
-    bool result = false;
+    bool result { false };
     (void) get();                                   /* toss delta time      */
-    midi::byte msg = get();                         /* get seq-spec marker  */
+    midi::byte msg { get() };                       /* get seq-spec marker  */
     if (midi::is_meta_msg(msg))                                     /* 0xFF */
     {
         msg = get();
@@ -2098,8 +2106,8 @@ trackdata::get_key_signature (midi::keysiginfo & destination)
         {
             if (get() == 2)
             {
-                int sf = midi::byte_to_int(get());
-                bool mf = get() != 0;
+                int sf { midi::byte_to_int(get()) };
+                bool mf { get() != 0 };
                 destination.sharp_flat_count(sf);
                 destination.is_minor_scale(mf);
                 result = true;
@@ -2116,7 +2124,7 @@ trackdata::get_key_signature (midi::keysiginfo & destination)
 bool
 trackdata::get_meta (midi::event & e, midi::meta metatype, size_t sz)
 {
-    bool result = checklen(sz, metatype);
+    bool result { checklen(sz, metatype) };
     if (result)
     {
         midi::bytes bt;
@@ -2146,10 +2154,10 @@ trackdata::get_meta (midi::event & e, midi::meta metatype, size_t sz)
 bool
 trackdata::get_gap (size_t sz)
 {
-    bool result = sz > 0;
+    bool result { sz > 0 };
     if (result)
     {
-        size_t p = position() + sz;
+        size_t p { position() + sz };
         if (p >= size())
         {
             p = size() - 1;
@@ -2221,7 +2229,7 @@ trackdata::put_meta_text
     const std::string & text
 )
 {
-    size_t len = text.length();
+    size_t len { text.length() };
     put_meta_header(metacode, len);                 /* 0x01-0x07, len bytes */
     for (size_t i = 0; i < len; ++i)
         put(midi::byte(text[i]));

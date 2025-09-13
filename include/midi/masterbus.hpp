@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-09-01
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -498,6 +498,7 @@ protected:  // API implementations
         midi::bussbyte bus, midi::port::io iotype
     ) const;
     int poll_for_midi () const;
+    bool get_midi_event (midi::event * inev);
     bool port_start (int client, int port);     // TODO
     bool port_exit (int client, int port);      // TODO
     bool set_track_input (bool state, midi::track * trk);

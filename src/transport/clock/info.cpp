@@ -24,7 +24,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2022-11-17
- * \updates       2022-12-01
+ * \updates       2025-09-13
  * \license       See above.
  *
  */
@@ -40,34 +40,47 @@ namespace clock
 
 /**
  * \ctor info
+ *
+ *  In-class member initialization is used.
  */
 
 info::info (midi::ppqn ppq) :
+#if 0
     m_usemidiclock          (false),
     m_midiclockrunning      (false),
     m_midiclocktick         (0),
-    m_midiclockincrement    (midi::clock_ticks_from_ppqn(ppq)),
     m_midiclockpos          (0)
+#endif
+    m_midiclockincrement    (midi::clock_ticks_from_ppqn(ppq))
 {
     // Empty body
 }
 
+/**
+ *  See the usage in the player class's output function.
+ *
+ * \param [out] clockpos
+ *
+ *      Provides a return value to be used in the following assignment:
+ *
+ *          pad().set_current_tick(midi::pulse(m_midiclockpos));
+ *
+ * \return
+ *      Returns current value of the MIDI clock tick.
+ */
+
 long
-info::adjust_midi_tick ()
+info::adjust_midi_tick (midi::pulse & clockpos)
 {
-    long result = 0;
-    if (m_usemidiclock)
+    long result { 0 };
+    if (usemidiclock())
     {
         result = m_midiclocktick;           /* int to long          */
         m_midiclocktick = 0;
-        if (m_midiclockpos >= 0)            /* was after this if    */
+        if (m_midiclockpos >= 0)
         {
             result = 0;
-
-            /*
-             * TODO: FIXME and FIGGERTHIS OUT
-             * pad().set_current_tick(midi::pulse(m_midiclockpos));
-             */
+            clockpos = midi::pulse(m_midiclockpos);
             m_midiclockpos = -1;
         }
     }

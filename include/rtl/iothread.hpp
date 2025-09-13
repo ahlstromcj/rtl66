@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-22
- * \updates       2025-09-08
+ * \updates       2025-09-14
  * \license       GNU GPLv2 or above
  *
  *  The iothread class encapsulates the management of the I/O threads of
@@ -74,20 +74,20 @@ private:                            /* key, midi, and op container section  */
      *  The desired priority for launching. Defaults to 0.
      */
 
-    int m_priority;
+    int m_priority { 0 };
 
     /**
      *  Indicates that the output thread has been started.
      */
 
-    std::atomic<bool> m_launched;
+    std::atomic<bool> m_launched { false };
 
     /**
      *  Indicates merely that the input or output thread functions can keep
      *  running.
      */
 
-    std::atomic<bool> m_active;
+    std::atomic<bool> m_active { false };
 
 public:
 

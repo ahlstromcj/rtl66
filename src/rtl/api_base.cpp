@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2023-03-08
- * \updates       2025-08-26
+ * \updates       2025-09-13
  * \license       See above.
  *
  */
@@ -63,11 +63,11 @@ debug_print (const std::string & tag, const std::string & msg)
  * api_base basic functions
  *------------------------------------------------------------------------*/
 
-api_base::api_base () :
-    m_error_string              (),
-    m_error_callback            (nullptr),
-    m_first_error               (false),
-    m_error_callback_user_data  (nullptr)
+api_base::api_base ()                   /* in-class initialization is done  */
+//  m_error_string              (),
+//  m_error_callback            (nullptr),
+//  m_first_error               (false),
+//  m_error_callback_user_data  (nullptr)
 {
     /*
      * Currently we use midi::port::io::output for probing for an exsiting API
@@ -92,13 +92,13 @@ api_base::set_error_callback (rterror::callback_t cb, void * userdata)
 void
 api_base::error (rterror::kind type, const std::string & errmsg) const
 {
-    error_string(errmsg);                   /* new 2022-07-25 */
+    error_string(errmsg);
     if (not_nullptr(m_error_callback))
     {
         if (! m_first_error)
         {
+            const std::string errormessage { errmsg };
             m_first_error = true;
-            const std::string errormessage = errmsg;
             m_error_callback(type, errormessage, m_error_callback_user_data);
             m_first_error = false;
             m_error_string = errmsg;
@@ -144,7 +144,7 @@ api_base::warning_no_devices(const std::string & tag, bool isoutput)
 void
 api_base::warning_unimplemented(const std::string & tag)
 {
-    std::string msg = tag + ": unimplemented";
+    std::string msg { tag + ": unimplemented" };
     error(rterror::kind::warning, msg);
 }
 

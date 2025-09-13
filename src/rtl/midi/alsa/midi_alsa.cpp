@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-07
+ * \updates       2025-09-13
  * \license       See above.
  *
  */
@@ -786,7 +786,23 @@ midi_alsa::midi_alsa
 
 midi_alsa::~midi_alsa ()
 {
-    delete_port();
+    /*
+     * Hmmmmmm, INVESTIGATE
+     *
+     * delete_port();
+     */
+
+    if (is_engine())
+    {
+        midi_alsa_data & data { alsa_data() };
+        close_midi_tempo_queue();
+        ::snd_seq_close(data.alsa_client());            /* close client     */
+        (void) ::snd_config_update_free_global();       /* more cleanup     */
+        data.alsa_client(nullptr);
+
+        // SAME FOR master?
+//      remove_poll_descriptors();
+    }
 }
 
 /*------------------------------------------------------------------------
@@ -843,7 +859,15 @@ midi_alsa::engine_connect ()
         {
             bool ok { set_seq_client_name(seq, client_name()) };
             if (ok)
+            {
+                if (is_engine())
+                {
+                    rc = ::snd_seq_alloc_queue(seq);    /* tempo queue id   */
+                    if (rc >= 0)
+                        midi_tempo_queue(rc);
+                }
                 result = reinterpret_cast<void *>(seq);
+            }
             else
             {
                 /*
@@ -933,7 +957,10 @@ midi_alsa::close_input_triggers ()
 
         int rc { int(write(data.trigger_fd(1), &doinput, sizeof(bool))) };
         if (rc != (-1))
+        {
+            // if ( !pthread_equal(data->thread, data->dummy_thread_id) )
             (void) join_input_thread();
+        }
     }
     close(data.trigger_fd(0));
     close(data.trigger_fd(1));
@@ -1105,12 +1132,12 @@ midi_alsa::drain_output () const
     int rc { ::snd_seq_drain_output(ncdata.alsa_client()) };
     bool result { rc >= 0 };
 #if defined PLATFORM_DEBUG_TMI
-        printf
-        (
-            "ALSA client handle = %p, %s\n",
-            (void *)(ncdata.alsa_client()),
-            result ? "success" : "failure"
-        );
+    printf
+    (
+        "ALSA client handle = %p, %s\n",
+        (void *)(ncdata.alsa_client()),
+        result ? "success" : "failure"
+    );
 #endif
     if (! result)
     {
@@ -1647,20 +1674,20 @@ midi_alsa::close_port ()
     bool result { is_connected() };
     if (result)
     {
-        result = remove_subscription();  // BEFORE OR AFTER???
+        result = remove_subscription();
         if (result)
         {
             if (is_input())
             {
                 midi_alsa_data & data { alsa_data() };
 
-#if ! defined RTL66_ALSA_AVOID_TIMESTAMPING
+#if ! defined RTL66_ALSA_AVOID_TIMESTAMPING     /* stop the input queue     */
                 ::snd_seq_stop_queue(data.alsa_client(), data.queue_id(), NULL);
                 result = drain_output();
                 if (result)
                     close_input_triggers();
-            }
 #endif
+            }
         }
     }
     is_connected(false);
@@ -1992,11 +2019,11 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
 bool
 midi_alsa::PPQN (midi::ppqn ppq)
 {
-    bool result { is_output() };
+    bool result = is_output() || is_engine();
     if (result)
     {
         midi_alsa_data & data { alsa_data() };
-        int q { data.queue_id() };
+        int q { midi_tempo_queue()  /* data.queue_id() */ };
         ::snd_seq_queue_tempo_t * qtempo;
         snd_seq_queue_tempo_alloca(&qtempo);
 
@@ -2035,11 +2062,11 @@ midi_alsa::PPQN (midi::ppqn ppq)
 bool
 midi_alsa::BPM (midi::bpm bp)
 {
-    bool result = is_output();
+    bool result = is_output() || is_engine();
     if (result)
     {
         midi_alsa_data & data { alsa_data() };
-        int q { data.queue_id() };
+        int q { midi_tempo_queue()  /* data.queue_id() */ };
         unsigned tempo_us { unsigned(midi::tempo_us_from_bpm(bp)) };
         ::snd_seq_queue_tempo_t * qtempo;
         snd_seq_queue_tempo_alloca(&qtempo);            /* make tempo struc */
@@ -2048,12 +2075,37 @@ midi_alsa::BPM (midi::bpm bp)
         if (rc == 0)
         {
             ::snd_seq_queue_tempo_set_tempo(qtempo, tempo_us);
-            ::snd_seq_set_queue_tempo(data.alsa_client(), q, qtempo);
+            rc = ::snd_seq_set_queue_tempo(data.alsa_client(), q, qtempo);
+            if (rc < 0)
+                result = false;
         }
         else
             result = false;
     }
     return result;
+}
+
+/**
+ *  If the ALSA MIDI tempo queue is valid, close it.
+ */
+
+void
+midi_alsa::close_midi_tempo_queue ()
+{
+    int mtq { midi_tempo_queue() };
+    if (mtq >= 0)
+    {
+        midi_alsa_data & data { alsa_data() };
+        ::snd_seq_t * seq { data.alsa_client() };
+        if (not_nullptr(seq))
+        {
+            ::snd_seq_event_t ev;
+            ::snd_seq_ev_clear(&ev);                    /* memset it to 0   */
+            ::snd_seq_stop_queue(seq, mtq, &ev);
+            ::snd_seq_free_queue(seq, mtq);
+        }
+        midi_tempo_queue(-1);
+    }
 }
 
 /**
