@@ -85,7 +85,9 @@ public:
 
     api_base ();
     api_base (const api_base &) = default;              /* delete; */
+    api_base (api_base &&) = delete;
     api_base & operator = (const api_base &) = default; /* delete; */
+    api_base & operator = (api_base &&) = delete;
     virtual ~api_base () = default;
 
 public:

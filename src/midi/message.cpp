@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-12-01
- * \updates       2025-09-11
+ * \updates       2025-09-14
  * \license       See above.
  *
  *  Provides a basic type for the (heavily-factored) rtl66 library, very
@@ -154,12 +154,7 @@ message::message (double ts) :
 #if defined RTL66_PLATFORM_DEBUG
     m_msg_number    (sm_msg_number++),
 #endif
-    m_time_stamp    (ts),
-    m_bytes         (),
-#if defined RTL66_USE_MESSAGE_HEADER_SIZE
-    m_header_size   (0),
-#endif
-    m_channel       (null_channel())
+    m_time_stamp    (ts)
 {
     // Empty body
 }

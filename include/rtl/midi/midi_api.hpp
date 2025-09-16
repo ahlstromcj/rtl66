@@ -177,7 +177,9 @@ public:
     midi_api ();
     midi_api (midi::port::io iotype, unsigned queuesize = 0);
     midi_api (const midi_api &) = delete;
+    midi_api (midi_api &&) = delete;
     midi_api & operator = (const midi_api &) = delete;
+    midi_api & operator = (midi_api &&) = delete;
     virtual ~midi_api ();
 
 public:

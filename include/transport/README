@@ -1,9 +1,9 @@
 Header Directory for Transport in the "rtl" library
 Chris Ahlstrom
-2022-06-07 to 2022-06-14
+2022-06-07 to 2025-09-14
 
 This is the home for JACK transport header files, and other transports if
-we ever implement them.
+we ever implement them, such as MIDI Clock.
 
 The "rtl" project adds JACK Transport support to the "RtMidi" library.
 

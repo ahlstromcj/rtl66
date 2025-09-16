@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-04
+ * \updates       2025-09-14
  * \license       See above.
  *
  */
@@ -74,7 +74,7 @@ rtmidi_out::rtmidi_out (const midi::masterbus & mb) : rtmidi ()
     }
     if (not_nullptr(rt_api_ptr()))
     {
-        midi::masterbus * ncmb = const_cast<midi::masterbus *>(&mb);
+        midi::masterbus * ncmb { const_cast<midi::masterbus *>(&mb) };
         if (set_master_bus_ptr(ncmb))
         {
             if (rt_api_ptr()->initialize(clientname))
@@ -104,7 +104,7 @@ rtmidi_out::open_midi_api
     unsigned /* queuesize */
 )
 {
-    bool result = rapi != rtmidi::api::max;
+    bool result { rapi != rtmidi::api::max };
     delete_rt_api_ptr();
     if (result)
     {
@@ -138,7 +138,7 @@ rtmidi_out::open_midi_api (const midi::masterbus & mb)
 bool
 rtmidi_out::open_port (int portnumber, const std::string & portname)
 {
-    std::string pname = portname;
+    std::string pname { portname };
     if (pname.empty())
         pname = "rtl66 midi out";
 
@@ -160,7 +160,7 @@ rtmidi_out::open_port (int portnumber, const std::string & portname)
 bool
 rtmidi_out::open_virtual_port (const std::string & portname)
 {
-    std::string pname = portname;
+    std::string pname { portname };
     if (pname.empty())
         pname = "rtl66 midi vout";
 

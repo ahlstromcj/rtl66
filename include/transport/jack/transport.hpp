@@ -331,7 +331,18 @@ public:
         int bpmeasure       = 0,
         int beatwidth       = 0
     );
-    ~transport ();
+    transport (const transport &) = default;
+    transport (transport &&) = delete;
+    transport & operator = (const transport &) = default;
+    transport & operator = (transport &&) = delete;
+
+    /**
+     *  The destructor doesn't need to do anything yet.  The player object
+     *  currently calls jack::transport::deinit(), but that call could be
+     *  made here instead.
+     */
+
+    ~transport () = default;
 
     static void show_position (const jack_position_t & pos);
     static bool save_jack_parameters

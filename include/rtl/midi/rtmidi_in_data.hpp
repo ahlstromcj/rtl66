@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-09-05
+ * \updates       2025-09-14
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -99,14 +99,14 @@ private:
      *  for MIDI input.
      */
 
-    midi_queue m_queue;
+    midi_queue m_queue { };
 
     /**
      *  This is used to hold the latest MIDI message.
      *  In RtMidi, this is the MidiMessage class.
      */
 
-    midi::message m_message;
+    midi::message m_message { };
 
     /**
      *  A one-time flag that starts out true and is falsified when the first
@@ -114,13 +114,13 @@ private:
      *  time.
      */
 
-    bool m_first_message;
+    bool m_first_message { true };
 
     /**
      *  Indicates that SysEx is still coming in.
      */
 
-    bool m_continue_sysex;
+    bool m_continue_sysex { false };
 
     /*
      *  A ton of "new" stuff from RtMidi....
@@ -136,7 +136,7 @@ private:
      *      -   All of them.
      */
 
-    unsigned char m_ignore_flags;
+    unsigned char m_ignore_flags { flag_ignore_all };
 
     /**
      *  This boolean is used in midi_alsa_handler(), for example. If not
@@ -150,7 +150,7 @@ private:
      *  and before joining the input thread.
      */
 
-    bool m_do_input;
+    bool m_do_input { false };
 
     /**
      *  Points to the midi_api-derived object representing the input port.
@@ -160,27 +160,27 @@ private:
      *  the client handle of a stand-alone port.
      */
 
-    void * m_api_data;
+    void * m_api_data { nullptr };
 
     /**
      *  Indicates if we're using a callback function to handle input.
      */
 
-    bool m_using_callback;
+    bool m_using_callback { false };
 
     /**
      *  The input callback fuction. See the midi_api functions
      *  set_input_callback() and cance_input_callback.
      */
 
-    callback_t m_user_callback;
+    callback_t m_user_callback { nullptr };
 
     /**
      *  This member points to a class-specific data structure that is passed
      *  to the user callback function.
      */
 
-    void * m_user_data;
+    void * m_user_data { nullptr };
 
     /**
      *  The size of the input-data buffer. It is also copied to the
@@ -189,18 +189,18 @@ private:
      *  (known as "coder" in RtMidi).
      */
 
-    size_t m_buffer_size;
+    size_t m_buffer_size { c_buffer_size_max };
 
     /**
      *  The number of buffers, used to allocate and initialize the SysEx
      *  buffers in the Windows MIDI API only.
      */
 
-    int m_buffer_count;
+    int m_buffer_count { c_buffer_count };
 
 public:
 
-    rtmidi_in_data (unsigned qsize = 0);
+    rtmidi_in_data (unsigned qsize = RTL66_DEFAULT_Q_SIZE);
     rtmidi_in_data (const rtmidi_in_data &) = delete;
     rtmidi_in_data (rtmidi_in_data &&) = default;
     rtmidi_in_data & operator = (const rtmidi_in_data &) = delete;

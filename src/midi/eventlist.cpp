@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2025-09-05
+ * \updates       2025-09-14
  * \license       GNU GPLv2 or above
  *
  *  This container now can indicate if certain Meta events (time-signaure or
@@ -45,22 +45,10 @@ namespace midi
  *------------------------------------------------------------------------*/
 
 /**
- *  Principal/default constructor.
+ *  Principal/default constructor. The members are initialized "in-class".
  */
 
-eventlist::eventlist () :
-    m_events                (),
-    m_match_iterating       (false),
-    m_match_iterator        (m_events.end()),
-    m_action_in_progress    (false),                    /* atomic boolean   */
-    m_length                (0),
-    m_note_off_margin       (3),
-    m_zero_len_correction   (16),
-    m_is_modified           (false),
-    m_has_tempo             (false),
-    m_has_time_signature    (false),
-    m_has_key_signature     (false),
-    m_link_wraparound       (false)                     /* make a parameter */
+eventlist::eventlist ()
 {
     // No code needed
 }

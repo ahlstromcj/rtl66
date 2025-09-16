@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2025-08-21
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  *  This module extracts the event-list functionality from the sequencer
@@ -160,15 +160,15 @@ private:
      *  Note that it is std::vector<event>.
      */
 
-    midi::event::buffer m_events;
+    midi::event::buffer m_events { };
 
     /**
      *  Eventually we want to be able to move through events of a given type,
      *  such as Meta Text events.
      */
 
-    bool m_match_iterating;
-    midi::event::iterator m_match_iterator;
+    bool m_match_iterating { false };
+    midi::event::iterator m_match_iterator { m_events.end() };
 
     /**
      *  Provides an atomic flag to raise while sorting(), which can invalidate
@@ -176,7 +176,7 @@ private:
      *  clearing the event list.
      */
 
-    std::atomic<bool> m_action_in_progress;
+    std::atomic<bool> m_action_in_progress { false };
 
     /**
      *  Holds the length of the sequence holding this event-list,
@@ -185,7 +185,7 @@ private:
      *  last event.
      */
 
-    midi::pulse m_length;
+    midi::pulse m_length { 0 };
 
     /**
      *  Provides the number of ticks to shave off of the end of painted notes.
@@ -193,7 +193,7 @@ private:
      *  than zero) length.
      */
 
-    midi::pulse m_note_off_margin;
+    midi::pulse m_note_off_margin { 3 };
 
     /**
      *  A sort of snap value to use when a quantized note gets shrunk to
@@ -201,7 +201,7 @@ private:
      *  can be changed by the owning sequence.
      */
 
-    midi::pulse m_zero_len_correction;
+    midi::pulse m_zero_len_correction { 16 };
 
     /**
      *  A flag to indicate if an event was added or removed.  We may need to
@@ -210,7 +210,7 @@ private:
      *  same sequence.
      */
 
-    bool m_is_modified;
+    bool m_is_modified { false };
 
     /**
      *  A new flag to indicate that a tempo event has been added.  Legacy
@@ -219,7 +219,7 @@ private:
      *  list) contains a tempo event.
      */
 
-    bool m_has_tempo;
+    bool m_has_tempo { false };
 
     /**
      *  A new flag to indicate that a time-signature event has been added.
@@ -228,20 +228,20 @@ private:
      *  current event list) contains a time-signature event.
      */
 
-    bool m_has_time_signature;
+    bool m_has_time_signature { false };
 
     /**
      *  Another flag.
      */
 
-    bool m_has_key_signature;
+    bool m_has_key_signature { false };
 
     /**
      *  Stores the setting of usr().new_pattern_wraparound().  It is used in
      *  the link_new() function.
      */
 
-    bool m_link_wraparound;
+    bool m_link_wraparound { false };
 
 public:
 

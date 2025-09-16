@@ -161,15 +161,12 @@ static const midi::ushort c_prop_seq_number { 0x3FFF };
  *
  * \param seq
  *      Provides a reference to the sequence/track for which this container
- *      holds MIDI data.
+ *      holds MIDI data. Not provided!
+ *
+ *  The members are initialized "in-class".
  */
 
-trackdata::trackdata () :
-    m_events                (),
-    m_data                  (),
-    m_running_status_action (rsaction::recover),
-    m_manufacturer_id       (),
-    m_end_of_track_found    (false)
+trackdata::trackdata ()
 {
     // Empty body
 }

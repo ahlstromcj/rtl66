@@ -56,9 +56,9 @@ namespace midi
  *  per minute".
  */
 
-static const int c_min_beats_per_measure =  1;
-static const int c_def_beats_per_measure =  4;
-static const int c_max_beats_per_measure = 32;
+static const int c_min_beats_per_measure {  1 };
+static const int c_def_beats_per_measure {  4 };
+static const int c_max_beats_per_measure { 32 };
 
 /**
  *  The minimum, default, and maximum values of the beat width.  A new
@@ -68,9 +68,9 @@ static const int c_max_beats_per_measure = 32;
  *  "BW", or "beat width", not to be confused with "bandwidth".
  */
 
-static const int c_min_beat_width =  1;
-static const int c_def_beat_width =  4;
-static const int c_max_beat_width = 32;
+static const int c_min_beat_width {  1 };
+static const int c_def_beat_width {  4 };
+static const int c_max_beat_width { 32 };
 
 /**
  *  Minimum, default, and maximum values for global beats-per-minute, also known
@@ -82,25 +82,25 @@ static const int c_max_beat_width = 32;
  *  some day be mode configurable.
  */
 
-static const midi::bpm c_min_beats_per_minute =    2.0;
-static const midi::bpm c_def_beats_per_minute =  120.0;
-static const midi::bpm c_max_beats_per_minute =  600.0;
-static const float c_beats_per_minute_scale   = 1000.0;
-static const long c_bpm_tap_button_timeout    = 5000L;        /* milliseconds */
-static const int c_min_bpm_precision          =    0;
-static const int c_def_bpm_precision          =    0;
-static const int c_max_bpm_precision          =    2;
-static const midi::bpm c_min_bpm_increment    =    0.01;
-static const midi::bpm c_def_bpm_increment    =    1.0;
-static const midi::bpm c_max_bpm_increment    =    50.0;
+static const midi::bpm c_min_beats_per_minute {    2.0 };
+static const midi::bpm c_def_beats_per_minute {  120.0 };
+static const midi::bpm c_max_beats_per_minute {  600.0 };
+static const float c_beats_per_minute_scale   { 1000.0 };
+static const long c_bpm_tap_button_timeout    { 5000L };       /* milliseconds */
+static const int c_min_bpm_precision          {    0 };
+static const int c_def_bpm_precision          {    0 };
+static const int c_max_bpm_precision          {    2 };
+static const midi::bpm c_min_bpm_increment    {    0.01 };
+static const midi::bpm c_def_bpm_increment    {    1.0 };
+static const midi::bpm c_max_bpm_increment    {    50.0 };
 
 /**
  *  Minimum and maximum supported PPQN values.  Now hidden, used in the public
  *  function usrsettings::is_ppqn_valid().
  */
 
-static const int c_minimum_ppqn  =    24;   /* was 32, not a multiple of 24 */
-static const int c_maximum_ppqn  = 19200;   /* way above the useful maximum */
+static const int c_minimum_ppqn  {    24 }; /* was 32, not a multiple of 24 */
+static const int c_maximum_ppqn  { 19200 }; /* way above the useful maximum */
 
 /**
  *  We anticipate the need to have a small structure holding the parameters

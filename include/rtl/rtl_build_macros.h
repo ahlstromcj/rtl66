@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-05
- * \updates       2025-09-09
+ * \updates       2025-09-14
  * \license       See above.
  *
  * Introduction:
@@ -108,14 +108,17 @@
  *  Default values for the most common parameters.
  */
 
-#define RTL66_DEFAULT_PPQN          384         /* pulses per quarter note  */
-#define RTL66_DEFAULT_BPM           120.0       /* beats per minute         */
-#define RTL66_DEFAULT_Q_SIZE        100         /* input queue size         */
-#define RTL66_DEFAULT_BEATS_PER_BAR   4         /* beats per bar            */
-#define RTL66_DEFAULT_BEAT_WIDTH      4         /* quarter note             */
-#define RTL66_DEFAULT_METRO_CLOCKS   24         /* clocks per metronome     */
-#define RTL66_DEFAULT_32NDS_PER_Q     8         /* 32nds per quarter        */
-#define RTL66_DEFAULT_US_PER_Q   500000         /* microseconds per quarter */
+#define RTL66_DEFAULT_PPQN              384     /* pulses per quarter note  */
+#define RTL66_DEFAULT_BPM               120.0   /* beats per minute         */
+#define RTL66_DEFAULT_Q_SIZE            100     /* input queue size         */
+#define RTL66_DEFAULT_BEATS_PER_BAR       4     /* beats per bar            */
+#define RTL66_DEFAULT_BEAT_WIDTH          4     /* quarter note             */
+#define RTL66_DEFAULT_METRO_CLOCKS       24     /* clocks per metronome     */
+#define RTL66_DEFAULT_32NDS_PER_Q         8     /* 32nds per quarter        */
+#define RTL66_DEFAULT_US_PER_Q       500000     /* microseconds per quarter */
+#define RTL66_DEFAULT_ALSA_BUFSIZE       32     /* microseconds per quarter */
+#define RTL66_DEFAULT_JACK_BUFSIZE      256     /* microseconds per quarter */
+#define RTL66_DEFAULT_JACK_RING_SIZE   2048     /* microseconds per quarter */
 
 /**
  *  What Platform APIS to build? A few notes:

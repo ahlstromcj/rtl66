@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2025-09-03
+ * \updates       2025-09-14
  * \license       See above.
  *
  */
@@ -87,11 +87,10 @@ private:
 public:
 
     midi_alsa_data ();
-
-    /**
-     *  This destructor currently does nothing.  We rely on the enclosing
-     *  class to close out the things that it created.
-     */
+    midi_alsa_data (const midi_alsa_data &) = default;
+    midi_alsa_data (midi_alsa_data &&) = default;
+    midi_alsa_data & operator = (const midi_alsa_data &) = default;
+    midi_alsa_data & operator = (midi_alsa_data &&) = default;
 
     ~midi_alsa_data ()
     {
@@ -103,9 +102,9 @@ public:
     (
         ::snd_seq_t * seq,
         midi::port::io iotype,
-        size_t buffsize   = 32
+        size_t buffsize = RTL66_DEFAULT_ALSA_BUFSIZE
     );
-    bool reallocate (size_t buffsize = 32);
+    bool reallocate (size_t buffsize = RTL66_DEFAULT_ALSA_BUFSIZE);
     void unallocate ();
 
     bool is_initialized () const

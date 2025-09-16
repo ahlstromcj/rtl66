@@ -24,7 +24,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2022-11-10
- * \updates       2025-09-09
+ * \updates       2025-09-16
  * \license       See above.
  *
  *  GitHub issue #165: enabled a build and run with no JACK support.
@@ -101,13 +101,26 @@ info::resolution_change_management
     }
 }
 
+bool
+info::one_measure (midi::pulse p)
+{
+    bool result { (p > 0) && (m_one_measure == 0 || p != get_ppqn()) };
+    if (result)
+    {
+        result = set_ppqn(p);
+        if (result)
+        {
+            m_one_measure = p * 4;              /* simplistic */
+            m_right_tick = m_one_measure * 4;   /* simplistic */
+        }
+    }
+    return result;
+}
+
 /**
  *  Set the left marker at the given tick.  We let the caller determine if
  *  this setting is a modification.  If the left tick is later than the right
  *  tick, the right tick is move to one measure past the left tick.
- *
- * \todo
- *      The player::m_one_measure member is currently hardwired to PPQN*4.
  *
  * \param tick
  *      The tick (MIDI pulse) at which to place the left tick.  If the left

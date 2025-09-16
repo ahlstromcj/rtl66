@@ -103,10 +103,7 @@ player::player (int out_portnumber, int in_portnumber) :
 #if defined RTL66_BUILD_JACK
     m_jack_transport        (*this),            /* must fix after file load */
 #endif
-    m_error_pending         (false),
-    m_error_messages        (),
-    m_modified              (false),
-    m_needs_update          (false)
+    m_error_pending         (false)
 {
     // no code
 }
@@ -328,17 +325,22 @@ player::new_track (track::number & finalseq, track::number trkno)
  */
 
 bool
-player::set_ppqn (midi::ppqn ppq, bool user_change)
+player::set_ppqn (midi::ppqn p, bool user_change)
 {
-    bool result { ppq != transportinfo().get_ppqn() || ! user_change };
+    bool result { p != transportinfo().get_ppqn() || ! user_change };
     if (result)
     {
         if (master_bus_ptr())
-            master_bus_ptr()->PPQN(ppq);
+            result = master_bus_ptr()->PPQN(p);
 
-        transportinfo().set_ppqn(ppq);
-        if (transportinfo().one_measure() == 0)
-            transportinfo().one_measure(ppq);
+        if (result)
+        {
+            /*
+             * transportinfo().set_ppqn(p)
+             */
+
+            (void) transportinfo().one_measure(p);
+        }
     }
     return result;
 }
@@ -550,6 +552,10 @@ player::clear_all (bool clearplaylist)
 {
     (void) clearplaylist;
     track_list().clear();
+    set_tick(0);                    /* force a "rewind"                 */
+    pad().set_current_tick(0);      /* another necessary rewind         */
+    m_max_extent = 0;               /* force an "empty" song            */
+    unmodify();                     /* new, we start afresh             */
     return true;
 }
 

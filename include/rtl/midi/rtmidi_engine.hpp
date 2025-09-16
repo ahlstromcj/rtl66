@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-12-15
- * \updates       2025-09-04
+ * \updates       2025-09-14
  * \license       See above.
  *
  */
@@ -77,11 +77,10 @@ public:
     );
     rtmidi_engine (rtmidi_engine & other) = delete;
     rtmidi_engine & operator = (rtmidi_engine & other) = delete;
-
     rtmidi_engine (rtmidi_engine && other) = default;
     rtmidi_engine & operator = (rtmidi_engine && other) = default;
 
-    virtual ~rtmidi_engine ();
+    virtual ~rtmidi_engine () = default;
 
 protected:
 

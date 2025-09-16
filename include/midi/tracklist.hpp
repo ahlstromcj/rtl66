@@ -65,7 +65,7 @@ private:
      *  later be transferred to another management object.
      */
 
-    container m_tracks;
+    container m_tracks { };
 
     /**
      *  Indicates that the list has been modified in some way.
@@ -73,13 +73,13 @@ private:
      *  copy-constructible; we need to be able to copy tracklists.
      */
 
-    bool m_modified;
+    bool m_modified { false };
 
     /**
      *  Indicates that the list has been sorted.
      */
 
-    bool m_sorted;
+    bool m_sorted { false };
 
 public:
 

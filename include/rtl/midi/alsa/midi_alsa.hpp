@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-13
+ * \updates       2025-09-14
  * \license       See above.
  *
  */
@@ -81,13 +81,13 @@ private:
      *  Moved the client name to this class.
      */
 
-    std::string m_client_name;
+    std::string m_client_name { "rtl-alsa" };
 
     /**
      *  Moved the ALSA data to this class.
      */
 
-    midi_alsa_data m_alsa_data;
+    midi_alsa_data m_alsa_data { };
 
 public:
 

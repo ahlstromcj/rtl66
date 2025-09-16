@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-13
+ * \updates       2025-09-14
  * \license       See above.
  *
  */
@@ -755,9 +755,7 @@ get_port_info
  */
 
 midi_alsa::midi_alsa () :
-    midi_api        (),
-    m_client_name   ("rtl-alsa"),
-    m_alsa_data     ()
+    midi_api        ()
 {
     /*
      *  (void) initialize(client_name());
@@ -778,8 +776,7 @@ midi_alsa::midi_alsa
     unsigned queuesize
 ) :
     midi_api        (iotype, queuesize),
-    m_client_name   (clientname),
-    m_alsa_data     ()
+    m_client_name   (clientname)
 {
     (void) initialize(client_name());
 }
@@ -801,7 +798,7 @@ midi_alsa::~midi_alsa ()
         data.alsa_client(nullptr);
 
         // SAME FOR master?
-//      remove_poll_descriptors();
+        // remove_poll_descriptors();
     }
 }
 
@@ -1265,7 +1262,6 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                 pcount = get_port_info
                 (
                     data.alsa_client(), src_pinfo, sm_input_caps, portnumber
-//                  data.alsa_client(), src_pinfo, sm_output_caps, portnumber
                 );
             }
             result = pcount > 0;
@@ -1887,7 +1883,6 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
     if (preclear)
         ioports.clear();
 
-
     if (not_nullptr(seq))
     {
         bool iswriteable { is_output() };           /* a midi_api function  */
@@ -2019,7 +2014,7 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
 bool
 midi_alsa::PPQN (midi::ppqn ppq)
 {
-    bool result = is_output() || is_engine();
+    bool result { is_output() || is_engine() };
     if (result)
     {
         midi_alsa_data & data { alsa_data() };
@@ -2279,9 +2274,9 @@ midi_alsa::clock_continue (midi::pulse /* tick */, midi::pulse beats)
 bool
 midi_alsa::get_midi_event (midi::event * inev)
 {
-    bool result = false;
+    bool result { false };
     ::snd_seq_event_t * ev;
-    int remcount = ::snd_seq_event_input(client_handle(), &ev);
+    int remcount { ::snd_seq_event_input(client_handle(), &ev) };
     if (remcount < 0 || is_nullptr(ev))
     {
         if (remcount == -EAGAIN)
@@ -2371,10 +2366,10 @@ midi_alsa::get_midi_event (midi::event * inev)
      * option.
      */
 
-    const size_t buffersize = 256;              /* 12 enough but for SysEx  */
+    const size_t buffersize { 256 };            /* 12 enough but for SysEx  */
     midi::bytes buff(buffersize);               /* pre-allocate the data    */
     ::snd_midi_event_t * mididev;               /* make ALSA MIDI parser    */
-    int rc = ::snd_midi_event_new(buffersize, &mididev);
+    int rc { ::snd_midi_event_new(buffersize, &mididev) };
     if (rc < 0 || is_nullptr(mididev))
     {
         error_print("snd_midi_event_new()", "failed");
@@ -2388,10 +2383,10 @@ midi_alsa::get_midi_event (midi::event * inev)
      *  is said to block!
      */
 
-    long bytecount = ::snd_midi_event_decode
-    (
-        mididev, buff.data(), long(buffersize), ev
-    );
+    long bytecount
+    {
+        ::snd_midi_event_decode(mididev, buff.data(), long(buffersize), ev)
+    };
     if (bytecount > 0)
     {
         result = inev->set_midi_event(ev->time.tick, buff, bytecount);
@@ -2399,21 +2394,24 @@ midi_alsa::get_midi_event (midi::event * inev)
         {
             ::snd_seq_t * sseq { alsa_data().alsa_client() };
 
-            midi::bussbyte b = 0;       // TODO
+            midi::bussbyte b { 0 };       // TODO
 #if defined THIS_CODE_IS_READY
-            midi::bussbyte b = input_ports().get_port_index
-            (
-                int(ev->source.client), int(ev->source.port)
-            );
+            midi::bussbyte b
+            {
+                input_ports().get_port_index
+                (
+                    int(ev->source.client), int(ev->source.port)
+                )
+            };
 #endif
-            bool sysex = inev->is_sysex();
+            bool sysex { inev->is_sysex() };
             inev->set_input_bus(b);
 #if defined PLATFORM_DEBUG_TMI
             warnprintf("Input on buss %d\n", int(b));
 #endif
             while (sysex)           /* sysex might be more than one message */
             {
-                int remcount = ::snd_seq_event_input(sseq, &ev);
+                int remcount { ::snd_seq_event_input(sseq, &ev) };
                 bytecount = ::snd_midi_event_decode
                 (
                     mididev, buff.data(), long(buffersize), ev

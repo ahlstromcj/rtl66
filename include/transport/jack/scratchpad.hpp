@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-23
- * \updates       2022-12-01
+ * \updates       2025-09-14
  * \license       GNU GPLv2 or above
  *
  *  This class contains a number of functions that used to reside in the
@@ -61,22 +61,28 @@ class scratchpad
 
 public:
 
-    double js_current_tick;             /**< Holds current location.        */
-    double js_total_tick;               /**< Current location ignoring L/R. */
-    double js_clock_tick;               /**< Identical to js_total_tick.    */
-    bool js_jack_stopped;               /**< Flags player::inner_stop().    */
-    bool js_dumping;                    /**< Non-JACK playback in progress? */
-    bool js_init_clock;                 /**< We now have a good JACK lock.  */
-    bool js_looping;                    /**< seqedit loop button is active. */
-    bool js_playback_mode;              /**< Song mode (versus live mode).  */
-    double js_ticks_converted;          /**< Keeps track of ...?            */
-    double js_ticks_delta;              /**< Minor difference in tick.      */
-    double js_ticks_converted_last;     /**< Keeps track of position?       */
-    long js_delta_tick_frac;            /**< More precision for rtl66 0.9.3 */
+    double js_current_tick { 0.0 };     /**< Holds current location.        */
+    double js_total_tick { 0.0 };       /**< Current location ignoring L/R. */
+    double js_clock_tick { 0.0 };       /**< Identical to js_total_tick.    */
+    bool js_jack_stopped { false };     /**< Flags player::inner_stop().    */
+    bool js_dumping { false };          /**< Non-JACK playback in progress? */
+    bool js_init_clock { true };        /**< We now have a good JACK lock.  */
+    bool js_looping { false };          /**< seqedit loop button is active. */
+    bool js_playback_mode { false };    /**< Song mode (versus live mode).  */
+    double js_ticks_converted { 0.0 };  /**< Keeps track of ...?            */
+    double js_ticks_delta { 0.0 };      /**< Minor difference in tick.      */
+    double js_ticks_converted_last { 0.0 }; /**< Keeps track of position?   */
+    long js_delta_tick_frac { 0 };      /**< More precision for rtl66 0.9.3 */
 
 public:
 
-    scratchpad ();
+    scratchpad () = default;
+    scratchpad (const scratchpad &) = default;
+    scratchpad (scratchpad &&) = delete;
+    scratchpad & operator = (const scratchpad &) = default;
+    scratchpad & operator = (scratchpad &&) = delete;
+    ~scratchpad () = default;
+
     void initialize
     (
         midi::pulse currenttick, bool islooping, bool songmode = false

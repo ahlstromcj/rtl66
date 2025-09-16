@@ -91,7 +91,9 @@ public:
 
     info (midi::ppqn ppq = 0);
     info (const info &) = default;
+    info (info &&) = delete;
     info & operator = (const info &) = default;
+    info & operator = (info &&) = delete;
     ~info () = default;
 
     long adjust_midi_tick (midi::pulse & clockpos);

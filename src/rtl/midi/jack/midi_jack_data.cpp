@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-26
- * \updates       2023-07-19
+ * \updates       2023-09-14
  * \license       See above.
  *
  */
@@ -44,35 +44,8 @@ namespace rtl
 transport::jack::info midi_jack_data::m_transport_info;
 
 /**
- *  Default constructor.
+ *  The default constructor uses "in-class" member initialization.
  */
-
-midi_jack_data::midi_jack_data () :
-    m_jack_client       (nullptr),
-    m_jack_port         (nullptr),
-    m_jack_buffer       (nullptr),      /* ring_buffer<midi::message>    */
-    m_jack_lasttime     (0),
-#if RTL66_HAVE_SEMAPHORE_H
-    m_semaphores_inited (false),
-    m_sem_cleanup       (),
-    m_sem_needpost      (),
-#endif
-#if defined RTL66_JACK_PORT_REFRESH_CALLBACK
-    m_internal_port_id  (null_system_port_id()),
-#endif
-    m_jack_rtmidiin     (nullptr)
-{
-    // Empty body
-}
-
-/**
- *  This destructor currently does nothing, as it owns nothing.
- */
-
-midi_jack_data::~midi_jack_data ()
-{
-    // Empty body
-}
 
 #if RTL66_HAVE_SEMAPHORE_H
 
@@ -84,10 +57,10 @@ midi_jack_data::~midi_jack_data ()
 bool
 midi_jack_data::semaphore_init ()
 {
-    bool result = ! m_semaphores_inited;
+    bool result = { m_semaphores_inited };
     if (result)
     {
-        int rc = sem_init(&m_sem_cleanup, 0, 0);
+        int rc { sem_init(&m_sem_cleanup, 0, 0) };
         result = rc != (-1);
         if (result)
         {
@@ -111,7 +84,7 @@ midi_jack_data::semaphore_destroy ()
 {
     if (m_semaphores_inited)
     {
-        int rc = sem_destroy(&m_sem_cleanup);
+        int rc { sem_destroy(&m_sem_cleanup) };
         if (rc == (-1))
         {
             perror("cleanup semaphore");
@@ -132,7 +105,7 @@ midi_jack_data::semaphore_destroy ()
 bool
 midi_jack_data::semaphore_post_and_wait ()
 {
-    bool result = m_semaphores_inited;
+    bool result { m_semaphores_inited };
     if (result)
     {
         struct timespec ts;
@@ -140,7 +113,7 @@ midi_jack_data::semaphore_post_and_wait ()
         {
             ++ts.tv_sec;                            /* wait max one second  */
 
-            int rc = sem_post(&m_sem_needpost);
+            int rc { sem_post(&m_sem_needpost) };
             if (rc == (-1))
             {
                 perror("needpost post");
@@ -161,10 +134,10 @@ midi_jack_data::semaphore_post_and_wait ()
 bool
 midi_jack_data::semaphore_wait_and_post ()
 {
-    bool result = m_semaphores_inited;
+    bool result { m_semaphores_inited };
     if (result)
     {
-        int rc = sem_trywait(&m_sem_needpost);
+        int rc { sem_trywait(&m_sem_needpost) };
         if (rc == (-1))
         {
             perror("needpost trywait");

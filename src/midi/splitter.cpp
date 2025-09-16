@@ -45,11 +45,7 @@ namespace midi
  *
  */
 
-splitter::splitter () :
-    m_smf0_channels_count   (0),
-    m_smf0_channels         (),         /* array, initialized in parse()    */
-    m_smf0_main_track       (nullptr),
-    m_smf0_main_number      (-1)
+splitter::splitter ()
 {
     initialize();
 }

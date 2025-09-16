@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-09-11
+ * \updates       2025-09-14
  * \license       GNU GPLv2 or above
  *
  *  A midi::file is file-header data plus the data in each of the tracks of
@@ -137,7 +137,7 @@ static const size_t c_midi_header_size { 14 };
  *  array in a MIDI file. This value is 0x0400.
  */
 
-static const int c_midi_line_max    { 1024 };
+static const int c_midi_line_max { 1024 };
 
 #endif
 
@@ -145,7 +145,7 @@ static const int c_midi_line_max    { 1024 };
  *  Highlights the MIDI file header value, "MThd".
  */
 
-static const midi::tag c_mthd_tag   { 0x4D546864 }; /* magic number 'MThd'  */
+static const midi::tag c_mthd_tag { 0x4D546864 };   /* magic number 'MThd'  */
 
 /**
  *  The chunk header value for the Seq66 proprietary/SeqSpec section.  We
@@ -176,7 +176,7 @@ static const midi::tag c_mthd_tag   { 0x4D546864 }; /* magic number 'MThd'  */
  *  Also, this value is not used in plain MIDI files.
  */
 
-static const std::string c_prop_track_name = "Seq66-S";
+static const std::string c_prop_track_name { "Seq66-S" };
 
 /**
  *  This const is used for detecting SeqSpec data that Seq66 does not handle.
@@ -187,9 +187,7 @@ static const std::string c_prop_track_name = "Seq66-S";
  *  Also, this value is not used in plain MIDI files.
  *
  *      static const midi::tag c_prop_tag_word = 0x24240000;
- */
-
-/**
+ *
  *  Defines the size of the time-signature and tempo information.  The sizes of
  *  these meta events consists of the delta time of 0 (1 byte), the event and
  *  size bytes (3 bytes), and the data (4 bytes for time-signature and 3 bytes
@@ -228,6 +226,8 @@ static const std::string c_prop_track_name = "Seq66-S";
  * \param smf0split
  *      If true (the default), and the MIDI file is an SMF 0 file, then it
  *      will be split into multiple tracks by channel.
+ *
+ * Note that some members are initialized "in-class".
  */
 
 file::file
@@ -237,11 +237,7 @@ file::file
     bool smf0split
 ) :
     m_coordinator       (p),
-    m_file_size         (0),
-    m_data              (),                 /* vector of big-endianbytes    */
     m_file_spec         (filespec),
-    m_file_ppqn         (0),                /* will change                  */
-    m_smf0_splitter     (),
     m_smf0_split        (smf0split)
 {
     // no other code needed
@@ -281,7 +277,7 @@ file::~file ()
 bool
 file::parse (const std::string & tag)
 {
-    bool result = m_data.read(m_file_spec);
+    bool result { m_data.read(m_file_spec) };
     if (result)
     {
         m_file_size = m_data.size();                /* just logged for now  */
@@ -855,8 +851,12 @@ read_midi_file
 
             if (result)
             {
-                util::file_message("Read MIDI file", fn);
+                std::string msg = "Read MIDI file PPQN ";
+                msg += std::to_string(mf->file_ppqn());
+                util::file_message(msg, fn);
                 p.set_ppqn(mf->file_ppqn());
+
+                // p.resolution_change(); ppqn and track 0 settings
             }
             else
                 errmsg = mf->error_message();

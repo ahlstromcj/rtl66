@@ -207,13 +207,14 @@ bit_set (fixeffect lhs, fixeffect rhs)
  *------------------------------------------------------------------------*/
 
 /**
- *  The base PPQN matches that of Seq24 through Seq66.
+ *  The base PPQN no longer matches that of Seq24 through Seq66.
+ *  It is now double 192.
  */
 
 inline int
 base_ppqn ()
 {
-    return 192;
+    return RTL66_DEFAULT_PPQN;
 }
 
 /**

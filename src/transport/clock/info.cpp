@@ -24,7 +24,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2022-11-17
- * \updates       2025-09-13
+ * \updates       2025-09-14
  * \license       See above.
  *
  */
@@ -45,12 +45,6 @@ namespace clock
  */
 
 info::info (midi::ppqn ppq) :
-#if 0
-    m_usemidiclock          (false),
-    m_midiclockrunning      (false),
-    m_midiclocktick         (0),
-    m_midiclockpos          (0)
-#endif
     m_midiclockincrement    (midi::clock_ticks_from_ppqn(ppq))
 {
     // Empty body

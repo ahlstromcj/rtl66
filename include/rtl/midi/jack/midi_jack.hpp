@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-28
+ * \updates       2025-09-14
  * \license       See above.
  *
  */
@@ -130,7 +130,9 @@ public:
         unsigned queuesize              = 0
     );
     midi_jack (const midi_jack &) = delete;
+    midi_jack (midi_jack &&) = delete;
     midi_jack & operator = (const midi_jack &) = delete;
+    midi_jack & operator = (midi_jack &&) = delete;
     virtual ~midi_jack ();
 
     virtual rtmidi::api get_current_api () override

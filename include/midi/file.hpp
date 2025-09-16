@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-07-31
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  *  This version is very basic, and does not include any Seq66 features.
@@ -71,26 +71,26 @@ private:
      *  The tentative list of tracks.
      */
 
-    tracklist m_track_list;
+    tracklist m_track_list { };
 
     /**
      *  Holds the size of the MIDI file.
      */
 
-    size_t m_file_size;
+    size_t m_file_size { 0 };
 
     /**
      *  Provides management code for handling big-endian data, which includes
      *  MIDI data.
      */
 
-    util::bytevector m_data;
+    util::bytevector m_data { };
 
     /**
      *  The unchanging name of the MIDI file.
      */
 
-    const std::string m_file_spec;
+    const std::string m_file_spec { };
 
     /**
      *  Use this object for both input and output.  It assembles the raw data
@@ -108,7 +108,7 @@ private:
      *  The value of the PPQN from the file itself.
      */
 
-    int m_file_ppqn;
+    int m_file_ppqn { 0 };
 
     /**
      *  Provides the ratio of the main PPQN to the file PPQN, for use with
@@ -122,14 +122,14 @@ private:
      *  needed to split a multi-channel track.
      */
 
-    midi::splitter m_smf0_splitter;
+    midi::splitter m_smf0_splitter { };
 
     /**
      *  Provides the option to split an SMF 0 MIDI file, converting it to an
      *  SMF 1 MIDI file.
      */
 
-    bool m_smf0_split;
+    bool m_smf0_split { false };
 
 public:
 

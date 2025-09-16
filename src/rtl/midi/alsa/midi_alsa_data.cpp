@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2024-09-03
+ * \updates       2024-09-14
  * \license       See above.
  *
  */
@@ -37,8 +37,8 @@ namespace rtl
 {
 
 /**
- * Note that most of the class members are initialize in-class (in the
- * class header file. We need to guarantee that a buffer exists before
+ * Note that most of the class members are initialized "in-class" (in the
+ * class header file). We need to guarantee that a buffer exists before
  * usage, as the order of setup calls can vary.
  */
 
@@ -144,7 +144,7 @@ midi_alsa_data::initialize
 bool
 midi_alsa_data::reallocate (size_t buffsize)
 {
-    bool result = buffsize > 0;
+    bool result { buffsize > 0 };
     if (result)
     {
         m_buffer.reset(new (std::nothrow) midi::byte [buffsize]);

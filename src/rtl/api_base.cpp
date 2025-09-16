@@ -59,15 +59,11 @@ debug_print (const std::string & tag, const std::string & msg)
 #endif
 }
 
-/*------------------------------------------------------------------------
+/*--------------------------------------------------------------------------
  * api_base basic functions
- *------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------*/
 
 api_base::api_base ()                   /* in-class initialization is done  */
-//  m_error_string              (),
-//  m_error_callback            (nullptr),
-//  m_first_error               (false),
-//  m_error_callback_user_data  (nullptr)
 {
     /*
      * Currently we use midi::port::io::output for probing for an exsiting API

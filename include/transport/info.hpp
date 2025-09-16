@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2017-11-10
- * \updates       2025-09-09
+ * \updates       2025-09-16
  * \license       See above.
  */
 
@@ -90,7 +90,7 @@ class info
      *  functions.
      */
 
-    midi::timing m_time_values;
+    midi::timing m_time_values { };
 
     /**
      *  What role is transport playing?
@@ -401,17 +401,7 @@ public:
         return time_values().us_per_quarter_note(upqn);
     }
 
-    bool one_measure (midi::pulse p)
-    {
-        if (p > 0)
-        {
-            m_one_measure = p * 4;              /* simplistic */
-            m_right_tick = m_one_measure * 4;   /* simplistic */
-            return true;
-        }
-        else
-            return false;
-    }
+    bool one_measure (midi::pulse p);
 
     void reposition (bool flag)
     {

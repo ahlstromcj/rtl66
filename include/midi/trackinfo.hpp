@@ -65,24 +65,25 @@ private:
      *  The tempo track specified by the user.  Normally track 0.
      */
 
-    int m_tempo_track;
+    int m_tempo_track { 0 };
 
     /**
      *  The tempo in beats/minute. Note that midi::bpm is a double value.
      */
 
-    midi::bpm m_beats_per_minute;
+    midi::bpm m_beats_per_minute { RTL66_DEFAULT_BPM };
 
     /**
      *  Augments the beats/bar and beat-width with the additional values
      *  included in a Tempo meta event.
      */
 
-    unsigned m_us_per_quarter_note;
+    unsigned m_us_per_quarter_note { RTL66_DEFAULT_US_PER_Q };
 
 public:
 
-    tempoinfo (midi::bpm tempobpm = 120.0, int tempotrack = 0);
+    tempoinfo () = default;
+    tempoinfo (midi::bpm tempobpm, int tempotrack);
     tempoinfo (const tempoinfo &) = default;
     tempoinfo (tempoinfo &&) = default;
     tempoinfo & operator = (const tempoinfo &) = default;

@@ -68,7 +68,7 @@ private:                            /* key, midi, and op container section  */
      *  the output thread.
      */
 
-    std::unique_ptr<std::thread> m_io_thread;
+    std::unique_ptr<std::thread> m_io_thread { };
 
     /**
      *  The desired priority for launching. Defaults to 0.

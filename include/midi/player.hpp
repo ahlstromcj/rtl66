@@ -243,8 +243,8 @@ private:                            /* key, midi, and op container section  */
      *  the input and output threads.
      */
 
-    rtl::iothread m_out_thread;
-    rtl::iothread m_in_thread;
+    rtl::iothread m_out_thread { };
+    rtl::iothread m_in_thread { };
 
     /**
      *  Indicates that playback is running. However, this flag is conflated
@@ -281,7 +281,7 @@ private:                            /* key, midi, and op container section  */
      *  data used by other MIDI APIs.
      */
 
-    transport::jack::scratchpad m_jack_pad;
+    transport::jack::scratchpad m_jack_pad { };
 
     /**
      *  MIDI Clock support. The m_tick member holds the tick to be used in
@@ -322,7 +322,7 @@ private:                            /* key, midi, and op container section  */
      *  usage in Windows that have occurred with other implmentations.
      */
 
-    synch m_condition_var;
+    synch m_condition_var;              /* there is no default constructor  */
 
     /**
      *  We need to adjust the clock increment for the PPQN that is in force.
@@ -330,7 +330,7 @@ private:                            /* key, midi, and op container section  */
      *  per quarter note.
      */
 
-    transport::clock::info m_clock_info;
+    transport::clock::info m_clock_info { };
 
     /**
      *  Consolidates a number of ALSA/JACK/etc. transport parameters. It
@@ -340,7 +340,7 @@ private:                            /* key, midi, and op container section  */
      *  or midiclock.
      */
 
-    transport::info m_transport_info;
+    transport::info m_transport_info { };
 
 #if defined RTL66_BUILD_JACK
 
@@ -361,27 +361,27 @@ private:                            /* key, midi, and op container section  */
      *  "rc" file correctly.
      */
 
-    mutable bool m_error_pending;
+    mutable bool m_error_pending { false };
 
     /**
      *  Holds the accumulated error messages.
      */
 
-    mutable std::string m_error_messages;
+    mutable std::string m_error_messages { };
 
     /**
      *  It may be a good idea to eventually centralize all of the dirtiness of
      *  a performance here. All the GUIs use a player.
      */
 
-    bool m_modified;
+    bool m_modified { false };
 
     /**
      *  A stronger "modified" flag. It indicates that some user-interface
      *  update would be needed.
      */
 
-    bool m_needs_update;
+    bool m_needs_update { false };
 
 public:
 

@@ -43,18 +43,11 @@ namespace rtl
  * midi_api basic functions
  *------------------------------------------------------------------------*/
 
-midi_api::midi_api () :
-    api_base ()
-#if 0
-    m_port_io_type              (midi::port::io::engine),
-    m_port_number               (-1),
-    m_input_data                (),             /* a small structure        */
-    m_master_bus                (),             /* a potential shared ptr   */
-    m_has_master                (false),        /* true ==> midi::bus       */
-    m_api_data                  (nullptr),
-    m_is_connected              (false),
-    m_queue_size                (0)
-#endif
+/**
+ *  These constructors use "in-class" member initialization.
+ */
+
+midi_api::midi_api () : api_base ()
 {
     /*
      * Currently we use midi::port::io::output for probing for an existing API
@@ -65,12 +58,7 @@ midi_api::midi_api () :
 midi_api::midi_api (midi::port::io iotype, unsigned qsize) :
     api_base                    (),
     m_port_io_type              (iotype),
-//  m_port_number               (-1),
     m_input_data                (qsize),        /* input data structure     */
-//  m_master_bus                (),             /* a potential shared ptr   */
-//  m_has_master                (false),        /* true ==> midi::bus       */
-//  m_api_data                  (nullptr),
-//  m_is_connected              (false),
     m_queue_size                (qsize)
 {
     /*
@@ -123,7 +111,7 @@ midi_api::BPM () const
 bool
 midi_api::master_is_connected () const
 {
-    bool result = false;
+    bool result { false };
     if (has_master())
         result = master_bus()->info_is_connected();
 
@@ -139,13 +127,13 @@ midi_api::set_input_callback (rtmidi_in_data::callback_t cb, void * userdata)
 {
     if (m_input_data.using_callback())
     {
-        std::string msg = "midi_in_api::set_callback: already set";
+        std::string msg { "midi_in_api::set_callback: already set" };
         error(rterror::kind::warning, msg);
         return;
     }
     if (is_nullptr(cb))
     {
-        std::string msg = "rtmidi_in::set_callback: null function";
+        std::string msg { "rtmidi_in::set_callback: null function" };
         error(rterror::kind::warning, msg);
         return;
     }
@@ -157,7 +145,7 @@ midi_api::cancel_input_callback ()
 {
     if (! m_input_data.using_callback())
     {
-        std::string msg = "rtmidi_in::cancel_callback: no function set";
+        std::string msg { "rtmidi_in::cancel_callback: no function set" };
         error (rterror::kind::warning, msg);
         return;
     }
@@ -171,17 +159,17 @@ midi_api::ignore_midi_types (bool midisysex, bool miditime, bool midisense)
 }
 
 double
-midi_api::get_message (midi::message & message)
+midi_api::get_message (midi::message & msg)
 {
-    message.clear();
+    msg.clear();
     if (m_input_data.using_callback())
     {
-        std::string msg = "midi_in_api::get_message: user callback in use";
+        std::string msg { "midi_in_api::get_message: user callback in use" };
         error(rterror::kind::warning, msg);
         return 0.0;
     }
-    message = m_input_data.queue().pop_front();
-    return ! message.empty() ? message.jack_stamp() : 0.0 ;
+    msg = m_input_data.queue().pop_front();
+    return ! msg.empty() ? msg.jack_stamp() : 0.0 ;
 }
 
 void

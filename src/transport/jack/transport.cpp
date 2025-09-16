@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-14
- * \updates       2025-09-11
+ * \updates       2025-09-14
  * \license       GNU GPLv2 or above
  *
  *  For the summaries of the JACK functions used in this module, and how
@@ -149,8 +149,10 @@
  *  headers on our development system.
  */
 
-const char * JACK_METADATA_ICON_NAME =
-    "http://jackaudio.org/metadata/icon-name";
+const char * JACK_METADATA_ICON_NAME
+{
+    "http://jackaudio.org/metadata/icon-name"
+};
 
 #endif
 
@@ -833,19 +835,6 @@ transport::transport
 }
 
 /**
- *  The destructor doesn't need to do anything yet.  The player object
- *  currently calls jack::transport::deinit(), but that call could be made here
- *  instead.
- */
-
-transport::~transport ()
-{
-    /*
-     * Anything to do?  Call deinit()?
-     */
-}
-
-/**
  *  Tries to obtain the best information on the JACK client and the UUID
  *  assigned to this client.  Sets m_jack_client_name and m_jack_client_info
  *  as side-effects.
@@ -857,7 +846,7 @@ transport::~transport ()
 void
 transport::get_jack_client_info ()
 {
-    char * actualname = ::jack_get_client_name(m_jack_client);
+    char * actualname { ::jack_get_client_name(m_jack_client) };
     if (not_nullptr(actualname))
     {
         m_jack_client_uuid = get_jack_client_uuid(m_jack_client);
@@ -871,7 +860,7 @@ transport::get_jack_client_info ()
         m_jack_client_name = actualname;
     }
 
-    std::string jinfo = "JACK transport client:uuid ";
+    std::string jinfo { "JACK transport client:uuid " };
     jinfo += m_jack_client_name;
     if (! m_jack_client_uuid.empty())
     {
@@ -944,11 +933,11 @@ transport::init ()
     if (result)
     {
 #if THIS_CODE_IS_READY
-        std::string kind = rc().with_jack_master() ? "master" : "slave" ;
-        std::string package = rc().app_client_name() + kind;
+        std::string kind { rc().with_jack_master() ? "master" : "slave" };
+        std::string package { rc().app_client_name() + kind };
 #endif
-        std::string kind = "master";
-        std::string package = "rtl66" + kind;
+        std::string kind { "master" };
+        std::string package { "rtl66" + kind };
         m_timebase = timebase::none;
         m_jack_client = client_open(package);
         if (m_jack_client == NULL)
@@ -965,10 +954,13 @@ transport::init ()
                 m_jack_client, jack_transport_shutdown, (void *) this
             );
 
-            int jackcode = ::jack_set_process_callback  /* notes in banner  */
-            (
-                m_jack_client, jack_transport_callback, (void *) this
-            );
+            int jackcode                                /* notes in banner  */
+            {
+                ::jack_set_process_callback
+                (
+                    m_jack_client, jack_transport_callback, (void *) this
+                )
+            };
             if (jackcode != 0)
             {
                 result = false;
@@ -979,14 +971,20 @@ transport::init ()
 #if defined RTL66_JACK_SESSION
         if (result && usr().want_jack_session())
         {
-            int jackcode = ::jack_set_session_callback
-            (
-                m_jack_client, jack_session_callback, (void *) this
-            );
+            int jackcode
+            {
+                ::jack_set_session_callback
+                (
+                    m_jack_client, jack_session_callback, (void *) this
+                )
+            };
             if (jackcode != 0)
             {
                 result = false;
-                (void) util::error_message("jack_set_session_callback() failed]");
+                (void) util::error_message
+                (
+                    "jack_set_session_callback() failed]"
+                );
             }
             else
             {
@@ -997,7 +995,7 @@ transport::init ()
 
         if (result)
         {
-            bool master_is_set = false;         /* flag to handle trickery  */
+            bool master_is_set { false };       /* flag to handle trickery  */
 #if 0
             if (rc().with_jack_master())        /* OR with 'cond' removed   */
 #endif
@@ -1024,7 +1022,10 @@ transport::init ()
                 else
                 {
                     result = false;
-                    (void) util::error_message("jack_set_timebase_callback() failed");
+                    (void) util::error_message
+                    (
+                        "jack_set_timebase_callback() failed"
+                    );
                 }
             }
             if (! master_is_set)
@@ -1062,7 +1063,7 @@ transport::init ()
 bool
 transport::deinit ()
 {
-    bool result = true;
+    bool result { true };
     if (m_jack_running)
     {
         m_jack_running = false;
@@ -1105,10 +1106,10 @@ transport::deinit ()
 bool
 transport::activate ()
 {
-    bool result = true;
+    bool result { true };
     if (not_nullptr(m_jack_client))
     {
-        int rc = ::jack_activate(m_jack_client);
+        int rc { ::jack_activate(m_jack_client) };
         result = rc == 0;
         if (result)
         {
@@ -1249,11 +1250,14 @@ transport::position (bool songmode, midi::pulse tick)
     else
         tick = 0;
 
-    int ticks_per_beat = m_ppqn * c_jack_factor;
-    int beats_per_minute = parent().beats_per_minute();
-    uint64_t tick_rate = (uint64_t(m_frame_rate) * tick * 60.0);
-    long tpb_bpm = ticks_per_beat * beats_per_minute * 4.0 / m_beat_width;
-    uint64_t jack_frame = tick_rate / tpb_bpm;
+    int ticks_per_beat { m_ppqn * c_jack_factor };
+    int beats_per_minute { int(parent().beats_per_minute()) };
+    uint64_t tick_rate { uint64_t(m_frame_rate * tick * 60.0) };
+    long tpb_bpm
+    {
+        long(ticks_per_beat * beats_per_minute * 4.0 / m_beat_width)
+    };
+    uint64_t jack_frame { tick_rate / tpb_bpm };
     if (is_master())
     {
         /*
@@ -1332,7 +1336,7 @@ transport::set_position (midi::pulse tick)
     pos.valid = (jack_position_bits_t)(pos.valid | JackBBTFrameOffset);
     pos.bbt_offset = 0;
 
-    int jackcode = ::jack_transport_reposition(m_jack_client, &pos);
+    int jackcode { ::jack_transport_reposition(m_jack_client, &pos) };
     if (jackcode != 0)
     {
         errprint("JACK set position bad position structure");
@@ -1378,7 +1382,7 @@ transport::set_position (midi::pulse tick)
 int
 transport::sync (jack_transport_state_t state)
 {
-    int result = 0;                     /* rtl66 always returns 1   */
+    int result { 0 };                           /* rtl66 always returns 1   */
     m_frame_current = ::jack_get_current_transport_frame(m_jack_client);
     (void) ::jack_transport_query(m_jack_client, &jack_pos());
 
@@ -1396,15 +1400,15 @@ transport::sync (jack_transport_state_t state)
     else
         result = 1;
 
-    double ppqn = jack_pos().ticks_per_beat;
+    double ppq { jack_pos().ticks_per_beat };
 
-#if defined RTL66_BPMINUTE_CALCULATION      // portfix branch 2022-02-11
-    double bpminute = jack_pos().beats_per_minute;
-    m_jack_tick = m_frame_current * ppqn * bpminute / (rate * 60.0);
+#if defined RTL66_BPMINUTE_CALCULATION              // portfix branch 2022-02-11
+    double bpminute { jack_pos().beats_per_minute };
+    m_jack_tick = m_frame_current * ppq * bpminute / (rate * 60.0);
 #else
-    double bpbar = beats_per_measure();         // vice beats-per-minute
-    double bw = beat_width();
-    m_jack_tick = m_frame_current * bpbar * ppqn / (15.0 * rate * bw);
+    double bpbar { beats_per_measure() };           // vice beats-per-minute
+    double bw { beat_width() };
+    m_jack_tick = m_frame_current * bpbar * ppq / (15.0 * rate * bw);
 #endif
 
     m_frame_last = m_frame_current;
@@ -1455,16 +1459,16 @@ jack_sync_callback
     void * arg
 )
 {
-    int result = 0;
-    transport * jack = static_cast<transport *>(arg);
-    if (not_nullptr(jack))
+    int result { 0 };
+    transport * jackptr { static_cast<transport *>(arg) };
+    if (not_nullptr(jackptr))
     {
         /*
          * See the following function's modification in portfix branch
          * on 2022-02-11.
          */
 
-        result = jack->sync(state);         /* use the new member function  */
+        result = jackptr->sync(state);      /* use the new member function  */
     }
     else
     {
@@ -1480,7 +1484,7 @@ jack_sync_callback
 static std::string
 session_event_name (jack_session_event_t * ev)
 {
-    std::string result = "JACK Session Event: '";
+    std::string result { "JACK Session Event: '" };
     if (ev->type == JackSessionSave)
         result += "Save";
     else if (ev->type == JackSessionSaveAndQuit)
@@ -1543,10 +1547,10 @@ session_event_name (jack_session_event_t * ev)
 void
 transport::session_event (jack_session_event_t * ev)
 {
-    bool quit = false;
-    std::string uuid = std::string(ev->client_uuid);
-    std::string filepath = std::string(ev->session_dir);
-    std::string cmd = seq_app_name();                   /* e.g. "qrtl66"    */
+    bool quit { false };
+    std::string uuid { std::string(ev->client_uuid) };
+    std::string filepath { std::string(ev->session_dir) };
+    std::string cmd { seq_app_name() };                 /* e.g. "qrtl66"    */
     cmd += (" --jack-midi");
     cmd += (" --jack-");
 #if 0
@@ -1627,9 +1631,9 @@ transport::session_event (jack_session_event_t * ev)
 void
 jack_session_callback (jack_session_event_t * ev, void * arg)
 {
-    transport * jack = static_cast<transport *>(arg);
-    if (not_nullptr(jack))
-        jack->session_event(ev);
+    transport * jackptr { static_cast<transport *>(arg) };
+    if (not_nullptr(jackptr))
+        jackptr->session_event(ev);
 
     /*
      * jack->parent().gui().jack_idle_connect(*jack);   // see note above
@@ -1698,7 +1702,6 @@ transport::output (scratchpad & pad)
         jack_pos().beats_per_minute = parent().beats_per_minute();
         if (transport_rolling_now())
         {
-            midi::pulse midi_ticks;
             m_frame_current = ::jack_get_current_transport_frame(m_jack_client);
             m_frame_last = m_frame_current;
             pad.js_dumping = true;              /* "[Start JACK Playback]"  */
@@ -1709,7 +1712,11 @@ transport::output (scratchpad & pad)
              */
 
             m_jack_tick = jack_ticks(jack_pos());
-            midi_ticks = midi::pulse(m_jack_tick * tick_multiplier() + 0.5);
+
+            midi::pulse midi_ticks
+            {
+                midi::pulse(m_jack_tick * tick_multiplier() + 0.5)
+            };
             parent().set_last_ticks(midi_ticks);
             pad.set_current_tick_ex(midi_ticks);
             pad.js_init_clock = true;
@@ -1723,7 +1730,7 @@ transport::output (scratchpad & pad)
                      * times, if R and L remain the same.
                      */
 
-                    double r_minus_l = parent().left_right_size();
+                    double r_minus_l { parent().left_right_size() };
                     while (pad.js_current_tick >= parent().right_tick())
                         pad.js_current_tick -= r_minus_l;
 
@@ -1754,7 +1761,7 @@ transport::output (scratchpad & pad)
 
                 if (jack_pos().frame_rate > 0)          /* usually 48000    */
                 {
-                    int diff = int(m_frame_current - m_frame_last);
+                    int diff { int(m_frame_current - m_frame_last) };
                     m_jack_tick += jack_ticks_delta(diff, jack_pos());
                 }
                 else
@@ -1764,8 +1771,8 @@ transport::output (scratchpad & pad)
             }
 
 
-            double midi_ticks = m_jack_tick * tick_multiplier();
-            double delta = midi_ticks - pad.js_ticks_converted_last;
+            double midi_ticks { m_jack_tick * tick_multiplier() };
+            double delta { midi_ticks - pad.js_ticks_converted_last };
             if (delta != 0.0)
             {
                 /*
@@ -1898,7 +1905,7 @@ void
 transport::show_position (const jack_position_t & pos)
 {
     char temp[80];
-    std::string nnnnn = "00000";
+    std::string nnnnn { "00000" };
     if (pos.valid & JackVideoFrameOffset)
         nnnnn[0] = '1';
 
@@ -1982,16 +1989,16 @@ transport::current_jack_position () const
 {
     if (not_nullptr(client()))
     {
-        uint32_t rate = jack_frame_rate();
-        double ppqn = double(get_ppqn());
-        jack_nframes_t frame = ::jack_get_current_transport_frame(client());
+        uint32_t rate { jack_frame_rate() };
+        double ppqn { double(get_ppqn()) };
+        jack_nframes_t frame { ::jack_get_current_transport_frame(client()) };
 #if defined RTL66_BPMINUTE_CALCULATION      // portfix branch 2022-02-11
-        double bpminute = beats_per_minute();
-        double tick2 = frame * ppqn * bpminute / (rate * 60.0);
+        double bpminute { beats_per_minute() };
+        double tick2 { frame * ppqn * bpminute / (rate * 60.0) };
 #else
-        double bpbar = beats_per_measure();
-        double bw = beat_width();
-        double tick2 = frame * bpbar * ppqn / (15.0 * rate * bw);
+        double bpbar { beats_per_measure() };
+        double bw { beat_width() };
+        double tick2 { frame * bpbar * ppqn / (15.0 * rate * bw) };
 #endif
 
         /*
@@ -2101,25 +2108,28 @@ jack_timebase_callback
     void * arg
 )
 {
-    transport * jack = static_cast<transport *>(arg);
-    pos->beats_per_minute = jack->beats_per_minute();   /* sooperlooper */
-    pos->beats_per_bar = jack->beats_per_measure();
-    pos->beat_type = jack->beat_width();
-    pos->ticks_per_beat = jack->get_ppqn() * double(c_jack_factor);
+    transport * jackptr { static_cast<transport *>(arg) };
+    pos->beats_per_minute = jackptr->beats_per_minute();   /* sooperlooper */
+    pos->beats_per_bar = jackptr->beats_per_measure();
+    pos->beat_type = jackptr->beat_width();
+    pos->ticks_per_beat = jackptr->get_ppqn() * double(c_jack_factor);
 
-    long ticks_per_bar = long(pos->ticks_per_beat * pos->beats_per_bar);
-    long ticks_per_minute = long(pos->beats_per_minute * pos->ticks_per_beat);
-    double framerate = double(pos->frame_rate * 60.0);
-    bool not_bbt = ! (pos->valid & JackPositionBBT);
+    long ticks_per_bar { long(pos->ticks_per_beat * pos->beats_per_bar) };
+    long ticks_per_minute
+    {
+        long(pos->beats_per_minute * pos->ticks_per_beat)
+    };
+    double framerate { double(pos->frame_rate * 60.0) };
+    bool not_bbt { ! (pos->valid & JackPositionBBT) };
     if (new_pos || not_bbt)
     {
         /*
          * This code is hit at Start and Stop actions from all clients.
          */
 
-        double minute = pos->frame / framerate;
-        long abs_tick = long(minute * ticks_per_minute);
-        long abs_beat = long(abs_tick / pos->ticks_per_beat);
+        double minute { pos->frame / framerate };
+        long abs_tick { long(minute * ticks_per_minute) };
+        long abs_beat { long(abs_tick / pos->ticks_per_beat) };
         pos->bar = int(abs_beat / pos->beats_per_bar);
         pos->beat = int(abs_beat - (pos->bar * pos->beats_per_bar) + 1);
         pos->tick = int(abs_tick - (abs_beat * pos->ticks_per_beat));
@@ -2133,7 +2143,7 @@ jack_timebase_callback
          * "klick -j -P" follows Seq66 when it is JACK Master!
          */
 
-        int delta_tick = int(nframes * ticks_per_minute / framerate);
+        int delta_tick { int(nframes * ticks_per_minute / framerate) };
         pos->tick += delta_tick;
         while (pos->tick >= pos->ticks_per_beat)
         {
@@ -2145,8 +2155,8 @@ jack_timebase_callback
                 pos->bar_start_tick += ticks_per_bar;
             }
         }
-        if (jack->is_master())
-            pos->beats_per_minute = jack->parent().beats_per_minute();
+        if (jackptr->is_master())
+            pos->beats_per_minute = jackptr->parent().beats_per_minute();
     }
     pos->bbt_offset = 0;
     pos->valid = (jack_position_bits_t)
@@ -2167,10 +2177,10 @@ jack_timebase_callback
 void
 jack_transport_shutdown (void * arg)
 {
-    transport * jack = static_cast<transport *>(arg);
-    if (not_nullptr(jack))
+    transport * jackptr { static_cast<transport *>(arg) };
+    if (not_nullptr(jackptr))
     {
-        jack->set_jack_running(false);
+        jackptr->set_jack_running(false);
         util::info_message("JACK transport shutdown");
     }
     else

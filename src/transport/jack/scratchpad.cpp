@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-14
- * \updates       2022-12-01
+ * \updates       2025-09-14
  * \license       GNU GPLv2 or above
  *
  */
@@ -49,23 +49,6 @@ namespace jack
  *  JACK scratch-pad
  * -------------------------------------------------------------------------
  */
-
-scratchpad::scratchpad () :
-    js_current_tick         (0.0),
-    js_total_tick           (0.0),
-    js_clock_tick           (0.0),
-    js_jack_stopped         (false),
-    js_dumping              (false),
-    js_init_clock           (true),
-    js_looping              (false),
-    js_playback_mode        (false),
-    js_ticks_converted      (0.0),
-    js_ticks_delta          (0.0),
-    js_ticks_converted_last (0.0),
-    js_delta_tick_frac      (0L)
-{
-    // No other code
-}
 
 void
 scratchpad::initialize
@@ -92,14 +75,14 @@ scratchpad::initialize
 void
 scratchpad::set_current_tick (midi::pulse curtick)
 {
-    double ct = double(curtick);
+    double ct { double(curtick) };
     js_current_tick = js_total_tick = js_clock_tick = ct;
 }
 
 void
 scratchpad::set_current_tick_ex (midi::pulse curtick)
 {
-    double ct = double(curtick);
+    double ct { double(curtick) };
     js_current_tick = js_total_tick = js_clock_tick =
         js_ticks_converted_last = ct;
 }
@@ -107,7 +90,7 @@ scratchpad::set_current_tick_ex (midi::pulse curtick)
 void
 scratchpad::add_delta_tick (midi::pulse deltick)
 {
-    double dt = double(deltick);
+    double dt { double(deltick) };
     js_current_tick += dt;
     js_total_tick += dt;
     js_clock_tick += dt;

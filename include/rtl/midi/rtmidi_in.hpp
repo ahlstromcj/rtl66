@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-04
+ * \updates       2025-09-14
  * \license       See above.
  *
  */
@@ -74,13 +74,10 @@ public:
         unsigned queuesizelimit         = 0
     );
     rtmidi_in (const midi::masterbus & mb);
-
     rtmidi_in (const rtmidi_in & other) = delete;
     rtmidi_in & operator = (rtmidi_in & other) = delete;
-
     rtmidi_in (rtmidi_in && other) = default;
     rtmidi_in & operator = (rtmidi_in && other) = default;
-
     virtual ~rtmidi_in ();
 
     /*

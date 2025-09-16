@@ -77,7 +77,6 @@ rtmidi_in::rtmidi_in
 ) :
     rtmidi  ()
 {
-
     bool nomaster { rapi != rtmidi::api::none };
     if (nomaster)
     {

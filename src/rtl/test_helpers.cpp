@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-09-12
+ * \updates       2025-09-14
  * \license       See above.
  *
  */
@@ -82,7 +82,7 @@ rt_test_sleep (int ms)
 int
 rt_choose_port_number (bool isoutput)
 {
-    int result { (-1) };
+    int result { -1 };
     int portcount { 0 };
     std::string direction { isoutput ? _("output") : _("input") };
     std::string portname;
@@ -156,7 +156,7 @@ rt_choose_port_number (bool isoutput)
     }
     catch (...)
     {
-        std::string msg =_("Unknown exception... fix the catch");
+        std::string msg { _("Unknown exception... fix the catch") };
         errprint(msg.c_str());
     }
     return result;
@@ -252,7 +252,7 @@ static const char * s_help_text_fmt
 "                   cannot be initialized.\n"
 #endif
 #endif              // defined PLATFORM_LINUX
-"  --test name      Run only the selected test.\n"
+"  --test name      Run only the selected test or data file (app-dependent).\n"
 "  --virtual        Use virtual ports (not available to some MIDI engines).\n"
 "  --auto-connect   For non-virtual ports, get the existing system ports and\n"
 "                   try to connect to them.\n"
@@ -295,9 +295,9 @@ rt_virtual_test_port ()
  *      -   s_test_port_out. Provides the output port for a two-way test.
  */
 
-static int s_test_port { (-1) };
-static int s_test_port_in { (-1) };
-static int s_test_port_out { (-1) };
+static int s_test_port { -1 };
+static int s_test_port_in { -1 };
+static int s_test_port_out { -1 };
 
 static int
 string_to_int (const std::string & s)
@@ -398,7 +398,7 @@ rt_test_name ()
  *  Specifies the test data-length (where applicable).
  */
 
-static int s_test_data_length = (-1);
+static int s_test_data_length { -1 };
 
 void
 set_rt_test_data_length (int len)
@@ -435,8 +435,8 @@ rt_show_help ()
 bool
 rt_simple_cli (const std::string & appname, int argc, char * argv [])
 {
-    bool can_run = true;
-    rtl::rtmidi::api rapi = rtl::rtmidi::api::unspecified;
+    bool can_run { true };
+    rtl::rtmidi::api rapi { rtl::rtmidi::api::unspecified };
     set_rt_test_port(-1);
     set_rt_test_port_in(-1);
     set_rt_test_port_out(-1);

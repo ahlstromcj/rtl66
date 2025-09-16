@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2017-01-02
- * \updates       2024-01-16
+ * \updates       2025-09-14
  * \license       See above.
  *
  *  GitHub issue #165: enabled a build and run with no JACK support.
@@ -73,13 +73,13 @@ class info : public transport::info
      *  jack_position_t structure in jack/types.h.
      */
 
-    jack_nframes_t m_jack_frame_rate;   /* e.g. 48000 or 96000 Hz   */
-    jack_nframes_t m_jack_start_frame;  /* 0 or large number?       */
-    jack_nframes_t m_cycle_frame_count; /* progress callback param  */
-    jack_nframes_t m_size_compensation; /* from ttymidi.c           */
-    jack_time_t m_cycle_time_us;        /* time between callbacks   */
-    double m_jack_frame_factor;         /* frames per PPQN tick     */
-    bool m_use_offset;                  /* requires JACK transport  */
+    jack_nframes_t m_jack_frame_rate { 1 };   /* e.g. 48000 or 96000 Hz   */
+    jack_nframes_t m_jack_start_frame { 0 };  /* 0 or large number?       */
+    jack_nframes_t m_cycle_frame_count { 0 }; /* progress callback param  */
+    jack_nframes_t m_size_compensation { 0 }; /* from ttymidi.c           */
+    jack_time_t m_cycle_time_us { 0 };        /* time between callbacks   */
+    double m_jack_frame_factor { 0.0 };       /* frames per PPQN tick     */
+    bool m_use_offset { false };              /* requires JACK transport  */
 
     /**
      *  Holds the JACK sequencer client pointer so that it can be used by the
@@ -90,15 +90,15 @@ class info : public transport::info
      *  JACK client created by the midi_jack_info object.
      */
 
-    jack_client_t * m_jack_client;
+    jack_client_t * m_jack_client { nullptr };
 
 public:
 
     info ();
-    info (info &&) = delete;
     info (const info &) = default;
-    info & operator = (info &&) = delete;
+    info (info &&) = delete;
     info & operator = (const info &) = default;
+    info & operator = (info &&) = delete;
     ~info () = default;
 
     /*

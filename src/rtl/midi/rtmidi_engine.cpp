@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-12-15
- * \updates       2025-08-30
+ * \updates       2025-09-14
  * \license       See above.
  *
  */
@@ -65,15 +65,6 @@ rtmidi_engine::rtmidi_engine
 }
 
 /**
- *  If a MIDI connection is still open, it will be closed by the destructor.
- */
-
-rtmidi_engine::~rtmidi_engine ()
-{
-    // No code needed
-}
-
-/**
  *  This function accesses only the supported rtl::rtmidi::api values, and creates
  *  a new "midi_in_xxx" object only if a match is found. Note that, under
  *  Linux, JACK is tried first.
@@ -94,7 +85,7 @@ rtmidi_engine::open_midi_api
     unsigned qsize
 )
 {
-    bool result = rapi != rtmidi::api::max;
+    bool result { rapi != rtmidi::api::max };
     delete_rt_api_ptr();                    /* remove and nullify pointer   */
     (void) qsize;
     if (result)

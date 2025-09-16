@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-09-05
+ * \updates       2025-09-14
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -45,7 +45,7 @@ namespace rtl
  *  Default size of the MIDI queue.
  */
 
-const int c_default_queue_size  = 128;
+const int c_default_queue_size { 128 };
 
 /**
  *  Provides a queue of midi::message structures.  This entity used to be a
@@ -58,20 +58,20 @@ class RTL66_DLL_PUBLIC midi_queue
 
 private:
 
-    unsigned m_front;
-    unsigned m_back;
-    unsigned m_size;
-    unsigned m_ring_size;
-    midi::message * m_ring;
+    unsigned m_front { 0 };
+    unsigned m_back { 0 };
+    unsigned m_size { 0 };
+    unsigned m_ring_size { 0 };
+    midi::message * m_ring { nullptr };
 
 public:
 
     midi_queue (unsigned qsize = 0);
-    ~midi_queue ();
     midi_queue (const midi_queue &) = delete;
     midi_queue & operator = (const midi_queue &) = delete;
     midi_queue (midi_queue &&) = default;
     midi_queue & operator = (midi_queue &&) = default;
+    ~midi_queue ();
 
     bool empty () const
     {

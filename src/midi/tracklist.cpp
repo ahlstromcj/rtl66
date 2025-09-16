@@ -66,13 +66,12 @@ namespace midi
  *
  * \param seq
  *      Provides a reference to the sequence/track for which this container
- *      holds MIDI data.
+ *      holds MIDI data. Not provided!
+ *
+ *  Also note the "in-class" member initialization.
  */
 
-tracklist::tracklist () :
-    m_tracks    (),
-    m_modified  (false),
-    m_sorted    (false)
+tracklist::tracklist ()
 {
     // Empty body
 }

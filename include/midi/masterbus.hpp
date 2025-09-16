@@ -150,7 +150,7 @@ private:
      *  the API.  We may need to select it here, though.
      */
 
-    rtl::rtmidi::api m_selected_api;
+    rtl::rtmidi::api m_selected_api { rtl::rtmidi::api::unspecified };
 
     /**
      *  Provides a pointer to the selected API implementation.
@@ -164,13 +164,13 @@ private:
      *  Encapsulates information about the input busses.
      */
 
-    midi::busarray m_inbus_array;
+    midi::busarray m_inbus_array { };
 
     /**
      *  Encapsulates information about the output busses.
      */
 
-    midi::busarray m_outbus_array;
+    midi::busarray m_outbus_array { };
 
     /**
      *  For "dumping" MIDI input to a track for recording.  This value
@@ -179,40 +179,40 @@ private:
      *  set_sequence_input() function.
      */
 
-    bool m_dumping_input;
+    bool m_dumping_input { false };
 
     /**
      *  Points to the sequence object.  Set in set_sequence_input().  See that
      *  function's description.
      */
 
-    midi::track * m_input_track;
+    midi::track * m_input_track { nullptr };
 
     /**
      *  The locking mutex.  This object is passed to an automutex object that
      *  lends exception-safety to the mutex locking.
      */
 
-    mutable xpc::recmutex m_mutex;
+    mutable xpc::recmutex m_mutex { };
 
     /**
      *  The "global" client handle, stored here so we do not recreate it every
      *  time.
      */
 
-    void * m_void_client_handle;
+    void * m_void_client_handle { nullptr };
 
     /**
      *  The MIDI API client ID.???
      */
 
-    int m_client_id;
+    int m_client_id { 0 };          /* not -1 ??? */
 
     /**
      *  The maximum number of busses (ports) supported.
      */
 
-    int m_max_busses;
+    int m_max_busses { c_busscount_max };
 
     /**
      *  This is a midi::clientinfo object. No longer a pointer.
@@ -223,20 +223,20 @@ private:
      *  existing ports on the system.
      */
 
-    info m_client_info;
+    info m_client_info { };
 
     /**
      *  Main resolution in parts per quarter note. Compare to m_global_ppqn
      *  in clientinfo.
      */
 
-    midi::ppqn m_ppqn;
+    midi::ppqn m_ppqn { RTL66_DEFAULT_PPQN };
 
     /**
      *  BPM (beats per minute). Compare to m_global_bpm in clientinfo.
      */
 
-    midi::bpm m_beats_per_minute;
+    midi::bpm m_beats_per_minute { RTL66_DEFAULT_BPM };
 
     /**
      *  Provides access to the selected API in order to hook up to the desired
@@ -247,7 +247,7 @@ private:
      *      members.
      */
 
-    rtl::rtmidi_engine m_engine;
+    rtl::rtmidi_engine m_engine;            /* default ctor is deleted      */
 
 public:
 

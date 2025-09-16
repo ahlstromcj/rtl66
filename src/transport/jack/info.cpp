@@ -24,7 +24,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2022-09-13
- * \updates       2022-12-01
+ * \updates       2025-09-14
  * \license       See above.
  *
  *  This class contains information that applies to all JACK MIDI ports.
@@ -49,18 +49,10 @@ namespace jack
 {
 
 /**
- *  Default constructor.
+ *  Default constructor. Uses "in-class" member initialization
  */
 
-info::info () :
-    transport::info         (),             /* adds beat, tick info, etc.   */
-    m_jack_frame_rate       (1),            /* an impossible value          */
-    m_jack_start_frame      (0),
-    m_cycle_frame_count     (0),
-    m_size_compensation     (0),
-    m_cycle_time_us         (0),
-    m_jack_frame_factor     (0.0),
-    m_use_offset            (false)
+info::info () : transport::info ()      /* adds beat, tick info, etc.       */
 {
     // Empty body
 }
@@ -97,7 +89,7 @@ info::recalculate_frame_factor
     jack_nframes_t F
 )
 {
-    bool changed = false;
+    bool changed { false };
     if
     (
         (pos.ticks_per_beat > 1.0) &&                       /* sanity check */
@@ -128,14 +120,14 @@ info::recalculate_frame_factor
          * not affect (purportedly) the calculations.
          */
 
-        const double adjustment = 1.0;                  /* nperiod?         */
-        double factor = 600.0 /                         /* seconds/pulse    */
-        (
-            adjustment * ticks_per_beat() * beats_per_minute()
-        );
-        double cycletime = double(F) / frame_rate();
-        double compensation = double(F) * 0.10 + 0.5;
-        bool useoffset = true;                          /* see banner TODO  */
+        const double adjustment { 1.0 };                /* nperiod?         */
+        double factor /* seconds/pulse    */
+        {
+            600.0 / (adjustment * ticks_per_beat() * beats_per_minute())
+        };
+        double cycletime { double(F) / frame_rate() };
+        double compensation { double(F) * 0.10 + 0.5 };
+        bool useoffset { true };                        /* see banner TODO  */
         cycle_frame_count(F);
         cycle_time_us(1000000.0 * cycletime);           /* microsec/cycle   */
         pulse_time_us(1000000.0 * factor);              /* microsec/pulse   */
@@ -237,7 +229,7 @@ info::recalculate_frame_factor
 jack_nframes_t
 info::frame_offset (jack_nframes_t F, midi::pulse p) const
 {
-    jack_nframes_t result = frame_estimate(p) + start_frame();
+    jack_nframes_t result { frame_estimate(p) + start_frame() };
     if (F > 1)
         result = result % F;
 
@@ -272,9 +264,9 @@ info::frame_offset
     midi::pulse p                                   /* Step 3, sort of      */
 )
 {
-    jack_nframes_t result = 0;
-    jack_nframes_t b = size_compensation();         /* Step 2.              */
-    jack_nframes_t f = frame_estimate(p) + F - b;   /* Step 4.              */
+    jack_nframes_t result { 0 };
+    jack_nframes_t b { size_compensation() };       /* Step 2.              */
+    jack_nframes_t f { frame_estimate(p) + F - b }; /* Step 4.              */
     if (f > fc)
         result = f - fc;
 
@@ -292,7 +284,7 @@ info::frame_offset
 jack_nframes_t
 info::frame_estimate (midi::pulse p) const
 {
-    double temp = double(p) * frame_factor() + 0.5;
+    double temp { double(p) * frame_factor() + 0.5 };
     return jack_nframes_t(temp);
 }
 
@@ -302,10 +294,10 @@ info::cycle_frame
     midi::pulse p, jack_nframes_t & cycle, jack_nframes_t & offset
 ) const
 {
-    double f = double(p) * frame_factor() + 0.5;        /* frame estimate   */
-    double c = f / double(cycle_frame_count());         /* cycle + fraction */
-    double fullc = std::trunc(c);
-    double fraction = c - fullc;
+    double f { double(p) * frame_factor() + 0.5 };      /* frame estimate   */
+    double c { f / double(cycle_frame_count()) };       /* cycle + fraction */
+    double fullc { std::trunc(c) };
+    double fraction { c - fullc };
     cycle = jack_nframes_t(c);                          /* cycle number     */
     offset = jack_nframes_t(fraction * cycle_frame_count());
 }

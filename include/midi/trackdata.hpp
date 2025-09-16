@@ -94,34 +94,34 @@ private:
      *  it.
      */
 
-    midi::eventlist m_events;
+    midi::eventlist m_events { };
 
     /**
      *  Provides management code for handling big-endian data, which include
      *  MIDI data.
      */
 
-    mutable util::bytevector m_data;
+    mutable util::bytevector m_data { };
 
     /**
      *  Holds the value for how to handle mistakes in running status.
      */
 
-    rsaction m_running_status_action;
+    rsaction m_running_status_action { rsaction::recover };
 
     /**
      *  Holds a copy of the "manufacturer ID". Useful in getting and putting
      *  SeqSpec data.
      */
 
-    midi::bytes m_manufacturer_id;
+    midi::bytes m_manufacturer_id { };
 
     /**
      *  Indicates that an end-of-track event was encountered. Stop processing
      *  the track data.
      */
 
-    bool m_end_of_track_found;
+    bool m_end_of_track_found { false };
 
 public:
 

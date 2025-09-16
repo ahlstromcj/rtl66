@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-09-01
+ * \updates       2025-09-14
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -39,7 +39,7 @@ namespace rtl
 {
 
 /**
- *  Default constructor.
+ *  Default constructor. Most members are initialized "in-class".
  *
  * \param qsize
  *      The size of the input queue. If 0 (the default), the queue
@@ -47,18 +47,7 @@ namespace rtl
  */
 
 rtmidi_in_data::rtmidi_in_data (unsigned qsize) :
-    m_queue             (qsize),
-    m_message           (),
-    m_first_message     (true),
-    m_continue_sysex    (false),
-    m_ignore_flags      (flag_ignore_all),
-    m_do_input          (false),
-    m_api_data          (nullptr),
-    m_using_callback    (false),
-    m_user_callback     (nullptr),
-    m_user_data         (nullptr),
-    m_buffer_size       (c_buffer_size_max),
-    m_buffer_count      (c_buffer_count)
+    m_queue             (qsize)
 {
     // no code necessary
 }

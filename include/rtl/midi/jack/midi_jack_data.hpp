@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2017-01-02
- * \updates       2025-09-10
+ * \updates       2025-09-14
  * \license       See above.
  *
  */
@@ -84,27 +84,27 @@ class RTL66_DLL_PUBLIC midi_jack_data
      *  single JACK client created by the midi_jack_info object.
      */
 
-    jack_client_t * m_jack_client;
+    jack_client_t * m_jack_client { nullptr };
 
     /**
      *  Holds the JACK port information of the JACK client.
      */
 
-    jack_port_t * m_jack_port;
+    jack_port_t * m_jack_port { nullptr };
 
     /**
      *  Holds a pointer to the size of data for communicating between the
      *  client ring-buffer and the JACK port's internal buffer.
      */
 
-    xpc::ring_buffer<midi::message> * m_jack_buffer;
+    xpc::ring_buffer<midi::message> * m_jack_buffer { nullptr };
 
     /**
      *  The last time-stamp obtained.  Use for calculating the delta time, I
      *  would imagine.
      */
 
-    jack_time_t m_jack_lasttime;
+    jack_time_t m_jack_lasttime { 0 };
 
     /**
      *  Optional, used if available.
@@ -112,9 +112,9 @@ class RTL66_DLL_PUBLIC midi_jack_data
 
 #if RTL66_HAVE_SEMAPHORE_H
 
-    bool m_semaphores_inited;
-    sem_t m_sem_cleanup;
-    sem_t m_sem_needpost;
+    bool m_semaphores_inited { false };
+    sem_t m_sem_cleanup { };
+    sem_t m_sem_needpost { };
 
 #endif
 
@@ -126,7 +126,7 @@ class RTL66_DLL_PUBLIC midi_jack_data
      *  assigned during port registration.
      */
 
-    jack_port_id_t m_internal_port_id;
+    jack_port_id_t m_internal_port_id { null_system_port_id() };
 
 #endif
 
@@ -136,14 +136,16 @@ class RTL66_DLL_PUBLIC midi_jack_data
      *  few boolean flags.
      */
 
-    rtmidi_in_data * m_jack_rtmidiin;
+    rtmidi_in_data * m_jack_rtmidiin { nullptr };
 
 public:
 
-    midi_jack_data ();
+    midi_jack_data () = default;
     midi_jack_data (const midi_jack_data &) = delete;
+    midi_jack_data (midi_jack_data &&) = delete;
     midi_jack_data & operator = (const midi_jack_data &) = delete;
-    ~midi_jack_data ();
+    midi_jack_data & operator = (midi_jack_data &&) = delete;
+    ~midi_jack_data () = default;
 
     /*
      *  Frame offset-related functions.

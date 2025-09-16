@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-13
+ * \updates       2025-09-14
  * \license       See above.
  *
  *      Also contains some additional capabilities.
@@ -142,23 +142,23 @@ private:
      *  rtmidi in, out, or engine classes.
      */
 
-    std::unique_ptr<midi_api> m_rt_api_ptr;
+    std::unique_ptr<midi_api> m_rt_api_ptr { };
 
     /**
      *  The masterbus's API *client* pointer, if not null.
      */
 
-    void * m_master_client_ptr;
+    void * m_master_client_ptr { nullptr };
 
     /**
      *  Do we have a master API pointer?
      */
 
-    bool m_has_master;
+    bool m_has_master { false };
 
 protected:
 
-    rtmidi ();
+    rtmidi () = default;
 
     /*
      * Make the class non-copyable, but it is still moveable.
@@ -176,6 +176,8 @@ public:
      * Must be public to use base-class pointer. See the usage of
      * std::unique_ptr<> in the test_helpers.cpp module. It cannot
      * be set to the "default" destructor because of some deleter issue.
+     * Also must be defined in the cpp module, otherwise the deleter
+     * cannot find the size of midi_api.
      */
 
     virtual ~rtmidi ();
@@ -245,13 +247,13 @@ public:
 
     virtual bool open_port
     (
-        int portnumber = 0,
-        const std::string & portname = ""
+        int portnumber                  = 0,
+        const std::string & portname    = ""
     );
     virtual bool open_virtual_port      /* an extension to the RtMidi API   */
     (
-        int portnumber = 0,
-        const std::string & portname = ""
+        int portnumber                  = 0,
+        const std::string & portname    = ""
     );
     virtual bool open_virtual_port (const std::string & portname = "");
 
@@ -428,6 +430,7 @@ extern bool detect_jack (bool forcecheck);          /* = false */
 extern void silence_jack_errors (bool silent);
 extern void silence_jack_info (bool silent);
 extern void silence_jack_messages (bool silent);
+
 #endif
 
 #if defined RTL66_BUILD_ALSA

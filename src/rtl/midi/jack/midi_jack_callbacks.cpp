@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-24
+ * \updates       2025-09-14
  * \license       See above.
  *
  *  The JACK callbacks have been moved into a separate file for better
@@ -58,8 +58,10 @@ namespace rtl
  *  headers on our development system.
  */
 
-const char * JACK_METADATA_ICON_NAME =
-    "http://jackaudio.org/metadata/icon-name";
+const char * JACK_METADATA_ICON_NAME
+{
+    "http://jackaudio.org/metadata/icon-name"
+};
 
 /*
  ----------------------------------------------------------------------------
@@ -72,7 +74,7 @@ const char * JACK_METADATA_ICON_NAME =
  *  messages.
  */
 
-static const size_t s_message_buffer_size = 256;
+static const size_t s_message_buffer_size { RTL66_DEFAULT_JACK_BUFSIZE };
 
 /**
  *  Checks a frame offset for validity.
@@ -96,8 +98,8 @@ jack_set_process_cb
     void * apidata
 )
 {
-    int rc = ::jack_set_process_callback(c, cb, apidata);
-    bool result = rc == 0;
+    int rc { ::jack_set_process_callback(c, cb, apidata) };
+    bool result { rc == 0 };
     if (! result)
     {
         error_print("jack_set_process_callback", "failed");
@@ -113,12 +115,12 @@ jack_set_shutdown_cb
     void * self                     /* i.e. the "this" pointer  */
 )
 {
-    bool result = not_nullptr_2(c, cb);
+    bool result { not_nullptr_2(c, cb) };
     (void) ::jack_on_shutdown(c, cb, self);
     return result;
 
 #if 0
-    int rc = ::jack_on_shutdown(c, cb, self);
+    int rc { ::jack_on_shutdown(c, cb, self) };
     if (rc != 0)
     {
         error_print("jack_set_shutdown_callback", "failed");
@@ -136,8 +138,8 @@ jack_set_port_connect_cb
     void * self                     /* i.e. the "this" pointer  */
 )
 {
-    int rc = ::jack_set_port_connect_callback(c, cb, self);
-    bool result = rc == 0;
+    int rc { ::jack_set_port_connect_callback(c, cb, self) };
+    bool result { rc == 0 };
     if (! result)
     {
         error_print("jack_set_port_connect_callback", "failed");
@@ -153,8 +155,8 @@ jack_set_port_registration_cb
     void * self                     /* i.e. the "this" pointer  */
 )
 {
-    int rc = ::jack_set_port_registration_callback(c, cb, self);
-    bool result = rc == 0;
+    int rc { ::jack_set_port_registration_callback(c, cb, self) };
+    bool result { rc == 0 };
     if (! result)
     {
         error_print("jack_set_port_registrationn_callback", "failed");
@@ -189,17 +191,17 @@ get_jack_client_uuid (jack_client_t * jc)
 {
     std::string result;
 #if defined RTL66_JACK_SESSION          /* deprecated, use Non Session Mgr. */
-    char * luuid = ::jack_client_get_uuid(jc);
+    char * luuid { ::jack_client_get_uuid(jc) };
     if (not_nullptr(luuid))
     {
         result = luuid;                 /* see note in the banner           */
         jack_free(luuid);
     }
 #else
-    char * lname = ::jack_get_client_name(jc);
+    char * lname { ::jack_get_client_name(jc) };
     if (not_nullptr(lname))
     {
-        char * luuid = ::jack_get_uuid_for_client_name(jc, lname);
+        char * luuid { ::jack_get_uuid_for_client_name(jc, lname) };
         if (not_nullptr(luuid))
         {
             result = luuid;
@@ -237,12 +239,12 @@ set_jack_client_property
     const std::string & type
 )
 {
-    std::string uuid = get_jack_client_uuid(jc);
-    bool result = ! uuid.empty();
+    std::string uuid { get_jack_client_uuid(jc) };
+    bool result { ! uuid.empty() };
     if (result)
     {
-        jack_uuid_t u2 = JACK_UUID_EMPTY_INITIALIZER;
-        int rc = ::jack_uuid_parse(uuid.c_str(), &u2);
+        jack_uuid_t u2 { JACK_UUID_EMPTY_INITIALIZER };
+        int rc { ::jack_uuid_parse(uuid.c_str(), &u2) };
         result = rc == 0;
         if (result)
         {
@@ -272,34 +274,11 @@ set_jack_port_property
     const std::string & type
 )
 {
-    jack_uuid_t uuid = ::jack_port_uuid(jp);
-    const char * k = key.c_str();
-    const char * v = value.c_str();
-    const char * t = type.empty() ? NULL : type.c_str() ;   /* important!   */
-    int rc = ::jack_set_property(jc, uuid, k, v, t);
-    return rc == 0;
-}
-
-/**
- *  This version does not seem to work.
- */
-
-static bool
-set_jack_port_property
-(
-    jack_client_t * jc,
-    const std::string & portname,
-    const std::string & key,
-    const std::string & value,
-    const std::string & type
-)
-{
-    jack_port_t * jp = ::jack_port_by_name(jc, portname.c_str());
-    jack_uuid_t uuid = ::jack_port_uuid(jp);
-    const char * k = key.c_str();
-    const char * v = value.c_str();
-    const char * t = type.empty() ? NULL : type.c_str() ;   /* important!   */
-    int rc = ::jack_set_property(jc, uuid, k, v, t);    // use t == NULL?
+    jack_uuid_t uuid { ::jack_port_uuid(jp) };
+    const char * k { key.c_str() };
+    const char * v { value.c_str() };
+    const char * t { type.empty() ? NULL : type.c_str() };  /* important!   */
+    int rc { ::jack_set_property(jc, uuid, k, v, t) };
     return rc == 0;
 }
 
@@ -312,10 +291,13 @@ jack_set_meta_data
     const std::string & n               /* application icon name    */
 )
 {
-    bool result = set_jack_client_property
-    (
-        c, JACK_METADATA_ICON_NAME, n, "image/png;base64"
-    );
+    bool result
+    {
+        set_jack_client_property
+        (
+            c, JACK_METADATA_ICON_NAME, n, "image/png;base64"
+        )
+    };
     if (result)
     {
         debug_print("Set 32x32 icon", n);
@@ -363,20 +345,20 @@ jack_set_meta_data
 int
 jack_process_in (jack_nframes_t framect, void * arg)
 {
-    midi_jack_data * jackdata = midi_jack::static_data_cast(arg);
-    rtmidi_in_data * rtdata = jackdata->rt_midi_in();
+    midi_jack_data * jackdata { midi_jack::static_data_cast(arg) };
+    rtmidi_in_data * rtdata { jackdata->rt_midi_in() };
     if (is_nullptr(jackdata->jack_port()))   /* is port not yet created?         */
         return 0;
 
-    void * buff = ::jack_port_get_buffer(jackdata->jack_port(), framect);
-    bool allowsysex = rtdata->allow_sysex();
-    bool moresysex = rtdata->continue_sysex();
-    int evcount = ::jack_midi_get_event_count(buff);
+    void * buff { ::jack_port_get_buffer(jackdata->jack_port(), framect) };
+    bool allowsysex { rtdata->allow_sysex() };
+    bool moresysex { rtdata->continue_sysex() };
+    int evcount { int(::jack_midi_get_event_count(buff)) };
     for (int j = 0; j < evcount; ++j)           /* MIDI events in buffer    */
     {
-        midi::message & message = rtdata->midi_msg();
+        midi::message & msg { rtdata->midi_msg() };
         jack_midi_event_t event;
-        int rc = ::jack_midi_event_get(&event, buff, j);
+        int rc { ::jack_midi_event_get(&event, buff, j) };
         if (rc == ENODATA)
         {
             util::async_safe_errprint("jack_process_in() no data");
@@ -388,28 +370,29 @@ jack_process_in (jack_nframes_t framect, void * arg)
             return 0;
         }
 
-        jack_time_t jtime = ::jack_get_time();  /* compute the delta time   */
-        jack_time_t delta_jtime;                /* uint64_t time in usec    */
+        jack_time_t jtime { ::jack_get_time() };  /* compute the delta time */
+        jack_time_t delta_jtime;                  /* uint64_t time in usec  */
         if (rtdata->first_message())
         {
             rtdata->first_message(false);
             delta_jtime = 0;
-            message.jack_stamp(0.0);
+            msg.jack_stamp(0.0);
         }
         else
         {
             jtime -= jackdata->jack_lasttime();
             delta_jtime = jack_time_t(jtime * 0.000001);    /* microsecs!!! */
-            message.jack_stamp(delta_jtime);                 /* Seq66 #100   */
+            msg.jack_stamp(delta_jtime);                    /* Seq66 #100   */
         }
 
         jackdata->jack_lasttime(jtime);
         if (! moresysex)
-            message.clear();
+            msg.clear();
 
-        bool issysex = (moresysex || midi::is_sysex_msg(event.buffer[0])) &&
-            allowsysex;
-
+        bool issysex
+        {
+            (moresysex || midi::is_sysex_msg(event.buffer[0])) && allowsysex
+        };
         if (! issysex)
         {
             /*
@@ -419,9 +402,9 @@ jack_process_in (jack_nframes_t framect, void * arg)
              */
 
             for (unsigned i = 0; i < event.size; ++i)
-                message.push(event.buffer[i]);
+                msg.push(event.buffer[i]);
         }
-        midi::status ebs = midi::to_status(event.buffer[0]);
+        midi::status ebs { midi::to_status(event.buffer[0]) };
         switch (ebs)
         {
         case midi::status::sysex:         // 0xF0 Start of a SysEx message
@@ -466,7 +449,7 @@ jack_process_in (jack_nframes_t framect, void * arg)
             if (rtdata->using_callback())
             {
                 rtmidi_in_data::callback_t cb = rtdata->user_callback();
-                cb(message.jack_stamp(), &message, rtdata->user_data());
+                cb(msg.jack_stamp(), &msg, rtdata->user_data());
             }
             else
             {
@@ -475,7 +458,7 @@ jack_process_in (jack_nframes_t framect, void * arg)
                  * message.
                  */
 
-                if (! rtdata->queue().push(message))
+                if (! rtdata->queue().push(msg))
                 {
                     util::async_safe_errprint
                     (
@@ -527,19 +510,19 @@ jack_get_event_data
     char * dest, size_t & destsz
 )
 {
-    jack_nframes_t result = UINT32_MAX;
-    xpc::ring_buffer<midi::message> * buffmsg = jackdata->jack_buffer();
-    int count = int(buffmsg->read_space());
-    bool process = count > 0;
+    jack_nframes_t result { UINT32_MAX };
+    xpc::ring_buffer<midi::message> * buffmsg { jackdata->jack_buffer() };
+    int count { int(buffmsg->read_space()) };
+    bool process { count > 0 };
     if (process)
     {
-        static bool s_use_offset = midi_jack_data::use_offset();
-        const midi::message & msg = buffmsg->front();
-        midi::pulse ts = msg.jack_stamp();
+        static bool s_use_offset { midi_jack_data::use_offset() };
+        const midi::message & msg { buffmsg->front() };
+        midi::pulse ts { midi::pulse(msg.jack_stamp()) };   // correct?
         if (s_use_offset)
         {
 #if defined USE_FULL_TTYMIDI_METHOD // handling "lastvalue" doesn't seem to help
-            jack_nframes_t frame = midi_jack_data::frame_estimate(ts);
+            jack_nframes_t frame { midi_jack_data::frame_estimate(ts) };
             frame += framect - midi_jack_data::size_compensation();
             if (lastvalue > frame)
                 frame = lastvalue;
@@ -564,7 +547,7 @@ jack_get_event_data
 
         if (process)                /* belaying not enabled at this time    */
         {
-            size_t datasz = size_t(msg.event_byte_count());
+            size_t datasz { size_t(msg.event_byte_count()) };
             if (datasz <= destsz)
             {
                 std::memcpy(dest, msg.data_ptr(), datasz);
@@ -636,23 +619,27 @@ jack_get_event_data
 int
 jack_process_out (jack_nframes_t framect, void * arg)
 {
-    midi_jack_data * jackdata = midi_jack::static_data_cast(arg);
-    jack_port_t * jackport = jackdata->jack_port();
+    midi_jack_data * jackdata { midi_jack::static_data_cast(arg) };
+    jack_port_t * jackport { jackdata->jack_port() };
     if (not_nullptr(jackport))
     {
         char mbuffer[s_message_buffer_size];
-        char * mbuf = &mbuffer[0];
-        const jack_nframes_t cycle_start =
-            ::jack_last_frame_time(jackdata->jack_client());
+        char * mbuf { &mbuffer[0] };
+        const jack_nframes_t cycle_start
+        {
+            ::jack_last_frame_time(jackdata->jack_client())
+        };
 
         /*
          * Seq66's version might need to be FIXED!
          */
 
-        jack_nframes_t lastvalue = 0;
-        void * buff = ::jack_port_get_buffer(jackdata->jack_port(), framect);
-        jack_position_t pos =
-            transport::jack::transport::get_jack_parameters().position;
+        jack_nframes_t lastvalue { 0 };
+        void * buff { ::jack_port_get_buffer(jackdata->jack_port(), framect) };
+        jack_position_t pos
+        {
+            transport::jack::transport::get_jack_parameters().position
+        };
 
         if (midi_jack_data::recalculate_frame_factor(pos, framect))
             util::async_safe_errprint("JACK settings changed");
@@ -660,17 +647,21 @@ jack_process_out (jack_nframes_t framect, void * arg)
         ::jack_midi_clear_buffer(buff);
         for (;;)
         {
-            size_t destsz = s_message_buffer_size;
-            jack_nframes_t offset = jack_get_event_data
-            (
-                jackdata, framect, cycle_start, lastvalue, mbuf, destsz
-            );
+            size_t destsz { s_message_buffer_size };
+            jack_nframes_t offset
+            {
+                jack_get_event_data
+                (
+                    jackdata, framect, cycle_start, lastvalue, mbuf, destsz
+                )
+            };
             if (destsz > 0 && valid_frame_offset(offset))
             {
-                const jack_midi_data_t * data =
-                    reinterpret_cast<const jack_midi_data_t *>(mbuf);
-
-                int rc = ::jack_midi_event_write(buff, offset, data, destsz);
+                const jack_midi_data_t * data
+                {
+                    reinterpret_cast<const jack_midi_data_t *>(mbuf)
+                };
+                int rc { ::jack_midi_event_write(buff, offset, data, destsz) };
                 if (rc != 0)
                 {
                     util::async_safe_errprint("JACK MIDI write error");
@@ -710,7 +701,10 @@ jack_process_io (jack_nframes_t framect, void * /*arg*/)
     if (framect > 0)
     {
 #if 0
-        transport::jack::info * self = reinterpret_cast<transport::jack::info *>(arg);
+        transport::jack::info * self
+        {
+            reinterpret_cast<transport::jack::info *>(arg)
+        };
         if (not_nullptr(self))
         {
             /*
@@ -725,7 +719,7 @@ jack_process_io (jack_nframes_t framect, void * /*arg*/)
                     if (mj->is_input_port())
                         printf("Enabled: %s\n", mj->port_name().c_str());
 #endif
-                    midi_jack_data * mjp = &mj->jack_data();
+                    midi_jack_data * mjp { &mj->jack_data() };
                     if (mj->parent_bus().is_input_port())
                         (void) jack_process_in(framect, mjp);
                     else
@@ -839,26 +833,26 @@ jack_process_io (jack_nframes_t framect, void * /*arg*/)
 void
 jack_port_register_callback (jack_port_id_t portid, int regv, void * arg)
 {
-    transport::jack::info * jackinfo =
-        reinterpret_cast<transport::jack::info *>(arg);
-
+    transport::jack::info * jackinfo
+    {
+        reinterpret_cast<transport::jack::info *>(arg)
+    };
     if (not_nullptr(jackinfo))
     {
-        jack_client_t * handle = jackinfo->client_handle();
-        jack_port_t * portptr = nullptr;
+        jack_client_t * handle { jackinfo->client_handle() };
         if (not_nullptr(handle))
         {
-            bool mine = false;
-            int flags = 0;
-            midibase::io iotype = midibase::io::indeterminate;
+            bool mine { false };
+            int flags { 0 };
+            midibase::io iotype { midibase::io::indeterminate };
             std::string longname;
             std::string shortname;
             std::string porttype;
-            portptr = ::jack_port_by_id(handle, portid);
+            jack_port_t * portptr { ::jack_port_by_id(handle, portid) };
             if (not_nullptr(portptr))
             {
-                const char * ln = ::jack_port_name(portptr);
-                const char * sn = ::jack_port_short_name(portptr);
+                const char * ln { ::jack_port_name(portptr) };
+                const char * sn { ::jack_port_short_name(portptr) };
                 if (not_nullptr(ln))
                     longname = std::string(ln);
 
@@ -884,7 +878,7 @@ jack_port_register_callback (jack_port_id_t portid, int regv, void * arg)
                  * to be necessary; debug_message() yields intermixed output.
                  */
 
-                const char * iot = "TBD";
+                const char * iot { "TBD" };
                 char value[util::c_async_safe_utoa_size];
                 char temp[128];
                 if (iotype == midibase::io::input)
@@ -948,8 +942,11 @@ jack_port_connect_callback
     int connect, void * arg
 )
 {
-    transport::jack::info * jack = reinterpret_cast<transport::jack::info *>(arg);
-    if (not_nullptr(jack))
+    transport::jack::info * jackinfo
+    {
+        reinterpret_cast<transport::jack::info *>(arg)
+    };
+    if (not_nullptr(jackinfo))
     {
         if (rc().investigate())
         {
@@ -985,7 +982,10 @@ jack_port_connect_callback
 void
 jack_shutdown_callback (void * arg)
 {
-    transport::jack::info * jack = reinterpret_cast<transport::jack::info *>(arg);
+    transport::jack::info * jack
+    {
+        reinterpret_cast<transport::jack::info *>(arg)
+    };
     if (not_nullptr(jack))
         infoprint("JACK Shutdown");             // async_safe_strprint("...");
     else

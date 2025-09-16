@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-14
- * \updates       2025-08-28
+ * \updates       2025-09-14
  * \license       See above.
  *
  *  Currently a header-only implementation.
@@ -108,6 +108,7 @@ private:
 
 public:
 
+    rterror () = delete;
     rterror (const std::string & message, kind errtype = kind::unspecified) :
         std::runtime_error  (message),
         m_type              (errtype)
@@ -115,10 +116,11 @@ public:
         // no code
     }
 
-    virtual ~rterror () noexcept
-    {
-        // no code
-    }
+    rterror (const rterror &) = default;
+    rterror (rterror &&) = default;         /* used in throwing an rterror  */
+    rterror & operator = (const rterror &) = default;
+    rterror & operator = (rterror &&) = delete;
+    virtual ~rterror () = default;
 
     /**
      *  Prints thrown error message to stderr.
@@ -156,7 +158,7 @@ public:
 inline rterror::kind
 int_to_error_kind (int index)
 {
-    bool valid = index >= 0 && index < static_cast<int>(rterror::kind::max);
+    bool valid { index >= 0 && index < static_cast<int>(rterror::kind::max) };
     return valid ? static_cast<rterror::kind>(index) : rterror::kind::max ;
 }
 

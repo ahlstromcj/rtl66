@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-08
+ * \updates       2025-09-14
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -38,6 +38,16 @@
 
 namespace rtl
 {
+
+/**
+ *  Though defaulted, defined here so that the size of midi_api can be
+ *  known.
+ */
+
+rtmidi::~rtmidi ()
+{
+    // No code
+}
 
 /*------------------------------------------------------------------------
  * Free functions in the rtl namespace
@@ -97,19 +107,6 @@ rtmidi::api rtmidi::sm_selected_api                     /* selected one */
 /*--------------------------------------------------------------------------
  * rtmidi
  *--------------------------------------------------------------------------*/
-
-rtmidi::rtmidi () :
-    m_rt_api_ptr        (),                 /* unique_ptr<midi_api>         */
-    m_master_client_ptr (nullptr),          /* regular pointer to seq eng.  */
-    m_has_master        (false)             /* false ==> unique_ptr<>       */
-{
-    // No code
-}
-
-rtmidi::~rtmidi ()
-{
-    // No code
-}
 
 /**
  *  Returns the MIDI API specifier for the current instance of

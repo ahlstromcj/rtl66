@@ -27,15 +27,12 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2024-11-22
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  */
 
-/*
- *  This namespace is not documented because it screws up the document
- *  processing done by Doxygen.
- */
+#include "rtl/rtl_build_macros.h"       /* various RTL66_xxx macros         */
 
 namespace midi
 {
@@ -55,13 +52,13 @@ private:
      *  The integral number of measures in the measures-based time.
      */
 
-    int m_bars;
+    int m_bars { 1 };
 
     /**
      *  The integral number of beats in the measures-based time.
      */
 
-    int m_beats;
+    int m_beats { RTL66_DEFAULT_BEATS_PER_BAR };
 
     /**
      *  The integral number of divisions/pulses in the measures-based time.
@@ -72,7 +69,7 @@ private:
      *  with the ticks/beat definition.
      */
 
-    int m_divisions;
+    int m_divisions { RTL66_DEFAULT_PPQN };
 
 public:
 

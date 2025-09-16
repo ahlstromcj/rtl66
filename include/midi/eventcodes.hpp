@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-07-29
+ * \updates       2025-09-13
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -63,20 +63,20 @@ namespace midi
  *  status bytes range from 0x80 to 0xFF.
  */
 
-const midi::byte status_null          = 0x00;     // a Seq66 value
-const midi::byte status_bit           = 0x80;     // a status-detection mask
-const midi::byte realtime             = 0xf0;     // 0xFn when masked
-const midi::byte sysex_continue       = 0xf7;     // redundant, see below
+const midi::byte status_null          { 0x00 };   // a Seq66 value
+const midi::byte status_bit           { 0x80 };   // a status-detection mask
+const midi::byte realtime             { 0xf0 };   // 0xFn when masked
+const midi::byte sysex_continue       { 0xf7 };   // redundant, see below
 
 /**
  *  These file masks are used to obtain (or mask off) the channel data and
  *  status portion from an (incoming) status byte.
  */
 
-const midi::byte chan_mask_nybble     = 0x0f;     // mask for the channel nybble
-const midi::byte status_mask_nybble   = 0xf0;     // mask for the status nybble
-const midi::byte data_mask_byte       = 0x7f;     // mask for data values
-const midi::byte data_max             = 0x7f;     // mask for data values
+const midi::byte chan_mask_nybble     { 0x0f };   // mask for the channel nybble
+const midi::byte status_mask_nybble   { 0xf0 };   // mask for the status nybble
+const midi::byte data_mask_byte       { 0x7f };   // mask for data values
+const midi::byte data_max             { 0x7f };   // mask for data values
 
 /**
  *  Defines the MIDI status status bytes, from 0x80 to 0xff.  For 0x80 to

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-06
+ * \updates       2025-09-14
  * \license       See above.
  *
  *  Engine candidates:
@@ -89,11 +89,14 @@ namespace rtl
  *  useful configuration option.
  */
 
-static const size_t c_jack_ringbuffer_size = 2048;  /* tentative */
+static const size_t c_jack_ringbuffer_size
+{
+    RTL66_DEFAULT_JACK_RING_SIZE    /* tentative */
+};
 
-/*------------------------------------------------------------------------
+/*--------------------------------------------------------------------------
  * Additional free functions
- *------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------*/
 
 /**
  *  JACK detection function.  Just opens a client without activating it, then
@@ -131,9 +134,9 @@ static const size_t c_jack_ringbuffer_size = 2048;  /* tentative */
 bool
 detect_jack (bool forcecheck)
 {
-    bool result = false;
-    static bool s_already_checked = false;
-    static bool s_jack_was_detected = false;
+    static bool s_already_checked { false };
+    static bool s_jack_was_detected { false };
+    bool result { false };
     if (forcecheck)
     {
         s_already_checked = false;
@@ -145,24 +148,27 @@ detect_jack (bool forcecheck)
     }
     else
     {
-        const char * cname = "rtl_jack_detector";
+        const char * cname { "rtl_jack_detector" };
         jack_status_t status;
-        jack_status_t * ps = &status;
-        jack_options_t jopts = JackNoStartServer;
-        jack_client_t * jackman = ::jack_client_open(cname, jopts, ps);
+        jack_status_t * ps { &status };
+        jack_options_t jopts { JackNoStartServer };
+        jack_client_t * jackman { ::jack_client_open(cname, jopts, ps) };
         if (not_nullptr(jackman))
         {
-            int rc = ::jack_activate(jackman);
+            int rc { ::jack_activate(jackman) };
             if (rc == 0)
             {
-                const char ** ports = ::jack_get_ports
-                (
-                    jackman, NULL, JACK_DEFAULT_MIDI_TYPE, JackPortIsOutput
-                );
+                const char ** ports
+                {
+                    ::jack_get_ports
+                    (
+                        jackman, NULL, JACK_DEFAULT_MIDI_TYPE, JackPortIsOutput
+                    )
+                };
                 result = not_nullptr(ports);
                 if (result)
                 {
-                    int count = 0;
+                    int count { 0 };
                     while (not_nullptr(ports[count]))
                         ++count;
 
@@ -189,7 +195,7 @@ void
 set_jack_version ()
 {
 #if defined RTL66_HAVE_JACK_GET_VERSION_STRING
-    const char * sjv = ::jack_get_version_string();
+    const char * sjv { ::jack_get_version_string() };
     if (not_nullptr(sjv) && std::strlen(sjv) > 0)
     {
         std::string jv{sjv};
@@ -324,29 +330,28 @@ midi_jack::~midi_jack ()
 void *
 midi_jack::engine_connect ()
 {
-    void * result = nullptr;
-    midi_jack_data & data = jack_data();
-    bool ok = is_nullptr(data.jack_client()) || ! is_engine();
+    void * result { nullptr };
+    midi_jack_data & data { jack_data() };
+    bool ok { is_nullptr(data.jack_client()) || ! is_engine() };
     if (ok)
     {
-        const char * cname = client_name().c_str();
-
-        jack_options_t jopts = JackNoStartServer;
+        const char * cname { client_name().c_str() };
+        jack_options_t jopts { JackNoStartServer };
         if (rtmidi::start_jack())
             jopts = JackNullOption;
 
 #if defined USE_JACK_STATUS_RETURN
         jack_status_t status;
-        jack_status_t * ps = &status;
-        jack_client_t * c = ::jack_client_open(cname, jopts, ps);
+        jack_status_t * ps { &status };
+        jack_client_t * c { ::jack_client_open(cname, jopts, ps) };
 
         // Here, can shows the bits of the status, if desired.
 #else
-        jack_client_t * c = ::jack_client_open(cname, jopts, NULL /*ps*/);
+        jack_client_t * c { ::jack_client_open(cname, jopts, NULL /*ps*/) };
 #endif
         if (not_nullptr(c))
         {
-            void * apidata = reinterpret_cast<void *>(&data);
+            void * apidata { reinterpret_cast<void *>(&data) };
             data.jack_client(c);
             api_data(&data);
 
@@ -357,38 +362,38 @@ midi_jack::engine_connect ()
              *     master_bus()->client_handle(c);
              */
 
-            JackProcessCallback cb = jack_process_io;
+            JackProcessCallback cb { jack_process_io };
             if (is_output())
                 cb = jack_process_out;
             else if (is_input())
                 cb = jack_process_in;
 
-            bool ok = jack_set_process_cb(c, cb, apidata);
+            bool ok { jack_set_process_cb(c, cb, apidata) };
             if (ok)
             {
-#if defined RTL66_JACK_PORT_SHUTDOWN                    // TODO
-#if defined RTL66_JACK_SESSION                          // TODO
-                std::string uuid = rc().jack_session(); // e.g. 8589934670
+#if defined RTL66_JACK_PORT_SHUTDOWN                      // TODO
+#if defined RTL66_JACK_SESSION                            // TODO
+                std::string uuid { rc().jack_session() }; // e.g. 8589934670
                 if (uuid.empty())
                     uuid = get_jack_client_uuid(result);
 
                 if (! uuid.empty())
                     rc().jack_session(uuid);
 #endif
-                JackShutdownCallback cb = jack_shutdown_callback;
+                JackShutdownCallback cb { jack_shutdown_callback };
                 (void) jack_set_shutdown_cb(c, cb, (void *) this);
 #endif
 #if defined RTL66_JACK_PORT_CONNECT_CALLBACK
-                JackPortConnectCallback cb = jack_port_connect_callback;
-                (void) jack_set_port_connect_cb (c, cb, (void *) this);
+                JackPortConnectCallback cb { jack_port_connect_callback;
+                (void) jack_set_port_connect_cb (c, cb, (void *) this) };
 #endif
 #if defined RTL66_JACK_PORT_REFRESH_CALLBACK
-                JackPortRegistrationCallback cb = jack_port_register_callback;
+                JackPortRegistrationCallback cb { jack_port_register_callback };
                 (void) jack_set_port_registration_cb(c, cb, (void *) this);
 #endif
 #if defined RTL66_JACK_METADATA
-                std::string n = "seq_icon_name()";
-                bool ok = jack_set_meta_data(c, n);
+                std::string n { "seq_icon_name()" };
+                bool ok = ::jack_set_meta_data      // does this even exist?
                 (
                     c, JACK_METADATA_ICON_NAME, n
                 );
@@ -407,11 +412,11 @@ midi_jack::engine_connect ()
 void
 midi_jack::engine_disconnect ()
 {
-    midi_jack_data & data = jack_data();
-    jack_client_t * c = data.jack_client();
+    midi_jack_data & data { jack_data() };
+    jack_client_t * c { data.jack_client() };
     if (not_nullptr(c))
     {
-        int rc = ::jack_client_close(c);
+        int rc { ::jack_client_close(c) };
         data.jack_client(nullptr);
         if (rc != 0)
         {
@@ -427,11 +432,11 @@ midi_jack::engine_disconnect ()
 bool
 midi_jack::engine_activate ()
 {
-    bool result = true;
-    midi_jack_data & data = jack_data();
+    bool result { true };       // or false?
+    midi_jack_data & data { jack_data() };
     if (not_nullptr(data.jack_client()))
     {
-        int rc = ::jack_activate(data.jack_client());
+        int rc { ::jack_activate(data.jack_client()) };
         result = rc == 0;
         if (! result)
             error_print("jack_activate", "failed");
@@ -450,11 +455,11 @@ midi_jack::engine_activate ()
 bool
 midi_jack::engine_deactivate ()
 {
-    bool result = true;
-    midi_jack_data & data = jack_data();
+    bool result { true };
+    midi_jack_data & data { jack_data() };
     if (not_nullptr(data.jack_client()))
     {
-        int rc = ::jack_deactivate(data.jack_client());
+        int rc { ::jack_deactivate(data.jack_client()) };
         result = rc == 0;
     }
     return result;
@@ -473,27 +478,31 @@ midi_jack::engine_deactivate ()
 int
 midi_jack::get_port_count ()
 {
-    int result = 0;
-    bool ok = connect();     /* WHY CALL THIS AGAIN?    */
+    int result { 0 };
+    bool ok { connect() };     /* WHY CALL THIS AGAIN?    */
     if (ok)
     {
-        midi_jack_data & data = jack_data();
+        midi_jack_data & data { jack_data() };
         if (not_nullptr(data.jack_client()))
         {
-            unsigned long flag = is_output() ?
-                JackPortIsInput : JackPortIsOutput ;
-
-            const char ** ports = ::jack_get_ports
-            (
-                data.jack_client(), NULL, JACK_DEFAULT_MIDI_TYPE, flag
-            );
+            unsigned long flag
+            {
+                is_output() ?  JackPortIsInput : JackPortIsOutput
+            };
+            const char ** ports
+            {
+                ::jack_get_ports
+                (
+                    data.jack_client(), NULL, JACK_DEFAULT_MIDI_TYPE, flag
+                )
+            };
             if (is_nullptr(ports))
             {
                 debug_print("get_port_count", "no ports");
             }
             else
             {
-                int count = 0;
+                int count { 0 };
                 while (not_nullptr(ports[count]))
                     ++count;
 
@@ -512,12 +521,13 @@ midi_jack::get_port_count ()
 bool
 midi_jack::create_ringbuffer (size_t rbsize)
 {
-    bool result = rbsize > 0;
+    bool result { rbsize > 0 };
     if (result)
     {
-        xpc::ring_buffer<midi::message> * rb =
-            new (std::nothrow) xpc::ring_buffer<midi::message>(rbsize);
-
+        xpc::ring_buffer<midi::message> * rb
+        {
+            new (std::nothrow) xpc::ring_buffer<midi::message>(rbsize)
+        };
         result = not_nullptr(rb);
         if (result)
         {
@@ -567,12 +577,12 @@ midi_jack::create_ringbuffer (size_t rbsize)
 bool
 midi_jack::connect ()
 {
-    bool result = false;
-    midi_jack_data & data = jack_data();
+    bool result { false };
+    midi_jack_data & data { jack_data() };
     if (not_nullptr(data.jack_client()))
         return true;
 
-    jack_client_t * c = client_handle(engine_connect());
+    jack_client_t * c { client_handle(engine_connect()) };
     if (not_nullptr(c))
     {
         data.jack_client(c);
@@ -601,7 +611,7 @@ bool
 midi_jack::initialize (const std::string & clientname)
 {
     bool result;
-    midi_jack_data & data = jack_data();
+    midi_jack_data & data { jack_data() };
     data.jack_port(nullptr);
     data.jack_client(nullptr);
     client_name(clientname);                        /* necessary for API    */
@@ -613,7 +623,7 @@ midi_jack::initialize (const std::string & clientname)
 #endif
     if (! reuse_connection())
     {
-        midi_jack_data & data = jack_data();
+        midi_jack_data & data { jack_data() };
 
         /*
          * This isn't right. The masterbus itself sets this up.
@@ -656,21 +666,24 @@ midi_jack::open_port (int portnumber, const std::string & portname)
         return true;
     }
 
-    bool result = portnumber >= 0;                  /* -1 == uninit'ed      */
+    bool result { portnumber >= 0 };                /* -1 == uninit'ed      */
     if (result)
         result = connect();    /* WHY CALL THIS AGAIN? */
 
     if (result)
     {
-        midi_jack_data & data = jack_data();
+        midi_jack_data & data { jack_data() };
         if (is_nullptr(data.jack_port()))           /* can create the port  */
         {
-            const char * pn = portname.c_str();
-            jack_port_t * jptr = ::jack_port_register
-            (
-                data.jack_client(), pn, JACK_DEFAULT_MIDI_TYPE,
-                is_output() ? JackPortIsOutput : JackPortIsInput, 0
-            );
+            const char * pn { portname.c_str() };
+            jack_port_t * jptr
+            {
+                ::jack_port_register
+                (
+                    data.jack_client(), pn, JACK_DEFAULT_MIDI_TYPE,
+                    is_output() ? JackPortIsOutput : JackPortIsInput, 0
+                )
+            };
             if (is_nullptr(jptr))
             {
                 result = false;
@@ -678,14 +691,17 @@ midi_jack::open_port (int portnumber, const std::string & portname)
             }
             else
             {
-                std::string name = get_port_name(portnumber);
+                std::string name { get_port_name(portnumber) };
                 data.jack_port(jptr);
-                int rc = ::jack_connect             /* source/destin names  */
-                (
-                    data.jack_client(),
-                    jack_port_name(data.jack_port()),
-                    name.c_str()
-                );
+                int rc
+                {
+                    ::jack_connect                  /* source/destin names  */
+                    (
+                        data.jack_client(),
+                        jack_port_name(data.jack_port()),
+                        name.c_str()
+                    )
+                };
                 if (rc != 0)                        /* not connected!       */
                 {
                     result = false;
@@ -697,7 +713,7 @@ midi_jack::open_port (int portnumber, const std::string & portname)
     }
     if (! result)
     {
-        std::string msg = "midi_jack::open_port: error";
+        std::string msg { "midi_jack::open_port: error" };
         if (portname.size() >= size_t(::jack_port_name_size()))
             msg += " (port name too long?)";
 
@@ -709,18 +725,21 @@ midi_jack::open_port (int portnumber, const std::string & portname)
 bool
 midi_jack::open_virtual_port (const std::string & portname)
 {
-    bool result = connect();    /* WHY CALL THIS AGAIN? */
+    bool result { connect() };    /* WHY CALL THIS AGAIN? */
     if (result)
     {
-        midi_jack_data & data = jack_data();
+        midi_jack_data & data { jack_data() };
         if (is_nullptr(data.jack_port()))
         {
-            jack_port_t * jptr = ::jack_port_register
-            (
-                data.jack_client(), portname.c_str(),
-                JACK_DEFAULT_MIDI_TYPE,
-                is_output() ? JackPortIsOutput : JackPortIsInput, 0
-            );
+            jack_port_t * jptr
+            {
+                ::jack_port_register
+                (
+                    data.jack_client(), portname.c_str(),
+                    JACK_DEFAULT_MIDI_TYPE,
+                    is_output() ? JackPortIsOutput : JackPortIsInput, 0
+                )
+            };
             if (is_nullptr(jptr))
             {
                 result = false;
@@ -732,7 +751,10 @@ midi_jack::open_virtual_port (const std::string & portname)
     }
     if (! result)
     {
-        std::string msg = "midi_jack::open_virtual_port: error creating port";
+        std::string msg
+        {
+            "midi_jack::open_virtual_port: error creating port"
+        };
         if (portname.size() >= size_t(::jack_port_name_size()))
             msg += " (port name too long?)";
 
@@ -754,13 +776,13 @@ midi_jack::open_virtual_port (const std::string & portname)
 void
 midi_jack::delete_port ()
 {
-    midi_jack_data & data = jack_data();
+    midi_jack_data & data { jack_data() };
     (void) close_port();
     if (is_output())
     {
         if (not_nullptr(jack_data().jack_buffer()))
         {
-            xpc::ring_buffer<midi::message> * rb = jack_data().jack_buffer();
+            xpc::ring_buffer<midi::message> * rb { jack_data().jack_buffer() };
             if (rb->dropped() > 0 || rb->count_max() > (rb->buffer_size() / 2))
             {
                 char tmp[64];
@@ -803,19 +825,23 @@ std::string
 midi_jack::get_port_name (int portnumber)
 {
     std::string result;
-    midi_jack_data & data = jack_data();
+    midi_jack_data & data { jack_data() };
     if (not_nullptr(data.jack_client()) && portnumber >= 0)
     {
-        bool ok = connect();
+        bool ok { connect() };
         if (ok)
         {
-            unsigned long flag = is_output() ?
-                JackPortIsInput : JackPortIsOutput ;
-
-            const char ** ports = ::jack_get_ports
-            (
-                data.jack_client(), NULL, JACK_DEFAULT_MIDI_TYPE, flag
-            );
+            unsigned long flag
+            {
+                is_output() ?  JackPortIsInput : JackPortIsOutput
+            };
+            const char ** ports
+            {
+                ::jack_get_ports
+                (
+                    data.jack_client(), NULL, JACK_DEFAULT_MIDI_TYPE, flag
+                )
+            };
             if (is_nullptr(ports))
             {
                 error_print("jack_get_ports", "found no ports");
@@ -855,8 +881,8 @@ midi_jack::get_port_name (int portnumber)
 bool
 midi_jack::close_port ()
 {
-    bool result = false;
-    midi_jack_data & data = jack_data();
+    bool result { false };
+    midi_jack_data & data { jack_data() };
     if (not_nullptr_2(data.jack_client(), data.jack_port()))
     {
 #if RTL66_HAVE_SEMAPHORE_H
@@ -865,7 +891,7 @@ midi_jack::close_port ()
             (void) data.semaphore_post_and_wait();
         }
 #endif
-        int rc = ::jack_port_unregister(data.jack_client(), data.jack_port());
+        int rc { ::jack_port_unregister(data.jack_client(), data.jack_port()) };
         if (rc == 0)
             result = true;
         else
@@ -894,20 +920,23 @@ midi_jack::close_port ()
 bool
 midi_jack::set_port_name (const std::string & portname)
 {
-    bool result = false;
-    midi_jack_data & data = jack_data();
+    bool result { false };
+    midi_jack_data & data { jack_data() };
     if (not_nullptr_2(data.jack_client(), data.jack_port()))
     {
 #if defined RTL66_HAVE_JACK_PORT_RENAME             /* rtl66-config.h (.in) */
-        int rc = ::jack_port_rename
-        (
-            data.jack_client(), data.jack_port(), portname.c_str()
-        );
+        int rc
+        {
+            ::jack_port_rename
+            (
+                data.jack_client(), data.jack_port(), portname.c_str()
+            )
+        };
         if (rc == 0)
             result = true;
 #else
 #if defined RTL66_ALLOW_DEPRECATED_JACK_FUNCTIONS   /* rtl_build_macros.h   */
-        int rc = ::jack_port_set_name(data.jack_port(), portname.c_str());
+        int rc { ::jack_port_set_name(data.jack_port(), portname.c_str()) };
         if (rc == 0)
             result = true;
 #else
@@ -1022,7 +1051,7 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
 #endif
         unsigned long flag
         {
-            iswriteable ?  JackPortIsInput : JackPortIsOutput
+            iswriteable ? JackPortIsInput : JackPortIsOutput
         };
         const char ** ports = ::jack_get_ports
         (
@@ -1031,10 +1060,10 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
         if (is_nullptr(ports))
         {
 #if defined RTL66_JACK_FALLBACK_TO_VIRTUAL_PORT
-            int clientnumber = 0;
-            int portnumber = 0;
-            std::string clientname = "";            // TODO: seq_client_name();
-            std::string portname = "midi in 0";
+            int clientnumber { 0 };
+            int portnumber { 0 };
+            std::string clientname { "TODO" /*seq_client_name()*/ };
+            std::string portname { "midi in 0" };
             ioports.add
             (
                 clientnumber, clientname, portnumber, portname,
@@ -1047,14 +1076,14 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
         }
         else
         {
-            int clientnumber = 0;                   /* JACK: doesn't apply  */
-            int count = 0;
+            int clientnumber { 0 };                 /* JACK: doesn't apply  */
+            int count { 0 };
             while (not_nullptr(ports[count]))
             {
-                std::string fullname = ports[count];
+                std::string fullname { ports[count] };
                 std::string clientname;
                 std::string portname;
-                std::string alias = get_port_alias(fullname);
+                std::string alias { get_port_alias(fullname) };
                 if (alias == fullname)
                     alias.clear();
 
@@ -1136,28 +1165,34 @@ std::string
 midi_jack::get_port_alias (const std::string & name)
 {
     std::string result;
-    midi_jack_data & data = jack_data();
+    midi_jack_data & data { jack_data() };
     if (not_nullptr(data.jack_client()))
     {
-        bool is_system_port = midi::contains(name, "system:");  /* brittle code */
+        bool is_system_port                                 /* brittle code */
+        {
+            midi::contains(name, "system:")
+        };
         if (is_system_port)
         {
-            jack_port_t * p = ::jack_port_by_name(data.jack_client(), name.c_str());
+            jack_port_t * p
+            {
+                ::jack_port_by_name(data.jack_client(), name.c_str())
+            };
             if (not_NULL(p))
             {
                 char * aliases[2];
-                const int sz = ::jack_port_name_size();
-                aliases[0] = reinterpret_cast<char *>(malloc(sz));  /* alsa_pcm */
-                aliases[1] = reinterpret_cast<char *>(malloc(sz));  /* dev name */
+                const int sz { ::jack_port_name_size() };
+                aliases[0] = reinterpret_cast<char *>(malloc(sz));
+                aliases[1] = reinterpret_cast<char *>(malloc(sz));
                 if (is_nullptr_2(aliases[0], aliases[1]))
-                    return result;                                  /* bug out  */
+                    return result;                                /* bug out  */
 
-                aliases[0][0] = aliases[1][0] = 0;                  /* 0 length */
-                int rc = ::jack_port_get_aliases(p, aliases);
+                aliases[0][0] = aliases[1][0] = 0;                /* 0 length */
+                int rc { ::jack_port_get_aliases(p, aliases) };
                 if (rc > 1)
                 {
-                    std::string nick = std::string(aliases[1]);     /* brittle  */
-                    auto colonpos = nick.find_first_of(":");        /* brittle  */
+                    std::string nick { std::string(aliases[1]) }; /* brittle  */
+                    auto colonpos { nick.find_first_of(":") };    /* brittle  */
                     if (colonpos != std::string::npos)
                         result = nick.substr(0, colonpos);
 
@@ -1167,7 +1202,7 @@ midi_jack::get_port_alias (const std::string & name)
                      * by JACK uses a hyphen.  Convert them to spaces.
                      */
 
-                    auto hyphenpos = result.find_first_of("-");     /* brittle  */
+                    auto hyphenpos { result.find_first_of("-") }; /* brittle  */
                     while (hyphenpos != std::string::npos)
                     {
                         result[hyphenpos] = ' ';
@@ -1201,14 +1236,14 @@ midi_jack::get_port_alias (const std::string & name)
 bool
 midi_jack::reuse_connection ()
 {
-    bool result = master_is_connected();
+    bool result { master_is_connected() };
     if (result)
     {
-        jack_client_t * jc = client_handle();
+        jack_client_t * jc { client_handle() };
         result = not_nullptr(jc);
         if (result)
         {
-            midi_jack_data & data = jack_data();
+            midi_jack_data & data { jack_data() };
             data.jack_client(jc);
             api_data(&data);
         }
@@ -1264,7 +1299,7 @@ midi_jack::send_byte (midi::byte evbyte) const
 {
     midi::message message;
     message.push(evbyte);
-    bool result = send_message(message);
+    bool result { send_message(message) };
     if (! result)
     {
         errprint("JACK send_byte() failed");
@@ -1281,7 +1316,7 @@ midi_jack::send_byte (midi::byte evbyte) const
 bool
 midi_jack::clock_start ()
 {
-    midi_jack_data * jkdata = reinterpret_cast<midi_jack_data *>(api_data());
+    midi_jack_data * jkdata { reinterpret_cast<midi_jack_data *>(api_data()) };
     ::jack_transport_start(jkdata->jack_client());
     return send_status(midi::status::clk_start);
 }
@@ -1318,7 +1353,7 @@ midi_jack::clock_stop ()
 {
     // Could use jack_data() as well.  Double-check.
 
-    midi_jack_data * jkdata = reinterpret_cast<midi_jack_data *>(api_data());
+    midi_jack_data * jkdata { reinterpret_cast<midi_jack_data *>(api_data()) };
     ::jack_transport_stop(jkdata->jack_client());
     return send_status(midi::status::clk_stop);
 }
@@ -1337,16 +1372,16 @@ midi_jack::clock_stop ()
 bool
 midi_jack::clock_continue (midi::pulse tick, midi::pulse /*beats*/)
 {
-    midi_jack_data * jkdata = reinterpret_cast<midi_jack_data *>(api_data());
-    int beat_width = 4;                                 // no m_beat_width !!!
-    int ticks_per_beat = midi_api::PPQN() * 10;
-    midi::bpm beats_per_minute = midi_api::BPM();
-    uint64_t tick_rate =
-    (
-        uint64_t(::jack_get_sample_rate(jkdata->jack_client())) * tick * 60.0
-    );
-    long tpb_bpm = long(ticks_per_beat * beats_per_minute * 4.0 / beat_width);
-    uint64_t jack_frame = tick_rate / tpb_bpm;
+    midi_jack_data * jkdata { reinterpret_cast<midi_jack_data *>(api_data()) };
+    int beat_width { 4 };                                 // no m_beat_width !!!
+    int ticks_per_beat { midi_api::PPQN() * 10 };
+    midi::bpm beats_per_minute { midi_api::BPM() };
+    uint64_t tick_rate
+    {
+        uint64_t(::jack_get_sample_rate(jkdata->jack_client()) * tick * 60.0)
+    };
+    long tpb_bpm { long(ticks_per_beat * beats_per_minute * 4.0 / beat_width) };
+    uint64_t jack_frame { tick_rate / tpb_bpm };
     if (::jack_transport_locate(jkdata->jack_client(), jack_frame) == 0)
     {
         /*
@@ -1378,7 +1413,7 @@ midi_jack::clock_continue (midi::pulse tick, midi::pulse /*beats*/)
 int
 midi_jack::poll_for_midi () const
 {
-    const rtmidi_in_data * rtindata = jack_data().rt_midi_in();
+    const rtmidi_in_data * rtindata { jack_data().rt_midi_in() };
     (void) xpc::microsleep(xpc::std_sleep_us());            /* 10 us IIRC   */
     return rtindata->queue().count();
 }
@@ -1409,8 +1444,8 @@ midi_jack::poll_for_midi () const
 bool
 midi_jack::get_midi_event (midi::event * inev)           // input
 {
-    rtmidi_in_data * rtindata = jack_data().rt_midi_in();
-    bool result = ! rtindata->queue().empty();
+    rtmidi_in_data * rtindata { jack_data().rt_midi_in() };
+    bool result { ! rtindata->queue().empty() };
     if (result)
     {
         /*
@@ -1419,7 +1454,7 @@ midi_jack::get_midi_event (midi::event * inev)           // input
          *      result = inev->set_midi_event(rtindata->queue().pop_front());
          */
 
-        midi::message mm = rtindata->queue().pop_front();
+        midi::message mm { rtindata->queue().pop_front() };
         result = inev->set_midi_event(mm);
         if (result)
         {
@@ -1430,12 +1465,12 @@ midi_jack::get_midi_event (midi::event * inev)           // input
              * to perform so it is available for frameworks beside JACK.
              */
 
-            midi::byte st = mm[0];
+            midi::byte st { mm[0] };
 #if defined PLATFORM_DEBUG
             if (midi::is_realtime_msg(st))
             {
-                midi::status eventstat = midi::to_status(st);
-                static int s_count = 0;
+                static int s_count { 0 };
+                midi::status eventstat { midi::to_status(st) };
                 char c;
                 switch (eventstat)
                 {
@@ -1480,17 +1515,17 @@ midi_jack::get_midi_event (midi::event * inev)           // input
 bool
 midi_jack::send_event (const midi::event * ev, midi::byte channel) const
 {
-    midi::byte evstatus = ev->get_status(channel);
+    midi::byte evstatus { ev->get_status(channel) };
     midi::byte d0, d1;
     ev->get_data(d0, d1);
 
-    midi::message message;
-    message.push(evstatus);
-    message.push(d0);
+    midi::message msg;
+    msg.push(evstatus);
+    msg.push(d0);
     if (ev->is_two_bytes())
-        message.push(d1);
+        msg.push(d1);
 
-    if (send_message(message))
+    if (send_message(msg))
     {
         return true;
     }
@@ -1519,8 +1554,8 @@ midi_jack::send_event (const midi::event * ev, midi::byte channel) const
 bool
 midi_jack::send_sysex (const midi::event * ev) const
 {
-    const midi::message & message = ev->get_message();
-    bool result = send_message(message);
+    const midi::message & msg { ev->get_message() };
+    bool result = send_message(msg);
     if (! result)
     {
         errprint("JACK send SysEx failed");
@@ -1570,15 +1605,18 @@ midi_jack::connect_ports        // IN OR OUT!!!!!
     const std::string & destportname
 )
 {
-    bool result = true;
-    midi_jack_data * jkdata = reinterpret_cast<midi_jack_data *>(api_data());
-    result = ! srcportname.empty() && ! destportname.empty();
+    midi_jack_data * jkdata { reinterpret_cast<midi_jack_data *>(api_data()) };
+    bool result { ! srcportname.empty() && ! destportname.empty() };
     if (result)
     {
-        int rc = ::jack_connect
-        (
-            jkdata->jack_client(), srcportname.c_str(), destportname.c_str()
-        );
+        int rc
+        {
+            ::jack_connect
+            (
+                jkdata->jack_client(),
+                srcportname.c_str(), destportname.c_str()
+            )
+        };
         result = rc == 0;
         if (! result)
         {
@@ -1618,7 +1656,7 @@ midi_jack::connect_ports        // IN OR OUT!!!!!
 bool
 midi_jack::send_message (const midi::byte * msg, size_t sz) const
 {
-    bool result = not_nullptr(msg) && sz > 0;
+    bool result { not_nullptr(msg) && sz > 0 };
     if (result)
     {
         midi::message msg;

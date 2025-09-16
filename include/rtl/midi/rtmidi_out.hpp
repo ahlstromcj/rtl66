@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-04
+ * \updates       2025-09-14
  * \license       See above.
  *
  */
@@ -79,13 +79,10 @@ public:
         const std::string & clientname  = ""
     );
     rtmidi_out (const midi::masterbus & mb);
-
     rtmidi_out (const rtmidi_out & other) = delete;
     rtmidi_out & operator = (rtmidi_out & other) = delete;
-
     rtmidi_out (rtmidi_out && other) = default;
     rtmidi_out & operator = (rtmidi_out && other) = default;
-
     virtual ~rtmidi_out ();
 
     /*

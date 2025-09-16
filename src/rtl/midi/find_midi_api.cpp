@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2024-09-04
+ * \updates       2024-09-14
  * \license       See above.
  *
  */
@@ -49,9 +49,9 @@
 namespace rtl
 {
 
-/*------------------------------------------------------------------------
+/*--------------------------------------------------------------------------
  * rtmidi helper functions for derived classes
- *------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------*/
 
 /**
  *  This function probes for an existing MIDI API engine.  It tries to
@@ -71,8 +71,8 @@ namespace rtl
 rtmidi::api
 find_midi_api (rtmidi::api desiredapi, std::string cname)
 {
-    rtmidi::api result = rtmidi::api::unspecified;
-    midi_api * m = nullptr;
+    rtmidi::api result { rtmidi::api::unspecified };
+    midi_api * m { nullptr };
     if (desiredapi == rtmidi::api::unspecified)
         desiredapi = rtmidi::fallback_api();
 
@@ -113,7 +113,7 @@ try_open_midi_api
     unsigned qsize
 )
 {
-    midi_api * result = nullptr;
+    midi_api * result { nullptr };
     try
     {
         if (rapi != rtmidi::api::max)
@@ -188,7 +188,7 @@ try_open_midi_api
     }
     catch (...)
     {
-        std::string msg =_("Unknown exception... fix the catch");
+        std::string msg { _("Unknown exception... fix the catch") };
         errprint(msg.c_str());
     }
     return result;
@@ -292,7 +292,7 @@ try_open_midi_api (const midi::masterbus & mb, midi::port::io iotype)
     }
     catch (...)
     {
-        std::string msg =_("Unknown exception... fix the catch");
+        std::string msg { _("Unknown exception... fix the catch") };
         errprint(msg.c_str());
     }
     return result;

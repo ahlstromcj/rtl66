@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-09-13
+ * \updates       2025-09-14
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -133,6 +133,8 @@ namespace midi
  * \param bp
  *      Provides the beats per minute value, which defaults to
  *      c_beats_per_minute.
+ *
+ *  Some default member values are defined "in-class".
  */
 
 masterbus::masterbus
@@ -142,15 +144,6 @@ masterbus::masterbus
     midi::bpm bp
 ) :
     m_selected_api          (rapi),         /* rtmidi::api::unspecified)    */
-    m_inbus_array           (),
-    m_outbus_array          (),
-    m_dumping_input         (false),
-    m_input_track           (nullptr),
-    m_mutex                 (),
-    m_void_client_handle    (nullptr),
-    m_client_id             (0),
-    m_max_busses            (c_busscount_max),
-    m_client_info           (),
     m_ppqn                  (ppq),
     m_beats_per_minute      (bp),
     m_engine                (*this, rapi)   /* "mbus", keep client name     */

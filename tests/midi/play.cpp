@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-09-13
+ * \updates       2025-09-14
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -42,9 +42,11 @@
  *  It assumes it is run from the top-level directory of the rtl66 project.
  */
 
+#include <cctype>                       /* std::isdigit()                   */
 #include <iostream>                     /* std::cout and std::cerr          */
 
 #include "cfg/appinfo.hpp"              /* cfg::set_client_name()           */
+#include "util/strfunctions.hpp"        /* util::string_to_int()            */
 #include "midi/bus_out.hpp"             /* midi::bus_out class              */
 #include "midi/player.hpp"              /* midi::player class               */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
@@ -157,11 +159,11 @@ static
 bool play_test (midi::player & p, const std::string & file)
 {
     std::string errmsg;
-    std::string testfile { s_base_directory };
-    testfile += "/";
-    testfile += file;
+//  std::string testfile { s_base_directory };
+//  testfile += "/";
+//  testfile += file;
 
-    bool result { p.read_midi_file(testfile, errmsg, false) };
+    bool result { p.read_midi_file(file, errmsg, false) };
     if (result)
     {
         result = p.set_midi_bus(rt_test_port());
@@ -170,13 +172,13 @@ bool play_test (midi::player & p, const std::string & file)
 
         if (result)
         {
-            std::cout << "Success for " << testfile << std::endl;
+            std::cout << "Success for " << file << std::endl;
         }
         else
         {
             result = false;
             std::cerr
-                << "Failed to play " << testfile << "\n"
+                << "Failed to play " << file << "\n"
                 << "Error: " << errmsg << std::endl;
                 ;
         }
@@ -184,7 +186,7 @@ bool play_test (midi::player & p, const std::string & file)
     else
     {
         result = false;
-        std::cerr << "Failed to read " << testfile << std::endl;
+        std::cerr << "Failed to read " << file << std::endl;
     }
     return result;
 }
@@ -206,7 +208,46 @@ main (int argc, char * argv [])
     int rcode { EXIT_FAILURE };
     int out_port = { s_clientinfo.output_portnumber() };    /* --port p     */
     bool can_run = { rt_simple_cli("play", argc, argv) };
+    std::string single_filename { rt_test_name() };
     cfg::set_client_name("play");
+    if (can_run)
+    {
+        if (! single_filename.empty())
+        {
+            if (single_filename == "list")
+            {
+                int i { 0 };
+                for (const auto & file : s_test_files)
+                {
+                    std::string testfile { s_base_directory };
+                    testfile += "/";
+                    testfile += file;
+                    std::cout << "[" << i++ << "] " << testfile << std::endl;
+                }
+                can_run = false;                                /* side test    */
+            }
+            else
+            {
+                if (std::isdigit(single_filename[0]))
+                {
+                    int itemno { util::string_to_int(single_filename) };
+                    if (itemno >= 0 && itemno < int(s_test_files.size()))
+                    {
+                        std::string testfile { s_base_directory };
+                        testfile += "/";
+                        testfile += s_test_files[itemno];
+                        single_filename = testfile;
+                    }
+                }
+                else
+                {
+                    /*
+                     * Will play the given file if it can be found.
+                     */
+                }
+            }
+        }
+    }
     if (can_run)
     {
         if (! rt_virtual_test_port())
@@ -289,14 +330,27 @@ main (int argc, char * argv [])
                 };
                 std::cout << "Running with " << tag << std::endl;
                 rcode = EXIT_SUCCESS;
-                for (const auto & file : s_test_files)
+                if (single_filename.empty())
                 {
-                    bool success { play_test(p, file) };
-                    if (! success)
+                    for (const auto & file : s_test_files)
                     {
-                        rcode = EXIT_FAILURE;
-                        break;
+                        std::string testfile { s_base_directory };
+                        testfile += "/";
+                        testfile += file;
+
+                        bool success { play_test(p, testfile) };
+                        if (! success)
+                        {
+                            rcode = EXIT_FAILURE;
+                            break;
+                        }
                     }
+                }
+                else
+                {
+                    bool success { play_test(p, single_filename) };
+                    if (! success)
+                        rcode = EXIT_FAILURE;
                 }
             }
         }

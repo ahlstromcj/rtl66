@@ -57,7 +57,7 @@ private:
      *  about more than one channel found in a given sequence.
      */
 
-    int m_smf0_channels_count;
+    int m_smf0_channels_count { 0 };
 
     /**
      *  Provides support for SMF 0, holds a bool value that indicates the
@@ -72,7 +72,7 @@ private:
      *  which the single-channel tracks will be created.
      */
 
-    midi::track * m_smf0_main_track;
+    midi::track * m_smf0_main_track { nullptr };
 
     /**
      *  Provides support for SMF 0, holds the prospective sequence number of
@@ -80,7 +80,7 @@ private:
      *  last, for easier and cleaner removal of that sequence by the user.
      */
 
-    midi::track::number m_smf0_main_number;
+    midi::track::number m_smf0_main_number { -1 };
 
 public:
 

@@ -37,6 +37,7 @@
 
 #include <vector>                       /* std::vector container            */
 
+#include "rtl/rtl_build_macros.h"       /* various RTL66_xxx macros         */
 #include "midi/eventcodes.hpp"          /* midi::byte, event status codes   */
 
 namespace midi
@@ -79,7 +80,7 @@ private:
      *  Provides the message counter value when this event was created.
      */
 
-    unsigned m_msg_number;
+    unsigned m_msg_number { 0 };
 
 #endif
 
@@ -90,14 +91,14 @@ private:
      *  caller can know this only by context at present.
      */
 
-    double m_time_stamp;
+    double m_time_stamp { 0.0 };
 
     /**
      *  Holds the event status, length (for events supporting that)
      *  and data bytes.
      */
 
-    container m_bytes;
+    container m_bytes { };
 
 #if defined RTL66_USE_MESSAGE_HEADER_SIZE
 
@@ -107,7 +108,7 @@ private:
      *  data itself. For non-meta, non-sysex events, this should be 0.
      */
 
-    size_t m_header_size;
+    size_t m_header_size { 0 };
 
 #endif
 
@@ -121,7 +122,7 @@ private:
      *  array.
      */
 
-    midi::byte m_channel;       // FOLD INTO STATUS BYTE??
+    midi::byte m_channel { null_channel() };  // FOLD INTO STATUS BYTE??
 
 public:
 
