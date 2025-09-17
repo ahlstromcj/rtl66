@@ -678,13 +678,6 @@ track::set_parent (player * p, lib66::toggler sorting)
             set_length(barlength, false);
 
         (void) midi_bus(nominal_bus());     /* but player::set_midi_bus()!  */
-        if (track_number() == 0)            /* i.e. the first/tempo track   */
-        {
-        }
-
-        // beats_per_bar(p->get_beats_per_bar());
-        // beat_width(p->get_beat_width());
-
         set_active(true);
         unmodify();
     }

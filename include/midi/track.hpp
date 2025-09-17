@@ -393,9 +393,7 @@ public:
 
     void set_timesig_info (const timesiginfo & tsi)
     {
-        info().timesig_info() = tsi;
-//      m_beats_per_bar = tsi.beats_per_bar();
-//      m_beat_width = tsi.beat_width();
+        info().timesig_info() = tsi;        /* beats/bar, beat width, etc.  */
     }
 
     keysiginfo & key_sig_info ()
@@ -600,7 +598,7 @@ public:
     int calculate_measures (bool reset) const;
 
     /**
-     *  These function recalculate based on the player's PPQN value.
+     *  These functions recalculate based on the player's PPQN value.
      *  Before the parent is set, set_timesig_info() is called, and that
      *  merely sets the member variables.
      */

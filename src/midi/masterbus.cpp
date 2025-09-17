@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-09-14
+ * \updates       2025-09-17
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI

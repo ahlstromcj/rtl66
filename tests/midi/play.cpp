@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-09-14
+ * \updates       2025-09-17
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -52,10 +52,7 @@
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
-
-#if defined PLATFORM_DEBUG_TMI
 #include "xpc/timing.hpp"               /* xpc::millisleep()                */
-#endif
 
 /**
  *  Client info
@@ -98,7 +95,7 @@ static const lib66::tokenization s_test_files
     "1Bar.midi",
     "simpleblast-ch1-8th-notes.midi",
     "simpleblast-ch1-8th-notes-960.midi",
-    "smoke.mid",
+    "smoke.mid"
 };
 
 /**
@@ -108,10 +105,6 @@ static const lib66::tokenization s_test_files
 static
 bool play_it (midi::player & p, std::string & errmsg)
 {
-#if defined PLATFORM_DEBUG_TMI
-     p.print_tracks("Play");                /* show all events in tracks    */
-#endif
-
     /*
      * The first call just zips through playback, ignoring time-stamps.
      * The second call does not start playback properly. The third
@@ -129,18 +122,17 @@ bool play_it (midi::player & p, std::string & errmsg)
         result = p.auto_pause();            /* vs auto_play(), auto_stop()  */
         if (result)
         {
-#if defined PLATFORM_DEBUG_TMI
-            while (! p.at_song_end())
-            {
-                midi::pulse t = p.get_tick();
-                printf("tick %d\n", int(t));
-            }
-            xpc::millisleep(192);
-#else
             while (! p.at_song_end())       /* plus an extra PPQN / 4       */
                 ;
-#endif
+
             (void) p.auto_stop();
+
+            /*
+             * If we don't wait a bit before the next tune, it can play
+             * incorrectly (e.g. very slowly).
+             */
+
+            xpc::millisleep(1000);
         }
     }
     if (! result)
@@ -159,10 +151,6 @@ static
 bool play_test (midi::player & p, const std::string & file)
 {
     std::string errmsg;
-//  std::string testfile { s_base_directory };
-//  testfile += "/";
-//  testfile += file;
-
     bool result { p.read_midi_file(file, errmsg, false) };
     if (result)
     {

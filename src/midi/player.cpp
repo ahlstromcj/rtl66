@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-09-13
+ * \updates       2025-09-17
  * \license       GNU GPLv2 or above
  *
  */
@@ -191,6 +191,30 @@ player::modified () const
  */
 
 /**
+ *  Helper function.
+ */
+
+bool
+player::get_base_timing (track * trk)
+{
+    bool result { not_nullptr(trk)  };
+    if (result)
+    {
+        /*
+         * This is a better location than track::set_parent().
+         */
+
+        result = beats_per_bar(trk->beats_per_bar());
+        if (result)
+            result = beat_width(trk->beat_width());
+
+        if (result)
+            result = beats_per_minute(trk->beats_per_minute());
+    }
+    return result;
+}
+
+/**
  *  It assumes values have already been checked.  It does not set the "is
  *  modified" flag, since adding a track by loading a MIDI file should not
  *  set it.  This function *does not* delete the track already present with
@@ -226,31 +250,28 @@ player::install_track
         trkno = trk->track_number();            /* side-effect              */
         if (trkno == 0)                         /* first track/tempo track  */
         {
-            /*
-             * This is a better location than track::set_parent().
-             */
-
-            (void) beats_per_bar(trk->beats_per_bar());
-            (void) beat_width(trk->beat_width());
-            (void) beats_per_minute(trk->beats_per_minute());
+            result = get_base_timing(trk);
         }
         if (trkno > track_high())
             m_track_high = trkno;
 
-#if defined PLATFORM_DEBUG_TMI
-        std::string label { "Installed track " };
-        label += std::to_string(trk->track_number());
-        label += ": ";
-        label += trk->track_name();
-        printf("%s\n", label.c_str());
-#endif
-        lib66::toggler sorting
+        if (result)
         {
-            m_sort_on_install ? lib66::toggler::on : lib66::toggler::off
-        };
-        trk->set_parent(this, sorting);         /* also sets a lot of stuff */
-        if (! fileload)
-            modify();
+#if defined PLATFORM_DEBUG_TMI
+            std::string label { "Installed track " };
+            label += std::to_string(trk->track_number());
+            label += ": ";
+            label += trk->track_name();
+            printf("%s\n", label.c_str());
+#endif
+            lib66::toggler sorting
+            {
+                m_sort_on_install ? lib66::toggler::on : lib66::toggler::off
+            };
+            trk->set_parent(this, sorting);     /* also sets a lot of stuff */
+            if (! fileload)
+                modify();
+        }
     }
     return result;
 }
@@ -2273,7 +2294,7 @@ player::get_max_extent () const
 bool
 player::at_song_end ()
 {
-    if (get_tick() < (max_extent() + get_ppqn() / 4))
+    if (get_tick() < (max_extent() + get_ppqn()))
     {
         xpc::millisleep(100);
         return false;

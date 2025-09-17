@@ -977,6 +977,8 @@ public:
 
 protected:
 
+    bool get_base_timing (track * trk);
+
     rtl::iothread & out_thread ()
     {
         return m_out_thread;
