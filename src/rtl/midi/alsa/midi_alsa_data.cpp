@@ -24,12 +24,13 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2024-09-14
+ * \updates       2024-09-26
  * \license       See above.
  *
  */
 
-#include "rtl/midi/alsa/midi_alsa_data.hpp"  /* RTL66_EXPORT, etc.          */
+#include "rtl/midi/alsa/midi_alsa_data.hpp" /* RTL66_EXPORT, etc.           */
+#include "util/msgfunctions.hpp"            /* util::warn_message(), etc.   */
 
 #if defined RTL66_BUILD_ALSA
 
@@ -50,14 +51,20 @@ midi_alsa_data::midi_alsa_data () : m_trigger_fds ()    /* 2-element array  */
     m_buffer.reset(new (std::nothrow) midi::byte [buffer_size()]);
 }
 
+midi_alsa_data::~midi_alsa_data ()
+{
+    unallocate();
+    (void) free_event_parser();
+}
+
 void
 midi_alsa_data::clear ()
 {
     m_alsa_client = nullptr;
     m_portnum = m_vport = -1;
     m_subscription = nullptr;
-    m_event_parser = nullptr;
     unallocate();
+    (void) free_event_parser();
 }
 
 bool
@@ -71,12 +78,6 @@ midi_alsa_data::initialize
     bool result { true };
     if (is_initialized())
         return result;
-
-    /*
-     * Necessary?
-     *
-     * clear();
-     */
 
     m_alsa_client = seq;
     m_portnum = m_vport = (-1);
@@ -94,13 +95,13 @@ midi_alsa_data::initialize
         m_dummy_thread_id = pthread_self();
         m_thread = m_dummy_thread_id;
         m_trigger_fds[0] = m_trigger_fds[1] = (-1);
-        buffer_size(buffsize); ////////////// validate with midiout!!!!
+        buffer_size(buffsize);
 
         int rc { pipe(m_trigger_fds) };
         result = rc == 0;
         if (! result)
         {
-            errprint("ALSA pipe() failed");
+            util::error_message("ALSA pipe() failed");
         }
     }
     else if (iotype == midi::port::io::output)
@@ -108,26 +109,22 @@ midi_alsa_data::initialize
         m_event_parser = nullptr;
 
         /*
-         * result = create_event_parser(buffsize);
+         * result = new_event_parser(buffsize);
          */
 
         int rc { ::snd_midi_event_new(buffsize, &m_event_parser) };
         result = rc == 0;
         if (result)
         {
-            result = reallocate(buffsize);      // why??????
-            if (result)
+            result = reallocate(buffsize);
+            if (! result)
             {
-                ::snd_midi_event_init(m_event_parser);
-            }
-            else
-            {
-                errprint("buffer allocation failed");
+                util::error_message("buffer allocation failed");
             }
         }
         else
         {
-            errprint("snd_midi_event_new() failed");
+            util::error_message("snd_midi_event_new() failed");
         }
     }
     /*
@@ -151,6 +148,8 @@ midi_alsa_data::reallocate (size_t buffsize)
         result = not_nullptr(buffer());
         if (result)
             buffer_size(buffsize);
+        else
+            util::error_message("reallocate() error");
     }
     return result;
 }
@@ -167,10 +166,10 @@ midi_alsa_data::unallocate ()
  *------------------------------------------------------------------------*/
 
 /**
- *  Creates a MIDI event parser. This function creates and initializes a
- *  MIDI parser object to convert a MIDI byte stream to sequencer events
- *  (encoding) or to convert sequencer events to a MIDI byte stream
- *  (decoding).
+ *  Creates and initializes a MIDI event parser. This function creates and
+ *  initializes a MIDI parser object to convert a MIDI byte stream to
+ *  sequencer events (encoding) or to convert sequencer events to a MIDI
+ *  byte stream (decoding).
  *
  *  The ALSA function snd_midi_event_init() resets both the encoder and
  *  decoder of the event parser.
@@ -183,38 +182,51 @@ midi_alsa_data::unallocate ()
  *      The size of the buffer used for encoding, which should be large
  *      enough to hold the largest MIDI message to be encoded.
  *
- * \param [out]	rdev
- *      The pointer to the pointer to point to the new MIDI event parser.
- *
  * \return
- *      Returns 0 on success, otherwise a negative error code (-ENOMEM for
- *      "out of memory").
+ *      Returns true on success. An error likely means "out of memory".
  */
 
 bool
-midi_alsa_data::create_event_parser (size_t buffsize)
+midi_alsa_data::new_event_parser (size_t buffsize)
 {
-    (void) delete_event_parser();       // m_event_ZZ
     if (buffsize == 0)
         buffsize = buffer_size();
 
     int rc { ::snd_midi_event_new(buffsize, &m_event_parser) };
-    bool result = rc == 0;
+    return rc == 0;
+}
+
+bool
+midi_alsa_data::init_event_parser (size_t buffsize)
+{
+    bool result { new_event_parser(buffsize) };
     if (result)
     {
-        ::snd_midi_event_init(m_event_parser);
+        ::snd_midi_event_init(m_event_parser);      /* actually redundant   */
         ::snd_midi_event_no_status(m_event_parser, 1);
+    }
+    return result;
+}
+
+bool
+midi_alsa_data::resize_event_parser (size_t buffsize)
+{
+    bool result { reallocate(buffsize) };
+    if (result)
+    {
+        int rc { ::snd_midi_event_resize_buffer(event_parser(), buffsize) };
+        result = rc == 0;
     }
     return result;
 }
 
 /**
  *  This function frees the event parser and indicates that by
- *  nullifying the parser ointer.
+ *  nullifying the parser pointer.
  */
 
 bool
-midi_alsa_data::delete_event_parser ()
+midi_alsa_data::free_event_parser ()
 {
     bool result { not_nullptr(m_event_parser) };
     if (result)
@@ -223,6 +235,15 @@ midi_alsa_data::delete_event_parser ()
        m_event_parser = nullptr;
     }
     return result;
+}
+
+void
+midi_alsa_data::handler_cleanup ()
+{
+    unallocate();
+    ::snd_midi_event_free(event_parser());
+    event_parser(nullptr);
+    thread_handle(dummy_thread_id());
 }
 
 }           // namespace rtl

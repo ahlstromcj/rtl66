@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-06-25
- * \updates       2025-08-27
+ * \updates       2025-09-26
  * \license       See above.
  *
  *      Tests that the C API for rtl (RtMidi refactored) is working.
@@ -48,6 +48,7 @@
 
 #include <iostream>
 
+#include "cfg/appinfo.hpp"              /* cfg::set_client_name()           */
 #include "midi/message.hpp"             /* midi::message class              */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
@@ -63,6 +64,8 @@ main (int argc, char * argv [])
     bool can_run { rt_simple_cli("midiout", argc, argv) };
     if (can_run)
     {
+        cfg::set_app_name("midiout");
+        cfg::set_client_name("midiout-client");
         try
         {
             /*
@@ -147,7 +150,8 @@ main (int argc, char * argv [])
         }
         catch (rtl::rterror & error)
         {
-            exit(EXIT_FAILURE);     // error.print_message();
+            error.print_message();
+            exit(EXIT_FAILURE);
         }
     }
     return 0;

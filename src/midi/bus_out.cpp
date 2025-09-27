@@ -72,7 +72,7 @@ bus_out::bus_out
 {
     if (not_nullptr(midi_api_ptr()))            /* midi_api object's ptr    */
     {
-        (void) m_rtmidi_out.open_port(port_id(), port_name());
+        (void) m_rtmidi_out.open_port(port_index(), port_name());
     }
 }
 

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2025-09-14
+ * \updates       2025-09-21
  * \license       See above.
  *
  */
@@ -65,7 +65,21 @@ private:
     int m_portnum { -1 };
     int m_vport { -1 };
     snd_seq_port_subscribe_t * m_subscription { nullptr };
+
+    /**
+     *  This event parser is created in the ALSA handler and freed at the end
+     *  of it and in case of error. It is init'd and used to turn off running
+     *  status. It is used to decode events.
+     *
+     *  It is also created in initialize(), init'd there, and freed in the
+     *  MIDI-out destructor.
+     *
+     *  It can be resized in send_message(), where in encodes the MIDI
+     *  message.
+     */
+
     snd_midi_event_t * m_event_parser { nullptr };
+
     size_t m_buffer_size { c_event_size_max };      /* increase as needed   */
 
     /**
@@ -76,7 +90,7 @@ private:
      *      midi::byte * m_buffer { nullptr };
      */
 
-    std::unique_ptr<midi::byte> m_buffer { };
+    std::unique_ptr<midi::byte []> m_buffer { };
 
     pthread_t m_thread { };
     pthread_t m_dummy_thread_id { };
@@ -91,11 +105,7 @@ public:
     midi_alsa_data (midi_alsa_data &&) = default;
     midi_alsa_data & operator = (const midi_alsa_data &) = default;
     midi_alsa_data & operator = (midi_alsa_data &&) = default;
-
-    ~midi_alsa_data ()
-    {
-        unallocate();
-    }
+    ~midi_alsa_data ();
 
     void clear ();
     bool initialize
@@ -152,10 +162,12 @@ public:
         return m_event_parser;
     }
 
+#if 0
     snd_midi_event_t ** event_parser_address ()
     {
         return &m_event_parser;
     }
+#endif
 
     size_t buffer_size () const
     {
@@ -229,11 +241,6 @@ public:
         m_subscription = sp;
     }
 
-    void event_parser (snd_midi_event_t * ep)
-    {
-        m_event_parser = ep;
-    }
-
     void buffer_size (size_t sz)
     {
         m_buffer_size = sz;
@@ -266,8 +273,18 @@ public:
 
 public:     // wrapper functions for some of the data items
 
-    bool create_event_parser (size_t buffsize = 0);
-    bool delete_event_parser ();
+    bool new_event_parser (size_t buffsize = 0);
+    bool init_event_parser (size_t buffsize = 0);
+    bool free_event_parser ();
+    bool resize_event_parser (size_t buffsize);
+    void handler_cleanup ();
+
+private:
+
+    void event_parser (snd_midi_event_t * ep)
+    {
+        m_event_parser = ep;
+    }
 
 };          // class midi_alsa_data
 

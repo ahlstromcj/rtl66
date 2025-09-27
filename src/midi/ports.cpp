@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-09-13
+ * \updates       2025-09-26
  * \license       See above.
  *
  * Classes defined:
@@ -168,11 +168,11 @@ ports::add
  *  Retrieve the index of a client:port combination (e.g. in ALSA, the output
  *  of the "aplaymidi -l" or "arecordmidi -l" commands) in the port-container.
  *
- * \param client
- *      Provides the client number.
+ * \param bussnum
+ *      Provides the buss number, the major number of "bus:port"..
  *
- * \param port
- *      Provides the port number, the number of a sub-port of the client.
+ * \param portnum
+ *      Provides the port number, the number of a sub-port of the bus.
  *
  * \return
  *      Returns the index of the pair in the port container, which will match
@@ -182,7 +182,7 @@ ports::add
  */
 
 bussbyte
-ports::get_port_index (int bussnum, int portnum) const
+ports::get_port_id (int bussnum, int portnum) const
 {
     bussbyte result { null_buss() };
     for (int i = 0; i < m_port_count; ++i)
@@ -220,6 +220,22 @@ ports::get_connect_name (int index) const
         }
     }
     return result;
+}
+
+midi::port &
+ports::portref (int index)
+{
+    static midi::port s_dummy;
+    return index < get_port_count() ?
+        m_port_container[index] : s_dummy ;
+}
+
+const midi::port &
+ports::portref (int index) const
+{
+    static midi::port s_dummy;
+    return index < get_port_count() ?
+        m_port_container[index] : s_dummy ;
 }
 
 /**

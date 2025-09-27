@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-14
+ * \updates       2025-09-27
  * \license       See above.
  *
  */
@@ -111,14 +111,14 @@ private:
      *  Moved the client name to this class.
      */
 
-    std::string m_client_name;
+    std::string m_client_name { "rtl-jack" };
 
     /**
      *  Moved the JACK data to this class, and now it doesn't have to
      *  be allocated, just have it's pointer assigned.
      */
 
-    midi_jack_data m_jack_data;
+    midi_jack_data m_jack_data { };
 
 public:
 
@@ -162,6 +162,14 @@ public:
 
 protected:
 
+    bool is_port_valid (const std::string & name);
+    void show_connection_status
+    (
+        const std::string & src,
+        const std::string & dest,
+        bool ok
+    );
+
     jack_client_t * client_handle (void * c)
     {
         return reinterpret_cast<jack_client_t *>(c);
@@ -169,19 +177,7 @@ protected:
 
     jack_client_t * client_handle ()
     {
-#if defined USE_HAS_MASTER
-
-        /*
-         * rtmidi::set_master() copies the masterbus client handle
-         * into the data structure.
-         */
-
-        return has_master() ?
-            reinterpret_cast<jack_client_t *>(master_bus()->client_handle()) :
-            jack_data().jack_client() ;
-#else
         return jack_data().jack_client();
-#endif
     }
 
     virtual void * void_client_handle () override
@@ -204,8 +200,6 @@ protected:
     virtual bool engine_deactivate () override;
     virtual bool connect () override;
     virtual bool reuse_connection () override;
-    virtual int get_port_count () override;
-    virtual std::string get_port_name (int portnumber) override;
 
     /*
      * MIDI port functions
@@ -221,8 +215,22 @@ protected:
     virtual bool close_port () override;
     virtual bool set_client_name (const std::string & clientname) override;
     virtual bool set_port_name (const std::string & portname) override;
+    virtual int get_port_count () override;
+    virtual std::string get_port_name (int portnumber) override;
+
+    /*
+     * Not in JACK.
+     *
+     *      virtual bool flush () override;
+     */
 
 protected:
+
+    bool set_auxiliary_callbacks
+    (
+        jack_client_t * c,
+        const std::string & uuid = ""
+    );
 
     /*
      * These functions are deliberately not virtual.
@@ -238,8 +246,9 @@ protected:
         return reinterpret_cast<midi_jack_data *>(api_data());
     }
 
-    void delete_port ();
-    bool create_ringbuffer (size_t rbsize);
+public:
+
+#if defined RTL66_MIDI_EXTENSIONS       // defined in Linux, FIXME
 
     /*--------------------------------------------------------------------
      * Extensions
@@ -250,8 +259,6 @@ protected:
         midi::ports & inputports, bool preclear = true
     ) override;
     virtual std::string get_port_alias (const std::string & name) override;
-
-#if defined RTL66_MIDI_EXTENSIONS       // defined in Linux, FIXME
 
     virtual bool PPQN (midi::ppqn ppq) override;
     virtual bool BPM (midi::bpm bp) override;
@@ -284,15 +291,21 @@ protected:
     virtual bool send_message (const midi::byte * msg, size_t sz) const override;
     virtual bool send_sysex (const midi::event * ev) const override;
 
+#endif  // defined RTL66_MIDI_EXTENSIONS
+
+    /*
+     * Helper functions to enhance readability.
+     */
+
+
     bool connect_ports
     (
         midi::port::io iotype,
         const std::string & srcportname,
         const std::string & destportname
     );
-
-#endif  // defined RTL66_MIDI_EXTENSIONS
-
+    void delete_port ();
+    bool create_ringbuffer (size_t rbsize);
 
 };          // class midi_jack
 

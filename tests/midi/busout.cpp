@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2025-08-26
- * \updates       2025-09-07
+ * \updates       2025-09-26
  * \license       See above.
  *
  *      This application has elements of the play test application,
@@ -36,6 +36,7 @@
 
 #include <iostream>
 
+#include "cfg/appinfo.hpp"              /* cfg::set_client_name()           */
 #include "midi/bus_out.hpp"             /* midi::bus_out class              */
 #include "midi/event.hpp"               /* midi::event class                */
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
@@ -56,7 +57,7 @@ midi::client_defaults s_clientinfo_defaults
 {
     RTL66_VERSION,                      /* API version                      */
     "playclient",                       /* client name                      */
-    "play",                             /* client name                      */
+    "play",                             /* app name                         */
     false,                              /* JACK MIDI                        */
     false,                              /* virtual ports                    */
     0,                                  /* no virtual input ports           */
@@ -76,7 +77,12 @@ midi::client_defaults s_clientinfo_defaults
  *  The port-numbers can be changed, so this item is not const.
  */
 
-midi::clientinfo s_clientinfo { s_clientinfo_defaults };
+midi::clientinfo &
+app_client_info ()
+{
+    static midi::clientinfo s_clientinfo { s_clientinfo_defaults };
+    return s_clientinfo;
+}
 
 /**
  *  Provides a masterbus object, of which only a few facilties will be
@@ -150,6 +156,8 @@ main (int argc, char * argv [])
     bool can_run { rt_simple_cli("busout", argc, argv) };
     if (can_run)
     {
+        cfg::set_app_name(app_client_info().app_name());
+        cfg::set_client_name(app_client_info().client_name());
         try
         {
             if (! rt_virtual_test_port())
@@ -168,10 +176,10 @@ main (int argc, char * argv [])
         if (can_run)
         {
             int portnumber { rt_test_port() };
-            s_clientinfo.output_portnumber(portnumber);
+            app_client_info().output_portnumber(portnumber);
 
             rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
-            midi::masterbus & master { master_bus(rapi, s_clientinfo) };
+            midi::masterbus & master { master_bus(rapi, app_client_info()) };
             midi::bus & outbus { master.get_out_bus(portnumber) };
             can_run = outbus.initialize();
             if (can_run)

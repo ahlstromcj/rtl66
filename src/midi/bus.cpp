@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-09-13
+ * \updates       2025-09-27
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -55,6 +55,10 @@
 #include "rtl/midi/midi_api.hpp"        /* rtl::midi_api base class         */
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
 #include "midi/bus.hpp"                 /* midi::bus class                  */
+
+#if defined PLATFORM_DEBUG
+#include "util/msgfunctions.hpp"        /* util::verbose                    */
+#endif
 
 #if defined RTL66_FULL_MASTERBUS_SUPPORT
 #pragma message ("Full masterbus support enabled")
@@ -155,7 +159,6 @@ bus::bus
         iotype == midi::port::io::input ||
         iotype == midi::port::io::output
     };
-
     if (ok)
         ok = index >= 0;
 
@@ -168,22 +171,27 @@ bus::bus
             const midi::port & p { portlist.portref(index) };
             m_port = p;
 #if defined PLATFORM_DEBUG   // TODO add clocking
-            printf
-            (
-                "Bus #%d:\n"
-                "  Bus ID: %d '%s'\n"
-                "  Port ID: %d '%s', alias '%s'\n"
-                "  Port I/O: '%s'\n"
-                "  Port Kind: '%s'\n"
-                "  I/O Status: '%s'\n"
-                ,
-                index,
-                bus_number(), bus_name().c_str(),
-                port_number(), port_name().c_str(), port_alias().c_str(),
-                io_to_string(io_type()).c_str(),
-                kind_to_string(port_type()).c_str(),
-                clocking_to_string(clock_type()).c_str()
-            );
+            if (util::verbose())
+            {
+                printf
+                (
+                    "Bus #%d:\n"
+                    "  Bus No.    : %d '%s'\n"
+                    "  Port No.   : %d '%s', alias '%s'\n"
+                    "  Port Index : %d\n"
+                    "  Port I/O   : '%s'\n"
+                    "  Port Kind  : '%s'\n"
+                    "  I/O Status : '%s'\n"
+                    ,
+                    index,
+                    bus_number(), bus_name().c_str(),
+                    port_number(), port_name().c_str(), port_alias().c_str(),
+                    port_index(),
+                    io_to_string(io_type()).c_str(),
+                    kind_to_string(port_type()).c_str(),
+                    clocking_to_string(clock_type()).c_str()
+                );
+            }
 #endif
         }
     }

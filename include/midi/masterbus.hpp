@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-09-13
+ * \updates       2025-09-26
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -461,7 +461,8 @@ public:     // public because used in test applications
 
 protected:  // API pass-alongs
 
-    bool engine_connect ();
+    void * engine_connect ();
+    void engine_disconnect ();
 
 protected:  // API implementations
 

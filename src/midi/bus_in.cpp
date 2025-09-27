@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-09-04
+ * \updates       2025-09-26
  * \license       GNU GPLv2 or above
  *
  */
@@ -60,7 +60,7 @@ bus_in::bus_in
     (void) queuesizelimit;                      /* masterbus::queue_size()  */
     if (not_nullptr(midi_api_ptr()))            /* midi_api object's ptr    */
     {
-        (void) m_rtmidi_in.open_port(port_id(), port_name());
+        (void) m_rtmidi_in.open_port(port_index(), port_name());
     }
 }
 

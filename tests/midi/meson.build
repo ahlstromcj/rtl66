@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-13
-# \updates     2025-08-26
+# \updates     2025-09-26
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the "rtl66" library. See the top-level meson.build
@@ -37,7 +37,10 @@ cbmidiin_exe = executable(
 busout_exe = executable(
    'busout',
    sources : ['busout.cpp'],
-   dependencies : [ rtl66_dep, liblib66_library_dep, libxpc66_library_dep ]
+   dependencies : [
+      rtl66_dep, liblib66_library_dep, libcfg66_library_dep,
+      libxpc66_library_dep
+      ]
    )
 
 midiclock_in_exe = executable(
@@ -55,7 +58,7 @@ midiclock_out_exe = executable(
 midiout_exe = executable(
    'midiout',
    sources : ['midiout.cpp'],
-   dependencies : [ rtl66_dep, liblib66_library_dep ]
+   dependencies : [ rtl66_dep, liblib66_library_dep, libcfg66_library_dep ]
    )
 
 midiprobe_exe = executable(
@@ -101,9 +104,9 @@ play_exe = executable(
    'play',
    sources : ['play.cpp'],
    dependencies : [
-                     rtl66_dep, liblib66_library_dep, libcfg66_library_dep,
-                     libxpc66_library_dep
-                     ]
+      rtl66_dep, liblib66_library_dep, libcfg66_library_dep,
+      libxpc66_library_dep
+      ]
    )
 
 test('API Names', api_names_exe)

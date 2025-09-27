@@ -146,7 +146,7 @@ midi_api::cancel_input_callback ()
     if (! m_input_data.using_callback())
     {
         std::string msg { "rtmidi_in::cancel_callback: no function set" };
-        error (rterror::kind::warning, msg);
+        error(rterror::kind::warning, msg);
         return;
     }
     m_input_data.clear_callback();

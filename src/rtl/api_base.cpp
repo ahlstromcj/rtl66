@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2023-03-08
- * \updates       2025-09-13
+ * \updates       2025-09-26
  * \license       See above.
  *
  */
@@ -34,6 +34,7 @@
 
 #include "c_macros.h"                   /* not_nullptr() and friends        */
 #include "rtl/api_base.hpp"             /* rtl::api_base class              */
+#include "util/msgfunctions.hpp"        /* util::warn_message() etc.        */
 
 namespace rtl
 {
@@ -45,14 +46,20 @@ namespace rtl
 void
 error_print (const std::string & tag, const std::string & msg)
 {
-    std::cerr << tag << ": " << msg << std::endl;
+    (void) util::warn_message(tag, msg);
+}
+
+void
+status_print (const std::string & tag, const std::string & msg)
+{
+    (void) util::status_message(tag, msg);
 }
 
 void
 debug_print (const std::string & tag, const std::string & msg)
 {
 #if defined PLATFORM_DEBUG
-    std::cout << tag << ": " << msg << std::endl;
+    (void) util::debug_message(tag, msg);
 #else
     (void) tag;
     (void) msg;
@@ -104,17 +111,17 @@ api_base::error (rterror::kind type, const std::string & errmsg) const
     {
         if (type == rterror::kind::warning)
         {
-            std::cerr << '\n' << errmsg << "\n";
+            (void) util::warn_message(errmsg);
         }
         else if (type == rterror::kind::debug_warning)
         {
 #if defined PLATFORM_DEBUG
-            std::cerr << '\n' << errmsg << "\n";
+            util::debug_message(errmsg);
 #endif
         }
         else
         {
-            std::cerr << '\n' << errmsg << "\n";
+            (void) util::error_message(errmsg);
             throw rterror(errmsg, type);
         }
     }
@@ -129,19 +136,25 @@ api_base::error (const std::string & tag, int portnumber) const
 }
 
 void
+api_base::warning (const std::string & warnmsg) const
+{
+    error(rterror::kind::warning, warnmsg);
+}
+
+void
 api_base::warning_no_devices(const std::string & tag, bool isoutput)
 {
     std::ostringstream ost;
     ost << tag << ": no " <<
     (isoutput ? "output" : "input") << " devices available";
-    error(rterror::kind::warning, ost.str());
+    warning(ost.str());
 }
 
 void
 api_base::warning_unimplemented(const std::string & tag)
 {
     std::string msg { tag + ": unimplemented" };
-    error(rterror::kind::warning, msg);
+    warning(msg);
 }
 
 }           // namespace rtl

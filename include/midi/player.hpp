@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-10
- * \updates       2025-09-08
+ * \updates       2025-09-27
  * \license       GNU GPLv2 or above
  *
  *  The player class is a severely cut-down version of seq66::performer, with
@@ -873,7 +873,7 @@ public:
 
     bool set_track_name (midi::track::ref s, const std::string & name);
     bool set_midi_bus (midi::track::number trkno, int b);
-    bool set_midi_bus (int b);
+    bool set_midi_bus (int b, bool user_change = false);
     bool set_midi_channel (midi::track::number trkno, int channel);
     bool set_recording
     (

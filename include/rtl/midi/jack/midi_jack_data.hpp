@@ -94,7 +94,9 @@ class RTL66_DLL_PUBLIC midi_jack_data
 
     /**
      *  Holds a pointer to the size of data for communicating between the
-     *  client ring-buffer and the JACK port's internal buffer.
+     *  client ring-buffer and the JACK port's internal buffer. Note that
+     *  the actual writable size is usually 1 less than the ringbuffer's
+     *  size.
      */
 
     xpc::ring_buffer<midi::message> * m_jack_buffer { nullptr };

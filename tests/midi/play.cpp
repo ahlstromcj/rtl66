@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-09-17
+ * \updates       2025-09-26
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -54,6 +54,9 @@
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
 #include "xpc/timing.hpp"               /* xpc::millisleep()                */
 
+namespace
+{
+
 /**
  *  Client info
  */
@@ -62,7 +65,7 @@ midi::client_defaults s_clientinfo_defaults
 {
     RTL66_VERSION,                      /* API version                      */
     "playclient",                       /* client name                      */
-    "play",                             /* client name                      */
+    "play",                             /* app name                         */
     false,                              /* JACK MIDI                        */
     false,                              /* virtual ports                    */
     0,                                  /* no virtual input ports           */
@@ -82,14 +85,20 @@ midi::client_defaults s_clientinfo_defaults
  *  The port-numbers can be changed, so this item is not const.
  */
 
-static midi::clientinfo s_clientinfo { s_clientinfo_defaults };
+midi::clientinfo &
+app_client_info ()
+{
+    static midi::clientinfo s_clientinfo { s_clientinfo_defaults };
+    return s_clientinfo;
+}
 
 /**
  *  Tests of MIDI file parsing and writing for various files.
  */
 
-static const std::string s_base_directory { "tests/data/midi" };
-static const lib66::tokenization s_test_files
+const std::string s_base_directory { "tests/data/midi" };
+
+const lib66::tokenization s_test_files
 {
     "1Bar-export.mid",                      /* a simple standard MIDI file  */
     "1Bar.midi",
@@ -102,8 +111,8 @@ static const lib66::tokenization s_test_files
  *  Assumes the player has already been set up.
  */
 
-static
-bool play_it (midi::player & p, std::string & errmsg)
+bool
+play_it (midi::player & p, std::string & errmsg)
 {
     /*
      * The first call just zips through playback, ignoring time-stamps.
@@ -147,14 +156,14 @@ bool play_it (midi::player & p, std::string & errmsg)
  *  Assumes the player has already been set up.
  */
 
-static
-bool play_test (midi::player & p, const std::string & file)
+bool
+play_test (midi::player & p, const std::string & file)
 {
     std::string errmsg;
     bool result { p.read_midi_file(file, errmsg, false) };
     if (result)
     {
-        result = p.set_midi_bus(rt_test_port());
+        result = p.set_midi_bus(rt_test_port());    /* not a user change    */
         if (result)
             result = play_it(p, errmsg);
 
@@ -179,6 +188,8 @@ bool play_test (midi::player & p, const std::string & file)
     return result;
 }
 
+}           // namespace anonymous
+
 /**
  *  The main routine. It first checks if a port was specified and queries
  *  the user if not. If valid, then the test files are opened and played.
@@ -194,10 +205,11 @@ int
 main (int argc, char * argv [])
 {
     int rcode { EXIT_FAILURE };
-    int out_port = { s_clientinfo.output_portnumber() };    /* --port p     */
+    int out_port = { app_client_info().output_portnumber() };    /* --port p     */
     bool can_run = { rt_simple_cli("play", argc, argv) };
     std::string single_filename { rt_test_name() };
-    cfg::set_client_name("play");
+    cfg::set_app_name(app_client_info().app_name());
+    cfg::set_client_name(app_client_info().client_name());
     if (can_run)
     {
         if (! single_filename.empty())
@@ -260,7 +272,7 @@ main (int argc, char * argv [])
         if (can_run)
         {
             set_rt_test_port(out_port);                 /* port of interest */
-            s_clientinfo.output_portnumber(out_port);
+            app_client_info().output_portnumber(out_port);
         }
     }
     if (can_run)
@@ -269,7 +281,7 @@ main (int argc, char * argv [])
          * Later we will add the PPQN and BPM parameters.
          */
 
-        can_run = midi::set_global_client_info(s_clientinfo);
+        can_run = midi::set_global_client_info(app_client_info());
 
         /*
          * This function:

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-09-05
+ * \updates       2025-09-26
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -188,8 +188,9 @@ clientinfo::port_list (port::io iotype) const
             annotation = "system";
 
         os
-            << "  [" << i << "] "
-            << get_bus_id(iotype, i) << ":" << get_port_id(iotype, i) << " "
+            << "  [" << get_port_index(iotype, i) << "] " // "[" << i << "] "
+            << get_bus_number(iotype, i) << ":"
+            << get_port_number(iotype, i) << " "
             << get_bus_name(iotype, i) << ":" << get_port_name(iotype, i)
             ;
 

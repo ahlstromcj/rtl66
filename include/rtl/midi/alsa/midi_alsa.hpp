@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-14
+ * \updates       2025-09-19
  * \license       See above.
  *
  */
@@ -99,7 +99,9 @@ public:
         unsigned queuesize              = 0
     );
     midi_alsa (const midi_alsa &) = delete;
+    midi_alsa (midi_alsa &&) = delete;
     midi_alsa & operator = (const midi_alsa &) = delete;
+    midi_alsa & operator = (midi_alsa &&) = delete;
     virtual ~midi_alsa ();
 
     virtual rtmidi::api get_current_api () override
@@ -141,13 +143,7 @@ protected:
 
     snd_seq_t * client_handle ()
     {
-#if USE_MASTER_BUS_CLIENT_HANDLE                            /* undefined    */
-        return has_master() ?
-            reinterpret_cast<snd_seq_t *>(master_bus()->void_client_handle()) :
-            alsa_data().alsa_client() ;
-#else
         return alsa_data().alsa_client();
-#endif
     }
 
     virtual void * void_client_handle () override
@@ -166,18 +162,23 @@ protected:
         alsa_data().alsa_client(client_handle(vp));
     }
 
-    virtual void * engine_connect () override;
-    virtual void engine_disconnect () override;
-
     /*
-     * Not a feature of ALSA.
+     * MIDI engine functions. Not re-implemented, as not a feature of ALSA.
      *
      *      virtual bool engine_activate () override;
      *      virtual bool engine_deactivate () override;
      */
 
+    virtual void * engine_connect () override;
+    virtual void engine_disconnect () override;
+
     virtual bool connect () override;
     virtual bool reuse_connection () override;
+
+    /*
+     * MIDI port functions.
+     */
+
     virtual bool initialize (const std::string & clientname) override;
     virtual bool open_port
     (
@@ -187,12 +188,33 @@ protected:
 
     virtual bool open_virtual_port (const std::string & name = "") override;
     virtual bool close_port () override;
-    virtual void close_midi_tempo_queue () override;
     virtual bool set_client_name (const std::string & clientname) override;
     virtual bool set_port_name (const std::string & name) override;
     virtual int get_port_count () override;
     virtual std::string get_port_name (int number) override;
     virtual bool flush () override;
+
+    /*
+     * ALSA specific.
+     */
+
+    virtual void close_midi_tempo_queue () override;
+
+protected:
+
+    /*
+     * These functions are deliberately not virtual.
+     */
+
+    static midi_alsa_data * static_data_cast (void * ptr)
+    {
+        return reinterpret_cast<midi_alsa_data *>(ptr);
+    }
+
+    midi_alsa_data * data_cast ()
+    {
+        return reinterpret_cast<midi_alsa_data *>(api_data());
+    }
 
 public:
 
@@ -208,6 +230,8 @@ public:
     ) override;
 
     /*
+     * Not part of ALSA:
+     *
      * virtual std::string get_port_alias (const std::string & name) override;
      */
 
@@ -219,11 +243,9 @@ public:
     virtual bool clock_continue (midi::pulse tick, midi::pulse beats) override;
 
     /*
-     * virtual int poll_for_midi () override;
-    */
-
-    /*
      * The ALSA poll_for_midi() function is not implemented at this time.
+     *
+     *      virtual int poll_for_midi () override;
      */
 
     virtual bool get_midi_event (midi::event * inev) override;
@@ -241,7 +263,8 @@ public:
 
     virtual bool send_event
     (
-        const midi::event * ev, midi::byte channel = midi::null_channel()
+        const midi::event * ev,
+        midi::byte channel = midi::null_channel()
     ) const override;
 
     virtual bool send_message (const midi::message & msg) const override
@@ -268,20 +291,6 @@ public:
 #endif  // defined RTL66_MIDI_EXTENSIONS
 
 protected:
-
-    /*
-     * These functions are deliberately not virtual.
-     */
-
-    static midi_alsa_data * static_data_cast (void * ptr)
-    {
-        return reinterpret_cast<midi_alsa_data *>(ptr);
-    }
-
-    midi_alsa_data * data_cast ()
-    {
-        return reinterpret_cast<midi_alsa_data *>(api_data());
-    }
 
     /*
      * Helper functions to enhance readability.

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-09-14
+ * \updates       2025-09-27
  * \license       See above.
  *
  */
@@ -36,6 +36,7 @@
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in, classes          */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
 #include "rtl/test_helpers.hpp"         /* free functions in global space   */
+#include "util/msgfunctions.hpp"        /* util::verbose()                  */
 
 #if defined LIBS66_USE_POTEXT
 #include "po/potext.hpp"                /* the po::gettext() interfaces     */
@@ -264,6 +265,8 @@ static const char * s_help_text_fmt
 "  --port-out p     Set the output test port, for apps that need I/O ports.\n"
 "  --port-name n    Provides a test name for the port. Otherwise empty.\n"
 "  --length p       Set the amount of test data, if applicable.\n"
+"  --verbose        Set verbosity to show additional information.\n"
+"  --quiet          Set to show less information.\n"
 "  -h, --help       Show this help text.\n"
 "\n"
 };
@@ -450,6 +453,14 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
         {
             set_show_help(true);
             can_run = false;
+        }
+        else if (arg == "--verbose")
+        {
+            util::set_verbose(true);
+        }
+        else if (arg == "--quiet")
+        {
+            util::set_quiet(true);
         }
 #if defined PLATFORM_LINUX
 #if defined RTL66_BUILD_JACK

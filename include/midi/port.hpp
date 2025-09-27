@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24        (seq66::midi_port_info)
- * \updates       2025-09-06
+ * \updates       2025-09-26
  * \license       See above.
  *
  *  Contains information about a single MIDI port, as determined by
@@ -127,7 +127,7 @@ private:
      *  indicates the number re a particular client. For example,
      *  "Midi Through:Midi Through Port-0" has a client:port number
      *  pair of "14:0". But for applications, we need an index value
-     *  for the port, for lookup purposes. Hence the m_port_id number.
+     *  for the port, for lookup purposes. Hence the m_port_index number.
      */
 
     int m_buss_number { -1 };           /**< Major buss number of the port. */
@@ -141,7 +141,7 @@ private:
         kind::undetermined
     };
     std::string m_port_alias { };       /**< Non-empty in some JACK setups. */
-    int m_port_id { -1 };               /**< Application port-number/index. */
+    int m_port_index { -1 };            /**< Application port-number/index. */
     uint32_t m_internal_id              /**< Internal port number.          */
     {
         null_system_port_id()
@@ -191,9 +191,9 @@ public:                                 /* getters                          */
         return m_port_number;
     }
 
-    int port_id () const
+    int port_index () const
     {
-        return m_port_id;
+        return m_port_index;
     }
 
     const std::string & port_name () const
@@ -258,9 +258,9 @@ public:                                 /* setters                          */
         m_port_number = p;
     }
 
-    void port_id (int p)
+    void port_index (int p)
     {
-        m_port_id = p;
+        m_port_index = p;
     }
 
     void port_name (const std::string & pn)

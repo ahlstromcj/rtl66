@@ -24,12 +24,13 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-26
- * \updates       2023-09-14
+ * \updates       2023-09-27
  * \license       See above.
  *
  */
 
 #include "rtl/midi/jack/midi_jack_data.hpp"     /* RTL66_EXPORT, etc.       */
+#include "util/msgfunctions.hpp"                /* util::error_message()    */
 
 #if defined RTL66_BUILD_JACK
 
@@ -52,55 +53,94 @@ transport::jack::info midi_jack_data::m_transport_info;
 /**
  *  Initializes the JACK semaphores.  The semaphores are shared between the
  *  threads of the process, and the initial value of the semaphore is 0.
+ *  The value in sem_init() means how many times we could execute sem_wait()
+ *  without really waiting without any sem_post().
+ *
+ *  The semaphore value represents the number of common resources available
+ *  to be shared among the threads. If the value is greater than 0, then
+ *  the thread calling sem_wait() need not wait; it just decrements the value
+ *  and (1) if negative, it blocks or (2) it otherwise proceeds to access the
+ *  common resource.
+ *
+ *  sem_post() adds a resource back to the pool, so it increments the value.
+ *  If the value is 0, then sem_wait() waits until sem_post() is called.
+ *
+ *  This function is called in midi_jack::initialize().
  */
 
 bool
 midi_jack_data::semaphore_init ()
 {
     bool result = { m_semaphores_inited };
-    if (result)
+    if (! result)
     {
-        int rc { sem_init(&m_sem_cleanup, 0, 0) };
+        int rc { ::sem_init(&m_sem_cleanup, 0, 0) };
         result = rc != (-1);
         if (result)
         {
-            (void) sem_init(&m_sem_needpost, 0, 0);
-            m_semaphores_inited = true;
+            rc = ::sem_init(&m_sem_needpost, 0, 0);
+            result = rc != (-1);
+            if (result)
+            {
+                m_semaphores_inited = true;
+#if defined PLATFORM_DEBUG
+                printf
+                (
+                    "semaphores %p & %p initialized\n",
+                    (void *) &m_sem_cleanup, (void *) &m_sem_needpost
+                );
+#endif
+            }
+            else
+            {
+                ::perror("needpost semaphore init");
+                (void) ::sem_destroy(&m_sem_cleanup);
+            }
         }
         else
-        {
-            perror("semaphore_init failed");
-        }
+            ::perror("cleanup semaphore init");
     }
     else
     {
-        errprint("semaphores already initialized");
+        char temp[80];
+        (void) snprintf
+        (
+            temp, sizeof temp, "semaphores %p & %p already initialized",
+            (void *) &m_sem_cleanup, (void *) &m_sem_needpost
+        );
+        util::warn_message(temp);
     }
     return result;
 }
+
+/**
+ *  Called in midi_jack::~midi_jack().
+ */
 
 void
 midi_jack_data::semaphore_destroy ()
 {
     if (m_semaphores_inited)
     {
-        int rc { sem_destroy(&m_sem_cleanup) };
+        int rc { ::sem_destroy(&m_sem_cleanup) };
         if (rc == (-1))
-        {
-            perror("cleanup semaphore");
-        }
-        rc = sem_destroy(&m_sem_needpost);
+            ::perror("cleanup semaphore");
+
+        rc = ::sem_destroy(&m_sem_needpost);
         if (rc == (-1))
-        {
-            perror("needpost semaphore");
-        }
+            ::perror("needpost semaphore");
+
         m_semaphores_inited = false;
     }
     else
     {
-        errprint("destroying uninitialized semaphores");
+        util::error_message("uninitialized semaphores");
     }
 }
+
+/**
+ *  Called in midi_jack::close_port().
+ */
 
 bool
 midi_jack_data::semaphore_post_and_wait ()
@@ -109,27 +149,28 @@ midi_jack_data::semaphore_post_and_wait ()
     if (result)
     {
         struct timespec ts;
-        if (clock_gettime(CLOCK_REALTIME, &ts) != (-1))
+        if (::clock_gettime(CLOCK_REALTIME, &ts) != (-1))
         {
             ++ts.tv_sec;                            /* wait max one second  */
 
-            int rc { sem_post(&m_sem_needpost) };
-            if (rc == (-1))
-            {
-                perror("needpost post");
-            }
-            else
-            {
-                rc = sem_timedwait(&m_sem_cleanup, &ts);
-                if (rc == (-1))
-                {
-                    perror("cleanup timedwait");
-                }
-            }
+            int rc { ::sem_post(&m_sem_needpost) };
+            if (rc != 0)
+                ::perror("needpost post");
+
+            rc = ::sem_timedwait(&m_sem_cleanup, &ts);
+            if (rc != 0)
+                ::perror("cleanup timedwait");
         }
     }
     return result;
 }
+
+/**
+ *  Called at the end of the jack_process_out() callback.
+ *
+ *  However, it is the first thing called and never succeeds
+ *  (or maybe succeeds when the program ends).
+ */
 
 bool
 midi_jack_data::semaphore_wait_and_post ()
@@ -137,18 +178,24 @@ midi_jack_data::semaphore_wait_and_post ()
     bool result { m_semaphores_inited };
     if (result)
     {
-        int rc { sem_trywait(&m_sem_needpost) };
-        if (rc == (-1))
+        int rc { ::sem_trywait(&m_sem_needpost) };
+        if (rc == 0)
         {
-            perror("needpost trywait");
+            rc = ::sem_post(&m_sem_cleanup);
+            if (rc != 0)
+                ::perror("cleanup post");
         }
         else
         {
-            rc = sem_post(&m_sem_cleanup);
-            if (rc == (-1))
-            {
-                perror("cleanup post");
-            }
+#if defined PLATFORM_DEBUG_TMI
+            /*
+             * This happens until semaphore_post_and_wait() is
+             * called. This does not seem right. Commented
+             * to avoid a flood of console output.
+             */
+
+             ::perror("needpost trywait");
+#endif
         }
     }
     return result;

@@ -195,24 +195,13 @@ public:
         return m_port_io_types == midi::port::io::duplex;
     }
 
-    midi::bussbyte get_port_index (int bussnumber, int port) const;
+    midi::bussbyte get_port_id (int bussnumber, int port) const;
     std::string to_string (const std::string & tagmsg = "") const;
 
-    midi::port & portref (int index)
-    {
-        static midi::port s_dummy;
-        return index < get_port_count() ?
-            m_port_container[index] : s_dummy ;
-    }
+    midi::port & portref (int index);
+    const midi::port & portref (int index) const;
 
-    const midi::port & portref (int index) const
-    {
-        static midi::port s_dummy;
-        return index < get_port_count() ?
-            m_port_container[index] : s_dummy ;
-    }
-
-    int get_bus_id (int index) const
+    int get_bus_number (int index) const
     {
         if (index < get_port_count())
             return portref(index).buss_number();
@@ -228,10 +217,18 @@ public:
             return std::string("");
     }
 
-    int get_port_id (int index) const
+    int get_port_number (int index) const
     {
         if (index < get_port_count())
             return portref(index).port_number();
+        else
+            return (-1);
+    }
+
+    int get_port_index (int index) const
+    {
+        if (index < get_port_count())
+            return portref(index).port_index();
         else
             return (-1);
     }

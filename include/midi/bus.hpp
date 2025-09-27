@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-09-13
+ * \updates       2025-09-26
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -412,9 +412,9 @@ public:
         return midi_port().port_number();
     }
 
-    int port_id () const
+    int port_index () const
     {
-        return midi_port().port_id();
+        return midi_port().port_index();
     }
 
     /**

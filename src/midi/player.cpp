@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-09-17
+ * \updates       2025-09-27
  * \license       GNU GPLv2 or above
  *
  */
@@ -705,8 +705,7 @@ player::done () const
  *  caller can display the ports that were found and enable/disable them.
  *
  *  The values in midi::clientinfo start out as the programmed values.
- *
- *  The updates are copied to the transport::info object. TODO TODO
+ *  The updates are copied to the transport::info object.
  *
  *  The former is normally unchanged after startup, but the latter might
  *  change during song composition and playback.
@@ -1148,17 +1147,27 @@ player::set_midi_bus (track::number trkno, int b)
 /**
  *  Set the MIDI buss number for all tracks. See the usage in the
  *  test MIDI application "play".
+ *
+ * \param b
+ *      Provides the buss number.
+ *
+ * \param user_change
+ *      Indicates whether the user (true) or the application (false,
+ *      the default) is making the change.
+ *
+ * \return
+ *      Returns true if the setting succeeded.
  */
 
 bool
-player::set_midi_bus (int b)
+player::set_midi_bus (int b, bool user_change)
 {
     bool result { false };
     for (auto & trk : track_list().tracks())
     {
         if (trk)
         {
-            result = trk->midi_bus(b, true);            /* a user change    */
+            result = trk->midi_bus(b, user_change);     /* a user change?   */
         }
         else
         {
