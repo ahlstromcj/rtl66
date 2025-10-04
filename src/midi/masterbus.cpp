@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-09-26
+ * \updates       2025-10-04
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -245,14 +245,13 @@ masterbus::engine_query ()
 void *
 masterbus::engine_connect ()
 {
-//  return engine().engine_connect();
     return nullptr;
 }
 
 void
 masterbus::engine_disconnect ()
 {
-//  engine().engine_disconnect();
+    // no code
 }
 
 /**

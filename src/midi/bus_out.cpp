@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-09-05
+ * \updates       2025-09-29
  * \license       GNU GPLv2 or above
  *
  */

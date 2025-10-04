@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-09-26
+ * \updates       2025-09-29
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -562,9 +562,14 @@ public:
      *  inspect and create a list of busses and ports.
      */
 
-    void set_port_id (int id)
+    void set_port_number (int id)
     {
         midi_port().port_number(id);
+    }
+
+    void set_port_index (int id)
+    {
+        midi_port().port_index(id);
     }
 
     void set_name

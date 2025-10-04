@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-09-26
+ * \updates       2025-09-29
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -169,15 +169,13 @@ play_test (midi::player & p, const std::string & file)
 
         if (result)
         {
-            std::cout << "Success for " << file << std::endl;
+            util::status_message("Success", file);
         }
         else
         {
             result = false;
-            std::cerr
-                << "Failed to play " << file << "\n"
-                << "Error: " << errmsg << std::endl;
-                ;
+            util::error_message("Failure", file);
+            util::error_message("Error", errmsg);
         }
     }
     else

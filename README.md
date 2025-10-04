@@ -1,4 +1,4 @@
-# README for Library Rtl66 0.2.0 2025-08-30
+# README for Library Rtl66 0.2.0 2025-10-02
 
 __Rtl66__ is a Audio/MIDI API loosely adapted from the __RtAudio__
 and __RtMidi__ projects (https://www.music.mcgill.ca/~gary/rtaudio & rtmidi).
@@ -30,6 +30,7 @@ Support sites (still in progress):
     *   Basic dependencies: Meson 1.1 and above; C++14 and above.
     *   The build system is Meson, and sample wrap files are provided
         for using Cfg66, Xpc66, and Potext as C++ subprojects.
+        However, at present, these libraries need to be installed.
     *   PDF documentation built from LaTeX.
     *   Code separated into modules to avoid giant cpp/hpp/h files.
 

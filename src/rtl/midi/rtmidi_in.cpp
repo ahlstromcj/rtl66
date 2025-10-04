@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-04
+ * \updates       2025-10-02
  * \license       See above.
  *
  */
@@ -64,7 +64,7 @@ namespace rtl
  *      An optional client name can be specified. This will be used to group
  *      the ports that are created by the application.
  *
- *  \param qsizelimit
+ *  \param qsize
  *      An optional size of the MIDI input queue can be specified. The default
  *      is 100.
  */
@@ -106,7 +106,20 @@ rtmidi_in::rtmidi_in (const midi::masterbus & mb) : rtmidi ()
     {
         midi::masterbus * ncmb = const_cast<midi::masterbus *>(&mb);
         if (set_master_bus_ptr(ncmb))
-            (void) rt_api_ptr()->initialize(clientname);
+        {
+            /*
+             * We could open the port here, but we don't have
+             * the port number or the port name. So this is done
+             * in bus_out. Also, the initialize call is
+             * already done in the midi_alsa, midi_jack, etc.
+             * constructor. Odd: if the following is left out,
+             * then the test app "busout" won't play, yielding
+             * errors in drain_output().
+             */
+
+            if (rapi == rtmidi::api::alsa)
+                (void) rt_api_ptr()->initialize(clientname);
+        }
     }
     else
         printf("No rtmidi_out API pointer\n");

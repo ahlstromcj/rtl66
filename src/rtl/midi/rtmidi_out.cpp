@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-14
+ * \updates       2025-09-30
  * \license       See above.
  *
  */
@@ -45,6 +45,14 @@ namespace rtl
  *  one with at least one port, or we reach the end of the list.
  *
  *  See the banner for the rtmidi_in constructor for more information.
+ *
+ *  \param rapi
+ *      An optional API id can be specified.  The default is
+ *      rtl::rtmidi::api::unspecified.
+ *
+ *  \param clientname
+ *      An optional client name can be specified. This will be used to group
+ *      the ports that are created by the application.
  */
 
 rtmidi_out::rtmidi_out (rtmidi::api rapi, const std::string & clientname) :
@@ -77,14 +85,16 @@ rtmidi_out::rtmidi_out (const midi::masterbus & mb) : rtmidi ()
         midi::masterbus * ncmb { const_cast<midi::masterbus *>(&mb) };
         if (set_master_bus_ptr(ncmb))
         {
-            if (rt_api_ptr()->initialize(clientname))
-            {
-                /*
-                 * We could open the port here, but we don't have
-                 * the port number or the port name. So this is done
-                 * in bus_out.
-                 */
-            }
+            /*
+             * We could open the port here, but we don't have
+             * the port number or the port name. So this is done
+             * in bus_out. Also, the initialize call is
+             * already done in the midi_alsa, midi_jack, etc.
+             * constructor.
+             *
+             *  if (rapi == rtmidi::api::alsa)
+             *      (void) rt_api_ptr()->initialize(clientname);
+             */
         }
     }
     else

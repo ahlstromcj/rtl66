@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-09-27
+ * \updates       2025-09-29
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -170,6 +170,7 @@ bus::bus
             const midi::ports & portlist { ci.io_ports(iotype) };
             const midi::port & p { portlist.portref(index) };
             m_port = p;
+   //       set_port_index(index);              /* vice port_number()       */
 #if defined PLATFORM_DEBUG   // TODO add clocking
             if (util::verbose())
             {

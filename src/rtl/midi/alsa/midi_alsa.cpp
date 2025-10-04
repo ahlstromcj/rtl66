@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-26
+ * \updates       2025-10-04
  * \license       See above.
  *
  */
@@ -45,6 +45,10 @@
 #include "midi/eventcodes.hpp"          /* midi::is_sysex_end()             */
 #include "midi/ports.hpp"               /* midi::ports                      */
 #include "rtl/midi/alsa/midi_alsa_data.hpp"  /* rtl::midi_alsa_data         */
+
+#if defined PLATFORM_DEBUG_TMI
+#include "xpc/errornumbers.hpp"
+#endif
 
 /**
  *
@@ -470,13 +474,6 @@ midi_alsa_handler (void * ptr)
                 error_print("midi_alsa_in()", "message queue limit reached");
         }
     }
-
-    // TODO: make a helper function
-    // ncdata->unallocate();
-    // ::snd_midi_event_free(ncdata->event_parser());
-    // ncdata->event_parser(nullptr);
-    // ncdata->thread_handle(ncdata->dummy_thread_id());
-
     ncdata->handler_cleanup();
     return 0;
 }
@@ -1108,7 +1105,11 @@ midi_alsa::initialize (const std::string & clientname)
 }
 
 /**
- *  Wrapper/helper function.
+ *  Wrapper/helper function. Notes on snd_seq_drain_output:
+ *
+ *  It returns 0 when all events are drained and sent to sequencer.
+ *  When events still remain on the buffer, the byte size of remaining
+ *  events are returned. On error a negative error code is returned.
  */
 
 bool
@@ -1129,6 +1130,9 @@ midi_alsa::drain_output () const
     if (! result)
     {
         error_print("drain_output() --> ", snd_strerror(rc));
+#if defined PLATFORM_DEBUG_TMI
+        printf("Error code %d = %s\n", errno, xpc::errno_name(errno).c_str());
+#endif
     }
     return result;
 }
@@ -1175,9 +1179,11 @@ midi_alsa::setup_input_port ()
     if (! input_data().do_input())
     {
 #if ! defined RTL66_ALSA_AVOID_TIMESTAMPING
+
         /*
-         * Start the input queu; this function is a macro
+         * Start the input queue. This function is a macro.
          */
+
         snd_seq_start_queue(data.alsa_client(), data.queue_id(), NULL);
         result = drain_output();
 #endif
@@ -1284,6 +1290,15 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                 {
                     sender.port = data.vport();
 
+#if defined PLATFORM_DEBUG_TMI
+                    printf
+                    (
+                        "1: sender %d:%d receiver %d:%d\n",
+                        sender.client, sender.port,
+                        receiver.client, receiver.port
+                    );
+#endif
+
                     std::string errmsg;
                     result = midi_alsa::subscription
                     (
@@ -1336,6 +1351,15 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                     }
                     if (result)
                     {
+
+#if defined PLATFORM_DEBUG_TMI
+                        printf
+                        (
+                            "2: sender %d:%d receiver %d:%d\n",
+                            sender.client, sender.port,
+                            receiver.client, receiver.port
+                        );
+#endif
                         std::string errmsg;
                         result = midi_alsa::subscription
                         (
@@ -1367,6 +1391,8 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
 /*
  * Wait for old thread to stop, if still running.  Then start the
  * input queue.  Then start the MIDI input thread.
+ *
+ * This function is a macro: snd_seq_start_queue().
  */
 
 bool
@@ -1379,7 +1405,7 @@ midi_alsa::setup_input_virtual_port ()
         (void) join_input_thread();
 
 #if ! defined RTL66_ALSA_AVOID_TIMESTAMPING
-        ::snd_seq_start_queue(data.alsa_client(), data.queue_id(), NULL);
+        snd_seq_start_queue(data.alsa_client(), data.queue_id(), NULL);
         result = drain_output();
 #endif
 
@@ -1958,7 +1984,12 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                      * client-name of 'VMPK Output'.
                      */
 
-                    printf("Ignoring ALSA port '%s'\n", clientname.c_str());
+                    printf
+                    (
+                        "Ignoring %s ALSA port '%s'\n",
+                        ( iswriteable ? "output" : "input" ),
+                        clientname.c_str()
+                    );
                 }
             }
         }

@@ -1,15 +1,18 @@
 NEWS for Rtl66 0.2.0
 Chris Ahlstrom
-2024-04-15 to 2025-09-14
+2024-04-15 to 2025-10-04
 
 Version 0.2.0 is a heavy refactoring of the original code. Beware.
 
 # Changelog
 
-## [0.2.0] - 2025-09-14
+## [0.2.0] - 2025-10-04
 
-To do: grab the highlest from the git log.
+To do: grab the highlights from the git log.
 
+- Heavily refactored:
+  - midi::bus/masterbus paradigm fixes.
+  - JACK and ALSA port management changes.
 - C++
   - Converted assignments (operator =) to initialization (the "{}"
     universal initializer).

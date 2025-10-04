@@ -1,9 +1,10 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-09-14
+2019-04-13 to 2025-10-04
 
 Hot:
 
+    -   A sporadic race condition in JACK playback.
     -   play does not reload the PPQN (and BPM?) for each file.
     -   midiprobeex doubles the number of ports.
     -   In create_track(), use the initial track number as a parameter.
@@ -11,6 +12,7 @@ Hot:
         before appending. Rename the function or add a bool 'clear' flag.
     -   Make sure trackdata::parse() sets track number correctly.
     -   Update rterror to print the client-tag in error messages.
+    -   Use the CSTR macros
 
 NSM:
 

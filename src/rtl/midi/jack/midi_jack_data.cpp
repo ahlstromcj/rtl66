@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-26
- * \updates       2023-09-27
+ * \updates       2023-09-29
  * \license       See above.
  *
  */
@@ -83,13 +83,15 @@ midi_jack_data::semaphore_init ()
             if (result)
             {
                 m_semaphores_inited = true;
-#if defined PLATFORM_DEBUG
-                printf
-                (
-                    "semaphores %p & %p initialized\n",
-                    (void *) &m_sem_cleanup, (void *) &m_sem_needpost
-                );
-#endif
+
+                /*
+                 *
+                 *  printf
+                 *  (
+                 *      "semaphores %p & %p initialized\n",
+                 *      (void *) &m_sem_cleanup, (void *) &m_sem_needpost
+                 *  );
+                 */
             }
             else
             {

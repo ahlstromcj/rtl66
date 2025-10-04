@@ -24,8 +24,168 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-26
+ * \updates       2025-10-04
  * \license       See above.
+ *
+ *  Written primarily by Alexander Svetalkin, with updates for delta time by
+ *  Gary Scavone, April 2011.
+ *
+ *  In this Seq66 refactoring of RtMidi, we have to warp the RtMidi
+ *  model, where ports are opened directly by the application, to the
+ *  Seq66 midi::bus model, where the port object is created, but
+ *  initialized after creation.  This proved very challenging -- it took a
+ *  long time to get the midi_alsa implementation working, and still more time
+ *  to get the midi_jack implementation solid.  So to call this code "rtmidi"
+ *  code is slightly misleading.
+ *
+ *  There is an additional issue with JACK ports.  First, think of our ALSA
+ *  implementation.  We have two modes:  manual (virtual) and real (normal)
+ *  ports.  In ALSA, the manual mode exposes Seq66 ports (1 input port,
+ *  16 output ports) to which other applications can connect.  The real/normal
+ *  mode, via a midi_alsa_info object, determines the list of existing ALSA
+ *  ports in the system, and then Seq66 ports are created (via the
+ *  midi::bus) that are local, but connected to these "destination" system
+ *  ports.
+ *
+ *  In JACK, we can do something similar.  Use the manual/virtual mode to
+ *  allow Sequencer64 (seq66) to be connected manually via something like
+ *  QJackCtl or a session manager.  Use the real/normal mode to connect
+ *  automatically to whatever is already present.  Currently, though, new
+ *  devices that appear in the system won't be accessible until a restart.
+ *  (Or perhaps a reconnection using a JACK manager like QJackCtl.)
+ *  Also, there is now an option to avoid the automatic connection of real
+ *  (non-virtual) ports.
+ *
+ * Random JACK notes:
+ *
+ *      jack_activate() tells the JACK server that the program is ready to
+ *      process JACK events.  jack_deactivate() removes the JACK client from
+ *      the process graph and disconnects all ports belonging to it.
+ *
+ * Callbacks:
+ *
+ *      The input JACK callback can call an rtmidi input callback of the form
+ *
+ *          void callback (midi_message & message, void * userdata)
+ *
+ *      This callback is wired in by calling rtmidi_in_data ::
+ *      user_callback(). Unlike RtMidi, the delta time is stored as part of
+ *      the message.
+ *
+ * JackPortFlags:
+ *
+\verbatim
+        JackPortIsInput     = 0x01
+        JackPortIsOutput    = 0x02
+        JackPortIsPhysical  = 0x04
+        JackPortCanMonitor  = 0x08
+        JackPortIsTerminal  = 0x10
+\endverbatim
+ *
+ * I/O Issues:
+ *
+ *      The nomenclature for JACK input/output ports seems to be backwards of
+ *      that for ALSA.  Note the confusing (but necessary) orientation of the
+ *      driver backend ports: playback ports are "input" to the backend, and
+ *      capture ports are "output" from the backend.  Here are the properties
+ *      we have gleaned for JACK I/O ports:
+ *
+ *      -#  JACK Input Port. JackPortIsInput.
+ *          -#  A writable port. It is a port we can send "input" to.
+ *          -#  A "playback" port. MIDI playback ports send MIDI data to
+ *              a device.
+ *          -#  When connecting, this is the destination port.
+ *          -#  Provides output to an application or device.
+ *          -#  We create an "output" port and connect it to this input port,
+ *              so that we can send data to the port.
+ *          -#  We set up an "output" JACK process callback that hands off the
+ *              data to JACK, so that it can be played.
+ *          -#  Example: the 'qsynth:midi_00' port used to play a MIDI
+ *              tune is an "input, terminal, 8 bit raw midi" port.
+ *          -#  Example: the 'system::midi_playback_1' is an "input, physical,
+ *              terminal, 8 bit raw midi" port.
+ *          -#  Playing: A MIDI track is connected to a JACK MIDI playback
+ *              port. This playback port is connected to a software or
+ *              hardware synthesizer.
+ *      -#  JACK Output Port. JackPortIsOutput.
+ *          -#  A readable port. It is a port that sends us MIDI data.
+ *          -#  A "capture" port. MIDI capture ports receive MIDI data from
+ *              a device.
+ *          -#  When connecting, this is the source port.
+ *          -#  Accepts input from an application or device.
+ *          -#  We create an "input" port and connect it to this output port,
+ *              so that we can receive data from the port.
+ *          -#  We set up an "input" JACK process callback that provides us
+ *              with the data collected by JACK, so that we can record the
+ *              data.
+ *          -#  Recording: A MIDI keyboards's output is connected to a JACK
+ *              MIDI capture port. This capture port is connected to the MIDI
+ *              input of a DAW, so the performance is recorded into a new
+ *              MIDI clip.
+ *          -#  Example: the 'Q25:midi/playback_1' port is an "output,
+ *              physical, terminal, 8 bit raw midi" port. ???
+ *          -#  Example: the 'system:midi_capture_1" port is an "output,
+ *              physical, terminal, 8 bit raw midi" port.
+ *
+ *      The naming of ports seems inconsistent. There's a note in the jack2
+ *      source code about this around line #155 in linux/alsa.alsa_driver.c.
+ *
+ *  jack_port_get_buffer() returns a pointer to the memory area associated with
+ *  the specified port. For an output port, it will be a memory area that can be
+ *  written to; for an input port, it will be an area containing the data from
+ *  the port's connection(s), or zero-filled. If there are multiple inbound
+ *  connections, the data will be mixed appropriately.  Do not cache the
+ *  returned address across process() callbacks. Port buffers have to be
+ *  retrieved in each callback for proper functionning.
+ *
+ *  jack_midi_clear_buffer() clears the buffer, which must be an output buffer.
+ *  It must be called before calling jack_midi_event_reserve() or
+ *  jack_midi_event_write().  This function may not be called on an input
+ *  port's buffer! The function jack_midi_reset_buffer() is deprecated.
+ *
+ *  jack_midi_event_reserve() allocates space for an event to be written to an
+ *  event port buffer.  Clients must write the event data to the pointer
+ *  returned by this function. Clients must not write more than data_size
+ *  bytes into this buffer. Clients must write normalized MIDI data to the
+ *  port - no running status and no (1-byte) realtime messages interspersed
+ *  with other messages (realtime messages are fine when they occur on their
+ *  own).  The events must be written in order, sorted by their offsets.  JACK
+ *  will not sort the events, and will refuse to store out-of-order events.
+ *  The offset ranges from 0 to nframes, where nframes is a parameter passed
+ *  to the callback.
+ *
+ *  jack_ringbuffer_read() reads data from the ring-buffer and advances the data
+ *  pointer.  The first parameter is the pointer to the ring-buffer.  The second
+ *  parameter is the destination for the data that is read from the ring-buffer.
+ *  The third parameter is the number of bytes to read.  It returns the number
+ *  of bytes actually read.
+ *
+ *  jack_midi_event_get() gets a MIDI event from an event port buffer.  JACK
+ *  MIDI is normalized; the MIDI event returned by this function is guaranteed
+ *  to be a complete MIDI event (the status byte is always present, and no
+ *  realtime events are interspersed with the event).  It returns 0 on
+ *  success, or ENODATA if buffer is empty.
+ *
+ *	jack_nframes_t frame = jack_last_frame_time(jack_client) gets the precise
+ *	time at the start of the current process cycle.  It may only be used from
+ *	the process callback, and can be used to interpret timestamps generated by
+ *	`frame_time` in other threads with respect to the current process cycle.
+ *	This is the only JACK time function that returns exact time: when used
+ *	during the process callback it always returns the same value (until the
+ *	next process callback, where it will return that value + 'nframes', etc).
+ *	The return value is guaranteed to be monotonic and linear in this fashion
+ *	unless an XRUN occurs. If an XRUN occurs, clients must check this value
+ *	again, as time may have advanced in a non-linear way (e.g. cycles may have
+ *	been skipped). The jack_nframes_t type is uint32_t.
+ *
+ * MIDI clock:
+ *
+ *      We need to study the source code to the jack_midi_clock application to
+ *      make sure we're doing this correctly.
+ *
+ *  GitHub issue #165: enabled a build and run with no JACK support.  Weird is
+ *  that removing or moving the calculations.hpp header into the support macro
+ *  section causes midi_jack member functions to be unresolved!
  *
  *  Engine candidates:
  *
@@ -374,8 +534,6 @@ midi_jack::~midi_jack ()
     if (is_engine())
     {
         delete_port();                  /* must come before client close    */
-        ///////
-        // engine_disconnect();
     }
     else
     {
@@ -777,18 +935,18 @@ midi_jack::show_connection_status
     jack_client_t * jclient { data.jack_client() };
     if (not_nullptr(jclient))
     {
+        std::string statustag { ok ? "succeeded" : "failed" };
         std::string cname { client_name() };
-        std::string msg { "connect (client " };
+        std::string msg { "connect() for client " };
         msg += cname;
-        msg += ", ";
+        msg += "\n    ";
         msg += src;
-        msg += ", ";
+        msg += "--->";
         msg += dest;
-        msg += ")";
         if (ok)
-            status_print(msg, "succeeded");
+            status_print(statustag, msg);
         else
-            error_print(msg, "failed");
+            error_print(statustag, msg);
     }
     else
         error_print("JACK client", "null");
@@ -834,41 +992,38 @@ midi_jack::open_port (int portnumber, const std::string & portname)
             }
             else
             {
-                std::string destname { get_port_name(portnumber) };
-                const char * dest {destname.c_str() };
-                data.jack_port(srcptr);
-                if (not_nullptr(srcptr))
-                {
-                    /*
-                     * The port types must be identical. The JackPortFlags
-                     * of the source must include JackPortIsOutput; the
-                     * destination must include JackPortIsInput.
-                     */
+                std::string dest { get_port_name(portnumber) };
 
 #if defined PLATFORM_DEBUG_TMI
-
-                    jack_port_t * destptr
-                    {
-                        ::jack_port_by_name(jclient, dest)
-                    };
-                    show_jack_port_status("Source", jclient, srcptr);
-                    show_jack_port_status("Destination", jclient, destptr);
-
+                jack_port_t * destptr
+                {
+                    ::jack_port_by_name(jclient, dest.c_str())
+                };
+                show_jack_port_status("Source", jclient, srcptr);
+                show_jack_port_status("Destination", jclient, destptr);
 #endif
-                    const char * src { ::jack_port_name(data.jack_port()) };
-                    bool ok { is_port_valid(src) && is_port_valid(dest) };
-                    if (ok)
+
+                data.jack_port(srcptr);
+                result = not_nullptr(srcptr);
+                if (result)
+                {
+                    std::string src { ::jack_port_name(data.jack_port()) };
+                    result = is_port_valid(src) && is_port_valid(dest);
+                    if (result)
                     {
-                        int rc { ::jack_connect(jclient, src, dest) };
-                        if (rc == 0)                    /* connected!       */
+                        if (is_output())
                         {
-#if defined PLATFORM_DEBUG // _TMI
-                            show_connection_status(src, dest, true);
-#endif
+                            result = connect_ports
+                            (
+                                midi::port::io::output, src, dest
+                            );
                         }
-                        else                            /* not connected!   */
+                        else
                         {
-                            show_connection_status(src, dest, false);
+                            result = connect_ports
+                            (
+                                midi::port::io::input, dest, src
+                            );
                         }
                     }
                 }
@@ -1203,7 +1358,7 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
         if (util::verbose())
             infoprint(iswriteable ? "Writable ports:" : "Readable ports:");
 #endif
-        unsigned long flag  // ????
+        unsigned long flag
         {
             iswriteable ? JackPortIsInput : JackPortIsOutput
         };
@@ -1265,9 +1420,9 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
 
                 ioports.add
                 (
-                    clientnumber, clientname, count, portname,
-                    iotype, midi::port::kind::normal,
-                    result, 0, alias
+                    clientnumber, clientname, count, /* port number */
+                    portname, iotype, midi::port::kind::normal,
+                    count /* result */, 0, alias
                 );
                 ++count;
             }
@@ -1496,7 +1651,7 @@ midi_jack::clock_send (midi::pulse tick)
     if (tick >= 0)
     {
 #if defined PLATFORM_DEBUG_TMI
-        midibase::show_clock("JACK", tick);
+        // bus::show_clock("JACK", tick);
 #endif
         return send_status(midi::status::clk_clock);
     }
@@ -1668,10 +1823,9 @@ midi_jack::get_midi_event (midi::event * inev)           // input
 
 /**
  *  We could push the bytes of the event into a midi::byte vector, as done in
- *  send_message().  The ALSA code (seq_alsamidi/src/midibus.cpp) sticks the
- *  event bytes in an array, which might be a little faster than using
- *  push_back(), but let's try the vector first.  The rtmidi code here is from
- *  midi_out_jack::send_message().
+ *  send_message().  The ALSA code sticks the event bytes in an array, which
+ *  might be a little faster than using push_back(), but let's try the vector
+ *  first.  The rtmidi code here is from midi_out_jack::send_message().
  */
 
 bool
@@ -1732,19 +1886,22 @@ midi_jack::send_sysex (const midi::event * ev) const
  *  If this is nominally a local output port, it is really accepting input,
  *  and this is the destination-port name.
  *
+ *  The port types must be identical. The JackPortFlags of the source must
+ *  include JackPortIsOutput; the destination must include JackPortIsInput.
+ *
  * \param input
  *      Indicates true if the port to register and connect is an input port,
  *      and false if the port is an output port.  Useful macros for
  *      readability: midibase::io::input and midibase::io::output.
  *
- * \param srcportname
+ * \param src
  *      Provides the destination port-name for the connection.  For input,
  *      this should be the name associated with the JACK client handle; it is
  *      the port that gets registered.  For output, this should be the full
  *      name of the port that was enumerated at start-up.  The JackPortFlags
  *      of the source port must include JackPortIsOutput.
  *
- * \param destportname
+ * \param dest
  *      For input, this should be full name of port that was enumerated at
  *      start-up.  For output, this should be the name associated with the
  *      JACK client handle; it is the port that gets registered.  The
@@ -1760,28 +1917,30 @@ midi_jack::send_sysex (const midi::event * ev) const
  */
 
 bool
-midi_jack::connect_ports        // IN OR OUT!!!!!
+midi_jack::connect_ports
 (
     midi::port::io iotype,
-    const std::string & srcportname,
-    const std::string & destportname
+    const std::string & src,
+    const std::string & dest
 )
 {
-    midi_jack_data * jkdata { reinterpret_cast<midi_jack_data *>(api_data()) };
-    bool result { ! srcportname.empty() && ! destportname.empty() };
+    bool result { ! src.empty() && ! dest.empty() };
     if (result)
     {
-        int rc
-        {
-            ::jack_connect
-            (
-                jkdata->jack_client(),
-                srcportname.c_str(), destportname.c_str()
-            )
-        };
+        midi_jack_data & data { jack_data() };
+        jack_client_t * jclient { data.jack_client() };
+
+        int rc { ::jack_connect(jclient, src.c_str(), dest.c_str()) };
         result = rc == 0;
-        if (! result)
+        if (result)
         {
+#if defined PLATFORM_DEBUG_TMI
+            show_connection_status(src, dest, true);
+#endif
+        }
+        else
+        {
+            show_connection_status(src, dest, false);
             if (rc == EEXIST)
             {
                 /*
@@ -1791,11 +1950,11 @@ midi_jack::connect_ports        // IN OR OUT!!!!!
             else
             {
                 bool input = iotype == midi::port::io::input;
-                std::string msg = "JACK Connect error";
+                std::string msg = "JACK Connect error  ";
                 msg += input ? "input '" : "output '";
-                msg += srcportname;
+                msg += src;
                 msg += "' to '";
-                msg += destportname;
+                msg += dest;
                 msg += "'";
                 error(rterror::kind::driver_error, msg);
             }
