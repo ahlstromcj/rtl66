@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-07
-# \updates     2025-01-31
+# \updates     2025-10-05
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the rtl66 library.
@@ -273,20 +273,24 @@ cdata.set('jack_get_version_string',
 
 if rtl66_use_potext
 
+   libpotext_dep = subproject('libpotext').get_variable('libpotext_dep')
    libpotext_library_dep = dependency(
       'libpotext', fallback : [ 'libpotext', 'libpotext_dep' ]
       )
 
 endif
 
+liblib66_dep = subproject('liblib66').get_variable('liblib66_dep')
 liblib66_library_dep = dependency(
    'liblib66', fallback : [ 'liblib66', 'liblib66_dep' ]
    )
 
+libcfg66_dep = subproject('libcfg66').get_variable('libcfg66_dep')
 libcfg66_library_dep = dependency(
    'libcfg66', fallback : [ 'libcfg66', 'libcfg66_dep' ]
    )
 
+libxpc66_dep = subproject('libxpc66').get_variable('libxpc66_dep')
 libxpc66_library_dep = dependency(
    'libxpc66', fallback : [ 'libxpc66', 'libxpc66_dep' ]
    )
