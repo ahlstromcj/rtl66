@@ -8,7 +8,7 @@
 # \library        rtl66
 # \author         Chris Ahlstrom
 # \date           2024-02-06
-# \update         2025-01-31
+# \update         2025-10-06
 # \version        $Revision$
 # \license        $XPC_SUITE_GPL_LICENSE$
 #
@@ -30,8 +30,8 @@ LANG=C
 export LANG
 CYGWIN=binmode
 export CYGWIN
-export RTL66_SCRIPT_EDIT_DATE="2025-01-31"
-export RTL66_LIBRARY_API_VERSION="0.1"
+export RTL66_SCRIPT_EDIT_DATE="2025-10-06"
+export RTL66_LIBRARY_API_VERSION="0.2"
 export RTL66_LIBRARY_VERSION="$RTL66_LIBRARY_API_VERSION.0"
 export RTL66="rtl66"
 export RTL66_LIBRARY="$RTL66-$RTL66_LIBRARY_API_VERSION"
@@ -95,6 +95,12 @@ if test $# -ge 1 ; then
             ;;
 
          --build | --make)
+            DOMAKE="yes"
+            ;;
+
+         --rebuild | --remake)
+            DOREMAKE="yes"
+            DOCLEAN="yes"
             DOMAKE="yes"
             ;;
 
@@ -203,6 +209,7 @@ be more to come. Some options might not work on Windows.
  --pdf               Build just the PDF documentation and exit.
  --clean             Delete the usual derived files from the project. Also
                      do "git checkout doc/rtl66-dev-manual.pdf"
+ --rebuild           Clean the project and build from scratch.
  --pack [ tag ]      A simple quick packaging of the code; the tag goes
                      into the tarball name.
  --help              Show this help text.
@@ -244,6 +251,7 @@ if test $DOCLEAN = "yes" ; then
    rm -rf build/src/
    rm -rf build/subprojects/
    rm -rf build/tests/
+   rm -rf build/uninstall/
    rm -rf build/meson*
    rm -rf build/lib*
    rm -f build/.ninja_deps
@@ -259,12 +267,19 @@ if test $DOCLEAN = "yes" ; then
    rm -rf build/subprojects/
    echo "Build products removed from the rtl66/build directory."
    rm -rf subprojects/liblib66/
+   rm -rf subprojects/potext/
    rm -rf subprojects/libcfg66
    rm -rf subprojects/libxpc66
-   rm -rf subprojects/potext
    echo "Subproject products removed from the subprojects directory."
    git checkout doc/rtl66-dev-manual.pdf
    echo "Previous version of developer guide restored."
+
+# Problematic when making a release. Just remember to do it.
+#
+#  rm -f doc/latex/*.log
+#  echo "Build products removed from the cfg66/build directory."
+#  git checkout doc/cfg66-library-guide.pdf tests/data/fooout.rc
+#  echo "Previous version of developer guide restored."
 fi
 
 # This is just a quick pack, with date and branch information added.

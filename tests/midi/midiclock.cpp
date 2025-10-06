@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-06-25
- * \updates       2024-02-02
+ * \updates       2025-10-06
  * \license       See above.
  *
  *  Simple program to test MIDI clock sync.  Run midiclock_in in one
@@ -51,11 +51,14 @@
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
 
+namespace
+{
+
 /*
  * Test callback function.
  */
 
-static void
+void
 midi_clock_callback
 (
     double deltatime,
@@ -100,13 +103,25 @@ midi_clock_callback
  *  Test for receiving MIDI Clock.
  */
 
-static int
+int
 clock_in ()
 {
     unsigned clock_count = 0;
     try
     {
         rtl::rtmidi_in midiin(rtl::rtmidi::desired_api());
+        std::cout <<
+            "\n"
+            "Pick any of these ports in order to be able to receive MIDI\n"
+            "Clock messages. Call it 'N'. Then, in another terminal, run\n"
+            "the midiclock_out program, and select the \"rtl66 midi in N\"\n"
+            "port. Verify that clock events are sent in the 'out' window,\n"
+            "and are received here.\n"
+            "\n"
+            "Press <Enter> or <Ctrl-C> here to quit.\n"
+            "\n"
+            ;
+
         if (rt_choose_input_port(midiin))
         {
             /*
@@ -118,10 +133,6 @@ clock_in ()
 
             midiin.set_input_callback(&midi_clock_callback, &clock_count);
             midiin.ignore_midi_types(false, false, false);
-            std::cout <<
-"Start the midiclock_out application and select the port selected in\n"
-"that application to read MIDI clock from it. Press <Enter> to quit.\n"
-                ;
             char input;
             std::cin.get(input);
         }
@@ -159,6 +170,18 @@ clock_out ()
     try
     {
         rtl::rtmidi_out midiout(rtl::rtmidi::desired_api());
+        std::cout <<
+            "\n"
+            "Make sure the target device or application appears in\n"
+            "this list. (The midiclock_in program will appear as\n"
+            "\"rtl66 midi in N\", where 'N' is the port number selected\n"
+            "in that program. Verify that clock events are sent in this\n"
+            "window, and are received here.\n"
+            "\n"
+            "Press <Ctrl-C> here to quit.\n"
+            "\n"
+            ;
+
         if (rt_choose_output_port(midiout))
         {
             int sleep_ms = 25;
@@ -210,6 +233,8 @@ clock_out ()
     }
     return 0;
 }
+
+}           // namespace anonymous
 
 /**
  *  The main routine.

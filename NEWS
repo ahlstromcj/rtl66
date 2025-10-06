@@ -1,22 +1,26 @@
 NEWS for Rtl66 0.2.0
 Chris Ahlstrom
-2024-04-15 to 2025-10-04
+2024-04-15 to 2025-10-06
 
 Version 0.2.0 is a heavy refactoring of the original code. Beware.
+This revision now works for ALSA and JACK MIDI and MIDI Clock I/O.
 
 # Changelog
 
-## [0.2.0] - 2025-10-04
+## [0.2.0] - 2025-10-06
 
 To do: grab the highlights from the git log.
 
 - Heavily refactored:
   - midi::bus/masterbus paradigm fixes.
   - JACK and ALSA port management changes.
-- C++
+- C++.
   - Converted assignments (operator =) to initialization (the "{}"
     universal initializer).
   - Converted member initialization to in-class initialization.
+- Meson.
+  - Enabled the use of these subprojects instead of requiring them
+    to be installed: lib66, cfg66, xpc66, and potext.
 
 ## [0.1.0] - 2024-04-15
 

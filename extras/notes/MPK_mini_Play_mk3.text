@@ -1,0 +1,59 @@
+MPK Mini Play Mk3 Outputs
+Chris Ahlstrom
+2025-10-06 to 2025-10-06
+
+This document briefly lists the events emitted. Note that we have
+shown only the events for the Std. Set of drums. Some of the other
+sets emit different event statuses.
+
+Joystick:
+
+    Up/Down:    Continuous Controller   0xB0 0x01 value (Mod Wheel)
+    Left/Right: Pitch Bend              0xE0 lsb msb
+
+Knobs:
+
+    A 1:        Filter (and some 0xEn!) 0xB0 0x46 value
+    A 2:        Resonance               0xB0 0x47 value
+    A 3:        Reverb                  0xB0 0x48 value
+    A 4:        Chorus Amount           0xB0 0x49 value
+
+    B 1:        Attack                  0xB0 0x4A value
+    B 2:        Release                 0xB0 0x4B value
+    B 3:        EQ Low                  0xB0 0x4C value
+    B 4:        EQ High                 0xB0 0x4D value
+
+Sustain:
+
+    Pedal:      Sustain                 0xB0 0x40 value = 0x00 or 0x7F
+
+Pads:           "Standard Set"          (Others may emit different numbers)
+
+    A 1:        GM 36 Bass Drum 1       0x99 0x24 velocity
+    A 2:        GM 38 Acoustic Snare    0x99 0x26 velocity
+    A 3:        GM 42 Closed Hi Hat     0x99 0x2A velocity
+    A 4:        GM 46 Open Hi Hat       0x99 0x2E velocity
+    A 5:        GM 40 Electric Snare    0x99 0x28 velocity (differs)
+    A 6:        GM 45 Low Tom           0x99 0x2D velocity (differs)
+    A 7:        GM 51 Ride Cymbal 1     0x99 0x33 velocity
+    A 8:        GM 49 Crash Cymbal 1    0x99 0x31 velocity
+
+    B 1:        GM 60 High Bongo        0x99 0x3C velocity
+    B 2:        GM 62 Mute High Conga   0x99 0x3E velocity
+    B 3:        GM 63 Open High Conga   0x99 0x3F velocity
+    B 4:        GM 64 Low Conga         0x99 0x40 velocity
+    B 5:        GM 58 Vibraslap         0x99 0x3A velocity
+    B 6:        GM 75 Claves            0x99 0x4B velocity
+    B 7:        GM 56 Cowbell           0x99 0x38 velocity
+    B 8:        GM 77 Low Wood Block    0x99 0x4D velocity (differs):w
+
+0x8n    Note Off                key             velocity
+0x9n    Note On                 key             velocity
+0xAn    Aftertouch              key             touch value
+0xBn    Continuous Controller   ctrl#           ctrl value
+0xCn    Patch (program) Change  instrument#
+0xDn    Channel Pressure        pressure
+0xEn    Pitch Bend              lsb (7 bits)    msg (7bits)
+0xFx    Meta events
+
+# vim: sw=4 ts=4 wm=8 et ft=sh
