@@ -54,7 +54,7 @@ bus_in::bus_in
     int index,
     unsigned queuesizelimit
 ) :
-    midi::bus (master, index, midi::port::io::input),
+    midi::bus   (master, index, midi::port::io::input),
     m_rtmidi_in (master)
 {
     (void) queuesizelimit;                      /* masterbus::queue_size()  */

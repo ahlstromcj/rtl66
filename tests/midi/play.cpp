@@ -203,7 +203,7 @@ int
 main (int argc, char * argv [])
 {
     int rcode { EXIT_FAILURE };
-    int out_port = { app_client_info().output_portnumber() };    /* --port p     */
+    int out_port = { app_client_info().output_portnumber() };    /* --port  */
     bool can_run = { rt_simple_cli("play", argc, argv) };
     std::string single_filename { rt_test_name() };
     cfg::set_app_name(app_client_info().app_name());
@@ -222,7 +222,7 @@ main (int argc, char * argv [])
                     testfile += file;
                     std::cout << "[" << i++ << "] " << testfile << std::endl;
                 }
-                can_run = false;                                /* side test    */
+                can_run = false;
             }
             else
             {

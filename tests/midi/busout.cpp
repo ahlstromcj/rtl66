@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2025-08-26
- * \updates       2025-09-26
+ * \updates       2025-10-07
  * \license       See above.
  *
  *      This application has elements of the play test application,
@@ -103,6 +103,11 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
         bool ok { rapi != rtl::rtmidi::api::unspecified };
         if (ok)
         {
+            /*
+             * The client_info_reset() call seems redundant, but
+             * it is not. We need to find out why.
+             */
+
             ok = s_master_bus.client_info_reset(ci);
             if (ok)
                 ok = s_master_bus.engine_initialize(ci);

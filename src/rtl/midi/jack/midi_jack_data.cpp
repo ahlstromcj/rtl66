@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-26
- * \updates       2023-09-29
+ * \updates       2023-10-07
  * \license       See above.
  *
  */
@@ -132,7 +132,7 @@ midi_jack_data::semaphore_destroy ()
         if (rc == (-1))
             ::perror("needpost semaphore");
 
-        m_semaphores_inited = false;
+        m_semaphores_inited = m_semaphores_post_waited = false;
     }
     else
     {
@@ -162,6 +162,8 @@ midi_jack_data::semaphore_post_and_wait ()
             rc = ::sem_timedwait(&m_sem_cleanup, &ts);
             if (rc != 0)
                 ::perror("cleanup timedwait");
+
+            m_semaphores_post_waited = true;
         }
     }
     return result;
@@ -189,14 +191,15 @@ midi_jack_data::semaphore_wait_and_post ()
         }
         else
         {
-#if defined PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG
             /*
              * This happens until semaphore_post_and_wait() is
              * called. This does not seem right. Commented
              * to avoid a flood of console output.
              */
 
-             ::perror("needpost trywait");
+            if (m_semaphores_post_waited)
+                ::perror("needpost trywait");
 #endif
         }
     }

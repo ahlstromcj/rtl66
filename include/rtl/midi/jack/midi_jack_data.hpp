@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2017-01-02
- * \updates       2025-09-14
+ * \updates       2025-10-07
  * \license       See above.
  *
  */
@@ -115,6 +115,7 @@ class RTL66_DLL_PUBLIC midi_jack_data
 #if RTL66_HAVE_SEMAPHORE_H
 
     bool m_semaphores_inited { false };
+    bool m_semaphores_post_waited { false };
     sem_t m_sem_cleanup { };
     sem_t m_sem_needpost { };
 

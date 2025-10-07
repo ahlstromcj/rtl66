@@ -170,7 +170,6 @@ bus::bus
             const midi::ports & portlist { ci.io_ports(iotype) };
             const midi::port & p { portlist.portref(index) };
             m_port = p;
-   //       set_port_index(index);              /* vice port_number()       */
 #if defined PLATFORM_DEBUG   // TODO add clocking
             if (util::verbose())
             {

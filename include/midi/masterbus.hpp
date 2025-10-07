@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-09-26
+ * \updates       2025-10-07
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -420,6 +420,11 @@ public:
 
 protected:
 
+    void selected_api (rtl::rtmidi::api rapi)
+    {
+        m_selected_api = rapi;
+    }
+
     void set_client_id (int id)
     {
         m_client_id = id;
@@ -453,7 +458,12 @@ protected:
 
 public:     // public because used in test applications
 
-    midi::bus * make_bus (int busno, midi::port::io iotype);
+    midi::bus * make_bus
+    (
+        int busno,
+        midi::port::io iotype,
+        int qsize = RTL66_DEFAULT_Q_SIZE
+    );
     bool engine_initialize ();
     bool engine_initialize (const clientinfo & ci);
     bool engine_query ();

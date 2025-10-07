@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-10-04
+ * \updates       2025-10-07
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -991,9 +991,11 @@ masterbus::engine_initialize (const clientinfo & ci)
                 result = ci.ports_queried();
                 if (result)
                 {
+                    selected_api(rtl::rtmidi::selected_api());
+
                     bool swap_io
                     {
-                        rtl::rtmidi::selected_api() == rtl::rtmidi::api::jack
+                        selected_api() == rtl::rtmidi::api::jack
                     };
                     bool isinput { ! swap_io };
                     midi::port::io iotype
@@ -1086,13 +1088,13 @@ midi::bus *
 masterbus::make_bus
 (
     int busno,
-    midi::port::io iotype
+    midi::port::io iotype,
+    int qsize
 )
 {
     midi::bus * result { nullptr };
     if (iotype == midi::port::io::input)
     {
-        const unsigned qsize { 0 };                       /* TODO */
         result = new (std::nothrow) midi::bus_in(*this, busno, qsize);
     }
     else if (iotype == midi::port::io::output)

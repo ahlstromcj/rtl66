@@ -95,6 +95,9 @@ midi_queue::deallocate ()
 bool
 midi_queue::push (const midi::message & mmsg)
 {
+    if (m_ring_size == 0)
+        return true;                    /* fake it, app has no input        */
+
     bool result = ! full();
     if (result)
     {

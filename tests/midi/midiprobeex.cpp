@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-08-18
+ * \updates       2025-10-07
  * \license       See above.
  *
  */
@@ -42,31 +42,42 @@
 int
 main (int argc, char * argv [])
 {
-    bool can_run = rt_simple_cli("midiprobeex", argc, argv);
+    bool can_run { rt_simple_cli("midiprobeex", argc, argv) };
     if (can_run)
     {
         midi::masterbus mb(rtl::rtmidi::desired_api());
-        if (mb.client_info_reset())
-        {
+
+        /*
+         *  masterbus::engine_initialize() calls masterbus::client_info_reset()
+         *  anyway.
+         *
+         *      bool ok { mb.client_info_reset() };
+         *      if (ok)
+         *      {
+         */
+
             /*
-             * Another option is to simply use the overload of
-             * masterbus::engine_initialize() that has no parameter.
-             * It creates/gets the global clientinfo object and
-             * fills it with MIDI port information and then
-             * uses that to create a midi::bus_in or midi::bus_out
+             * Here, we use the overload of masterbus::engine_initialize()
+             * that has no parameter. It creates/gets the global
+             * clientinfo object and fills it with MIDI port information
+             * and then uses that to create a midi::bus_in or midi::bus_out
              * for each port.
              */
 
             if (mb.engine_initialize())
             {
+                mb.engine_activate();
                 std::string portlist = mb.port_listing();
                 std::cout << portlist;
             }
             else
                 return EXIT_FAILURE;
-        }
-        else
-            return EXIT_FAILURE;
+
+        /*
+         *      }
+         *      else
+         *          return EXIT_FAILURE;
+         */
     }
     return EXIT_SUCCESS;
 }

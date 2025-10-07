@@ -347,7 +347,7 @@ jack_process_in (jack_nframes_t framect, void * arg)
 {
     midi_jack_data * jackdata { midi_jack::static_data_cast(arg) };
     rtmidi_in_data * rtdata { jackdata->rt_midi_in() };
-    if (is_nullptr(jackdata->jack_port()))   /* is port not yet created?         */
+    if (is_nullptr(jackdata->jack_port()))      /* port not yet created?    */
         return 0;
 
     void * buff { ::jack_port_get_buffer(jackdata->jack_port(), framect) };
@@ -357,6 +357,9 @@ jack_process_in (jack_nframes_t framect, void * arg)
     for (int j = 0; j < evcount; ++j)           /* MIDI events in buffer    */
     {
         midi::message & msg { rtdata->midi_msg() };
+        if (msg.empty())
+            continue;
+
         jack_midi_event_t event;
         int rc { ::jack_midi_event_get(&event, buff, j) };
         if (rc == ENODATA)
@@ -454,8 +457,9 @@ jack_process_in (jack_nframes_t framect, void * arg)
             else
             {
                 /*
-                 * As long as we haven't reached our queue size limit, push the
-                 * message.
+                 * As long as we haven't reached our queue size limit, push
+                 * the message. If there is no queue (size 0), it will
+                 * be faked and return true.
                  */
 
                 if (! rtdata->queue().push(msg))
