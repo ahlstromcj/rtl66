@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-01-16
+ * \updates       2025-10-08
  * \license       See above.
  *
  *  Should we add operator [] for setting as well?
@@ -208,6 +208,11 @@ public:
     size_t event_byte_count () const
     {
         return m_bytes.size();
+    }
+
+    int count () const
+    {
+        return int(size());
     }
 
 #if defined RTL66_PLATFORM_DEBUG

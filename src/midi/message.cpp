@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-12-01
- * \updates       2025-09-14
+ * \updates       2025-10-08
  * \license       See above.
  *
  *  Provides a basic type for the (heavily-factored) rtl66 library, very
@@ -223,11 +223,15 @@ message::to_string () const
 {
     size_t counter { 12 };
     bool incomplete { event_byte_count() > counter };
-    char bcount[8];
-    (void) snprintf(bcount, sizeof bcount, "%3zd", event_byte_count());
+    char bcount[32];
+    (void) snprintf
+    (
+        bcount, sizeof bcount, "%3zd bytes @ ", event_byte_count()
+    );
 
     std::string result { bcount };
-    result += " hex bytes";
+    result += std::to_string(time_stamp());     /* the midi::pulse value    */
+    result += ": ";
 
     if (! incomplete)
         counter = event_byte_count();
@@ -235,7 +239,7 @@ message::to_string () const
     for (size_t i = 0; i < counter; ++i)
     {
         char temp[8];
-        snprintf(temp, sizeof temp, " %02x", m_bytes[i]);
+        snprintf(temp, sizeof temp, " 0x%02x", m_bytes[i]);
         result += temp;
     }
     if (incomplete)

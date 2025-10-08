@@ -82,13 +82,20 @@ public:
 
     /**
      *  User callback function type definition.  Such a callback is needed
-     *  only for input.
+     *  only for input. Its signature matches the RtMidiIn::RtMidiCallback
+     *  function signature. Note that midi::message has a time-stamp member
+     *  as well; the original RtMidi message is just a byte vector. Here,
+     *  the timestamp parameter will likely be ignored.
+     *
+     *  Or the deltatime is the delta from the previous message, while
+     *  midi::message::time_stamp() [long] and midi::message::jack_stamp()
+     *  [double] will hold the actual time-stamp starting from 0.
      */
 
     using callback_t = void (*)
     (
-        double timestamp,
-        midi::message * message,
+        double deltatime,
+        midi::message * msg,
         void * userdata
     );
 

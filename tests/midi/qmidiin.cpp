@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-07-01
- * \updates       2025-10-06
+ * \updates       2025-10-08
  * \license       See above.
  *
  *      Simple program to test MIDI input and retrieval from the queue.
@@ -36,11 +36,13 @@
 #include <memory>                       /* std::unique_ptr<>                */
 #include <signal.h>                     /* is there a C++ version?          */
 
+#include "cfg/appinfo.hpp"              /* cfg::set_client_name()           */
 #include "midi/clientinfo.hpp"          /* midi::clientinfo class           */
 #include "midi/message.hpp"             /* midi::message class              */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
+#include "util/msgfunctions.hpp"        /* util::status_message()           */
 
 static bool s_is_done;
 
@@ -61,6 +63,7 @@ int
 main (int argc, char * argv[])
 {
     bool can_run = rt_simple_cli("qmidiin", argc, argv);
+    cfg::set_client_name("qmidiin");
     if (can_run)
     {
         int port = 0;
@@ -84,20 +87,21 @@ main (int argc, char * argv[])
         }
         if (can_run)
         {
-            std::unique_ptr<rtl::rtmidi_in> midiin;
-            midi::message msg;
-            int nbytes, i;
-            double stamp;
             try
             {
+                /*
+                 * Strictly speaking, we don't need a unique_ptr here;
+                 * we could use an object directly.
+                 */
+
                 rtl::rtmidi::api rapi = rtl::rtmidi::desired_api(); /* static */
-                midiin.reset
-                (
+                std::unique_ptr<rtl::rtmidi_in> midiin
+                {
                     new rtl::rtmidi_in
                     (
                         rapi, midi::global_client_info().client_name()
                     )
-                );
+                };
 
                 /*
                  * Check available ports vs. specified.
@@ -123,9 +127,10 @@ main (int argc, char * argv[])
                          * Periodically check input queue.
                          */
 
+                        midi::message msg;
+                        midiin->ignore_midi_types(false, false, false);
                         if (midiin->open_port(port))
                         {
-                            midiin->ignore_midi_types(false, false, false);
                             s_is_done = false;
                             (void) signal(SIGINT, finish);
                             std::cout
@@ -136,7 +141,8 @@ main (int argc, char * argv[])
                                 ;
                             while (! s_is_done)
                             {
-                                stamp = midiin->get_message(msg);
+                                (void) midiin->get_message(msg);
+#if USE_THIS_CODE
                                 nbytes = msg.size();
                                 for (i = 0; i < nbytes; ++i)
                                     std::cout << "Byte " << i << " = "
@@ -149,6 +155,14 @@ main (int argc, char * argv[])
                                         << stamp << std::endl
                                         ;
                                 }
+#else
+                                if (msg.count() > 0)
+                                {
+                                    std::string msgline { "Msg:" };
+                                    msgline += msg.to_string();
+                                    util::status_message(msgline);
+                                }
+#endif
                                 rt_test_sleep(10);  /* sleep for 10 msec    */
                             }
                         }

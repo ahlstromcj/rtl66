@@ -1,0 +1,43 @@
+Various Ways MIDI Input is handled.
+Chris Ahlstrom
+2025-10-08 to 2025-10-08
+
+This file present some of the ways input works and how to improve it.
+One issue is how poll_for_midi() is not implemented in ALSA but is used
+by midi::player.
+
+    Basics:
+
+        First, the basic inputs as done by the cbminiin and qmidiin test
+        applications.
+
+        Input callback usage, cbmidiin:
+
+            -   The top-most input handler is an rtl::rtmidi_in object.
+                It is used in the following steps.
+            -   An input callback is provided using only the midi::message
+                parameter. (The other parameters are ignored).
+            -   ignore_midi_types() is called to allow all types of
+                message.
+            -   In ALSA, the callback is called in midi_alsa_handler() if
+                callback usage is enabled. In JACK, the call is made in
+                jack_process_in().
+            -   Bug? If the keyboard is struck a few times before choosing
+                the port, then one pair of Note On/Off messages are
+                received immediately once the choice is made.
+
+        Polling, qmidiin:
+    
+            -   The top-most input handler is an rtl::rtmidi_in object.
+                It is used in the following steps.
+            -   ignore_midi_types() is called to allow all types of
+                message.
+            -   Must ignore messages of size 0, which happens constantly.
+                Can we fix this side-effect of polling?
+            -   On rare occasions the time-stamp is non 0. Why?
+            -   Why is Ctrl-C needed? It is not in cbmidiin.
+            -   Need to silence JACK messages when not running with JACK.
+            -   Still need to check poll_for_midi() vs get_midi_event().
+
+# vim: sw=4 ts=4 wm=8 et ft=sh
+

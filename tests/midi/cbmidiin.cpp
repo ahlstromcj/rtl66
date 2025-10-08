@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2023-07-19
+ * \updates       2025-10-08
  * \license       See above.
  *
  *      A simple program to test MIDI input and the use of a user callback
@@ -42,10 +42,12 @@
 
 #include <iostream>                     /* std::cout, std::cin              */
 
+#include "cfg/appinfo.hpp"              /* cfg::set_client_name()           */
 #include "midi/message.hpp"             /* midi::message class              */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
+#include "util/msgfunctions.hpp"        /* util::status_message()           */
 
 /**
  *  This callback just shows the incoming bytes (in hex format).
@@ -54,25 +56,40 @@
 static void
 midibytes_callback
 (
-    double deltatime,
-    midi::message * message,
-    void * /*userdata*/
+    double deltatime,                   /* always 0 in this test program    */
+    midi::message * msg,
+    void * userdata
 )
 {
-    if (not_nullptr(message))
+    (void) userdata;
+    if (not_nullptr(msg))
     {
-        midi::message & msg = *message;
-        size_t nbytes = msg.size();
-        for (size_t i = 0; i < nbytes; ++i)
-        {
-            midi::byte b = msg[i];
-            std::cout
-                << "Byte #" << i << " = "
-                << "0x" << std::hex << int(b) << "; ";
-        }
+        midi::message & m = *msg;
+        deltatime = m.jack_stamp();
+        size_t nbytes = m.size();
         if (nbytes > 0)
         {
-            std::cout << "timestamp " << deltatime << std::endl;
+            std::string msgline { "Msg:" };
+#if USE_THIS_CODE
+            for (size_t i = 0; i < nbytes; ++i)
+            {
+                midi::byte b = m[i];
+                char tmp[8];
+                snprintf(tmp, sizeof tmp, " 0x%x", int(b));
+                msgline += tmp;
+            }
+            msgline += "; time ";
+            msgline += std::to_string(deltatime);
+#else
+            msgline += m.to_string();
+#endif
+            util::status_message(msgline);
+        }
+        else
+        {
+            std::cout
+                << "Empty message w/delta " << deltatime << std::endl
+                ;
         }
     }
 }
@@ -85,6 +102,7 @@ int
 main (int argc, char * argv [])
 {
     bool can_run = rt_simple_cli("cbmidiin", argc, argv);
+    cfg::set_client_name("cbmidiin");
     if (can_run)
     {
         int port = 0;
@@ -110,18 +128,16 @@ main (int argc, char * argv [])
         {
             try
             {
-                rtl::rtmidi_in midiin(rtl::rtmidi::desired_api());
-                midiin.open_port(port);
-
                 /*
                  * Set our callback function.  This should be done immediately
                  * after opening the port to avoid having incoming messages
                  * written to the queue instead of sent to the callback
-                 * function.
-                 *
-                 * (This seems like a race-condition we should fix!)
+                 * function. This seems like a race-condition we should fix,
+                 * so we now set it before opening a port.
                  */
 
+                rtl::rtmidi::api rapi = rtl::rtmidi::desired_api(); /* static */
+                rtl::rtmidi_in midiin(rapi, "cbmidiin");
                 midiin.set_input_callback(&midibytes_callback);
 
                 /*
@@ -129,6 +145,12 @@ main (int argc, char * argv [])
                  */
 
                 midiin.ignore_midi_types(false, false, false);
+
+                /*
+                 * Open the port.
+                 */
+
+                midiin.open_port(port);
                 std::cout << "Reading MIDI input ... press <Enter> to quit.\n";
 
                 char input;
