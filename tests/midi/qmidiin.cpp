@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-07-01
- * \updates       2025-10-08
+ * \updates       2025-10-09
  * \license       See above.
  *
  *      Simple program to test MIDI input and retrieval from the queue.
@@ -44,13 +44,22 @@
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
 #include "util/msgfunctions.hpp"        /* util::status_message()           */
 
-static bool s_is_done;
+namespace
+{
 
-static void
+/**
+ *  Provides a flag and a signal handler for setting it.
+ */
+
+bool s_is_done { false  };
+
+void
 finish (int /*ignore*/)
 {
     s_is_done = true;
 }
+
+}           // namespace anonymous
 
 /**
  *  This function sets the global clientinfo object via rt_simple_cli().
@@ -142,27 +151,12 @@ main (int argc, char * argv[])
                             while (! s_is_done)
                             {
                                 (void) midiin->get_message(msg);
-#if USE_THIS_CODE
-                                nbytes = msg.size();
-                                for (i = 0; i < nbytes; ++i)
-                                    std::cout << "Byte " << i << " = "
-                                        << int(msg[i]) << "; " ;
-
-                                if (nbytes > 0)
-                                {
-                                    std::cout
-                                        << "timestamp = "
-                                        << stamp << std::endl
-                                        ;
-                                }
-#else
                                 if (msg.count() > 0)
                                 {
                                     std::string msgline { "Msg:" };
                                     msgline += msg.to_string();
                                     util::status_message(msgline);
                                 }
-#endif
                                 rt_test_sleep(10);  /* sleep for 10 msec    */
                             }
                         }

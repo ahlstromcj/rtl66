@@ -622,8 +622,13 @@ public:
     virtual bool connect ();                        /* common to in/out tho */
 
     /*----------------------------------------------------------------------
-     * Input functions
+     * Input functions.
      *----------------------------------------------------------------------*/
+
+    /**
+     * These virtual functions are needed in this base class because
+     * the busarray class holds only base class midi::bus pointers.
+     */
 
     virtual int get_in_port_info ()
     {
@@ -650,6 +655,11 @@ public:
     /*----------------------------------------------------------------------
      * Output functions
      *----------------------------------------------------------------------*/
+
+    /**
+     * These virtual functions are needed in this base class because
+     * the busarray class holds only base class midi::bus pointers.
+     */
 
     virtual int get_out_port_info ()
     {
@@ -727,19 +737,6 @@ public:
         (void) tick;
         return false;
     }
-
-#if defined THIS_CODE_IS_READY
-    virtual bool open_port ();
-    virtual bool close_port ();
-    virtual bool flush_port ();
-    virtual bool get_port_name();
-    virtual bool get_port_alias();
-    virtual bool auto_connect ();
-    virtual bool send_byte ();
-    virtual bool send_status ();
-    virtual bool send_message ();
-    virtual bool get_message ();
-#endif
 
     void print ();
 

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-08-13
+ * \updates       2025-10-09
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -87,6 +87,16 @@ public:
     virtual bool init_input (bool inputing) override;
     virtual int poll_for_midi () const override;
     virtual bool get_midi_event (midi::event * inev) override;
+
+    virtual double get_message (midi::message & msg)
+    {
+        return m_rtmidi_in.get_message(msg);
+    }
+
+    virtual void ignore_midi_types (bool sysex, bool time, bool sense)
+    {
+        m_rtmidi_in.ignore_midi_types(sysex, time, sense);
+    }
 
 };          // class bus_in
 

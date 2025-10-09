@@ -17,37 +17,49 @@
  */
 
 /**
- * \file          busout.cpp
+ * \file          busin.cpp
  *
- *      Simple program to test MIDI output.
+ *      Simple program to test MIDI input using the masterbus/bus paradigm.
  *
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
- * \date          2025-08-26
- * \updates       2025-10-07
+ * \date          2025-10-09
+ * \updates       2025-10-09
  * \license       See above.
  *
- *      This application has elements of the play test application,
- *      but merely opens one port and sends messages directly, rather
- *      than using a busarray.
+ *      This application but merely opens one port and accepts messages,
+ *      similarly to qmidiin.
  *
  *      On Linux, run this test both with ALSA and with JACK.
  */
 
 #include <iostream>
+#include <signal.h>                     /* is there a C++ version?          */
 
 #include "cfg/appinfo.hpp"              /* cfg::set_client_name()           */
-#include "midi/bus_out.hpp"             /* midi::bus_out class              */
+#include "midi/bus_in.hpp"              /* midi::bus_in class               */
 #include "midi/event.hpp"               /* midi::event class                */
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
 #include "midi/message.hpp"             /* midi::message class              */
 #include "rtl/midi/find_midi_api.hpp"   /* rtl::find_midi_api() module      */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
-#include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
+#include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
 
 namespace
 {
+
+/**
+ *  Provides a flag and a signal handler for setting it.
+ */
+
+bool s_is_done { false };
+
+void
+finish (int /*ignore*/)
+{
+    s_is_done = true;
+}
 
 /**
  *  Client info
@@ -56,8 +68,8 @@ namespace
 midi::client_defaults s_clientinfo_defaults
 {
     RTL66_VERSION,                      /* API version                      */
-    "playclient",                       /* client name                      */
-    "play",                             /* app name                         */
+    "inclient",                         /* client name                      */
+    "read",                             /* app name                         */
     false,                              /* JACK MIDI                        */
     false,                              /* virtual ports                    */
     0,                                  /* no virtual input ports           */
@@ -121,34 +133,6 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
     return s_master_bus;
 }
 
-/**
- *  Chooses which function to use to send the event / message and
- *  sends it.
- *
- *  Chooses the usage of bus_out::send_message() vs bus_out::send_event().
- */
-
-bool
-send_the_message (midi::bus_out & b, const midi::message & msg)
-{
-    std::string testname { rt_test_name() };
-    bool result;
-    if (testname == "event")
-    {
-        midi::event ev(msg);            /* convert the bytes to an event    */
-        result = b.send_event(&ev);
-    }
-    else
-    {
-        testname = "message";
-        result = b.send_message(msg);
-    }
-    if (! result)
-        printf("send_%s failed\n", testname.c_str());
-
-    return result;
-}
-
 }           // namespace anonymous
 
 /**
@@ -158,7 +142,7 @@ send_the_message (midi::bus_out & b, const midi::message & msg)
 int
 main (int argc, char * argv [])
 {
-    bool can_run { rt_simple_cli("busout", argc, argv) };
+    bool can_run { rt_simple_cli("busin", argc, argv) };
     if (can_run)
     {
         cfg::set_app_name(app_client_info().app_name());
@@ -169,8 +153,8 @@ main (int argc, char * argv [])
             {
                 if (! rt_test_port_valid(rt_test_port()))
                 {
-                    rtl::rtmidi_out midiout { rtl::rtmidi::desired_api() };
-                    can_run = rt_choose_output_port(midiout);
+                    rtl::rtmidi_in midiin { rtl::rtmidi::desired_api() };
+                    can_run = rt_choose_input_port(midiin);
                 }
             }
         }
@@ -185,65 +169,44 @@ main (int argc, char * argv [])
 
             rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
             midi::masterbus & master { master_bus(rapi, app_client_info()) };
-            midi::bus & outbus { master.get_out_bus(portnumber) };
-            can_run = outbus.initialize();
+            midi::bus & inbus { master.get_in_bus(portnumber) };
+            can_run = inbus.initialize();
             if (can_run)
             {
                 try
                 {
-                    midi::bus_out & busout
+                    midi::bus_in & busin
                     {
-                        dynamic_cast<midi::bus_out &>(outbus)
+                        dynamic_cast<midi::bus_in &>(inbus)
                     };
 
-                    /* Send out a series of MIDI messages. */
+                    /*
+                     * Don't ignore sysex, timing, or active sensing
+                     * messages. Install an interrupt handler function.
+                     * Periodically check input queue.
+                     */
 
                     midi::message msg;
-                    msg.push(midi::status::program_change); // 0xC0 [ 192 ]
-                    msg.push(5);                            // Electric Piano?
-                    (void) send_the_message(busout, msg);
-                    rt_test_sleep(500);
-
-                    msg.clear();
-                    msg.push(midi::status::quarter_frame);  // 0xF1
-                    msg.push(60);                           // ??
-                    (void) send_the_message(busout, msg);
-
-                    msg.clear();
-                    msg.push(midi::status::control_change); // 0xB0 [ 176 ]
-                    msg.push(midi::ctrl::volume);           // 0x07
-                    msg.push(100);                          // volume level
-                    (void) send_the_message(busout, msg);
-
-                    msg.clear();
-                    msg.push(midi::status::note_on);        // 0x90 [ 144 ]
-                    msg.push(64);                           // note number
-                    msg.push(90);                           // velocity
-                    (void) send_the_message(busout, msg);
-                    rt_test_sleep(500);
-
-                    msg.clear();
-                    msg.push(midi::status::note_off);       // 0x80 [ 128 ]
-                    msg.push(64);                           // note number
-                    msg.push(40);                           // velocity
-                    (void) send_the_message(busout, msg);
-                    rt_test_sleep(500);
-
-                    msg.clear();
-                    msg.push(midi::status::control_change); // 0xB0 [ 176 ]
-                    msg.push(midi::ctrl::volume);           // 0x07
-                    msg.push(40);                           // volume level
-                    (void) send_the_message(busout, msg);
-                    rt_test_sleep(500);
-
-                    msg.clear();
-                    msg.push(midi::status::sysex);          // 0xF0 [ 240 ]
-                    msg.push(67);                           // Yamaha (Man. ID.)
-                    msg.push(4);                            // ??
-                    msg.push(3);                            // ??
-                    msg.push(2);                            // ??
-                    msg.push(midi::status::sysex_end);      // 0xF7 [ 247 ]
-                    (void) send_the_message(busout, msg);
+                    busin.ignore_midi_types(false, false, false);
+                    s_is_done = false;
+                    (void) signal(SIGINT, finish);
+                    std::cout
+                        << "Reading MIDI from port "
+                        << busin.port_name()
+                        << " ... quit with Ctrl-C."
+                        << std::endl
+                        ;
+                    while (! s_is_done)
+                    {
+                        (void) busin.get_message(msg);
+                        if (msg.count() > 0)
+                        {
+                            std::string msgline { "Msg:" };
+                            msgline += msg.to_string();
+                            util::status_message(msgline);
+                        }
+                        rt_test_sleep(10);  /* sleep for 10 msec    */
+                    }
                 }
                 catch (rtl::rterror & error)
                 {
@@ -256,7 +219,7 @@ main (int argc, char * argv [])
 }
 
 /*
- * busout.cpp
+ * busin.cpp
  *
  * vim: sw=4 ts=4 wm=4 et ft=cpp
  */
