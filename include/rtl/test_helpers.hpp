@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-09-07
+ * \updates       2025-10-09
  * \license       See above.
  *
  *  Note that these functions are not in a namespace so that most of them
@@ -67,6 +67,7 @@ extern bool rt_test_port_valid (int portno);
 extern void set_test_data_length (int len);
 extern int rt_test_data_length ();
 extern bool rt_show_help ();
+extern bool rt_use_callback ();
 
 #endif      // defined __cplusplus
 

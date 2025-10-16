@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-30
+ * \updates       2025-10-09
  * \license       See above.
  *
  */
@@ -150,7 +150,7 @@ rtmidi_out::open_port (int portnumber, const std::string & portname)
 {
     std::string pname { portname };
     if (pname.empty())
-        pname = "rtl66 midi out";
+        pname = numbered_port_name(portnumber, "rtl66 midi out");
 
     return rtmidi::open_port(portnumber, pname);
 }
@@ -170,11 +170,11 @@ rtmidi_out::open_port (int portnumber, const std::string & portname)
 bool
 rtmidi_out::open_virtual_port (const std::string & portname)
 {
-    std::string pname { portname };
-    if (pname.empty())
-        pname = "rtl66 midi vout";
+    std::string pn { portname };
+    if (pn.empty())
+        pn = numbered_port_name(0 /* TODO */, "rtl66 midi vout");
 
-    return rtmidi::open_virtual_port(pname);
+    return rtmidi::open_virtual_port(pn);
 }
 
 }           // namespace rtl

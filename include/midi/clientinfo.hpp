@@ -62,12 +62,12 @@
  *      -   Queue number.  ALSA only at present.
  *      -   Error messages.
  *
- *  Too much? We have the following parallel class to access port information:
+ *  Too much? We have the following parallel classes to access port
+ *  information:
  *
- *      -   port.
- *      -   ports.
- *      -   clientinfo.
- *      -   bussdata?
+ *      -   midi::port.
+ *      -   midi::ports.
+ *      -   midi::clientinfo.
  */
 
 #include <cmath>                        /* std::nearbyint()                 */

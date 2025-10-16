@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-09-14
+ * \updates       2025-10-10
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -70,12 +70,20 @@ const size_t c_buffer_count    {   4 }; /* as noted above                   */
 
 class RTL66_DLL_PUBLIC rtmidi_in_data
 {
-    enum flags : unsigned char
+
+public:
+
+    /**
+     *  Rather than three booleans, we use an enumeration
+     */
+
+    enum ignoreflag : unsigned
     {
-        flag_sysex          = 0x01,
-        flag_time_code      = 0x02,
-        flag_active_sensing = 0x04,
-        flag_ignore_all     = 0x07
+        allow_all      = 0x00,
+        sysex          = 0x01,
+        time_code      = 0x02,
+        active_sensing = 0x04,
+        ignore_all     = 0x07
     };
 
 public:
@@ -137,13 +145,14 @@ private:
      *  Provides a set of bits to indicate to ignore certain MIDI messages
      *  upon input:
      *
+     *      -   none of them
      *      -   sysex
      *      -   time_code
      *      -   active_sensing
-     *      -   All of them.
+     *      -   all of them
      */
 
-    unsigned char m_ignore_flags { flag_ignore_all };
+    unsigned m_ignore_flags { ignoreflag::ignore_all };
 
     /**
      *  This boolean is used in midi_alsa_handler(), for example. If not
@@ -257,8 +266,6 @@ public:
      * New stuff follows.
      */
 
-    void ignore_flags (bool sysex, bool time, bool sense);
-
     bool do_input () const
     {
         return m_do_input;
@@ -322,44 +329,55 @@ public:
         m_buffer_count = count;
     }
 
+    void ignore_flags (bool sysex, bool time, bool sense);
+
     bool allow_sysex () const
     {
-        return (m_ignore_flags & flag_sysex) == 0;
+        return (m_ignore_flags & ignoreflag::sysex) == 0;
     }
 
     bool allow_time_code () const
     {
-        return (m_ignore_flags & flag_time_code) == 0;
+        return (m_ignore_flags & ignoreflag::time_code) == 0;
     }
 
     bool allow_active_sensing () const
     {
-        return (m_ignore_flags & flag_active_sensing) == 0;
+        return (m_ignore_flags & ignoreflag::active_sensing) == 0;
     }
+
+    void ignore_midi_types (unsigned flags)
+    {
+        m_ignore_flags = static_cast<ignoreflag>(unsigned(flags));
+    }
+
+#if USE_THIS_CODE
 
     void allow_sysex (bool flag)
     {
         if (flag)
-            m_ignore_flags |= flag_sysex;
+            m_ignore_flags |= ignoreflag::sysex;
         else
-            m_ignore_flags &= ~flag_sysex;
+            m_ignore_flags &= ~ignoreflag::sysex;
     }
 
     void allow_time_code (bool flag)
     {
-        if (flag)
-            m_ignore_flags |= flag_time_code;
+        if (ignoreflag)
+            m_ignore_flags |= ignoreflag::time_code;
         else
-            m_ignore_flags &= ~flag_time_code;
+            m_ignore_flags &= ~ignoreflag::time_code;
     }
 
     void allow_active_sensing (bool flag)
     {
         if (flag)
-            m_ignore_flags |= flag_active_sensing;
+            m_ignore_flags |= ignoreflag::active_sensing;
         else
-            m_ignore_flags &= ~flag_active_sensing;
+            m_ignore_flags &= ~ignoreflag::active_sensing;
     }
+
+#endif
 
 private:
 

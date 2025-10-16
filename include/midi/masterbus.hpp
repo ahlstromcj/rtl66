@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-10-07
+ * \updates       2025-10-10
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -125,7 +125,23 @@ public:
      *  Do we need a pointer? No.
      */
 
-     using info = midi::clientinfo;
+    using info = midi::clientinfo;
+
+     /**
+      * Holds information meant for input busses. The callback function
+      * must adhere to the function signature rtmidi_in_data::callback_t.
+      * We don't enforce that in the midi namespace. We need this structure
+      * to pass these settings to rtl::rtmidi_in.
+      */
+
+    using inputspecs = struct
+    {
+        bool input_use_sysex;
+        bool input_use_time_code;
+        bool input_use_active_sensing;
+        void * input_callback;
+        void * input_user_data;
+    };
 
 private:
 
@@ -237,6 +253,17 @@ private:
      */
 
     midi::bpm m_beats_per_minute { RTL66_DEFAULT_BPM };
+
+    /**
+     *  By default, masterbus allows input of sysex, time code, and
+     *  active sensing to be processed. And, by default, there is no
+     *  input callback and user-data for it.
+     *
+     *  The caller creating the masterbus can provide an inputspecs
+     *  structure and pass it to the set_inputspecs() function.
+     */
+
+    inputspecs m_input_specs { false, false, false, nullptr, nullptr };
 
     /**
      *  Provides access to the selected API in order to hook up to the desired
@@ -402,6 +429,37 @@ public:
     {
         return m_ppqn;
     }
+
+    const inputspecs & get_inputspecs () const
+    {
+        return m_input_specs;
+    }
+
+    void set_inputspecs (const inputspecs & is)
+    {
+        m_input_specs = is;
+    }
+
+#if defined USE_THIS_CODE
+
+    /*
+     * The function above is easier.
+     */
+
+    void user_callback (void * cb, void * userdata)
+    {
+        m_input_specs.input_callback = cb;
+        m_input_specs.input_userdata = userdata;
+    }
+
+    void ignore_flags (bool sysex, bool timecode, bool sense)
+    {
+        m_input_specs.input_use_sysex = sysex;
+        m_input_specs.input_use_time_code = timecode;
+        m_input_specs.input_use_active_sensing = sense;
+    }
+
+#endif
 
     /*
      * These rt_api_ptr() functions are duplicates of those in the

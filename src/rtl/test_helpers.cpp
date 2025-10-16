@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-09-27
+ * \updates       2025-10-09
  * \license       See above.
  *
  */
@@ -265,6 +265,7 @@ static const char * s_help_text_fmt
 "  --port-out p     Set the output test port, for apps that need I/O ports.\n"
 "  --port-name n    Provides a test name for the port. Otherwise empty.\n"
 "  --length p       Set the amount of test data, if applicable.\n"
+"  --callback       Use an input callback instead of polling.\n"
 "  --verbose        Set verbosity to show additional information.\n"
 "  --quiet          Set to show less information.\n"
 "  -h, --help       Show this help text.\n"
@@ -427,6 +428,20 @@ bool
 rt_show_help ()
 {
     return s_test_show_help;
+}
+
+static bool s_test_use_callback = false;
+
+void
+set_use_callback (bool flag)
+{
+    s_test_use_callback = flag;
+}
+
+bool
+rt_use_callback ()
+{
+    return s_test_use_callback;
 }
 
 /**
@@ -596,6 +611,10 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
                 std::string value { std::string(argv[i + 1]) };
                 set_rt_test_port_name(value);
             }
+        }
+        else if (arg == "--callback")
+        {
+            set_use_callback(true);
         }
     }
     if (can_run)

@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-02
+ * \updates       2025-10-09
  * \license       See above.
  *
  */
@@ -104,17 +104,27 @@ rtmidi_in::rtmidi_in (const midi::masterbus & mb) : rtmidi ()
     }
     if (not_nullptr(rt_api_ptr()))
     {
-        midi::masterbus * ncmb = const_cast<midi::masterbus *>(&mb);
+        midi::masterbus * ncmb { const_cast<midi::masterbus *>(&mb) };
         if (set_master_bus_ptr(ncmb))
         {
+            const midi::masterbus::inputspecs & mis { mb.get_inputspecs() };
+            bool midisysex { mis.input_use_sysex };
+            bool miditime { mis.input_use_time_code };
+            bool midisense { mis.input_use_active_sensing };
+            rtmidi_in_data::callback_t cb
+            {
+                reinterpret_cast<rtmidi_in_data::callback_t>(mis.input_callback)
+            };
+            ignore_midi_types(midisysex, miditime, midisense);
+            if (not_nullptr(cb))
+                set_input_callback(cb, mis.input_user_data);
+
             /*
-             * We could open the port here, but we don't have
-             * the port number or the port name. So this is done
-             * in bus_out. Also, the initialize call is
-             * already done in the midi_alsa, midi_jack, etc.
-             * constructor. Odd: if the following is left out,
-             * then the test app "busout" won't play, yielding
-             * errors in drain_output().
+             * Could open the port here, but we don't have the port number
+             * and name. So this is done in bus_in. Also, the initialize
+             * call is already done in the midi_alsa, midi_jack, etc.
+             * constructor. Odd: if the following is left out, then the test
+             * "busout" won't play, yielding errors in drain_output().
              */
 
             if (rapi == rtmidi::api::alsa)
@@ -197,11 +207,11 @@ rtmidi_in::open_midi_api (const midi::masterbus & mb)
 bool
 rtmidi_in::open_port (int portnumber, const std::string & portname)
 {
-    std::string pname { portname };
-    if (pname.empty())
-        pname = "rtl66 midi in";
+    std::string pn { portname };
+    if (pn.empty())
+        pn = numbered_port_name(portnumber, "rtl66 midi in");
 
-    return rtmidi::open_port(portnumber, pname);
+    return rtmidi::open_port(portnumber, pn);
 }
 
 /**
@@ -224,7 +234,7 @@ rtmidi_in::open_virtual_port (const std::string & portname)
 {
     std::string pname { portname };
     if (pname.empty())
-        pname = "rtl66 midi vin";
+        pname = numbered_port_name(0 /* TODO */, "rtl66 midi vin");
 
     return rtmidi::open_virtual_port(pname);
 }

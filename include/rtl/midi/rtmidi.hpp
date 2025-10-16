@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-14
+ * \updates       2025-10-09
  * \license       See above.
  *
  *      Also contains some additional capabilities.
@@ -352,9 +352,10 @@ public:
 protected:
 
     bool set_master_bus (midi::masterbus * mb);
-
     void master_client_ptr (void * p);
     void delete_rt_api_ptr ();
+    rtmidi::api ctor_common_setup (rtmidi::api rapi, const std::string & cname);
+    std::string numbered_port_name (int pnumber, const std::string & pname);
 
     bool have_rt_api_ptr () const
     {
@@ -366,8 +367,6 @@ protected:
         return is_nullptr(m_rt_api_ptr);
     }
 
-protected:
-
     virtual bool open_midi_api
     (
         rtmidi::api rapi                = rtmidi::api::unspecified,
@@ -375,11 +374,6 @@ protected:
         unsigned queuesize              = 0     /* useful with input ports  */
     ) = 0;
     virtual bool open_midi_api (const midi::masterbus & mb) = 0;
-
-    rtmidi::api ctor_common_setup
-    (
-        rtmidi::api rapi, const std::string & clientname
-    );
 
 };          // class rtmidi
 

@@ -98,6 +98,24 @@ public:
         m_rtmidi_in.ignore_midi_types(sysex, time, sense);
     }
 
+#if defined USE_THIS_CODE
+
+    virtual void set_input_callback
+    (
+        rtl::rtmidi_in_data::callback_t callback,
+        void * userdata = nullptr
+    )
+    {
+        m_rtmidi_in.set_input_callback(callback, userdata);
+    }
+
+    virtual void cancel_input_callback ()
+    {
+        m_rtmidi_in.cancel_input_callback();
+    }
+
+#endif
+
 };          // class bus_in
 
 }           // namespace midi

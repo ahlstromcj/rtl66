@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-14
+ * \updates       2025-10-09
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -581,6 +581,23 @@ rtmidi::start_jack ()
 
 #endif
 
+/**
+ *  Constructs a port name by appending the portnumber. Used if an
+ *  empty port name is provided.
+ */
+
+std::string
+rtmidi::numbered_port_name (int pnumber, const std::string & pname)
+{
+    std::string result { pname };
+    if (pnumber >= 0)
+    {
+        result += " ";
+        result += std::to_string(pnumber);
+    }
+    return result;
+}
+
 /*--------------------------------------------------------------------------
  * rtmidi virtual base-class functions
  *--------------------------------------------------------------------------*/
@@ -590,15 +607,8 @@ rtmidi::open_port (int portnumber, const std::string & portname)
 {
     bool result { not_nullptr(rt_api_ptr()) };
     if (result)
-    {
-        std::string pn { portname };
-        if (portnumber >= 0)
-        {
-            pn += " ";
-            pn += std::to_string(portnumber);
-        }
-        result = rt_api_ptr()->open_port(portnumber, pn);
-    }
+        result = rt_api_ptr()->open_port(portnumber, portname);
+
     return result;
 }
 

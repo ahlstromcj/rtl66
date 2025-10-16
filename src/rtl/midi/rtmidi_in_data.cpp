@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-09-14
+ * \updates       2025-10-10
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -55,15 +55,15 @@ rtmidi_in_data::rtmidi_in_data (unsigned qsize) :
 void
 rtmidi_in_data::ignore_flags (bool sysex, bool time, bool sense)
 {
-    m_ignore_flags = 0;
+    m_ignore_flags = ignoreflag::allow_all;
     if (sysex)
-        m_ignore_flags |= flag_sysex;
+        m_ignore_flags |= ignoreflag::sysex;
 
     if (time)
-        m_ignore_flags |= flag_time_code;
+        m_ignore_flags |= ignoreflag::time_code;
 
     if (sense)
-        m_ignore_flags |= flag_active_sensing;
+        m_ignore_flags |= ignoreflag::active_sensing;
 }
 
 }           // namespace rtl

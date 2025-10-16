@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-10-08
+ * \updates       2025-10-09
  * \license       See above.
  *
  *      A simple program to test MIDI input and the use of a user callback
@@ -53,7 +53,14 @@
  *  This callback just shows the incoming bytes (in hex format).
  */
 
-static void
+namespace
+{
+
+/**
+ *  Handles an input message.
+ */
+
+void
 midibytes_callback
 (
     double deltatime,                   /* always 0 in this test program    */
@@ -70,19 +77,7 @@ midibytes_callback
         if (nbytes > 0)
         {
             std::string msgline { "Msg:" };
-#if USE_THIS_CODE
-            for (size_t i = 0; i < nbytes; ++i)
-            {
-                midi::byte b = m[i];
-                char tmp[8];
-                snprintf(tmp, sizeof tmp, " 0x%x", int(b));
-                msgline += tmp;
-            }
-            msgline += "; time ";
-            msgline += std::to_string(deltatime);
-#else
             msgline += m.to_string();
-#endif
             util::status_message(msgline);
         }
         else
@@ -93,6 +88,8 @@ midibytes_callback
         }
     }
 }
+
+}           // namespace anonymous
 
 /**
  *  The main routine.

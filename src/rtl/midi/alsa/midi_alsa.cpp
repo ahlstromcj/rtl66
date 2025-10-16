@@ -1572,6 +1572,7 @@ midi_alsa::start_input_thread (rtmidi_in_data & indata)
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
         pthread_attr_setschedpolicy(&attr, SCHED_OTHER);
+        indata.do_input(true);
 
         int err
         {
@@ -1593,6 +1594,7 @@ midi_alsa::join_input_thread ()
     if (is_input())
     {
         midi_alsa_data & data { alsa_data() };
+        input_data().do_input(false);
         if (! pthread_equal(data.thread_handle(), data.dummy_thread_id()))
             pthread_join(data.thread_handle(), NULL);
     }

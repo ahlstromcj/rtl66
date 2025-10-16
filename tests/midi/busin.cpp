@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2025-10-09
- * \updates       2025-10-09
+ * \updates       2025-10-10
  * \license       See above.
  *
  *      This application but merely opens one port and accepts messages,
@@ -54,6 +54,10 @@ namespace
  */
 
 bool s_is_done { false };
+
+/**
+ *  This function is called when Ctrl-C is struck.
+ */
 
 void
 finish (int /*ignore*/)
@@ -97,6 +101,54 @@ app_client_info ()
 }
 
 /**
+ *  Handles an input message. Usage of this callback is an option.
+ */
+
+void
+midibytes_callback
+(
+    double deltatime,                   /* always 0 in this test program    */
+    midi::message * msg,
+    void * userdata
+)
+{
+    (void) userdata;
+    if (not_nullptr(msg))
+    {
+        midi::message & m = *msg;
+        deltatime = m.jack_stamp();
+        size_t nbytes = m.size();
+        if (nbytes > 0)
+        {
+            std::string msgline { "Msg:" };
+            msgline += m.to_string();
+            util::status_message(msgline);
+        }
+        else
+        {
+            std::cout
+                << "Empty message w/delta " << deltatime << std::endl
+                ;
+        }
+    }
+}
+
+/**
+ *  Provides an override of the default masterbus::m_input_specs member
+ *  that can be used to establish a callback. All members are defaulted
+ *  except for the callback function.
+ */
+
+midi::masterbus::inputspecs s_input_specs_override
+{
+    false,                                      /* input_use_sysex          */
+    false,                                      /* input_use_time_code      */
+    false,                                      /* input_use_active_sensing */
+    reinterpret_cast<void *>(midibytes_callback), /* input_callback         */
+    nullptr                                     /* input_user_data          */
+};
+
+/**
  *  Provides a masterbus object, of which only a few facilties will be
  *  used, to support a single midi::bus_out object. Compare it to
  *  player::create_master_bus() and the follow-on code in launch().
@@ -119,6 +171,9 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
              * The client_info_reset() call seems redundant, but
              * it is not. We need to find out why.
              */
+
+            if (rt_use_callback())
+                s_master_bus.set_inputspecs(s_input_specs_override);
 
             ok = s_master_bus.client_info_reset(ci);
             if (ok)
@@ -184,28 +239,47 @@ main (int argc, char * argv [])
                      * Don't ignore sysex, timing, or active sensing
                      * messages. Install an interrupt handler function.
                      * Periodically check input queue.
+                     *
+                     * busin.ignore_midi_types(false, false, false);
                      */
 
                     midi::message msg;
-                    busin.ignore_midi_types(false, false, false);
-                    s_is_done = false;
-                    (void) signal(SIGINT, finish);
-                    std::cout
-                        << "Reading MIDI from port "
-                        << busin.port_name()
-                        << " ... quit with Ctrl-C."
-                        << std::endl
-                        ;
-                    while (! s_is_done)
+                    if (rt_use_callback())
                     {
-                        (void) busin.get_message(msg);
-                        if (msg.count() > 0)
+                        /*
+                         * Disabled, occurs too late in the process.
+                         *
+                         * busin.set_input_callback(&midibytes_callback);
+                         */
+
+                        std::cout
+                            << "Reading MIDI input ... press <Enter> to quit.\n"
+                            ;
+
+                        char input;
+                        std::cin.get(input);
+                    }
+                    else
+                    {
+                        s_is_done = false;
+                        (void) signal(SIGINT, finish);
+                        std::cout
+                            << "Reading MIDI from port "
+                            << busin.port_name()
+                            << " ... quit with Ctrl-C."
+                            << std::endl
+                            ;
+                        while (! s_is_done)
                         {
-                            std::string msgline { "Msg:" };
-                            msgline += msg.to_string();
-                            util::status_message(msgline);
+                            (void) busin.get_message(msg);
+                            if (msg.count() > 0)
+                            {
+                                std::string msgline { "Msg:" };
+                                msgline += msg.to_string();
+                                util::status_message(msgline);
+                            }
+                            rt_test_sleep(10);  /* sleep for 10 msec    */
                         }
-                        rt_test_sleep(10);  /* sleep for 10 msec    */
                     }
                 }
                 catch (rtl::rterror & error)
