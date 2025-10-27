@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-09-26
+ * \updates       2025-10-27
  * \license       See above.
  *
  * Classes defined:
@@ -155,8 +155,8 @@ ports::add
     (
         str, sizeof str,
         "Added port #%d \"%s:%s\" [%d:%d] %s (%s %s %s)",
-        portid, clientname.c_str(), portname.c_str(),
-        clientnumber, portnumber, alias.c_str(),
+        portid, V(clientname), V(portname),
+        clientnumber, portnumber, V(alias),
         vport, iport, sport
     );
     (void) util::info_message(str);

@@ -7,7 +7,7 @@
 # \file           work.sh
 # \library        rtl66
 # \author         Chris Ahlstrom
-# \date           2024-02-06
+# \date           2024-02-27
 # \update         2025-10-06
 # \version        $Revision$
 # \license        $XPC_SUITE_GPL_LICENSE$
@@ -30,7 +30,7 @@ LANG=C
 export LANG
 CYGWIN=binmode
 export CYGWIN
-export RTL66_SCRIPT_EDIT_DATE="2025-10-06"
+export RTL66_SCRIPT_EDIT_DATE="2025-10-27"
 export RTL66_LIBRARY_API_VERSION="0.2"
 export RTL66_LIBRARY_VERSION="$RTL66_LIBRARY_API_VERSION.0"
 export RTL66="rtl66"
@@ -189,11 +189,11 @@ fi
 if test "$DOHELP" = "yes" ; then
 
    cat << E_O_F
-Usage: ./work [options]    ($RTL66_LIBRARY_VERSION-$RTL66_SCRIPT_EDIT_DATE)
+Usage: ./work.sh [options] ($RTL66_LIBRARY_VERSION-$RTL66_SCRIPT_EDIT_DATE)
 
-'work' encapsulates some common operations involving Meson, builds, packing,
-and version information.  Only implemented options are shown here; there will
-be more to come. Some options might not work on Windows.
+'work.sh' encapsulates some common operations involving Meson, builds,
+packing, and version information.  Only implemented options are shown here;
+there will be more to come. Some options might not work on Windows.
 
  --make or --build   Build the code in 'build'. The default operation.
  --update            Force an update of the subprojects.

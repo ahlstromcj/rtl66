@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-09-27
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  */
@@ -262,7 +262,7 @@ player::install_track
             label += std::to_string(trk->track_number());
             label += ": ";
             label += trk->track_name();
-            printf("%s\n", label.c_str());
+            printf("%s\n", V(label));
 #endif
             lib66::toggler sorting
             {
@@ -2564,14 +2564,14 @@ player::print_tracks (const std::string & tag)
     if (tag.empty())
         printf("player tracks:\n");
     else
-        printf("player tracks %s:\n", tag.c_str());
+        printf("player tracks %s:\n", V(tag));
 
     for (const auto & trk : track_list().tracks())
     {
         if (trk)
         {
             std::string trkstring { trk->to_string() };
-            printf("%s\n", trkstring.c_str());
+            printf("%s\n", V(trkstring));
         }
         else
         {

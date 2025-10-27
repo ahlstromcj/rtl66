@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-14
- * \updates       2025-09-14
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  For the summaries of the JACK functions used in this module, and how
@@ -475,7 +475,7 @@ jack_client_t *
 create_jack_client (std::string clientname, std::string uuid)
 {
     jack_client_t * result { nullptr };
-    const char * name { clientname.c_str() };
+    const char * name { CSTR(clientname) };
     jack_status_t status;
     jack_status_t * ps { &status };
     jack_options_t options { JackNoStartServer };
@@ -485,7 +485,7 @@ create_jack_client (std::string clientname, std::string uuid)
     }
     else
     {
-        const char * uid { uuid.c_str() };
+        const char * uid { CSTR(uuid) };
         options = static_cast<jack_options_t>(JackNoStartServer|JackSessionID);
         result = ::jack_client_open(name, options, ps, uid);
         if (not_nullptr(result))    //  && rc().investigate())
@@ -585,13 +585,13 @@ set_jack_client_property
     if (result)
     {
         jack_uuid_t u2 { JACK_UUID_EMPTY_INITIALIZER };
-        int rc { ::jack_uuid_parse(uuid.c_str(), &u2) };
+        int rc { ::jack_uuid_parse(CSTR(uuid), &u2) };
         result = rc == 0;
         if (result)
         {
-            const char * k { key.c_str() };
-            const char * v { value.c_str() };
-            const char * t { type.c_str() };
+            const char * k { CSTR(key) };
+            const char * v { CSTR(value) };
+            const char * t { CSTR(type) };
             rc = ::jack_set_property(jc, u2, k, v, t);
             result = rc == 0;
         }
@@ -610,9 +610,9 @@ set_jack_port_property
 )
 {
     jack_uuid_t uuid { ::jack_port_uuid(jp) };
-    const char * k { key.c_str() };
-    const char * v { value.c_str() };
-    const char * t { type.empty() ? NULL : type.c_str() };  /* important!   */
+    const char * k { CSTR(key) };
+    const char * v { CSTR(value) };
+    const char * t { type.empty() ? NULL : CSTR(type) };  /* important!   */
     int rc { ::jack_set_property(jc, uuid, k, v, t) };
     return rc == 0;
 }
@@ -631,11 +631,11 @@ set_jack_port_property
     const std::string & type
 )
 {
-    jack_port_t * jp { ::jack_port_by_name(jc, portname.c_str()) };
+    jack_port_t * jp { ::jack_port_by_name(jc, CSTR(portname)) };
     jack_uuid_t uuid { ::jack_port_uuid(jp) };
-    const char * k { key.c_str() };
-    const char * v { value.c_str( });
-    const char * t { type.empty() ? NULL : type.c_str() };  /* important!   */
+    const char * k { CSTR(key) };
+    const char * v { CSTR(value) };
+    const char * t { type.empty() ? NULL : CSTR(type) };  /* important!   */
     int rc { ::jack_set_property(jc, uuid, k, v, t) };      /* t == NULL?   */
     return rc == 0;
 }
@@ -1560,7 +1560,7 @@ transport::session_event (jack_session_event_t * ev)
     cmd += (" --jack-session ");
     cmd += uuid;
     cmd += " --home ${SESSION_DIR}";
-    ev->command_line = strdup(cmd.c_str());
+    ev->command_line = strdup(CSTR(cmd));
 
 #if 0
     std::string clientname = rc().app_client_name();    /* seq_client_id()  */
@@ -1924,7 +1924,7 @@ transport::show_position (const jack_position_t & pos)
     snprintf
     (
         temp, sizeof temp, "%s %8ld %03d:%d:%04d %d/%d %5d %3d %d",
-        nnnnn.c_str(), long(pos.frame),
+        CSTR(nnnnn), long(pos.frame),
         int(pos.bar), int(pos.beat), int(pos.tick),
         int(pos.beats_per_bar), int(pos.beat_type),
         int(pos.ticks_per_beat), int(pos.beats_per_minute),

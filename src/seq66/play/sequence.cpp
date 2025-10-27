@@ -25,7 +25,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2024-06-13
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  The functionality of this class also includes handling some of the
@@ -83,23 +83,30 @@ static const int c_maxbeats         = 0xFFFF;
  *  size.
  */
 
-static const midi::pulse c_handlesize = 16;
+static const midi::pulse c_handlesize { 16 };
 
 /**
  *  Static members for validating scale factors in pattern compression and
  *  expanding.
  */
 
-static const double c_scale_min     =    0.01;
-static const double c_scale_max     =  200.00;
-static const double c_measure_max   = 1000.00;
+static const double c_scale_min     {    0.01 };
+static const double c_scale_max     {  200.00 };
+static const double c_measure_max   { 1000.00 };
+
+/**
+ *  The divisor for detecting when to reset auto-step. The original value
+ *  was 2. Let's try something else. Maybe 8 would work, too.
+ */
+
+static const midi::pulse c_reset_divisor = 4;
 
 /*
  * Member value.  A fingerprint size of 0 means to not use a fingerprint...
  * display the whole track in the progress box, no matter how long.
  */
 
-int sequence::sm_fingerprint_size   = 0;
+int sequence::sm_fingerprint_size { 0 };
 
 /*
  * Member for convenience.
@@ -111,7 +118,7 @@ short sequence::sm_preserve_velocity;
  *  Provides the default name/title for the sequence.
  */
 
-const std::string sequence::sm_default_name = "Untitled";
+const std::string sequence::sm_default_name { "Untitled" };
 
 /**
  *  A static clipboard for holding pattern/sequence events.  Being static
@@ -165,14 +172,17 @@ sequence::sequence (int ppqn) :
     m_transposable              (true),
     m_notes_on                  (0),
     m_master_bus                (nullptr),
-    m_playing_notes             (),
+    m_playing_notes             (c_notes_count, 0),
     m_armed                     (false),
     m_recording                 (false),
     m_draw_locked               (false),
     m_auto_step_reset           (false),
     m_recording_style           (recordstyle::merge),
+//  m_recording_style           (usr().pattern_record_style()),
+//  m_record_alteration         (usr().record_alteration()),
     m_alter_recording           (alteration::none),
     m_thru                      (false),
+    m_has_popup                 (false),
     m_queued                    (false),
     m_one_shot                  (false),
     m_one_shot_tick             (0),
@@ -203,29 +213,40 @@ sequence::sequence (int ppqn) :
     m_seq_color                 (c_seq_color_none),
     m_seq_edit_mode             (sequence::editmode::note),
     m_length                    (4 * midi::pulse(m_ppqn)),  /* 1 bar of ticks */
+    m_next_boundary             (0),
     m_measures                  (0),
     m_snap_tick                 (int(m_ppqn) / 4),
     m_step_edit_note_length     (int(m_ppqn) / 4),
-    m_time_beats_per_measure    (0),
-    m_time_beat_width           (0),
+    m_time_beats_per_measure    (4),
+    m_time_beat_width           (4),
+    m_timesig_beats_per_measure (0),
+    m_timesig_beat_width        (0),
     m_clocks_per_metronome      (24),
-    m_32nds_per_quarter         (8),
+    m_clocks_per_metronome      (c_midi_clocks_per_metronome),
+    m_32nds_per_quarter         (c_midi_32nds_per_quarter),
     m_us_per_quarter_note       (tempo_us_from_bpm(usr().bpm_default())),
     m_rec_vol                   (usr().preserve_velocity()),
     m_note_on_velocity          (usr().note_on_velocity()),
     m_note_off_velocity         (usr().note_off_velocity()),
     m_musical_key               (usr().seqedit_key()),
     m_musical_scale             (usr().seqedit_scale()),
+    m_musical_chord             (0),
     m_background_sequence       (usr().seqedit_bgsequence()),
     m_mutex                     ()
 {
     sm_preserve_velocity = usr().preserve_velocity();
     sm_fingerprint_size = usr().fingerprint_size();
     m_events.set_length(m_length);
+    m_events.zero_len_correction(m_snap_tick / 2);
     m_triggers.set_ppqn(int(m_ppqn));
     m_triggers.set_length(m_length);
     for (auto & p : m_playing_notes)            /* no notes playing now     */
         p = 0;
+
+    // ????
+    //
+    // for (auto & p : m_playing_notes)            /* no notes playing now     */
+    //     p = 0;
 }
 
 /**
@@ -288,10 +309,15 @@ sequence::modify (bool notifychange)
  *
  * \param rhs
  *      Provides the source of the new member values.
+ *
+ * \param domodify
+ *      Indicates if the modify flag is to be raised. It defaults to true.
+ *      It needs to set to false if the sequence is the clipboard sequence,
+ *      or if a pattern drag-and-drop is not yet finished.,
  */
 
 void
-sequence::partial_assign (const sequence & rhs, bool toclipboard)
+sequence::partial_assign (const sequence & rhs, bool domodify)
 {
     if (this != &rhs)
     {
@@ -299,6 +325,7 @@ sequence::partial_assign (const sequence & rhs, bool toclipboard)
         m_parent                    = rhs.m_parent;         /* a pointer    */
         m_events                    = rhs.m_events;         /* container!   */
         m_triggers                  = rhs.m_triggers;       /* 2021-07-27   */
+        m_time_signatures           = rhs.m_time_signatures;    /* vector   */
 
         /*
          *  The triggers class has a parent that cannot be reassigned.
@@ -366,9 +393,13 @@ sequence::partial_assign (const sequence & rhs, bool toclipboard)
          *  m_mutex
          */
 
+//      m_ppqn                      = rhs.m_ppqn;
+        m_seq_number                = rhs.m_seq_number;     // ?
         m_seq_color                 = rhs.m_seq_color;
         m_seq_edit_mode             = rhs.m_seq_edit_mode;
         m_length                    = rhs.m_length;
+        m_next_boundary             = 0;
+        m_measures                  = rhs.m_measures;
         m_snap_tick                 = rhs.m_snap_tick;
         m_step_edit_note_length     = rhs.m_step_edit_note_length;
         m_time_beats_per_measure    = rhs.m_time_beats_per_measure;
@@ -381,6 +412,7 @@ sequence::partial_assign (const sequence & rhs, bool toclipboard)
         m_note_off_velocity         = rhs.m_note_off_velocity;
         m_musical_key               = rhs.m_musical_key;
         m_musical_scale             = rhs.m_musical_scale;
+        m_musical_chord             = rhs.m_musical_chord;
         m_background_sequence       = rhs.m_background_sequence;
         for (auto & p : m_playing_notes)            /* no notes playing now */
             p = 0;
@@ -388,6 +420,7 @@ sequence::partial_assign (const sequence & rhs, bool toclipboard)
         m_last_tick = 0;                            /* reset to tick 0      */
         verify_and_link();                          /* NoteOn <---> NoteOff */
         if (! toclipboard)
+        if (domodify)
             modify();
     }
 }
@@ -449,13 +482,35 @@ sequence::musical_scale (int scale, bool user_change)
     }
 }
 
+void
+sequence::musical_chord (int c, bool user_change)
+{
+    if (legal_chord(c))
+    {
+        bool change = c != m_musical_chord;
+        if (change)
+        {
+            m_musical_chord = midibyte(c);
+            if (user_change)
+                modify();
+        }
+    }
+}
+
+/**
+ *  This result is tested in qseqeditframe64::set_background_sequence()
+ *  before passing the change to the qseqroll. At the opening of
+ *  the pattern editor, the value has been already set, so we
+ *  the value anyway. Suckage.
+ */
+
 bool
 sequence::background_sequence (int bs, bool user_change)
 {
     bool result = false;
     if (seq::legal(bs))
     {
-        result = bs != m_background_sequence;
+        result = bs != m_background_sequence || ! user_change;
         if (result)
         {
             m_background_sequence = short(bs);
@@ -511,7 +566,6 @@ sequence::loop_count_max (int m, bool user_change)
         m_loop_count_max = m;
         if (user_change)
             result = true;
-
     }
     if (result)
         modify();                               /* have pending changes */
@@ -536,10 +590,11 @@ sequence::clear_events ()
 {
     xpc::automutex locker(m_mutex);
     bool result = ! m_events.empty();
-    m_events.clear();
     if (result)
+    {
+        m_events.clear();
         modify();                                   /* have pending changes */
-
+    }
     return result;
 }
 
@@ -630,6 +685,7 @@ sequence::analyze_time_signatures ()
     midi::pulse limit = snap() / 2;   /* allow some slop at the beginning    */
     bool found = false;
     int count = 0;
+    int ppq = get_ppqn();
     m_time_signatures.clear();
     for (auto cev = cbegin(); ! cend(cev); ++cev)
     {
@@ -647,7 +703,7 @@ sequence::analyze_time_signatures ()
             t.sig_measures = 0.0;               /* ditto                    */
             t.sig_beats_per_bar = int(cev->get_sysex(0));
             t.sig_beat_width = beat_power_of_2(int(cev->get_sysex(1)));
-            t.sig_ticks_per_beat = 0;
+            t.sig_ticks_per_beat = pulses_per_beat(ppq, t.sig_beat_width);
             t.sig_start_tick = ts;
             t.sig_end_tick = 0;                 /* tritto                   */
             m_time_signatures.push_back(t);
@@ -686,11 +742,13 @@ sequence::analyze_time_signatures ()
 
                 double mcurrent = pulses_to_measures
                 (
-                    ender, get_ppqn(), t.sig_beats_per_bar, t.sig_beat_width
+//                  ender, get_ppqn(), t.sig_beats_per_bar, t.sig_beat_width
+                    ender, ppq, t.sig_beats_per_bar, t.sig_beat_width
                 );
                 t.sig_start_measure = lastmeasure;
                 t.sig_measures = mcurrent;
-                t.sig_ticks_per_beat = ticksperbeat;
+                t.sig_ticks_per_beat = pulses_per_beat(ppq, t.sig_beat_width);
+//              t.sig_ticks_per_beat = ticksperbeat;
                 lastmeasure += mcurrent;
                 ++count;
             }
@@ -707,6 +765,23 @@ sequence::analyze_time_signatures ()
 }
 
 /**
+ *  Makes the default time signature.
+ */
+
+sequence::timesig
+sequence::default_time_signature () const
+{
+    timesig t;
+    t.sig_start_measure = 0.0;
+    t.sig_measures = 0.0;
+    t.sig_beats_per_bar = m_time_beats_per_measure;
+    t.sig_beat_width = m_time_beat_width;
+    t.sig_ticks_per_beat = pulses_per_beat(get_ppqn(), m_time_beat_width);
+    t.sig_start_tick = t.sig_end_tick = 0;
+    return t;
+}
+
+/**
  *  Pushes a default time-signature based on the beats/bar and beat width set
  *  for the pattern. The extent and measure are calculated at the end of the
  *  time-signature analysis stage.
@@ -715,12 +790,13 @@ sequence::analyze_time_signatures ()
 void
 sequence::push_default_time_signature ()
 {
-    timesig t;
-    t.sig_start_measure = 0.0;
-    t.sig_measures = 0.0;
-    t.sig_beats_per_bar = m_time_beats_per_measure;
-    t.sig_beat_width = m_time_beat_width;
-    t.sig_ticks_per_beat = t.sig_start_tick = t.sig_end_tick = 0;
+    timesig t = default_time_signature();
+//  timesig t;                          // TODO: use a constructor???
+//  t.sig_start_measure = 0.0;
+//  t.sig_measures = 0.0;
+//  t.sig_beats_per_bar = m_time_beats_per_measure;
+//  t.sig_beat_width = m_time_beat_width;
+//  t.sig_ticks_per_beat = t.sig_start_tick = t.sig_end_tick = 0;
     m_time_signatures.push_back(t);
 }
 
@@ -731,10 +807,11 @@ sequence::get_time_signature (size_t index) const
     static bool s_uninitialized = true;
     if (s_uninitialized)
     {
-        s_ts_dummy.sig_start_measure = s_ts_dummy.sig_measures = 0.0;
-        s_ts_dummy.sig_beats_per_bar = s_ts_dummy.sig_beat_width = 0;
-        s_ts_dummy.sig_ticks_per_beat =0;
-        s_ts_dummy.sig_start_tick = s_ts_dummy.sig_end_tick = 0;
+        s_ts_dummy = default_time_signature();
+//      s_ts_dummy.sig_start_measure = s_ts_dummy.sig_measures = 0.0;
+//      s_ts_dummy.sig_beats_per_bar = s_ts_dummy.sig_beat_width = 0;
+//      s_ts_dummy.sig_ticks_per_beat =0;
+//      s_ts_dummy.sig_start_tick = s_ts_dummy.sig_end_tick = 0;
         s_uninitialized = false;
     }
     return index < m_time_signatures.size() ?
@@ -823,6 +900,7 @@ sequence::measure_number (midi::pulse p) const
     int count = time_signature_count();
     if (count > 0)
     {
+        int ppq = get_ppqn();
         for (int i = 0; i < count; ++i)
         {
             const timesig & t = get_time_signature(i);
@@ -834,8 +912,9 @@ sequence::measure_number (midi::pulse p) const
                 double mnew = t.sig_start_measure;
                 double m = pulses_to_measures
                 (
-                    duration, get_ppqn(),
-                    t.sig_beats_per_bar, t.sig_beat_width
+                    duration, ppq, t.sig_beats_per_bar,
+//                  duration, get_ppqn(),
+                    t.sig_beat_width
                 );
                 result += int(mnew + m + 0.5);      /* round up for now */
                 if (p >= p1)
@@ -907,11 +986,22 @@ sequence::time_signature_pulses (const std::string & s) const
 
             if (got_it)
             {
-                double mcount = double(mm.measures()) - m0; /* integral?    */
-                double tpb = double(t0.sig_ticks_per_beat);
-                double bpb = double(t0.sig_beats_per_bar);
-                midi::pulse added = midi::pulse(tpb * bpb * mcount);
-                result = t0.sig_start_tick + added + mm.divisions();
+                /*
+                 * Some minor updates needed to fix inserting, e.g.,
+                 * Program events, with the proper timestamp.
+                 */
+
+                midibpm bpminute = perf()->get_beats_per_minute();
+                int bpb = t0.sig_beats_per_bar;
+                int bw = t0.sig_beat_width;
+                midi_timing mt{bpminute, bpb, bw, get_ppqn()};
+                midipulse mticks = midi_measures_to_pulses(mm, mt);
+                result = t0.sig_start_tick + mticks;
+//              double mcount = double(mm.measures()) - m0; /* integral?    */
+//              double tpb = double(t0.sig_ticks_per_beat);
+//              double bpb = double(t0.sig_beats_per_bar);
+//              midi::pulse added = midi::pulse(tpb * bpb * mcount);
+//              result = t0.sig_start_tick + added + mm.divisions();
                 break;
             }
         }
@@ -929,6 +1019,28 @@ sequence::time_signature_pulses (const std::string & s) const
         midi_timing mt(bpminute, bpb, bwidth, get_ppqn());
         result = seq66::string_to_pulses(s, mt);
     }
+    return result;
+}
+
+/**
+ *  Rescales the eventlist, then sets the pattern length to the result.
+ */
+
+midipulse
+sequence::apply_time_factor
+(
+    double factor,
+    bool savenotelength,
+    bool relink
+)
+{
+    midipulse result = m_events.apply_time_factor
+    (
+        factor, savenotelength, relink
+    );
+    if (result > 0)
+        (void) set_length(result);          /* triggers, verify defaults    */
+
     return result;
 }
 
@@ -993,7 +1105,7 @@ sequence::pop_undo ()
         m_events_redo.push(m_events);
         m_events = m_events_undo.top();
         m_events_undo.pop();
-        verify_and_link();
+        (void) verify_and_link();
         unselect();
     }
     set_have_undo();
@@ -1018,7 +1130,7 @@ sequence::pop_redo ()
         m_events_undo.push(m_events);
         m_events = m_events_redo.top();
         m_events_redo.pop();
-        verify_and_link();
+        (void) verify_and_link();
         unselect();
     }
     set_have_undo();
@@ -1111,6 +1223,15 @@ sequence::set_beats_per_bar (int bpb, bool user_change)
         int m = get_measures();
         if (m != m_measures)
         {
+            /*
+             * Adjust the markers so that R matches END after a time-signature
+             * change? No, the markers are a song-wide thing and the user
+             * can move "R" if desired.
+             *
+             *      midipulse E = perf()->get_length();          // END
+             *      midipulse R = perf()->get_right_tick();      // R
+             */
+
             m_measures = m;
             if (user_change)
                 modded = true;
@@ -1196,16 +1317,34 @@ sequence::unit_measure (bool reset) const
 /**
  *  Changed this from a void to a boolean. Most usages still do not use the
  *  return value.  A fix for the double_length() function.
+ *
+ * \param measures
+ *      The number of measures to add.
+ *
+ * \param user_change
+ *      True if the change was initiated by the user, and not automatic.
+ *      The default is false.
  */
 
 bool
 sequence::set_measures (int measures, bool user_change)
 {
     bool modded = set_length(measures * unit_measure(true));
-    if (modded && user_change)
-        modify();
-
+    if (modded)
+    {
+        m_measures = measures;
+        if (user_change)
+            modify();
+    }
     return modded;
+}
+
+int
+sequence::increment_measures ()
+{
+    int m = get_measures();
+    bool ok = set_measures(m + 1);
+    return ok ? m + 1 : m ;
 }
 
 /**
@@ -1232,14 +1371,35 @@ sequence::expand_threshold () const
  *  expanded recording.  See expand_threshold() for an issue we currently
  *  have not solved.
  *
+ *  If the latest (recorded) note has a tick value greater than the threshold,
+ *  then the number of measures is increment.
+ *
  * \return
  *      Returns the expand_threshold() minus a unit_measure() and a quarter.
+ *
+ *      return expand_threshold() - (unit_measure() + unit_measure() / 4);
+ *
+ *      This is wasteful and might be wrong. Call it "x".
  */
 
 midi::pulse
-sequence::progress_value () const
+sequence::expand_value ()
 {
-    return expand_threshold() - (unit_measure() + unit_measure() / 4);
+    midi::pulse result = get_last_tick();
+    if (result >= expand_threshold())
+    {
+#if defined SEQ66_PLATFORM_DEBUG_TMI
+        int m = increment_measures();
+        printf("expanded measures = %d\n", m);
+#else
+        (void) increment_measures();
+        result = get_length();
+#endif
+    }
+    else
+        result = 0;
+
+    return result;
 }
 
 /**
@@ -1741,11 +1901,12 @@ sequence::live_play (midi::pulse tick)
  *      override usr().new_pattern_wraparound().  Defaults to false.
  */
 
-void
+bool
 sequence::verify_and_link (bool wrap)
 {
     xpc::automutex locker(m_mutex);
-    m_events.verify_and_link(get_length(), wrap);
+    midi::pulse len = expanded_recording() ? 0 : get_length() ;
+    return m_events.verify_and_link(len, wrap);
 }
 
 /**
@@ -1869,14 +2030,39 @@ sequence::remove_first_match (const event & e, midi::pulse starttick)
  *  Clears all events from the event container.  Also see copy_events().
  */
 
-void
+bool
 sequence::remove_all ()
 {
     xpc::automutex locker(m_mutex);
+    bool result = false;
     int count = m_events.count();
-    m_events.clear();
     if (count > 0)
+    {
+        m_events.clear();
+        count = m_events.count();
+        result = count == 0;
+        if (result)
         modify();                       /* issue #90 */
+    }
+    return result;
+}
+
+/**
+ *  Removes any events timestamps after the last measure. See
+ *  the use of would_truncate() in qseqeditframe64.
+ */
+
+bool
+sequence::remove_orphaned_events ()
+{
+    automutex locker(m_mutex);
+    bool result = m_events.remove_trailing_events(get_length());
+    if (result)
+    {
+        if (result)
+            modify();
+    }
+    return result;
 }
 
 /**
@@ -1976,6 +2162,9 @@ sequence::unpaint_all ()
  *
  * \param [out] note_l
  *      Side-effect return reference for the low note.
+ *
+ * \return
+ *      Returns true if all the values are usable.
  */
 
 bool
@@ -2075,6 +2264,9 @@ sequence::onsets_selected_box
     }
     return result;
 }
+
+jxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
 
 /**
  *  Returns the 'box' of the clipboard items.  Note the common-code betweem
@@ -6753,13 +6945,13 @@ sequence::show_events () const
     printf
     (
         "sequence #%d '%s': channel %d, events %d\n",
-        seq_number(), name().c_str(), seq_midi_channel(), event_count()
+        seq_number(), V(name()), seq_midi_channel(), event_count()
     );
     for (auto iter = cbegin(); ! cend(iter); ++iter)
     {
         const event & er = eventlist::cdref(iter);
         std::string evdump = er.to_string();
-        printf("%s", evdump.c_str());
+        printf("%s", V(evdump));
     }
 }
 

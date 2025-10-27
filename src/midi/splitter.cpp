@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-11-24
- * \updates       2025-09-13
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  We have recently updated this module to put Set Tempo events into the
@@ -263,7 +263,7 @@ splitter::split_channel
     if (main_name.empty())
         snprintf(tmp, sizeof tmp, "Track %d", chan + 1);
     else
-        snprintf(tmp, sizeof tmp, "%d: %.20s", chan + 1, main_name.c_str());
+        snprintf(tmp, sizeof tmp, "%d: %.20s", chan + 1, V(main_name));
 
     make_track_settings(p, trk, std::string(tmp), track::number(chan));
 

@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2018-11-23
- * \updates       2025-09-05
+ * \updates       2025-10-26
  * \license       GNU GPLv2 or above
  *
  *  These values were moved from the Seq64 globals module.  Includes the
@@ -41,6 +41,7 @@
 #include <vector>                       /* holds the scale analyses results */
 
 #include "midi/midibytes.hpp"           /* midi::bytes                      */
+#include "cpp_types.hpp"                /* lib66::tokenization container    */
 
 namespace midi
 {
@@ -172,6 +173,10 @@ inline bool
 legal_scale (int s)
 {
     return s >= c_scales_off && s < c_scales_max;
+
+    /*
+     * return s >= scale_to_int(scales::off) && s < scale_to_int(scales::max);
+     */
 }
 
 inline scales
@@ -184,6 +189,40 @@ inline int
 scale_to_int (scales s)
 {
     return static_cast<int>(s);
+}
+
+/**
+ *  Supported chords.
+ */
+
+enum class chords
+{
+    none, major, majb5, minor, minb5, sus2, sus4, aug, augsus4, tri, sixth,
+    sixthsus4, sixthadd9, m6, m6add9, seventh, seventhsus4, seventh_5,
+    seventhb5, seventh_9, seventhb9, seventh_5_9, seventh_5b9, seventhb5b9,
+    seventhadd11, seventhadd13, seventh_11, maj7, maj7b5, maj7_5, maj7_11,
+    maj7add13, m7, m7b5, m7b9, m7add11, m7add13, mmaj7, mmaj7add11,
+    mmaj7add13,
+    max
+};
+
+inline chords
+int_to_chord (int c)
+{
+    return c >= 0 && c < static_cast<int>(chords::max) ?
+        static_cast<chords>(c) : chords::none ;
+}
+
+inline int
+chord_to_int (chords c)
+{
+    return static_cast<int>(c);
+}
+
+inline bool
+legal_chord (int s)
+{
+    return s >= chord_to_int(chords::major) && s < chord_to_int(chords::max);
 }
 
 /**
@@ -216,6 +255,8 @@ extern const char * harmonic_interval_name_ptr (int interval);
 extern bool chord_number_valid (int number);
 extern const char * chord_name_ptr (int number);
 extern const chord_notes & chord_entry (int number);
+extern std::string chord_intervals (chords c);
+extern bool note_in_chord (chords chord, keys key, int note);
 extern bool scales_policy (scales s, int k);
 extern bool scales_policy (scales s, keys keyofpattern, int k);
 extern const int * scales_up (int scale, int key = 0);
@@ -233,6 +274,18 @@ extern bool key_signature_bytes
     const std::string & keysigname,
     midi::bytes & keysigbytes
 );
+extern bool note_name_translation
+(
+    const std::string & notename,
+    int & notenumber,
+    int & octavenumber,
+    int & basenumber
+);
+extern bool get_pitch_range
+(
+    const lib66::tokenization & values,
+    int & lowest, int & highest
+);
 
 }           // namespace midi
 
@@ -243,4 +296,3 @@ extern bool key_signature_bytes
  *
  * vim: sw=4 ts=4 wm=4 et ft=cpp
  */
-

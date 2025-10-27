@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2024-09-14
+ * \updates       2025-10-27
  * \license       See above.
  *
  */
@@ -189,7 +189,7 @@ try_open_midi_api
     catch (...)
     {
         std::string msg { _("Unknown exception... fix the catch") };
-        errprint(msg.c_str());
+        errprint(CSTR(msg));
     }
     return result;
 }
@@ -293,7 +293,7 @@ try_open_midi_api (const midi::masterbus & mb, midi::port::io iotype)
     catch (...)
     {
         std::string msg { _("Unknown exception... fix the catch") };
-        errprint(msg.c_str());
+        errprint(CSTR(msg));
     }
     return result;
 }

@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-09-06
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -33,6 +33,7 @@
  *  buss classes.
  */
 
+#include "cpp_types.hpp"                /* CSTR() function from lib66       */
 #include "midi/bus.hpp"                 /* midi::bus, clocking              */
 #include "midi/busarray.hpp"            /* rtl66::busarray class            */
 #include "midi/event.hpp"               /* rtl66::event class               */
@@ -529,7 +530,7 @@ busarray::get_midi_bus_name (int b) const
                 (
                     tmp, sizeof tmp, "[%d] %d:%d %s",
                     b, bptr->bus_number(), bptr->port_number(),
-                    portname.c_str()
+                    V(portname)
                 );
                 result = tmp;
             }

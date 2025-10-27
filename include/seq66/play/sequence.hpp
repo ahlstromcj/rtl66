@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2015-07-30
- * \updates       2025-07-30
+ * \updates       2025-10-26
  * \license       GNU GPLv2 or above
  *
  *  The functions add_list_var() and add_long_list() have been replaced by
@@ -44,15 +44,21 @@
 
 #include "rtl66_features.hpp"           /* various feature #defines         */
 #include "cfg/usrsettings.hpp"          /* enum class record                */
+// FUTURE
+// #include "ctrl/midimacro.hpp"        /* midi::macro                      */
 #include "midi/calculations.hpp"        /* seq66::lengthfix, alteration     */
 #include "midi/eventlist.hpp"           /* midi::eventlist                  */
 #include "play/triggers.hpp"            /* seq66::triggers, etc.            */
 #include "util/automutex.hpp"           /* xpc::recmutex, automutex         */
 
+namespace midi
+{
+    class masterbus;
+};
+
 namespace seq66
 {
 
-class mastermidibus;
 class notemapper;
 class performer;
 
@@ -62,7 +68,7 @@ class performer;
  *  integer in the seq66::sequence class.
  */
 
-const int c_seq_color_none = (-1);
+const int c_seq_color_none { -1 };
 
 /**
  *  Provides a way to save a sequence palette color in a single byte.  This
@@ -323,7 +329,7 @@ public:
         note_info () :
             ni_tick_start   (0),
             ni_tick_finish  (0),
-            ni_note         (0),
+            ni_note         (0),    /* we could initialize this to (-1)     */
             ni_velocity     (0),
             ni_selected     (false),
             ni_non_note     (false)
@@ -592,6 +598,8 @@ private:
     /**
      *  Provides a "map" for Note On events.  It is used when muting, to shut
      *  off the notes that are playing.
+     *
+     * unsigned short m_playing_notes[c_notes_count];
      */
 
     std::vector<unsigned short> m_playing_notes;
@@ -939,7 +947,7 @@ private:
     unsigned short m_time_beat_width;
 
     /**
-     *  members to use for the c_timesig SeqSpec. Rather than hold
+     *  New members to use for the c_timesig SeqSpec. Rather than hold
      *  the last time-signature that was set, this holds the first one,
      *  or the value in a c_timesig SeqSpec. If 0, the c_timesig values
      *  have not yet been set.
@@ -1019,6 +1027,12 @@ private:
      */
 
     midi::byte m_musical_scale;
+
+    /**
+     *  Holds a copy of the musical chord for this sequence.
+     */
+
+    midibyte m_musical_chord;
 
     /**
      *  Holds a copy of the background sequence number for this sequence,
@@ -1943,6 +1957,7 @@ public:
         midi::pulse tick_s, int note_h,
         midi::pulse tick_f, int note_l, midi::eventlist::select action
     );
+    int select_notes_by_pitch (int note_h, int note_l);
     int select_events
     (
         midi::pulse tick_s, midi::pulse tick_f,
@@ -2118,6 +2133,11 @@ public:
         return m_musical_scale;
     }
 
+    midibyte musical_chord () const
+    {
+        return m_musical_chord;
+    }
+
     int background_sequence () const
     {
         return int(m_background_sequence);
@@ -2125,6 +2145,7 @@ public:
 
     void musical_key (int key, bool user_change = false);
     void musical_scale (int scale, bool user_change = false);
+    void musical_chord (int c, bool user_change = false);
     bool background_sequence (int bs, bool user_change = false);
     void show_events () const;
     bool copy_events (const midi::eventlist & newevents);

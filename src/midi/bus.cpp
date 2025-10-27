@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-09-29
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -184,12 +184,12 @@ bus::bus
                     "  I/O Status : '%s'\n"
                     ,
                     index,
-                    bus_number(), bus_name().c_str(),
-                    port_number(), port_name().c_str(), port_alias().c_str(),
+                    bus_number(), V(bus_name()),
+                    port_number(), V(port_name()), V(port_alias()),
                     port_index(),
-                    io_to_string(io_type()).c_str(),
-                    kind_to_string(port_type()).c_str(),
-                    clocking_to_string(clock_type()).c_str()
+                    V(io_to_string(io_type())),
+                    V(kind_to_string(port_type())),
+                    V(clocking_to_string(clock_type()))
                 );
             }
 #endif
@@ -301,7 +301,7 @@ bus::set_name
         {
             snprintf
             (
-                name, sizeof name, "%s [%s]", bname.c_str(), portname.c_str()
+                name, sizeof name, "%s [%s]", V(bname), V(portname)
             );
             bus_name(bname);
         }
@@ -311,7 +311,7 @@ bus::set_name
             (
                 name, sizeof name, "[%d] %d:%d %s:%s",
                 bus_index(), bus_number(), port_number(),
-                appname.c_str(), portname.c_str()
+                V(appname), V(portname)
             );
             bus_name(appname);
             port_name(portname);
@@ -325,7 +325,7 @@ bus::set_name
         {
             snprintf
             (
-                alias, sizeof alias, "%s [%s]", bname.c_str(), portname.c_str()
+                alias, sizeof alias, "%s [%s]", V(bname), V(portname)
             );
             bus_name(bname);
         }
@@ -333,12 +333,12 @@ bus::set_name
         {
             snprintf
             (
-                alias, sizeof alias, "%s:%s", busname.c_str(), portname.c_str()
+                alias, sizeof alias, "%s:%s", V(busname), V(portname)
             );
             bus_name(busname);              // bus_name(alias);
         }
         else
-            snprintf(alias, sizeof alias, "%s", portname.c_str());
+            snprintf(alias, sizeof alias, "%s", V(portname));
 
         snprintf                            /* copy the client name parts */
         (
@@ -396,7 +396,7 @@ bus::set_alt_name
         snprintf                            /* copy the client name parts */
         (
             alias, sizeof alias, "[%d] %d:%d %s",
-            bus_index(), bus_number(), port_number(), pname.c_str()
+            bus_index(), bus_number(), port_number(), V(pname)
         );
         bus_name(bname);
         port_name(pname);
@@ -446,7 +446,7 @@ bus::is_port_connectable () const
 void
 bus::print ()
 {
-    printf("%s:%s", bus_name().c_str(), port_name().c_str());
+    printf("%s:%s", V(bus_name()), V(port_name()));
 }
 
 midi::ppqn
@@ -500,7 +500,7 @@ bus::connect ()
         snprintf
         (
             temp, sizeof temp, "null pointer port '%s'",
-            display_name().c_str()
+            V(display_name())
         );
         errprint(temp);
     }
@@ -522,7 +522,7 @@ bus::connect ()
 void
 bus::show_clock (const std::string & context, midi::pulse tick)
 {
-    printf("%s clock [%ld]", context.c_str(), tick);
+    printf("%s clock [%ld]", V(context), tick);
 }
 
 /**
@@ -547,8 +547,8 @@ bus::show_bus_values ()
         "clock & enabling:  %d & %s\n"
         ,
         client_id(), bus_number(), port_number(),
-        display_name().c_str(), connect_name().c_str(),
-        bus_name().c_str(), port_name().c_str(),
+        V(display_name()), V(connect_name()),
+        V(bus_name()), V(port_name()),
         vport, iport, sport,
         int(get_clock_mod()), port_enabled() ? "yes" : "no"
     );

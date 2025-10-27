@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2023-03-17
- * \updates       2025-01-20
+ * \updates       2025-10-27
  * \license       See above.
  *
  */
@@ -338,7 +338,7 @@ audio_jack::engine_connect ()
     bool ok = is_nullptr(data.jack_client()) || ! is_engine();
     if (ok)
     {
-        const char * cname = client_name().c_str();
+        const char * cname = CSTR(client_name());
 
         jack_options_t jopts = JackNoStartServer;
         if (rtaudio::start_jack())
@@ -675,7 +675,7 @@ audio_jack::open_port (int portnumber, const std::string & portname)
         audio_jack_data & data = jack_data();
         if (is_nullptr(data.jack_port()))           /* can create the port  */
         {
-            const char * pn = portname.c_str();
+            const char * pn = CSTR(portname);
             jack_port_t * jptr = ::jack_port_register
             (
                 data.jack_client(), pn, JACK_DEFAULT_MIDI_TYPE,
@@ -694,7 +694,7 @@ audio_jack::open_port (int portnumber, const std::string & portname)
                 (
                     data.jack_client(),
                     jack_port_name(data.jack_port()),
-                    name.c_str()
+                    CSTR(name)
                 );
                 if (rc != 0)                        /* not connected!       */
                 {
@@ -727,7 +727,7 @@ audio_jack::open_virtual_port (const std::string & portname)
         {
             jack_port_t * jptr = ::jack_port_register
             (
-                data.jack_client(), portname.c_str(),
+                data.jack_client(), CSTR(portname),
                 JACK_DEFAULT_MIDI_TYPE,
                 is_output() ? JackPortIsOutput : JackPortIsInput, 0
             );
@@ -896,14 +896,14 @@ audio_jack::set_port_name (const std::string & portname)
 #if RTL66_HAVE_JACK_PORT_RENAME
         int rc = ::jack_port_rename
         (
-            data.jack_client(), data.jack_port(), portname.c_str()
+            data.jack_client(), data.jack_port(), CSTR(portname)
         );
 #else
         /*
          * \deprecated
          */
 
-        int rc = ::jack_port_set_name(data.jack_port(), portname.c_str());
+        int rc = ::jack_port_set_name(data.jack_port(), CSTR(portname));
 #endif
         if (rc == 0)
             result = true;
@@ -1129,7 +1129,9 @@ audio_jack::get_port_alias (const std::string & name)
         bool is_system_port = ::audio::contains(name, "system:");  /* brittle code */
         if (is_system_port)
         {
-            jack_port_t * p = ::jack_port_by_name(data.jack_client(), name.c_str());
+            jack_port_t * p =
+                ::jack_port_by_name(data.jack_client(), CSTR(name));
+
             if (not_NULL(p))
             {
                 char * aliases[2];
@@ -1556,7 +1558,7 @@ audio_jack::connect_ports        // IN OR OUT!!!!!
     {
         int rc = ::jack_connect
         (
-            jkdata->jack_client(), srcportname.c_str(), destportname.c_str()
+            jkdata->jack_client(), CSTR(srcportname), CSTR(destportname)
         );
         result = rc == 0;
         if (! result)

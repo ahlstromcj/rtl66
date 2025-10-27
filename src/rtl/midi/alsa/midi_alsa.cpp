@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-04
+ * \updates       2025-10-27
  * \license       See above.
  *
  */
@@ -713,7 +713,7 @@ get_port_info
                 std::string s { alsa_port_capabilities(caps) };
                 s += ": port ";
                 s += std::to_string(count);
-                infoprint(s.c_str());
+                infoprint(CSTR(s));
 #endif
                 if ((caps & capstype) != capstype)
                     continue;
@@ -1131,7 +1131,7 @@ midi_alsa::drain_output () const
     {
         error_print("drain_output() --> ", snd_strerror(rc));
 #if defined PLATFORM_DEBUG_TMI
-        printf("Error code %d = %s\n", errno, xpc::errno_name(errno).c_str());
+        printf("Error code %d = %s\n", errno, V(xpc::errno_name(errno)));
 #endif
     }
     return result;
@@ -1233,7 +1233,7 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
         printf
         (
             "open_port() %s #%d client handle = %p\n",
-            port_io_string().c_str(), portnumber,
+            V(port_io_string()), portnumber,
             (void *)(data.alsa_client())
         );
 #endif
@@ -1277,7 +1277,7 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                     {
                         ::snd_seq_create_simple_port
                         (
-                            data.alsa_client(), portname.c_str(),
+                            data.alsa_client(), CSTR(portname),
                             sm_input_caps, sm_generic_caps
                         )
                     };
@@ -1335,7 +1335,7 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                         pinfo, data.queue_id()
                     );
 #endif
-                    ::snd_seq_port_info_set_name(pinfo, portname.c_str());
+                    ::snd_seq_port_info_set_name(pinfo, CSTR(portname));
 
                     int vp = ::snd_seq_create_port(data.alsa_client(), pinfo);
                     data.vport(vp);
@@ -1445,7 +1445,7 @@ midi_alsa::open_virtual_port (const std::string & portname)
             {
                 ::snd_seq_create_simple_port
                 (
-                    data.alsa_client(), portname.c_str(),
+                    data.alsa_client(), CSTR(portname),
                     sm_input_caps, sm_generic_caps
                 )
             };
@@ -1469,7 +1469,7 @@ midi_alsa::open_virtual_port (const std::string & portname)
             ::snd_seq_port_info_set_timestamp_queue(pinfo, data.queue_id());
 #endif
 
-            ::snd_seq_port_info_set_name(pinfo, portname.c_str());
+            ::snd_seq_port_info_set_name(pinfo, CSTR(portname));
             data.vport(::snd_seq_create_port(data.alsa_client(), pinfo));
             result = data.vport() == 0;
             if (result)
@@ -1718,7 +1718,7 @@ midi_alsa::set_seq_client_name
     bool result { not_nullptr(seq) };
     if (result)
     {
-        int rc { ::snd_seq_set_client_name(seq, clientname.c_str()) };
+        int rc { ::snd_seq_set_client_name(seq, CSTR(clientname)) };
         result = rc == 0;
         if (! result)
         {
@@ -1728,7 +1728,7 @@ midi_alsa::set_seq_client_name
             (
                 tmp, sizeof tmp,
                 "snd_seq_set_client_name error '%s' for client '%s'\n",
-                msg, clientname.c_str()
+                msg, V(clientname)
             );
             error_print("set_seq_client_name()", tmp);
         }
@@ -1746,7 +1746,7 @@ midi_alsa::set_port_name (const std::string & portname)
         ::snd_seq_port_info_t * pinfo;
         snd_seq_port_info_alloca(&pinfo);
         ::snd_seq_get_port_info(data.alsa_client(), data.vport(), pinfo);
-        ::snd_seq_port_info_set_name(pinfo, portname.c_str());
+        ::snd_seq_port_info_set_name(pinfo, CSTR(portname));
         ::snd_seq_set_port_info(data.alsa_client(), data.vport(), pinfo);
 
         /*
@@ -1967,7 +1967,7 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                 std::string s { alsa_port_capabilities(caps) };
                 s += "- ";
                 s += clientname;
-                infoprint(s.c_str());
+                infoprint(CSTR(s));
 #endif
 
                 if (can_add)
@@ -1990,7 +1990,7 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                     (
                         "Ignoring %s ALSA port '%s'\n",
                         ( iswriteable ? "output" : "input" ),
-                        clientname.c_str()
+                        V(clientname)
                     );
                 }
             }

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-04
+ * \updates       2025-10-27
  * \license       See above.
  *
  *  Written primarily by Alexander Svetalkin, with updates for delta time by
@@ -437,8 +437,8 @@ show_jack_port_status
         "%s Port: %s (%s) is %s\n"
         "%s Type: %s, %s\n"
         ,
-        title.c_str(), shortname.c_str(), longname.c_str(), whose.c_str(),
-        title.c_str(), porttype.c_str(), portflags.c_str()
+        V(title), V(shortname), V(longname), V(whose),
+        V(title), V(porttype), V(portflags)
     );
 }
 
@@ -598,7 +598,7 @@ midi_jack::engine_connect ()
         bool ok { is_nullptr(data.jack_client()) || ! is_engine() };
         if (ok)
         {
-            const char * cname { client_name().c_str() };
+            const char * cname { CSTR(client_name()) };
 			jack_status_t status;
 			jack_status_t * ps { &status };             /* TODO: use this   */
             jack_options_t jopts { JackNoStartServer };
@@ -914,7 +914,7 @@ midi_jack::is_port_valid (const std::string & name)
     jack_client_t * jclient { data.jack_client() };
     if (not_nullptr(jclient))
     {
-        jack_port_t * ptr { ::jack_port_by_name(jclient, name.c_str()) };
+        jack_port_t * ptr { ::jack_port_by_name(jclient, CSTR(name)) };
         result = not_nullptr(ptr);
     }
     if (! result)
@@ -973,7 +973,7 @@ midi_jack::open_port (int portnumber, const std::string & portname)
         if (is_nullptr(data.jack_port()))           /* can create the port  */
         {
             jack_client_t * jclient { data.jack_client() };
-            const char * pn { portname.c_str() };
+            const char * pn { CSTR(portname) };
 #if defined PLATFORM_DEBUG_TMI
         printf("open_port(%d, \"%s\")\n", portnumber, pn);
 #endif
@@ -997,7 +997,7 @@ midi_jack::open_port (int portnumber, const std::string & portname)
 #if defined PLATFORM_DEBUG_TMI
                 jack_port_t * destptr
                 {
-                    ::jack_port_by_name(jclient, dest.c_str())
+                    ::jack_port_by_name(jclient, CSTR(dest))
                 };
                 show_jack_port_status("Source", jclient, srcptr);
                 show_jack_port_status("Destination", jclient, destptr);
@@ -1053,7 +1053,7 @@ midi_jack::open_virtual_port (const std::string & portname)
         {
             ::jack_port_register
             (
-                data.jack_client(), portname.c_str(),
+                data.jack_client(), CSTR(portname),
                 RTL66_JACK_MIDI_TYPE,
                 is_output() ? JackPortIsOutput : JackPortIsInput, 0
             )
@@ -1241,14 +1241,14 @@ midi_jack::set_port_name (const std::string & portname)
         {
             ::jack_port_rename
             (
-                data.jack_client(), data.jack_port(), portname.c_str()
+                data.jack_client(), data.jack_port(), CSTR(portname)
             )
         };
         if (rc == 0)
             result = true;
 #else
 #if defined RTL66_ALLOW_DEPRECATED_JACK_FUNCTIONS   /* rtl_build_macros.h   */
-        int rc { ::jack_port_set_name(data.jack_port(), portname.c_str()) };
+        int rc { ::jack_port_set_name(data.jack_port(), CSTR(portname)) };
         if (rc == 0)
             result = true;
 #else
@@ -1489,7 +1489,7 @@ midi_jack::get_port_alias (const std::string & name)
         {
             jack_port_t * p
             {
-                ::jack_port_by_name(data.jack_client(), name.c_str())
+                ::jack_port_by_name(data.jack_client(), CSTR(name))
             };
             if (not_NULL(p))
             {
@@ -1930,7 +1930,7 @@ midi_jack::connect_ports
         midi_jack_data & data { jack_data() };
         jack_client_t * jclient { data.jack_client() };
 
-        int rc { ::jack_connect(jclient, src.c_str(), dest.c_str()) };
+        int rc { ::jack_connect(jclient, CSTR(src), CSTR(dest)) };
         result = rc == 0;
         if (result)
         {

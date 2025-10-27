@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-13
+ * \updates       2025-10-27
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -221,7 +221,7 @@ public:
 
     std::string port_io_string () const
     {
-        return midi::io_to_string(port_io_type()).c_str();
+        return CSTR(midi::io_to_string(port_io_type()));
     }
 
     bool is_input () const

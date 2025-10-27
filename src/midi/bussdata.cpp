@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-10
- * \updates       2025-09-06
+ * \updates       2025-10-27
  * \license       See above.
  *
  *  This class is meant to specify system MIDI information about client/buss
@@ -37,6 +37,7 @@
 
 #include <sstream>                      /* std::ostringstream               */
 
+#include "cpp_types.hpp"                /* CSTR() function from lib66       */
 #include "midi/bussdata.hpp"            /* midi::bussdata etc.              */
 
 namespace midi
@@ -182,7 +183,7 @@ bussdata::construct_bus_name (const std::string & appname)
         {
             snprintf
             (
-                name, sizeof name, "%s [%s]", busname.c_str(), portname.c_str()
+                name, sizeof name, "%s [%s]", V(busname), V(portname)
             );
             result = name;
         }
@@ -192,7 +193,7 @@ bussdata::construct_bus_name (const std::string & appname)
             (
                 name, sizeof name, "[%d] %d:%d %s:%s",
                 m_bus_index, buss_number(), port_number(),
-                appname.c_str(), portname.c_str()
+                V(appname), V(portname)
             );
             result = name;
         }
@@ -205,7 +206,7 @@ bussdata::construct_bus_name (const std::string & appname)
             snprintf
             (
                 aliasname, sizeof aliasname, "%s [%s]",
-                busname.c_str(), portname.c_str()
+                V(busname), V(portname)
             );
             result = name;
         }
@@ -214,12 +215,12 @@ bussdata::construct_bus_name (const std::string & appname)
             snprintf
             (
                 aliasname, sizeof aliasname, "%s:%s",
-                busname.c_str(), portname.c_str()
+                V(busname), V(portname)
             );
             result = name;
         }
         else
-            snprintf(aliasname, sizeof aliasname, "%s", portname.c_str());
+            snprintf(aliasname, sizeof aliasname, "%s", V(portname));
 
         snprintf                            /* copy the client name parts */
         (

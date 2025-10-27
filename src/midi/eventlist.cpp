@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2025-09-14
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  This container now can indicate if certain Meta events (time-signaure or
@@ -1479,8 +1479,8 @@ eventlist::randomize_note_pitches
         printf
         (
             "Key of %s, %s scale\n",
-            musical_key_name(keyofpattern).c_str(),
-            musical_scale_name(s).c_str()
+            V(musical_key_name(keyofpattern)),
+            V(musical_scale_name(s))
         );
 #endif
         result = false;
@@ -3144,7 +3144,7 @@ eventlist::print () const
 void
 eventlist::print_notes (const std::string & tag) const
 {
-    std::printf("Notes %s:\n", tag.c_str());
+    std::printf("Notes %s:\n", V(tag));
     if (count() > 0)
     {
         for (auto & e : m_events)

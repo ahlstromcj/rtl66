@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-09-05
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -935,8 +935,8 @@ rpn_number_to_bytes (short rpnn, midi::byte out [2])
     bool result { rpnn >= 0 && rpnn < 16384 };
     if (result)
     {
-        unsigned short rpnn_lsb { rpnn & 0x3F };
-        unsigned short rpnn_msb { rpnn & 0x3F80 };  /* rpnn - rpnn_lsb ?    */
+        unsigned short rpnn_lsb { (unsigned short)(rpnn & 0x3F) };
+        unsigned short rpnn_msb { (unsigned short)(rpnn & 0x3F80) };
         out[0] = midi::byte(rpnn_lsb);
         out[1] = midi::byte(rpnn_msb);
     }

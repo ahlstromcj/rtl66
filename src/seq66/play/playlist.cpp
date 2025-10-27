@@ -25,7 +25,7 @@
  * \library       seq66 application
  * \author        Chris Ahlstrom
  * \date          2018-08-26
- * \updates       2023-10-31
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  See the playlistfile class for information on the file format.
@@ -51,7 +51,6 @@ namespace seq66
  */
 
 playlist::song_list playlist::sm_dummy;
-
 
 /**
  *  Principal constructor.
@@ -636,7 +635,7 @@ playlist::set_file_error_message
 )
 {
     char tmp[256];
-    snprintf(tmp, sizeof tmp, fmt.c_str(), filename.c_str());
+    snprintf(tmp, sizeof tmp, V(fmt), V(filename));
     set_error_message(tmp);
     return false;
 }
@@ -1738,13 +1737,13 @@ playlist::show_list (const play_list_t & pl) const
     (void) snprintf
     (
         temp, sizeof temp, "Playlist MIDI #%d, slot %d: '%s'",
-        int(pl.ls_midi_number), int(pl.ls_index), pl.ls_list_name.c_str()
+        int(pl.ls_midi_number), int(pl.ls_index), V(pl.ls_list_name)
     );
     info_message(temp);
     (void) snprintf
     (
         temp, sizeof temp, "%s, %d songs",
-        pl.ls_file_directory.c_str(), int(pl.ls_song_count)
+        V(pl.ls_file_directory), int(pl.ls_song_count)
     );
     info_message(temp);
 #endif
@@ -1774,7 +1773,7 @@ playlist::show_song (const song_spec_t & s) const
     (
         temp, sizeof temp,
         "Song MIDI #%d, slot %d: '%s'",
-        int(s.ss_midi_number), int(s.ss_index), s.ss_filename.c_str()
+        int(s.ss_midi_number), int(s.ss_index), V(s.ss_filename)
     );
     info_message(temp);
 #endif

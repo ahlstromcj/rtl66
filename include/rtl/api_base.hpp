@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2023-03-08
- * \updates       2025-09-26
+ * \updates       2025-10-27
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -42,6 +42,7 @@
 #include <memory>                       /* std::shared_ptr<>, unique_ptr<>  */
 #include <string>                       /* std::string class                */
 
+#include "cpp_types.hpp"                /* CSTR() function from lib66       */
 #include "rtl/rt_types.hpp"             /* rtl::midi/audio API types        */
 #include "rtl/rterror.hpp"              /* rtl::rterror and others          */
 

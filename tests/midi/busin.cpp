@@ -22,9 +22,9 @@
  *      Simple program to test MIDI input using the masterbus/bus paradigm.
  *
  * \library       rtl66
- * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
+ * \author        Chris Ahlstrom
  * \date          2025-10-09
- * \updates       2025-10-10
+ * \updates       2025-10-27
  * \license       See above.
  *
  *      This application but merely opens one port and accepts messages,
@@ -84,9 +84,9 @@ midi::client_defaults s_clientinfo_defaults
     4,                                  /* the default global beats per bar */
     384,                                /* global PPQN, not 192             */
     148,                                /* global BPM, not 120              */
-    midi::port::io::duplex,             /* MIDI port type                   */
+    midi::port::io::input,              /* MIDI port type                   */
     -1,                                 /* input port number                */
-    0                                   /* output port number               */
+    -1                                  /* output port number               */
 };
 
 /**
@@ -220,7 +220,7 @@ main (int argc, char * argv [])
         if (can_run)
         {
             int portnumber { rt_test_port() };
-            app_client_info().output_portnumber(portnumber);
+            app_client_info().input_portnumber(portnumber);
 
             rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
             midi::masterbus & master { master_bus(rapi, app_client_info()) };

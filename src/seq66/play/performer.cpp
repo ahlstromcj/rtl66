@@ -24,7 +24,7 @@
  * \library       seq66 application
  * \author        Chris Ahlstrom and others
  * \date          2018-11-12
- * \updates       2024-06-13
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  Also read the comments in the Seq64 version of this module, perform.
@@ -1533,7 +1533,7 @@ performer::sequence_title (seq::cref seq) const
     {
         char temp[16];
         const char * fmt = usr().window_scaled_down() ? "%.11s" : "%.14s" ;
-        snprintf(temp, sizeof temp, fmt, seq.title().c_str());
+        snprintf(temp, sizeof temp, fmt, V(seq.title()));
         result = std::string(temp);
     }
     return result;

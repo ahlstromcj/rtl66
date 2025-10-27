@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-14
+ * \updates       2025-10-27
  * \license       See above.
  *
  *  The JACK callbacks have been moved into a separate file for better
@@ -47,7 +47,7 @@
 #include "midi/ports.hpp"               /* ::midi:ports class               */
 #include "rtl/midi/rtmidi_in_data.hpp"  /* rtl::rtmidi_in_data class        */
 #include "util/msgfunctions.hpp"        /* util::async_safe_strprint() etc. */
-#include "transport/jack/transport.hpp" /* transport::jack::transport class  */
+#include "transport/jack/transport.hpp" /* transport::jack::transport class */
 #include "xpc/ring_buffer.hpp"          /* xpc::ring_buffer<> template      */
 
 namespace rtl
@@ -244,13 +244,13 @@ set_jack_client_property
     if (result)
     {
         jack_uuid_t u2 { JACK_UUID_EMPTY_INITIALIZER };
-        int rc { ::jack_uuid_parse(uuid.c_str(), &u2) };
+        int rc { ::jack_uuid_parse(CSTR(uuid), &u2) };
         result = rc == 0;
         if (result)
         {
-            const char * k = key.c_str();
-            const char * v = value.c_str();
-            const char * t = type.c_str();
+            const char * k = CSTR(key);
+            const char * v = CSTR(value);
+            const char * t = CSTR(type);
             rc = ::jack_set_property(jc, u2, k, v, t);
             result = rc == 0;
         }
@@ -275,9 +275,9 @@ set_jack_port_property
 )
 {
     jack_uuid_t uuid { ::jack_port_uuid(jp) };
-    const char * k { key.c_str() };
-    const char * v { value.c_str() };
-    const char * t { type.empty() ? NULL : type.c_str() };  /* important!   */
+    const char * k { CSTR(key) };
+    const char * v { CSTR(value) };
+    const char * t { type.empty() ? NULL : CSTR(type) };  /* important!   */
     int rc { ::jack_set_property(jc, uuid, k, v, t) };
     return rc == 0;
 }
@@ -721,7 +721,7 @@ jack_process_io (jack_nframes_t framect, void * /*arg*/)
                 {
 #if defined PLATFORM_DEBUG_TMI                  /* printf() asynch unsafe   */
                     if (mj->is_input_port())
-                        printf("Enabled: %s\n", mj->port_name().c_str());
+                        printf("Enabled: %s\n", CSTR(mj->port_name()));
 #endif
                     midi_jack_data * mjp { &mj->jack_data() };
                     if (mj->parent_bus().is_input_port())
@@ -733,7 +733,7 @@ jack_process_io (jack_nframes_t framect, void * /*arg*/)
                 else
                 {
                     if (mj->is_input_port())
-                        printf("Disabled: %s\n", mj->port_name().c_str());
+                        printf("Disabled: %s\n", CSTR(mj->port_name()));
                 }
 #endif
             }
@@ -898,12 +898,12 @@ jack_port_register_callback (jack_port_id_t portid, int regv, void * arg)
                 std::strcat(temp, " ");
                 std::strcat(temp, iot);
                 std::strcat(temp, " ");
-                std::strncat(temp, shortname.c_str(), 30);   /* truncate it  */
+                std::strncat(temp, CSTR(shortname), 30);    /* truncate it  */
                 std::strcat(temp, "/ ");
                 if (is_nullptr(arg))
                     std::strcat(temp, "nullptr! ");
 
-                std::strcat(temp, porttype.c_str());
+                std::strcat(temp, CSTR(porttype));
                 if (mine)
                     std::strcat(temp, " seq66");
 

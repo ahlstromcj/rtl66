@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2019-10-04
- * \updates       2025-09-13
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  Here is a list of many scale interval patterns if working with
@@ -90,7 +90,7 @@ static const int c_analysis_minimum { 8 };
  *  Note that melodic minor descends in the same way as the natural minor
  *  scale, so it descends differently than it ascends.  We don't deal with
  *  that trick, at all.  In the following table, the scales all start with C,
- *  but rtl66 allow other starting notes (e.g. "keys").
+ *  but rtl66 allows other starting notes (e.g. "keys").
  *
 \verbatim
     Chromatic           C  C# D  D# E  F  F# G  G# A  A# B   Notes, chord
@@ -239,7 +239,7 @@ scales_policy (scales s, keys keyofpattern, int k)
         printf
         (
             "key %d (%3s) policy[%d] = %s\n",
-            k, name.c_str(), k2, result ? "T" : "F"
+            k, V(name), k2, result ? "T" : "F"
         );
         return result;
 #else
@@ -558,11 +558,11 @@ musical_note_name (int n)
         {
             snprintf
             (
-                note, sizeof note, "%2s%1d", c_key_text[key].c_str(), octave
+                note, sizeof note, "%2s%1d", V(c_key_text[key]), octave
             );
         }
         else
-            snprintf(note, sizeof note, "%2s-", c_key_text[key].c_str());
+            snprintf(note, sizeof note, "%2s-", V(c_key_text[key]));
 
         result = note;
     }
@@ -623,7 +623,7 @@ interval_name_ptr (int interval)
     if (index > c_interval_size)
         index = c_interval_size;
 
-    return c_interval_text[index].c_str();
+    return V(c_interval_text[index]);
 }
 
 /**
@@ -661,7 +661,7 @@ harmonic_interval_name_ptr (int interval)
     if (index > c_harmonic_size)
         index = c_harmonic_size;
 
-    return c_interval_text[index].c_str();
+    return V(c_interval_text[index]);
 }
 
 /**
@@ -699,7 +699,7 @@ chord_name_ptr (int n)
     if (! chord_number_valid(n))
         n = c_chord_number;
 
-    return c_chord_table_text[n].c_str();
+    return V(c_chord_table_text[n]);
 }
 
 /**
@@ -707,6 +707,9 @@ chord_name_ptr (int n)
  *  seq32 project.  These values indicate the note offsets needed for a
  *  particular kind of chord.  0 means no offset, and a -1 ends the list of
  *  note offsets for the chord.
+ *
+ *  Strictly speaking, we could just assume 0 is always present and save
+ *  a little space-time.
  */
 
 const chord_notes &
@@ -759,6 +762,77 @@ chord_entry (int n)
         n = 0;
 
     return s_chord_table[n];
+}
+
+std::string
+chord_intervals (chords c)
+{
+    std::string result;
+    const chord_notes & cn = chord_entry(static_cast<int>(c));
+    for (auto cnote : cn)
+    {
+        if (cnote == (-1))
+        {
+            break;
+        }
+        else
+        {
+            result += std::to_string(cnote);
+            result += " ";
+        }
+    }
+    return result;
+}
+
+/**
+ *  Given a note number and a selected chord, determines if the note is part
+ *  of that chord. The parameters are not directly checked.
+ *
+ *  We baseline ("move") a high chord note like 18 down to the range of
+ *  0 to 11, for the purpose of drawing a note bar that is not part of
+ *  the chord.
+ *
+ * \param chord
+ *      The currently selected chord (e.g. in the pattern editor).
+ *
+ * \param key
+ *      The key selected for the pattern.
+ *
+ * \param note
+ *      The value of the note, ranging from 0 to 127.
+ */
+
+bool
+note_in_chord (chords c, keys k, int note)
+{
+    bool result = false;
+    const chord_notes & cn = chord_entry(static_cast<int>(c));
+    int offset = key_to_int(k);
+    int basenote = note % c_octave_size - offset; /* e.g. key D becomes C   */
+    if (basenote < 0)
+        basenote += c_octave_size;
+
+    for (auto cnote : cn)
+    {
+        if (cnote == (-1))
+        {
+            break;
+        }
+        else
+        {
+            if (cnote > c_octave_size)          /* an adjustment needed?    */
+                cnote -= c_octave_size;
+
+            if (cnote == basenote)
+            {
+                result = true;
+                break;
+            }
+            else if (cnote > basenote)
+                break;
+        }
+    }
+    return result;
 }
 
 /**
@@ -841,7 +915,7 @@ show_all_counts
     {
         bool policy[c_octave_size];
         int scale { s + 1 };
-        printf("%16s: ", musical_scale_name(scale).c_str());
+        printf("%16s: ", V(musical_scale_name(scale)));
         for (int k = 0; k < c_octave_size; ++k)
             policy[k] = c_scales_policy[scale][k];      /* base (C) scale   */
 
@@ -857,7 +931,7 @@ show_all_counts
     {
         bool policy[c_octave_size];
         int scale { s + 1 };
-        printf("%16s: ", musical_scale_name(scale).c_str());
+        printf("%16s: ", V(musical_scale_name(scale)));
         for (int k = 0; k < c_octave_size; ++k)
             policy[k] = c_scales_policy[scale][k];      /* base (C) scale   */
 
@@ -936,7 +1010,7 @@ analyze_notes
              *  The first value is for "hits" and the second is for "misses".
              */
 
-            int count_matrix [c_scales_max - 1][c_key_of_max][2];
+            int count_matrix [c_scales_max - 1] [c_key_of_max] [2];
             const std::initializer_list<keys> keyslist =
             {
                 keys::C, keys::Csharp, keys::D, keys::Dsharp,
@@ -1087,7 +1161,7 @@ key_signature_bytes
     keysigbytes.clear();
     if (result)
     {
-        int sfcount { (-99) };
+        int sfcount { -99 };
         if (hasminor)
         {
             for (int i = 0; i < 15; ++i)
@@ -1117,6 +1191,146 @@ key_signature_bytes
         }
         else
             result = false;
+    }
+    return result;
+}
+
+/**
+ *  Converts a note name to a note number, an octave number, and
+ *  a base number (0 to 11). Examples and results:
+ *
+ \verbatim
+ *      Name           Note-number         Octave      Base
+ *      "C" to "B"       0 to 11             -1       0 to 11
+ *      "Cx" to "Bx"    12(x+1) + base        x       0 to 11
+ *      nymbers         std::stoi()
+\endverbatim
+ *
+ * \param notename
+ *      Provides either a alphabetic note name or the MIDI note number,
+ *      in string format.
+ *
+ * \param [out] notenumber
+ *      Holds the translated note number.
+ *
+ * \param [out] octavenumber
+ *      Holds the octave number calculated from the note number.
+ *
+ * \param [out] basenumber
+ *      Holds the octave offset (0 to 11) of the note number, 0 being C,
+ *      etc.
+ *
+ * \return
+ *      Returns true if the output parameters can be used.
+ */
+
+bool
+note_name_translation
+(
+    const std::string & notename,
+    int & notenumber,
+    int & octavenumber,
+    int & basenumber
+)
+{
+    bool result { ! notename.empty() };
+    if (result)
+    {
+        int octave { -1 }, base { -1 }, nnumber { -1 };
+        if (std::isdigit(notename[0]))
+        {
+            nnumber = util::string_to_int(notename);
+            octave = (nnumber / c_octave_size) - 1;
+            base = nnumber % c_octave_size;
+        }
+        else
+        {
+            std::string basename { char(std::toupper(notename[0])) };
+            if (notename[1] == '#')
+                basename += "#";
+
+            std::size_t nlen { notename.length() };
+            if (std::isdigit(notename[nlen - 1]))
+            {
+                if (notename[nlen - 2] != '#')
+                    octave = notename[nlen - 1] - '0';      /* suitable     */
+            }
+
+            int counter { 0 };
+            for (auto k : c_key_text)
+            {
+                if (basename == k)
+                {
+                    base = counter;
+                    break;
+                }
+                ++counter;
+            }
+            result = base != (-1);
+        }
+        if (result)
+        {
+            octavenumber = octave;
+            basenumber = base;
+            notenumber = c_octave_size * (octave + 1) + base;
+        }
+    }
+    return result;
+}
+
+/**
+ *  Possible value entries:
+ *
+ *      -   Single number. Sets lowest = highest = value.
+ *      -   Two numbers. Sets lowest = values[0], highest = values[1]
+ *      -   Note entries starting with "A" to "G" or "a" to "g".
+ *          Convert to a note pitch and process as number(s).
+ *      -   A note letter followed by a digit. Convert the range to
+ *          the given octave.
+ *
+ *  Mixing numbers and note names not supported.
+ *
+ * \param values
+ *      A short (1 or 2 entries) vector of strings representing the
+ *      desired pitch range.
+ *
+ * \param [out] lowest
+ *      An output parameter for the lowest pitch in the range (0 to 127).
+ *
+ * \param [out] highest
+ *      An output parameter for the highest pitch in the range (0 to 127).
+ *
+ * \return
+ *      Returns if a valid range can be entered into the output parameters.
+ */
+
+bool
+get_pitch_range
+(
+    const lib66::tokenization & values, int & lowest, int & highest
+)
+{
+    bool result { values.size() > 0 && values.size() < 3 };
+    if (result)
+        result = ! values[0].empty();
+
+    if (result)
+    {
+        int note, octave, base;
+        result = note_name_translation(values[0], note, octave, base);
+        if (result)
+        {
+            lowest = note;
+            if (values.size() == 1)
+            {
+                highest = note + c_octave_size - 1;
+            }
+            else
+            {
+                result = note_name_translation(values[1], note, octave, base);
+                highest = note;
+            }
+        }
     }
     return result;
 }

@@ -372,7 +372,7 @@ midi_core_in::get_core_midi_client_singleton
         MIDIClientRef client;   // Set up our client.
         CFStringRef name = CFStringCreateWithCString
         (
-            NULL, clientname.c_str(), kCFStringEncodingASCII
+            NULL, CSTR(clientname), kCFStringEncodingASCII
         );
         OSStatus result = MIDIClientCreate(name, NULL, NULL, &client);
         if (result != noErr)
@@ -440,7 +440,7 @@ midi_core_in::open_port (int portnumber, const std::string & portname)
     CoreMidiData * data = static_cast<CoreMidiData *>(m_api_data);
     CFStringRef portnameref = CFStringCreateWithCString
     (
-        NULL, portname.c_str(), kCFStringEncodingASCII
+        NULL, CSTR(portname), kCFStringEncodingASCII
     );
     OSStatus result = MIDIInputPortCreate
     (
@@ -494,7 +494,7 @@ midi_core_in::open_virtual_port (const std::string & portname)
     MIDIEndpointRef endpoint;
     CFStringRef portnameref = CFStringCreateWithCString
     (
-        NULL, portname.c_str(), kCFStringEncodingASCII
+        NULL, CSTR(portname), kCFStringEncodingASCII
     );
     OSStatus result = MIDIDestinationCreate
     (
@@ -800,7 +800,7 @@ midi_core_out::get_core_midi_client_singleton
         MIDIClientRef client;         // Set up our client.
         CFStringRef name = CFStringCreateWithCString
         (
-            NULL, clientname.c_str(), kCFStringEncodingASCII
+            NULL, CSTR(clientname), kCFStringEncodingASCII
         );
         OSStatus result = MIDIClientCreate(name, NULL, NULL, &client);
         if (result != noErr)
@@ -895,7 +895,7 @@ midi_core_out::open_port (int portnumber, const std::string & portname)
     CoreMidiData * data = static_cast<CoreMidiData *>(m_api_data);
     CFStringRef portnameref = CFStringCreateWithCString
     (
-        NULL, portname.c_str(), kCFStringEncodingASCII
+        NULL, CSTR(portname), kCFStringEncodingASCII
     );
     OSStatus result = MIDIOutputPortCreate(data->client, portnameref, &port);
     CFRelease(portnameref);
@@ -979,13 +979,15 @@ midi_core_out::open_virtual_port (const std::string & portname)
     MIDIEndpointRef endpoint;
     CFStringRef portnameref = CFStringCreateWithCString
     (
-        NULL, portname.c_str(), kCFStringEncodingASCII
+        NULL, CSTR(portname), kCFStringEncodingASCII
     );
     OSStatus result = MIDISourceCreate(data->client, portnameref, &endpoint);
     CFRelease(portnameref);
     if (result != noErr)
     {
-        m_error_string = "midi_core_out::initialize: error creating virtual source.";
+        m_error_string =
+            "midi_core_out::initialize: error creating virtual source.";
+
         error(rterror::kind::driver_error, m_error_string);
         return false;
     }

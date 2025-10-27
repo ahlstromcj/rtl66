@@ -24,7 +24,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2020-12-10
- * \updates       2024-06-13
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  The listbase provides common code for the clockslist and inputslist
@@ -849,7 +849,7 @@ portslist::io_line
         snprintf
         (
             tmp, sizeof tmp, "%2d %2d   %s\n",
-            portnumber, status, name.c_str()
+            portnumber, status, V(name)
         );
     }
     else
@@ -857,7 +857,7 @@ portslist::io_line
         snprintf
         (
             tmp, sizeof tmp, "%2d %2d   %-40s  # '%s'\n",
-            portnumber, status, name.c_str(), portalias.c_str()
+            portnumber, status, V(name), V(portalias)
         );
     }
     return std::string(tmp);

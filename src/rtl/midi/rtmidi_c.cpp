@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-08-05
+ * \updates       2025-10-27
  * \license       See above.
  *
  */
@@ -197,10 +197,9 @@ rtmidi_get_detected_apis (RtMidiApi * apis, int apis_size)
 const char *
 rtmidi_api_name (RtMidiApi rapi)
 {
-    static std::string result;
-    rtl::rtmidi::api apicode = static_cast<rtl::rtmidi::api>(rapi);
-    result = rtl::rtmidi::api_name(apicode).c_str();
-    return result.c_str();
+    rtl::rtmidi::api apicode { static_cast<rtl::rtmidi::api>(rapi) };
+    static const char * result { CSTR(rtl::rtmidi::api_name(apicode)) };
+    return result;
 }
 
 /**
@@ -214,10 +213,10 @@ rtmidi_api_name (RtMidiApi rapi)
 const char *
 rtmidi_api_display_name (RtMidiApi rapi)
 {
-    static std::string s_result{"null"};                        /* \tricky  */
+    static std::string s_result { "null" };                     /* \tricky  */
     rtl::rtmidi::api r = static_cast<rtl::rtmidi::api>(rapi);
     s_result = rtl::rtmidi::api_display_name(r);
-    return s_result.c_str();
+    return CSTR(s_result);
 }
 
 RtMidiApi
@@ -376,7 +375,7 @@ rtmidi_get_port_name
         *buflen = static_cast<int>(name.size()) + 1;
         return 0;
     }
-    return snprintf(bufout, static_cast<size_t>(*buflen), "%s", name.c_str());
+    return snprintf(bufout, static_cast<size_t>(*buflen), "%s", V(name));
 }
 
 /*
@@ -418,8 +417,8 @@ rtmidi_in_create_default (void)
  *      An optional MIDI API id can be specified.
  *
  * \param clientname
- *      An optional client name can be specified. This will be used to group the
- *      ports that are created by the application.
+ *      An optional client name can be specified. This will be used to group
+ *      the ports that are created by the application.
  *
  * \param queuesizelimit
  *      An optional size of the MIDI input queue can be specified.

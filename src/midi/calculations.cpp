@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-11-07
- * \updates       2025-07-28
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  This code was moved from the globals module so that other modules
@@ -95,7 +95,7 @@ namespace midi
 static int
 strtoi (const std::string & v)
 {
-    return v.empty() ? 0 : std::atoi(v.c_str());
+    return v.empty() ? 0 : std::atoi(CSTR(v));
 }
 
 /**

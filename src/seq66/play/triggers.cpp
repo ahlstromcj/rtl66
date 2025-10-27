@@ -25,7 +25,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2015-10-30
- * \updates       2024-06-13
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  Man, we need to learn a lot more about triggers.  One important thing to
@@ -1479,7 +1479,7 @@ triggers::print (const std::string & seqname) const
     printf
     (
         "sequence '%s' triggers (%d selected):\n",
-        seqname.c_str(), number_selected()
+        V(seqname), number_selected()
     );
     for (const auto & t : m_triggers)
     {
@@ -1487,7 +1487,7 @@ triggers::print (const std::string & seqname) const
         (
             "  tick_start = %ld; tick_end = %ld; offset = %ld; selected = %s\n",
             long(t.tick_start()), long(t.tick_end()), long(t.offset()),
-            bool_to_string(t.selected()).c_str()
+            V(bool_to_string(t.selected()))
         );
     }
 }

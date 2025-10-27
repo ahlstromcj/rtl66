@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-09
+ * \updates       2025-10-27
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -91,15 +91,15 @@ get_rtmidi_patch_version () noexcept
     return s_version;
 }
 
-/*------------------------------------------------------------------------
+/*--------------------------------------------------------------------------
  * rtl namespace rtmidi static members
- *------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------*/
 
-rtmidi::api rtmidi::sm_desired_api                      /* use fallback */
+rtmidi::api rtmidi::sm_desired_api                          /* use fallback */
 {
     rtmidi::api::unspecified
 };
-rtmidi::api rtmidi::sm_selected_api                     /* selected one */
+rtmidi::api rtmidi::sm_selected_api                         /* selected one */
 {
     rtmidi::api::unspecified
 };
@@ -418,14 +418,14 @@ rtmidi::detected_apis () noexcept
 void
 rtmidi::show_apis (const std::string & tag, const api_list & apis)
 {
-    printf("%s:\n", tag.c_str());
+    printf("%s:\n", V(tag));
     for (auto a : apis)
     {
         printf
         (
             "%12s: %s\n",
-            cs_api_names[midiapi_to_int(a)][0].c_str(),
-            cs_api_names[midiapi_to_int(a)][1].c_str()
+            V(cs_api_names[midiapi_to_int(a)][0]),
+            V(cs_api_names[midiapi_to_int(a)][1])
         );
     }
 }

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-09-08
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  A MIDI event (i.e. "track event") is encapsulated by the midi::event
@@ -143,19 +143,8 @@ event::event (const midi::message & msg) :
  */
 
 event::event (midi::pulse tstamp, midi::byte s, midi::byte d0, midi::byte d1) :
-//  m_input_buss    (null_buss()),          /* 0xFF                         */
     m_timestamp     (tstamp),
-//  m_message       (),                     /* now a midi::message          */
     m_channel       (mask_channel(s))
-//  m_linked        (),
-//  m_has_link      (false),
-//  m_selected      (false),
-#if defined RTL66_SUPPORT_PAINTED_EVENTS
-//  m_marked        (false),
-//  m_painted       (false)
-#else
-//  m_marked        (false)
-#endif
 {
     m_message.push(s);
     m_message.push(d0);
@@ -167,19 +156,8 @@ event::event (midi::pulse tstamp, midi::byte s, midi::byte d0, midi::byte d1) :
  */
 
 event::event (midi::pulse tstamp, midi::bpm tempo) :
-//  m_input_buss    (null_buss()),
     m_timestamp     (tstamp),
-//  m_message       (),
     m_channel       (midi::to_byte(meta::set_tempo))
-//  m_linked        (),
-//  m_has_link      (false),
-//  m_selected      (false),
-#if defined RTL66_SUPPORT_PAINTED_EVENTS
-//  m_marked        (false),
-//  m_painted       (false)
-#else
-//  m_marked        (false)
-#endif
 {
     set_tempo(tempo);                       /* fills the m_message vector      */
 }
@@ -192,19 +170,8 @@ event::event
 (
     midi::pulse tstamp, midi::meta metatype, const midi::bytes & data
 ) :
-//  m_input_buss    (null_buss()),
     m_timestamp     (tstamp),
-//  m_message       (),
     m_channel       (midi::to_byte(metatype))
-//  m_linked        (),
-//  m_has_link      (false),
-//  m_selected      (false),
-#if defined RTL66_SUPPORT_PAINTED_EVENTS
-//  m_marked        (false),
-//  m_painted       (false)
-#else
-//  m_marked        (false)
-#endif
 {
     (void) append_meta_data(metatype, data);
 }
@@ -1051,9 +1018,9 @@ event::print (const std::string & tag) const
 {
     std::string buffer { to_string() };
     if (tag.empty())
-        printf("%s", buffer.c_str());
+        printf("%s", V(buffer));
     else
-        printf("%s: %s", tag.c_str(), buffer.c_str());
+        printf("%s: %s", V(tag), V(buffer));
 }
 
 void
@@ -1078,7 +1045,7 @@ event::print_note (bool showlink) const
             printf
             (
                 "%06ld Note %s:%s %3d Vel %02X",
-                m_timestamp, type.c_str(), channel,
+                m_timestamp, V(type), channel,
                 int(m_message[0]), int(m_message[1])
             );
             if (is_linked() && showlink)

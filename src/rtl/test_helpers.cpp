@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-10-09
+ * \updates       2025-10-27
  * \license       See above.
  *
  */
@@ -158,7 +158,7 @@ rt_choose_port_number (bool isoutput)
     catch (...)
     {
         std::string msg { _("Unknown exception... fix the catch") };
-        errprint(msg.c_str());
+        errprint(CSTR(msg));
     }
     return result;
 }
@@ -626,9 +626,9 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
         printf
         (
             s_help_text_fmt,
-            appname.c_str(),
-            rtl::get_rtl_midi_version().c_str(),
-            rtl::get_rtmidi_patch_version().c_str()
+            V(appname),
+            V(rtl::get_rtl_midi_version()),
+            V(rtl::get_rtmidi_patch_version())
         );
     }
     return can_run;

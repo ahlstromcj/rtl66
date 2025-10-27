@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-10-07
+ * \updates       2025-10-27
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -233,7 +233,7 @@ masterbus::engine_query ()
     {
 #if defined PLATFORM_DEBUG_TMI
         std::string msg { client_info().to_string("engine_query()") };
-        infoprint(msg.c_str());
+        infoprint(CSTR(msg));
 #endif
     }
     else

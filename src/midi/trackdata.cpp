@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2025-09-13
+ * \updates       2025-10-27
  *
  * \license       GNU GPLv2 or above
  *
@@ -1375,7 +1375,7 @@ trackdata::put_track_events (/*const*/ track & /*trk*/)
         label += std::to_string(trk.track_number());
         label += ": ";
         label += trk.track_name();
-        printf("%s; %d events\n", label.c_str(), evl.count());
+        printf("%s; %d events\n", V(label), evl.count());
 #endif
     for (const auto & e : evl)
     {

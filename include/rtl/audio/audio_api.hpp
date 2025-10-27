@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2023-03-07
- * \updates       2024-01-16
+ * \updates       2025-10-27
  * \license       See above.
  *
  *      This class is mostly similar to the original RtAudio MidiApi class,
