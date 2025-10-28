@@ -112,9 +112,9 @@ public:
     (
         ::snd_seq_t * seq,
         midi::port::io iotype,
-        size_t buffsize = RTL66_DEFAULT_ALSA_BUFSIZE
+        size_t buffsize = RTL66_DEFAULT_ALSA_EV_BUFSIZE
     );
-    bool reallocate (size_t buffsize = RTL66_DEFAULT_ALSA_BUFSIZE);
+    bool reallocate (size_t buffsize = RTL66_DEFAULT_ALSA_EV_BUFSIZE);
     void unallocate ();
 
     bool is_initialized () const

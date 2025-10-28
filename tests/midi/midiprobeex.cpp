@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-10-07
+ * \updates       2025-10-27
  * \license       See above.
  *
  */
@@ -34,6 +34,35 @@
 #include "midi/masterbus.hpp"           /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi::desired_api()       */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
+
+namespace
+{
+
+/**
+ *  Client info
+ */
+
+midi::client_defaults s_clientinfo_defaults
+{
+    RTL66_VERSION,                      /* API version                      */
+    "midiprobe",                        /* client name                      */
+    "midiprobeex",                      /* app name                         */
+    false,                              /* JACK MIDI                        */
+    false,                              /* virtual ports                    */
+    0,                                  /* no virtual input ports           */
+    0,                                  /* no virtual output ports          */
+    true,                               /* auto connect                     */
+    false,                              /* port refresh                     */
+    4,                                  /* the default global beat width    */
+    4,                                  /* the default global beats per bar */
+    384,                                /* global PPQN, not 192             */
+    148,                                /* global BPM, not 120              */
+    midi::port::io::duplex,             /* MIDI port type                   */
+    -1,                                 /* input port number                */
+    -1                                  /* output port number               */
+};
+
+}           // namespace anonymous
 
 /**
  *  Main routine.
@@ -45,7 +74,7 @@ main (int argc, char * argv [])
     bool can_run { rt_simple_cli("midiprobeex", argc, argv) };
     if (can_run)
     {
-        midi::masterbus mb(rtl::rtmidi::desired_api());
+        midi::masterbus mb(rtl::rtmidi::desired_api(), s_clientinfo_defaults);
 
         /*
          *  masterbus::engine_initialize() calls masterbus::client_info_reset()

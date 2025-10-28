@@ -650,7 +650,7 @@ player::create_master_bus (clientinfo & ci)
 
             m_master_bus.reset
             (
-                new (std::nothrow) midi::masterbus(midiapi)
+                new (std::nothrow) midi::masterbus(midiapi, ci)
             );
             if (master_bus_ptr())
             {

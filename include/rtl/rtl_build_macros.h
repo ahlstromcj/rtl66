@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-05
- * \updates       2025-09-14
+ * \updates       2025-10-27
  * \license       See above.
  *
  * Introduction:
@@ -116,7 +116,7 @@
 #define RTL66_DEFAULT_METRO_CLOCKS       24     /* clocks per metronome     */
 #define RTL66_DEFAULT_32NDS_PER_Q         8     /* 32nds per quarter        */
 #define RTL66_DEFAULT_US_PER_Q       500000     /* microseconds per quarter */
-#define RTL66_DEFAULT_ALSA_BUFSIZE       32     /* microseconds per quarter */
+#define RTL66_DEFAULT_ALSA_EV_BUFSIZE    32     /* event parser buffer size */
 #define RTL66_DEFAULT_JACK_BUFSIZE      256     /* microseconds per quarter */
 #define RTL66_DEFAULT_JACK_RING_SIZE   2048     /* microseconds per quarter */
 

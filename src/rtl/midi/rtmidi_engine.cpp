@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-12-15
- * \updates       2025-09-14
+ * \updates       2025-10-28
  * \license       See above.
  *
  */
@@ -39,28 +39,31 @@ namespace rtl
 {
 
 /**
- *  Default constructor that allows an optional api and client name.
+ *  Constructor that allows an optional api and a midi::masterbus.
  *
- *  \param rapi
+ * \param mbus
+ *      Provides midi::clientinfo that provides the PPQN, BPM, client
+ *      name, etc. The client name will be used to group the ports that
+ *      are created by the application.
+ *
+ * \param rapi
  *      An optional API id can be specified.  The default is
- *      rtl::rtmidi::api::unspecified.
- *
- *  \param clientname
- *      An optional client name can be specified. This will be used to group
- *      the ports that are created by the application.
+ *      rtl::rtmidi::api::unspecified, which will cause a lookup and
+ *      perhaps a fallback to the default API (JACK to ALSA, for
+ *      example.
  */
 
 rtmidi_engine::rtmidi_engine
 (
     midi::masterbus & mbus,
-    rtmidi::api rapi,
-    const std::string & clientname
+    rtmidi::api rapi
 ) :
     rtmidi          (),
     m_master_bus    (mbus)
 {
-    rapi = ctor_common_setup(rapi, clientname);
-    if (open_midi_api(rapi, clientname))
+    const std::string & cname { mbus.client_info().client_name() };
+    rapi = ctor_common_setup(rapi, cname);
+    if (open_midi_api(rapi, cname))
         rtmidi::selected_api(rapi);
 }
 

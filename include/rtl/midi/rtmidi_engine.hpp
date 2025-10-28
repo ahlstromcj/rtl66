@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-12-15
- * \updates       2025-09-14
+ * \updates       2025-10-28
  * \license       See above.
  *
  */
@@ -72,8 +72,7 @@ public:
     rtmidi_engine
     (
         midi::masterbus & mbus,
-        rtmidi::api rapi                = rtmidi::api::unspecified,
-        const std::string & clientname  = ""
+        rtmidi::api rapi                = rtmidi::api::unspecified
     );
     rtmidi_engine (rtmidi_engine & other) = delete;
     rtmidi_engine & operator = (rtmidi_engine & other) = delete;

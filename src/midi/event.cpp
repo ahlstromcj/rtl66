@@ -74,6 +74,7 @@
  */
 
 #include "c_macros.h"                   /* not_nullptr(), errprint()        */
+#include "cpp_types.hpp"                /* V() inline function for c_str()  */
 #include "midi/calculations.hpp"        /* midi::rescale_tick(), etc.       */
 #include "midi/event.hpp"               /* midi::event class                */
 

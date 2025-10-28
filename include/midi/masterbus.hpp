@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-10-10
+ * \updates       2025-10-28
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -242,19 +242,6 @@ private:
     info m_client_info { };
 
     /**
-     *  Main resolution in parts per quarter note. Compare to m_global_ppqn
-     *  in clientinfo.
-     */
-
-    midi::ppqn m_ppqn { RTL66_DEFAULT_PPQN };
-
-    /**
-     *  BPM (beats per minute). Compare to m_global_bpm in clientinfo.
-     */
-
-    midi::bpm m_beats_per_minute { RTL66_DEFAULT_BPM };
-
-    /**
      *  By default, masterbus allows input of sysex, time code, and
      *  active sensing to be processed. And, by default, there is no
      *  input callback and user-data for it.
@@ -282,8 +269,7 @@ public:
     masterbus
     (
         rtl::rtmidi::api rapi,
-        midi::ppqn ppq  = RTL66_DEFAULT_PPQN,
-        midi::bpm bp    = RTL66_DEFAULT_BPM
+        const midi::clientinfo & ci
     );
     masterbus (const masterbus &) = delete;
     masterbus (masterbus &&) = delete;              /* forced by recmutex   */
@@ -422,12 +408,12 @@ public:
 
     midi::bpm BPM () const
     {
-        return m_beats_per_minute;
+        return client_info().global_bpm();
     }
 
     midi::ppqn PPQN () const
     {
-        return m_ppqn;
+        return client_info().global_ppqn();
     }
 
     const inputspecs & get_inputspecs () const
@@ -551,14 +537,6 @@ protected:  // API implementations
     bool set_clock (midi::bussbyte bus, midi::clocking clocktype);
     bool save_clock (midi::bussbyte bus, midi::clocking clock);
     midi::clocking get_clock (midi::bussbyte bus) const;
-
-    // TODO or derived classes
-    //
-    // void masterbus::copy_io_busses ();
-    // void get_port_statuses (clockslist & outs, inputslist & ins);
-    // void get_out_port_statuses (clockslist & outs);
-    // void get_in_port_statuses (inputslist & ins);
-
     bool save_input (midi::bussbyte bus, bool inputing);
     bool set_input (midi::bussbyte bus, bool inputing);
     bool get_input (midi::bussbyte bus) const;

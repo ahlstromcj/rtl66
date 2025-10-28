@@ -54,13 +54,16 @@
 #include "midi/masterbus.hpp"           /* rtl::rtmidi class, etc.          */
 #include "midi/player.hpp"              /* midi::player class               */
 
+namespace
+{
+
 /**
  *  Tests of MIDI file parsing and writing for various files.
  */
 
-static const std::string s_base_directory{"tests/data/midi"};
-static const std::string s_out_wart{"-out"};
-static const lib66::tokenization s_test_files
+const std::string s_base_directory{"tests/data/midi"};
+const std::string s_out_wart{"-out"};
+const lib66::tokenization s_test_files
 {
     "smoke.mid",                            /* a simple 2-track MIDI file   */
     "1Bar-export.mid",                      /* a simple standard MIDI file  */
@@ -69,8 +72,32 @@ static const lib66::tokenization s_test_files
     "simpleblast-ch1-8th-notes-960.midi"
 };
 
-static
-bool file_test (midi::player & p, const std::string & file)
+/**
+ *  Client info
+ */
+
+midi::client_defaults s_clientinfo_defaults
+{
+    RTL66_VERSION,                      /* API version                      */
+    "smoke",                            /* client name                      */
+    "smoke",                            /* app name                         */
+    false,                              /* JACK MIDI                        */
+    false,                              /* virtual ports                    */
+    0,                                  /* no virtual input ports           */
+    0,                                  /* no virtual output ports          */
+    true,                               /* auto connect                     */
+    false,                              /* port refresh                     */
+    4,                                  /* the default global beat width    */
+    4,                                  /* the default global beats per bar */
+    384,                                /* global PPQN, not 192             */
+    148,                                /* global BPM, not 120              */
+    midi::port::io::duplex,             /* MIDI port type                   */
+    -1,                                 /* input port number                */
+    -1                                  /* output port number               */
+};
+
+bool
+file_test (midi::player & p, const std::string & file)
 {
     std::string errmsg;
     std::string testfile{s_base_directory};
@@ -111,6 +138,8 @@ bool file_test (midi::player & p, const std::string & file)
     }
     return result;
 }
+
+}           // namespace anonymous
 
 /**
  *  The main routine.
@@ -159,7 +188,7 @@ main (int argc, char * argv [])
                  */
 
                 rtl::rtmidi::api rapi = rtl::rtmidi::selected_api();
-                midi::masterbus mbus(rapi);
+                midi::masterbus mbus(rapi, s_clientinfo_defaults);
                 midi::player p;
                 if (mbus.engine_initialize())       /* default PPQN, BPM    */
                 {

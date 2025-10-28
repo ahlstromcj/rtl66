@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-10-27
+ * \updates       2025-10-28
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -124,15 +124,10 @@ namespace midi
  *      The rtmidi API to use, either already vetted and selected, or
  *      rtl::rtmidi::api::unspecified.
  *
- * \param ppq
- *      Provides the PPQN value for this object.  However, in most cases, the
- *      default baseline PPQN should be specified.  Then the caller of this
- *      constructor should call masterbus::set_ppqn() to set up the proper
- *      PPQN value.
- *
- * \param bp
- *      Provides the beats per minute value, which defaults to
- *      c_beats_per_minute.
+ * \param ci
+ *      Provides the PPQN, BPM, client-name, and other values for this
+ *      object. The caller of this constructor can call masterbus ::
+ *      set_ppqn() to set up the final PPQN value.
  *
  *  Some default member values are defined "in-class".
  */
@@ -140,12 +135,9 @@ namespace midi
 masterbus::masterbus
 (
     rtl::rtmidi::api rapi,
-    midi::ppqn ppq,
-    midi::bpm bp
+    const midi::clientinfo & ci
 ) :
     m_selected_api          (rapi),         /* rtmidi::api::unspecified)    */
-    m_ppqn                  (ppq),
-    m_beats_per_minute      (bp),
     m_engine                (*this, rapi)   /* "mbus", keep client name     */
 {
     // no code
@@ -276,7 +268,7 @@ masterbus::PPQN (midi::ppqn ppq)
     xpc::automutex locker(m_mutex);
     bool result { engine().PPQN(ppq) };
     if (result)
-        m_ppqn = ppq;
+        client_info().global_ppqn(ppq);
 
     return result;
 }
@@ -300,7 +292,7 @@ masterbus::BPM (midi::bpm bp)
     xpc::automutex locker(m_mutex);
     bool result { engine().BPM(bp) };
     if (result)
-        m_beats_per_minute = bp;
+        client_info().global_bpm(bp);
 
     return result;
 }

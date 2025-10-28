@@ -96,7 +96,7 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
     if (rapi == rtl::rtmidi::api::unspecified)
         rapi = rtl::find_midi_api();
 
-    static midi::masterbus s_master_bus { rapi };
+    static midi::masterbus s_master_bus { rapi, ci };
     static bool s_uninitialized { true };
     if (s_uninitialized)
     {

@@ -199,7 +199,7 @@ struct client_defaults
      *  Holds the queuesize that might be needed in some MIDI APIs.
      */
 
-    int cd_queue_size { 32 };
+    int cd_queue_size { RTL66_DEFAULT_Q_SIZE };
 
     /**
      *  The input port number.  If equal to -1, then (in the future)
