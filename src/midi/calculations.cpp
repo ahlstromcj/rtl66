@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-11-07
- * \updates       2025-10-27
+ * \updates       2025-10-30
  * \license       GNU GPLv2 or above
  *
  *  This code was moved from the globals module so that other modules
@@ -1132,8 +1132,6 @@ pulses_per_pixel (midi::pulse ppq, int zoom)
     return result;
 }
 
-// #endif  // defined SEQ66_USE_EXTRA_PULSE_CALCULATIONS
-
 /**
  *  Internal function for simple calculation of a power of 2 without a lot of
  *  math.  Use for calculating the denominator of a time signature.
@@ -2138,6 +2136,40 @@ pitch_value_semitones (midi::byte d0, midi::byte d1)
     double semicents { double(d0) * 0.01 };
     return semitones + semicents;
 }
+
+bool
+beat_width_is_valid (int bw)
+{
+    return is_power_of_2(bw) && bw < 64;
+}
+
+bool
+beats_per_bar_is_valid (int bpb)
+{
+    return (bpb > 0 && bpb <= 16) || (bpb == 32);
+}
+
+/**
+ *  Comes from Seq66's supported_ppqns() in it's settings module, but
+ *  convert to use numbers instead of strings.
+ */
+
+bool
+ppqn_is_valid (midi::pulse ppq)
+{
+    static std::vector<midi::pulse> s_supported_ppqn_list
+    {
+        24, 32, 48, 96, 120, 192, 240, 384, 480, 768,
+        960, 1920, 2400, 3840, 7680, 9600, 19200
+    };
+    for (midi::pulse p : s_supported_ppqn_list)
+    {
+        if (ppq == p)
+            return true;
+    }
+    return false;
+}
+
 
 }       // namespace midi
 

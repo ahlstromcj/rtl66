@@ -90,9 +90,9 @@ rtlconfiguration::parse_command_line
     (void) argv;
     errmessage = "Not implemented, please program an implementation";
 #if defined THIS_CODE_IS_READY
-//      optionindex = parse_command_line(argc, argv, errmessage);
-//      result = optionindex >= 0;
-//      result = parse_o_options(argc, argv);
+    optionindex = parse_command_line(argc, argv, errmessage);
+    result = optionindex >= 0;
+    result = parse_o_options(argc, argv);
 
     std::string logfile = usr().option_logfile();
     if (usr().option_use_logfile())
@@ -119,7 +119,7 @@ rtlconfiguration::parse_command_line
                 temp, sizeof temp,
                 "MIDI file not readable: '%s'", V(fname)
             );
-//          append_error_message(temp);     /* raises the message   */
+            append_error_message(temp);     /* raises the message   */
             m_midi_filename.clear();
         }
     }

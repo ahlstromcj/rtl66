@@ -1,6 +1,6 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-10-04
+2019-04-13 to 2025-10-29
 
 Hot:
 
@@ -12,7 +12,15 @@ Hot:
         before appending. Rename the function or add a bool 'clear' flag.
     -   Make sure trackdata::parse() sets track number correctly.
     -   Update rterror to print the client-tag in error messages.
-    -   Use the CSTR macros
+    -   Investigate differences between behavior of cbmidiin and qmidiin.
+    -   In cfg, how about a convention where, instead of
+
+            --callback      -c
+
+        we have
+
+            --call&back     which provides -b
+            --&call&back    which provides -cb
 
 NSM:
 

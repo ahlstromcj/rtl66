@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2020-03-22
- * \updates       2024-01-16
+ * \updates       2025-10-28
  * \license       GNU GPLv2 or above
  *
  *  This module provides functionality that is useful even if session support
@@ -301,7 +301,10 @@ rtlmanager::write_option_file (std::string & errmessage)
 bool
 rtlmanager::create_player ()
 {
-    pointer p(new (std::nothrow) midi::player(/* int portnum, bool isoutput*/));
+    // TEMPORARY
+    midi::clientinfo dummyci;
+    midi::masterbus mbus(rtl::rtmidi::api::unspecified, dummyci);
+    pointer p(new (std::nothrow) midi::player(mbus));
     bool result = bool(p);
     if (result)
     {

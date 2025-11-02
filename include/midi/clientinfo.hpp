@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2025-09-26
+ * \updates       2025-10-29
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -76,6 +76,7 @@
 #include "midi/midibytes.hpp"           /* midi::ppqn, midi::bpm            */
 #include "midi/ports.hpp"               /* midi::ports, etc.                */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi::api::unspecified    */
+#include "rtl/midi/rtmidi_in_data.hpp"  /* rtl::rtmidi_in_data class        */
 
 /**
  *  For investigative use. Do we really need global client info, when there
@@ -199,7 +200,7 @@ struct client_defaults
      *  Holds the queuesize that might be needed in some MIDI APIs.
      */
 
-    int cd_queue_size { RTL66_DEFAULT_Q_SIZE };
+    int cd_queue_size { RTL66_DEFAULT_INPUT_Q_SIZE };
 
     /**
      *  The input port number.  If equal to -1, then (in the future)
@@ -216,6 +217,29 @@ struct client_defaults
     int cd_output_portnumber { -1 };
 
 };          // client_defaults
+
+ /**
+  * Holds information meant for input busses. The callback function
+  * must adhere to the function signature rtmidi_in_data::callback_t.
+  * We don't enforce that in the midi namespace. We need this structure
+  * to pass these settings to rtl::rtmidi_in. They correspond to
+  *
+  *     -   rtmidi_in_data::ignore_flags()
+  *     -   rtmidi_in_data::using_callback()
+  *     -   rtmidi_in_data::user_callback()
+  *     -   rtmidi_in_data::user_data()
+  */
+
+struct input_specs
+{
+    bool input_active;
+    bool input_use_sysex;
+    bool input_use_time_code;
+    bool input_use_active_sensing;
+    bool input_using_callback;
+    rtl::rtmidi_in_data::callback_t input_callback;
+    void * input_user_data;
+};
 
 /**
  *  The class for holding basic information on the MIDI input and output ports
@@ -237,6 +261,22 @@ private:
      */
 
     client_defaults m_cd { };
+
+    /**
+     *  Input settings desired by the client.
+     *
+     *  By default, masterbus allows input of sysex, time code, and
+     *  active sensing to be processed. And, by default, there is no
+     *  input callback and user-data for it.
+     *
+     *  The caller creating the masterbus can provide an input_specs
+     *  structure and pass it to the set_inputspecs() function.
+     */
+
+    input_specs m_is
+    {
+        false, false, false, false, false, nullptr, nullptr
+    };
 
     /**
      *  The ID of the ALSA MIDI queue. A la Seq66's mastermidibase class.
@@ -296,9 +336,10 @@ public:
      * that issue.
      */
 
-    clientinfo () = default;
+    clientinfo ();
     clientinfo (midi::port::io iodirection);
     clientinfo (const client_defaults &);
+    clientinfo (const client_defaults &, const input_specs &);
     clientinfo (const clientinfo &) = default;
     clientinfo (clientinfo &&) = default;
     clientinfo & operator = (const clientinfo &) = default;
@@ -436,9 +477,19 @@ public:
         return m_cd.cd_global_beat_width;
     }
 
+    void global_beat_width (int bw)
+    {
+        m_cd.cd_global_beat_width = bw;
+    }
+
     int global_beats_per_bar () const
     {
         return m_cd.cd_global_beats_per_bar;
+    }
+
+    void global_beats_per_bar (int bpb)
+    {
+        m_cd.cd_global_beats_per_bar = bpb;
     }
 
     midi::ppqn global_ppqn () const
@@ -638,6 +689,40 @@ public:
         return m_global_queue;
     }
 
+#if 0
+using input_specs = struct
+{
+    bool input_active;
+    bool input_use_sysex;
+    bool input_use_time_code;
+    bool input_use_active_sensing;
+    bool input_using_callback;
+    rtl::rtmidi_in_data::callback_t input_callback;
+    void * input_user_data;
+};
+#endif
+
+    bool input_active () const
+    {
+        return m_is.input_active;
+    }
+
+    input_specs & get_input_specs ()
+    {
+        return m_is;
+    }
+
+    const input_specs & get_input_specs () const
+    {
+        return m_is;
+    }
+
+    void set_callback
+    (
+        rtl::rtmidi_in_data::callback_t cb = nullptr,
+        void * userdata = nullptr
+    );
+
 protected:
 
     int element (port::io iotype) const
@@ -659,11 +744,15 @@ protected:
         m_void_client_handle = h;
     }
 
+private:
+
+    void fixup ();
+
 };          // clientinfo
 
-/*------------------------------------------------------------------------
- * Free functions
- *------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------
+ * Free functions in the midi namespace
+ *---------------------------------------------------------------------------*/
 
 extern clientinfo & global_client_info ();
 extern bool get_global_port_info

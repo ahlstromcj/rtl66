@@ -24,13 +24,14 @@
  * \library       rtl66
  * \author        Gary Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-10-27
+ * \updates       2025-10-29
  * \license       See above.
  *
  */
 
 #include <iostream>                     /* std::cout, std::cerr             */
 
+#include "cfg/appinfo.hpp"              /* cfg::set_client_name()           */
 #include "midi/masterbus.hpp"           /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi::desired_api()       */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
@@ -42,7 +43,7 @@ namespace
  *  Client info
  */
 
-midi::client_defaults s_clientinfo_defaults
+midi::client_defaults s_client_defaults
 {
     RTL66_VERSION,                      /* API version                      */
     "midiprobe",                        /* client name                      */
@@ -62,6 +63,18 @@ midi::client_defaults s_clientinfo_defaults
     -1                                  /* output port number               */
 };
 
+/**
+ *  The port-numbers can be changed, so this item is not const. The clientinfo
+ *  constructor is the one that uses the default midi::input_specs member.
+ */
+
+midi::clientinfo &
+app_client_info ()
+{
+    static midi::clientinfo s_clientinfo(s_client_defaults);
+    return s_clientinfo;
+}
+
 }           // namespace anonymous
 
 /**
@@ -74,7 +87,10 @@ main (int argc, char * argv [])
     bool can_run { rt_simple_cli("midiprobeex", argc, argv) };
     if (can_run)
     {
-        midi::masterbus mb(rtl::rtmidi::desired_api(), s_clientinfo_defaults);
+        cfg::set_app_name(app_client_info().app_name());
+        cfg::set_client_name(app_client_info().client_name());
+        rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
+        midi::masterbus mb(rapi, app_client_info());
 
         /*
          *  masterbus::engine_initialize() calls masterbus::client_info_reset()
@@ -85,22 +101,22 @@ main (int argc, char * argv [])
          *      {
          */
 
-            /*
-             * Here, we use the overload of masterbus::engine_initialize()
-             * that has no parameter. It creates/gets the global
-             * clientinfo object and fills it with MIDI port information
-             * and then uses that to create a midi::bus_in or midi::bus_out
-             * for each port.
-             */
+        /*
+         * Here, we use the overload of masterbus::engine_initialize()
+         * that has no parameter. It creates/gets the global
+         * clientinfo object and fills it with MIDI port information
+         * and then uses that to create a midi::bus_in or midi::bus_out
+         * for each port.
+         */
 
-            if (mb.engine_initialize())
-            {
-                mb.engine_activate();
-                std::string portlist = mb.port_listing();
-                std::cout << portlist;
-            }
-            else
-                return EXIT_FAILURE;
+        if (mb.engine_initialize())
+        {
+            mb.engine_activate();
+            std::string portlist = mb.port_listing();
+            std::cout << portlist;
+        }
+        else
+            return EXIT_FAILURE;
 
         /*
          *      }

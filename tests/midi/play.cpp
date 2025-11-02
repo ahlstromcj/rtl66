@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-09-29
+ * \updates       2025-10-28
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -49,6 +49,7 @@
 #include "util/strfunctions.hpp"        /* util::string_to_int()            */
 #include "midi/bus_out.hpp"             /* midi::bus_out class              */
 #include "midi/player.hpp"              /* midi::player class               */
+#include "rtl/midi/find_midi_api.hpp"   /* rtl::find_midi_api() module      */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
@@ -186,6 +187,32 @@ play_test (midi::player & p, const std::string & file)
     return result;
 }
 
+/**
+ *  Provides a masterbus object, of which only a few facilties will be
+ *  used, to support a single midi::bus_out object. Compare it to
+ *  player::create_master_bus() and the follow-on code in launch().
+ */
+
+midi::masterbus &
+master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
+{
+    if (rapi == rtl::rtmidi::api::unspecified)
+        rapi = rtl::find_midi_api();
+
+    static midi::masterbus s_master_bus { rapi, ci };
+    static bool s_uninitialized { true };
+    if (s_uninitialized)
+    {
+        bool ok { rapi != rtl::rtmidi::api::unspecified };
+        if (ok)
+            ok = s_master_bus.setup(ci);
+
+        if (ok)
+            s_uninitialized = false;
+    }
+    return s_master_bus;
+}
+
 }           // namespace anonymous
 
 /**
@@ -277,9 +304,11 @@ main (int argc, char * argv [])
     {
         /*
          * Later we will add the PPQN and BPM parameters.
-         */
+         *
+         * Don't really need the global info, do we?
 
         can_run = midi::set_global_client_info(app_client_info());
+         */
 
         /*
          * This function:
@@ -302,9 +331,9 @@ main (int argc, char * argv [])
 
         if (can_run)
         {
-            midi::clientinfo & ci { midi::global_client_info() };
-            midi::player p { rt_test_port() };
-            ci.output_portnumber(rt_test_port());
+            rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
+            midi::masterbus & master { master_bus(rapi, app_client_info()) };
+            midi::player p { master };
             can_run = p.launch();
             if (can_run)
             {

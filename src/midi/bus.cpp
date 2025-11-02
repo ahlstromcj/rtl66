@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-10-27
+ * \updates       2025-10-30
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -215,7 +215,7 @@ bus::~bus ()
  *  And Note that the bus_out object can get this pointer from its
  *  rtmidi_out object.
  *
- *  WRONG WRONG WRON and UNNECESSARY.
+ *  WRONG WRONG WRONG and UNNECESSARY.
  */
 
 rtl::midi_api *
@@ -480,6 +480,19 @@ bus::set_clock (midi::clocking clk)
         clk != midi::clocking::unavailable;
 
     return true;
+}
+
+bool
+bus::initialize ()
+{
+    bool result = valid();
+    if (result)
+    {
+        result = activate();
+        if (result)
+            m_initialized = true;
+    }
+    return result;
 }
 
 /*--------------------------------------------------------------------------

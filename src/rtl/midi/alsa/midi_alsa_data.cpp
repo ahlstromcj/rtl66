@@ -196,13 +196,18 @@ midi_alsa_data::new_event_parser (size_t buffsize)
     return rc == 0;
 }
 
+/**
+ *  The snd_midi_event_init() function resets the MIDI encode/decode parser.
+ *  The snd_midi_event_no_status() function enables command merging
+ */
+
 bool
 midi_alsa_data::init_event_parser (size_t buffsize)
 {
     bool result { new_event_parser(buffsize) };
     if (result)
     {
-        ::snd_midi_event_init(m_event_parser);      /* actually redundant   */
+        ::snd_midi_event_init(m_event_parser);              /* redundant    */
         ::snd_midi_event_no_status(m_event_parser, 1);
     }
     return result;

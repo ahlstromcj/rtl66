@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-10-09
- * \updates       2025-10-27
+ * \updates       2025-10-30
  * \license       See above.
  *
  *      This application but merely opens one port and accepts messages,
@@ -66,27 +66,47 @@ finish (int /*ignore*/)
 }
 
 /**
- *  Client info
+ *  Client info.
+ *
+ *  Note that, currently, the port type must be duplex in order for
+ *  masterbus to get all the port information.
  */
 
-midi::client_defaults s_clientinfo_defaults
+midi::client_defaults s_client_defaults
 {
-    RTL66_VERSION,                      /* API version                      */
-    "inclient",                         /* client name                      */
-    "read",                             /* app name                         */
-    false,                              /* JACK MIDI                        */
-    false,                              /* virtual ports                    */
-    0,                                  /* no virtual input ports           */
-    0,                                  /* no virtual output ports          */
-    true,                               /* auto connect                     */
-    false,                              /* port refresh                     */
-    4,                                  /* the default global beat width    */
-    4,                                  /* the default global beats per bar */
+    RTL66_VERSION,                      /* API version (the default value)  */
+    "inclient",                         /* client name (default = "rtl66")  */
+    "busin",                            /* app name (default = "rtl66")     */
+    false,                              /* JACK MIDI (default)              */
+    false,                              /* virtual ports (default)          */
+    0,                                  /* no virtual input ports (default) */
+    0,                                  /* no virtual output ports (")      */
+    true,                               /* auto connect (default)           */
+    false,                              /* port refresh (default)           */
+    4,                                  /* default global beat width        */
+    4,                                  /* default global beats per bar     */
     384,                                /* global PPQN, not 192             */
     148,                                /* global BPM, not 120              */
-    midi::port::io::input,              /* MIDI port type                   */
-    -1,                                 /* input port number                */
-    -1                                  /* output port number               */
+    midi::port::io::duplex,             /* MIDI port type                   */
+    -1,                                 /* queue size, a bad value          */
+    -1,                                 /* input port number (default)      */
+    -1                                  /* output port number (default)     */
+};
+
+/**
+ *  Provides an member that can be used to establish a callback. All members
+ *  are defaulted except for the callback function.
+ */
+
+midi::input_specs s_input_specs
+{
+    false,                              /* input_active                     */
+    false,                              /* input_use_sysex                  */
+    false,                              /* input_use_time_code              */
+    false,                              /* input_use_active_sensing         */
+    false,                              /* input_using_callback             */
+    nullptr,                            /* input_callback                   */
+    nullptr                             /* input_user_data                  */
 };
 
 /**
@@ -96,7 +116,7 @@ midi::client_defaults s_clientinfo_defaults
 midi::clientinfo &
 app_client_info ()
 {
-    static midi::clientinfo s_clientinfo { s_clientinfo_defaults };
+    static midi::clientinfo s_clientinfo(s_client_defaults, s_input_specs);
     return s_clientinfo;
 }
 
@@ -120,33 +140,21 @@ midibytes_callback
         size_t nbytes = m.size();
         if (nbytes > 0)
         {
-            std::string msgline { "Msg:" };
+            std::string msgline { "Input:" };
             msgline += m.to_string();
             util::status_message(msgline);
         }
         else
         {
             std::cout
-                << "Empty message w/delta " << deltatime << std::endl
+                << "input callback: empty message w/delta "
+                << deltatime << std::endl
                 ;
         }
     }
+    else
+        std::cerr << "input callback: null message" << std::endl;
 }
-
-/**
- *  Provides an override of the default masterbus::m_input_specs member
- *  that can be used to establish a callback. All members are defaulted
- *  except for the callback function.
- */
-
-midi::masterbus::inputspecs s_input_specs_override
-{
-    false,                                      /* input_use_sysex          */
-    false,                                      /* input_use_time_code      */
-    false,                                      /* input_use_active_sensing */
-    reinterpret_cast<void *>(midibytes_callback), /* input_callback         */
-    nullptr                                     /* input_user_data          */
-};
 
 /**
  *  Provides a masterbus object, of which only a few facilties will be
@@ -157,31 +165,30 @@ midi::masterbus::inputspecs s_input_specs_override
 midi::masterbus &
 master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
 {
-    if (rapi == rtl::rtmidi::api::unspecified)
-        rapi = rtl::find_midi_api();
+    static bool s_uninitialized { true };
+    if (s_uninitialized)
+    {
+        if (rapi == rtl::rtmidi::api::unspecified)
+            rapi = rtl::find_midi_api();
+
+        /*
+         * Not so sure about this. We have a relatively new input_active
+         * flag in inputspecs. The clientinfo class has an I/O type flag,
+         * but for the masterbus engine, it is set to duplex, so we
+         * need a way to setup an input flag.
+         */
+
+        if (rt_use_callback())
+            ci.set_callback(midibytes_callback);
+    }
 
     static midi::masterbus s_master_bus { rapi, ci };
-    static bool s_uninitialized { true };
     if (s_uninitialized)
     {
         bool ok { rapi != rtl::rtmidi::api::unspecified };
         if (ok)
-        {
-            /*
-             * The client_info_reset() call seems redundant, but
-             * it is not. We need to find out why.
-             */
+            ok = s_master_bus.setup(ci);
 
-            if (rt_use_callback())
-                s_master_bus.set_inputspecs(s_input_specs_override);
-
-            ok = s_master_bus.client_info_reset(ci);
-            if (ok)
-                ok = s_master_bus.engine_initialize(ci);
-
-            if (ok)
-                s_master_bus.engine_activate();
-        }
         if (ok)
             s_uninitialized = false;
     }
@@ -198,6 +205,7 @@ int
 main (int argc, char * argv [])
 {
     bool can_run { rt_simple_cli("busin", argc, argv) };
+    bool had_error = false;
     if (can_run)
     {
         cfg::set_app_name(app_client_info().app_name());
@@ -215,7 +223,9 @@ main (int argc, char * argv [])
         }
         catch (rtl::rterror & error)
         {
-            can_run = false;                        // error.print_message()
+            std::cerr << "Caught rtl::rterror!" << std::endl;
+            had_error = true;                        // error.print_message()
+            can_run = false;
         }
         if (can_run)
         {
@@ -282,14 +292,28 @@ main (int argc, char * argv [])
                         }
                     }
                 }
-                catch (rtl::rterror & error)
+                catch (const rtl::rterror & error)
                 {
-                    can_run = false;
+                    std::cerr << "Caught rtl::rterror!" << std::endl;
+                    had_error = true;           // error.print_message()
                 }
             }
+            else
+            {
+                std::cerr
+                    << "Could not initialize port #" << portnumber << "!"
+                    << std::endl
+                    ;
+                had_error = true;
+            }
+        }
+        else
+        {
+            std::cerr << "Could not choose a port!" << std::endl;
+            had_error = true;
         }
     }
-    return EXIT_SUCCESS;
+    return had_error ? EXIT_FAILURE : EXIT_SUCCESS ;
 }
 
 /*

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-09-29
+ * \updates       2025-10-29
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -332,21 +332,21 @@ public:
      * ----------------------------------------------------------------------
      */
 
-    /*virtual*/ bool initialize ()
-    {
-        m_initialized = true;
-        activate();
-        return true;
-    }
+    /*
+     * For now, not virtual; only flags get set.
+     */
+
+    bool initialize ();
 
     bool active () const
     {
         return m_io_active;
     }
 
-    void activate ()
+    bool activate ()
     {
         m_io_active = port_unavailable() ? false : true ;
+        return m_io_active;
     }
 
     void deactivate ()
@@ -541,6 +541,11 @@ public:
     }
 
 public:
+
+    bool valid () const
+    {
+        return midi_port().valid();
+    }
 
     void display_name (const std::string & name)
     {

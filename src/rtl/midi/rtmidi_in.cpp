@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-09
+ * \updates       2025-10-30
  * \license       See above.
  *
  */
@@ -81,7 +81,7 @@ rtmidi_in::rtmidi_in
     if (nomaster)
     {
         if (qsize == 0)
-            qsize = RTL66_DEFAULT_Q_SIZE;
+            qsize = RTL66_DEFAULT_INPUT_Q_SIZE;
 
         rapi = ctor_common_setup(rapi, clientname);
         if (is_midiapi_valid(rapi))
@@ -107,7 +107,7 @@ rtmidi_in::rtmidi_in (const midi::masterbus & mb) : rtmidi ()
         midi::masterbus * ncmb { const_cast<midi::masterbus *>(&mb) };
         if (set_master_bus_ptr(ncmb))
         {
-            const midi::masterbus::inputspecs & mis { mb.get_inputspecs() };
+            const midi::input_specs & mis { mb.get_input_specs() };
             bool midisysex { mis.input_use_sysex };
             bool miditime { mis.input_use_time_code };
             bool midisense { mis.input_use_active_sensing };

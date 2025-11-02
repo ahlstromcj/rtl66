@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2025-08-26
- * \updates       2025-10-07
+ * \updates       2025-10-30
  * \license       See above.
  *
  *      This application has elements of the play test application,
@@ -51,13 +51,16 @@ namespace
 
 /**
  *  Client info
+ *
+ *  Note that, currently, the port type must be duplex in order for
+ *  masterbus to get all the port information.
  */
 
-midi::client_defaults s_clientinfo_defaults
+midi::client_defaults s_client_defaults
 {
     RTL66_VERSION,                      /* API version                      */
-    "playclient",                       /* client name                      */
-    "play",                             /* app name                         */
+    "busclient",                        /* client name                      */
+    "busout",                           /* app name                         */
     false,                              /* JACK MIDI                        */
     false,                              /* virtual ports                    */
     0,                                  /* no virtual input ports           */
@@ -69,18 +72,22 @@ midi::client_defaults s_clientinfo_defaults
     384,                                /* global PPQN, not 192             */
     148,                                /* global BPM, not 120              */
     midi::port::io::duplex,             /* MIDI port type                   */
+    -1,                                 /* queue size immaterial for output */
     -1,                                 /* input port number                */
-    0                                   /* output port number               */
+    -1                                  /* output port number               */
 };
 
 /**
- *  The port-numbers can be changed, so this item is not const.
+ *  The port-numbers can be changed, so this item is not const. The clientinfo
+ *  constructor is the one that uses the default midi::input_specs member
+ *  (i.e. disabled since this test program does only output).
+ *
  */
 
 midi::clientinfo &
 app_client_info ()
 {
-    static midi::clientinfo s_clientinfo { s_clientinfo_defaults };
+    static midi::clientinfo s_clientinfo(s_client_defaults);
     return s_clientinfo;
 }
 
@@ -102,19 +109,8 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
     {
         bool ok { rapi != rtl::rtmidi::api::unspecified };
         if (ok)
-        {
-            /*
-             * The client_info_reset() call seems redundant, but
-             * it is not. We need to find out why.
-             */
+            ok = s_master_bus.setup(ci);
 
-            ok = s_master_bus.client_info_reset(ci);
-            if (ok)
-                ok = s_master_bus.engine_initialize(ci);
-
-            if (ok)
-                s_master_bus.engine_activate();
-        }
         if (ok)
             s_uninitialized = false;
     }
@@ -159,6 +155,7 @@ int
 main (int argc, char * argv [])
 {
     bool can_run { rt_simple_cli("busout", argc, argv) };
+    bool had_error = false;
     if (can_run)
     {
         cfg::set_app_name(app_client_info().app_name());
@@ -176,7 +173,9 @@ main (int argc, char * argv [])
         }
         catch (rtl::rterror & error)
         {
-            can_run = false;                        // error.print_message()
+            std::cerr << "Caught rtl::rterror!" << std::endl;
+            had_error = true;                        // error.print_message()
+            can_run = false;
         }
         if (can_run)
         {
@@ -247,12 +246,21 @@ main (int argc, char * argv [])
                 }
                 catch (rtl::rterror & error)
                 {
-                    can_run = false;
+                    std::cerr << "Caught rtl::rterror!" << std::endl;
+                    had_error = true;           // error.print_message()
                 }
+            }
+            else
+            {
+                std::cerr
+                    << "Could not initialize port #" << portnumber << "!"
+                    << std::endl
+                    ;
+                had_error = true;
             }
         }
     }
-    return EXIT_SUCCESS;
+    return had_error ? EXIT_FAILURE : EXIT_SUCCESS ;
 }
 
 /*

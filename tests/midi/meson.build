@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-13
-# \updates     2025-10-09
+# \updates     2025-11-01
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the "rtl66" library. See the top-level meson.build
@@ -79,13 +79,19 @@ midiprobe_exe = executable(
 midiprobeex_exe = executable(
    'midiprobeex',
    sources : ['midiprobeex.cpp'],
-   dependencies : [ rtl66_dep, liblib66_library_dep, libxpc66_library_dep ]
+   dependencies : [
+      rtl66_dep, liblib66_library_dep, libcfg66_library_dep,
+      libxpc66_library_dep
+      ]
    )
 
 qmidiin_exe = executable(
    'qmidiin',
    sources : ['qmidiin.cpp'],
-   dependencies : [ rtl66_dep, liblib66_library_dep, libcfg66_library_dep ]
+   dependencies : [
+      rtl66_dep, liblib66_library_dep, libcfg66_library_dep,
+      libxpc66_library_dep
+      ]
    )
 
 sysextest_exe = executable(

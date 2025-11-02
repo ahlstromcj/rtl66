@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-10-27
+ * \updates       2025-10-28
  * \license       GNU GPLv2 or above
  *
  */
@@ -96,16 +96,17 @@ static const int c_thread_priority { 1 };
  *  the class header (i.e. "in-class").
  */
 
-player::player (int out_portnumber, int in_portnumber) :
-    m_in_portnumber         (in_portnumber),
-    m_out_portnumber        (out_portnumber),
+player::player (midi::masterbus & mbus) :
+    m_master_bus            (mbus),
     m_condition_var         (*this),            /* private access via cv()  */
 #if defined RTL66_BUILD_JACK
     m_jack_transport        (*this),            /* must fix after file load */
 #endif
     m_error_pending         (false)
 {
-    // no code
+    const midi::clientinfo & ci { mbus.client_info() };
+    m_in_portnumber = ci.input_portnumber();
+    m_out_portnumber = ci.output_portnumber();
 }
 
 /**
@@ -648,41 +649,33 @@ player::create_master_bus (clientinfo & ci)
              *  inputs and clocks, as opposed to what's in the rc file?
              */
 
-            m_master_bus.reset
-            (
-                new (std::nothrow) midi::masterbus(midiapi, ci)
-            );
-            if (master_bus_ptr())
+            result = master_bus().client_info_reset(ci);
+            if (result)
             {
-                midi::masterbus * mmb { master_bus_ptr() };
-                result = mmb->client_info_reset(ci);
+                result = master_bus().engine_initialize(ci);
+                if (result)
+                    result = master_bus().engine_activate();
+
                 if (result)
                 {
-                    result = mmb->engine_initialize(ci);
-                    if (result)
-                        result = mmb->engine_activate();
-
-                    if (result)
-                    {
 #if DERIVED_CLASS       // for the Future!
 
-                        mmb->filter_by_channel(m_filter_by_channel);
-                        mmb->set_port_statuses(m_clocks, m_inputs);
-                        mmb->record_by_buss(m_record_by_buss);
-                        mmb->record_by_channel(m_record_by_channel);
-                        mmb->set_port_statuses(m_clocks, m_inputs);
-                        midi_control_out().set_master_bus(mmb);
+                    master_bus().filter_by_channel(m_filter_by_channel);
+                    master_bus().set_port_statuses(m_clocks, m_inputs);
+                    master_bus().record_by_buss(m_record_by_buss);
+                    master_bus().record_by_channel(m_record_by_channel);
+                    master_bus().set_port_statuses(m_clocks, m_inputs);
+                    midi_control_out().set_master_bus(master_bus());
 #endif
-                        m_transport_info.time_signature
-                        (
-                            ci.global_beats_per_bar(),
-                            ci.global_beat_width()
-                        );
-                        m_transport_info.time_resolution
-                        (
-                            ci.global_ppqn(), ci.global_bpm()
-                        );
-                    }
+                    m_transport_info.time_signature
+                    (
+                        ci.global_beats_per_bar(),
+                        ci.global_beat_width()
+                    );
+                    m_transport_info.time_resolution
+                    (
+                        ci.global_ppqn(), ci.global_bpm()
+                    );
                 }
             }
         }

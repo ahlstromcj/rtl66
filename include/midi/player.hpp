@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-10
- * \updates       2025-09-27
+ * \updates       2025-10-28
  * \license       GNU GPLv2 or above
  *
  *  The player class is a severely cut-down version of seq66::performer, with
@@ -172,9 +172,16 @@ private:
      *  can delay the creation of this object until after all settings have
      *  been read. Use a smart pointer! Seems like unique_ptr<> is best
      *  here. See the master_bus() accessors below.
+     *
+     *      std::unique_ptr<midi::masterbus> m_master_bus;
+     *
+     *  Actually, we need the masterbus to set itself up and be
+     *  presented to the player.
+     *
+     *  Let's try it!
      */
 
-    std::unique_ptr<midi::masterbus> m_master_bus;
+    midi::masterbus & m_master_bus;
 
     /**
      *  Supports a single input port and a single output port. A port is used
@@ -385,11 +392,7 @@ private:                            /* key, midi, and op container section  */
 
 public:
 
-    player
-    (
-        int out_portnumber = (-1),
-        int in_portnumber  = (-1)
-    );
+    player (midi::masterbus & mbus);
     player (const player &) = delete;
     player (player &&) = delete;                    /* forced by iothread   */
     player & operator = (const player &) = delete;
@@ -660,7 +663,7 @@ public:
 
     int client_id () const
     {
-        return m_master_bus->client_id();
+        return m_master_bus.client_id();
     }
 
     bool is_running () const
@@ -967,12 +970,22 @@ public:
 
     const masterbus * master_bus_ptr () const
     {
-        return m_master_bus.get();
+        return &m_master_bus;   // .get();
     }
 
     masterbus * master_bus_ptr ()
     {
-        return m_master_bus.get();
+        return &m_master_bus;   // .get();
+    }
+
+    const masterbus & master_bus () const
+    {
+        return m_master_bus;
+    }
+
+    masterbus & master_bus ()
+    {
+        return m_master_bus;
     }
 
 protected:

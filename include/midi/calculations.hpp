@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-11-07
- * \updates       2025-08-06
+ * \updates       2025-10-30
  * \license       GNU GPLv2 or above
  *
  *  These items were moved from the globals.h module so that only the modules
@@ -257,6 +257,12 @@ inline midi::bpm
 max_beats_per_minute ()
 {
     return 600.0;
+}
+
+inline bool
+beats_per_minute_is_valid (midi::bpm bp)
+{
+    return bp >= min_beats_per_minute() && bp <= max_beats_per_minute();
 }
 
 inline int
@@ -871,6 +877,9 @@ extern int previous_power_of_2 (int value);
 extern int next_power_of_2 (int value);
 extern int power (int base, int exponent);
 extern midi::byte beat_log2 (int value);
+extern bool beat_width_is_valid (int bw);       /* TODO: backport to Seq66  */
+extern bool beats_per_bar_is_valid (int bpb);   /* TODO: backport to Seq66  */
+extern bool ppqn_is_valid (midi::pulse ppq);    /* TODO: backport to Seq66  */
 
 /*
  * Declared earlier: extern midi::bpm tempo_us_from_bytes (const midibytes &);

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-10-10
+ * \updates       2025-10-30
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -216,7 +216,7 @@ private:
 
 public:
 
-    rtmidi_in_data (unsigned qsize = RTL66_DEFAULT_Q_SIZE);
+    rtmidi_in_data (unsigned qsize = RTL66_DEFAULT_INPUT_Q_SIZE);
     rtmidi_in_data (const rtmidi_in_data &) = delete;
     rtmidi_in_data (rtmidi_in_data &&) = default;
     rtmidi_in_data & operator = (const rtmidi_in_data &) = delete;

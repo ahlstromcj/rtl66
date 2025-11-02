@@ -231,6 +231,7 @@ try_open_midi_api (const midi::masterbus & mb, midi::port::io iotype)
             {
                 if (try_match(rapi, rtmidi::api::jack))
                     result = new midi_jack(iotype, clientname, qsize);
+//                  result = new midi_jack(iotype, clientname, qsize);
             }
 #endif
 #if defined RTL66_BUILD_ALSA
@@ -238,6 +239,7 @@ try_open_midi_api (const midi::masterbus & mb, midi::port::io iotype)
             {
                 if (try_match(rapi, rtmidi::api::alsa))
                     result = new midi_alsa(iotype, clientname, qsize);
+//                  result = new midi_alsa(iotype, clientname, qsize);
             }
 #endif
 #if defined RTL66_BUILD_MACOSX_CORE

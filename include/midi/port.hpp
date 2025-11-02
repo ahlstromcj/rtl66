@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24        (seq66::midi_port_info)
- * \updates       2025-09-26
+ * \updates       2025-10-29
  * \license       See above.
  *
  *  Contains information about a single MIDI port, as determined by
@@ -175,6 +175,12 @@ public:
     std::string to_string () const;
 
 public:                                 /* getters                          */
+
+    bool valid () const
+    {
+        return m_port_type != kind::undetermined &&
+            m_io_type != io::dummy;
+    }
 
     int buss_number () const
     {

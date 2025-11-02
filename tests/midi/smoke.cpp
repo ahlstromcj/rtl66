@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-11-25
- * \updates       2025-07-31
+ * \updates       2025-10-28
  * \license       See above.
  *
  *      Provides a smoke test for reading and writing a short MIDI file and
@@ -189,7 +189,7 @@ main (int argc, char * argv [])
 
                 rtl::rtmidi::api rapi = rtl::rtmidi::selected_api();
                 midi::masterbus mbus(rapi, s_clientinfo_defaults);
-                midi::player p;
+                midi::player p(mbus);
                 if (mbus.engine_initialize())       /* default PPQN, BPM    */
                 {
                     std::cout << "Master bus initialized." << std::endl;

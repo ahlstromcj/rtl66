@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-09-26
+ * \updates       2025-10-30
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -46,6 +46,7 @@
 #include <iostream>                     /* std::cerr                        */
 #include <sstream>                      /* std::ostringstream               */
 
+#include "midi/calculations.hpp"        /* midi::is_power_of_2()            */
 #include "midi/clientinfo.hpp"          /* midi::clientinfo etc.            */
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
@@ -62,20 +63,86 @@ namespace midi
  *  Principal constructor. There is no initializer list.
  *  The default values of members are set in-class. See the default
  *  constructor.
+ *
+ *  Could use a delegating (or forwarding) constructor.
  */
 
-clientinfo::clientinfo (midi::port::io iodirection)
+clientinfo::clientinfo ()
 {
-    m_cd.cd_port_type = iodirection ;        /* I/O, service, or duplex      */
     m_io_ports[c_input_port_index].port_io_types(port::io::input);
     m_io_ports[c_output_port_index].port_io_types(port::io::output);
 }
 
-clientinfo::clientinfo (const client_defaults & cd)
+clientinfo::clientinfo (midi::port::io iodirection) : clientinfo { }
+{
+    m_cd.cd_port_type = iodirection ;        /* I/O, service, or duplex      */
+}
+
+clientinfo::clientinfo (const client_defaults & cd) :
+    clientinfo { }
 {
     m_cd = cd;
-    m_io_ports[c_input_port_index].port_io_types(port::io::input);
-    m_io_ports[c_output_port_index].port_io_types(port::io::output);
+    fixup();
+}
+
+clientinfo::clientinfo
+(
+    const client_defaults & cd,
+    const input_specs & is
+) :
+    clientinfo { }
+{
+    m_cd = cd;
+    m_is = is;
+    fixup();
+}
+
+/**
+ *  Fix any issues caused by faulty programmer setup by reverting to default
+ *  values. Generally, the fixes follow what Seq66 supports.
+ *
+ *  For beatwidth, MIDI supports storing only powers of 2.
+ */
+
+void
+clientinfo::fixup ()
+{
+    if (client_name().empty())
+        client_name("rtl66");
+
+    if (app_name().empty())
+        app_name("rtl66");
+
+    int bw { global_beat_width() };
+    if (! midi::beat_width_is_valid(bw))        /* see calculations module  */
+        global_beat_width(RTL66_DEFAULT_BEAT_WIDTH);
+
+    int bpb { global_beats_per_bar() };
+    if (bpb <= 0 || (bpb > 16 && bpb != 32))
+    if (! midi::beats_per_bar_is_valid(bpb))    /* ditto                    */
+        global_beats_per_bar(RTL66_DEFAULT_BEATS_PER_BAR);
+
+    midi::ppqn ppq { global_ppqn() };
+    if (! midi::ppqn_is_valid(ppq))
+        global_ppqn(RTL66_DEFAULT_PPQN);
+
+    midi::bpm bp { global_bpm() };
+    if (! midi::beats_per_minute_is_valid(bp))
+        global_bpm(RTL66_DEFAULT_BPM);
+
+    midi::port::io pt { port_type() };
+    if (pt == midi::port::io::input || pt == midi::port::io::duplex)
+    {
+        int qsize { queue_size() };
+        if (qsize < 10 || qsize > 1000)
+            queue_size(RTL66_DEFAULT_INPUT_Q_SIZE);
+
+        /*
+         * We cannot check the input/output port numbers at
+         * construction time because the ports have not yet been
+         * queried,
+         */
+    }
 }
 
 /**
@@ -291,6 +358,20 @@ get_all_port_info (midi::clientinfo & cinfo, rtl::rtmidi::api rapi)
         result = false;
     }
     return result;
+}
+
+void
+clientinfo::set_callback
+(
+    rtl::rtmidi_in_data::callback_t cb,
+    void * userdata
+)
+{
+    input_specs & is = m_is;
+    is.input_active = true;
+    is.input_callback = cb;
+    is.input_using_callback = not_nullptr(cb);
+    is.input_user_data = userdata;
 }
 
 }           // namespace midi

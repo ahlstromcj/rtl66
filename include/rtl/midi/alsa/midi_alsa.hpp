@@ -200,7 +200,7 @@ protected:
 
     virtual void close_midi_tempo_queue () override;
 
-protected:
+public:     // protected:
 
     /*
      * These functions are deliberately not virtual.

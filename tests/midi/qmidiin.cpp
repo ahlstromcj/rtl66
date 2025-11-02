@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-07-01
- * \updates       2025-10-09
+ * \updates       2025-11-01
  * \license       See above.
  *
  *      Simple program to test MIDI input and retrieval from the queue.
@@ -43,6 +43,7 @@
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
 #include "util/msgfunctions.hpp"        /* util::status_message()           */
+#include "xpc/kbhit.hpp"                /* xpc::kbhit_ex()                     */
 
 namespace
 {
@@ -145,9 +146,16 @@ main (int argc, char * argv[])
                             std::cout
                                 << "Reading MIDI from port "
                                 << midiin->get_port_name(port)
-                                << " ... quit with Ctrl-C."
+                                << " ... quit with <Enter> or <Ctrl-C>."
                                 << std::endl
                                 ;
+
+                            /*
+                             * while (kbhit())
+                             *     (void) getchar();
+                             */
+
+                            xpc::clear_kb();
                             while (! s_is_done)
                             {
                                 (void) midiin->get_message(msg);
@@ -156,6 +164,23 @@ main (int argc, char * argv[])
                                     std::string msgline { "Msg:" };
                                     msgline += msg.to_string();
                                     util::status_message(msgline);
+                                }
+
+                                /*
+                                 *  if (kbhit())
+                                 *  {
+                                 *      (void) getchar();
+                                 *      break;
+                                 *  }
+                                 *
+                                 *  if (xpc::kbcheck())
+                                 *      break;
+                                 */
+
+                                if (xpc::kbhit_ex())
+                                {
+                                    (void) getchar();
+                                    break;
                                 }
                                 rt_test_sleep(10);  /* sleep for 10 msec    */
                             }

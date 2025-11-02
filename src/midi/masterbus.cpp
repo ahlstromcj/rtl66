@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-10-28
+ * \updates       2025-10-29
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -137,10 +137,47 @@ masterbus::masterbus
     rtl::rtmidi::api rapi,
     const midi::clientinfo & ci
 ) :
-    m_selected_api          (rapi),         /* rtmidi::api::unspecified)    */
-    m_engine                (*this, rapi)   /* "mbus", keep client name     */
+    m_selected_api  (rapi),                 /* rtmidi::api::unspecified)    */
+    m_client_info   (ci),
+    m_engine        (*this, rapi)           /* "mbus", keep client name     */
 {
     // no code
+}
+
+#if 0
+masterbus::masterbus
+(
+    rtl::rtmidi::api rapi,
+    const midi::clientinfo & ci,
+    const input_specs & is
+) :
+    m_selected_api  (rapi),                 /* rtmidi::api::unspecified)    */
+    m_client_info   (ci),
+    m_input_specs   (is),
+    m_engine        (*this, rapi)           /* "mbus", keep client name     */
+{
+    // no code
+}
+#endif
+
+/**
+ *  Implements a common sequence needed near startup-time.
+ *
+ *  The client_info_reset() call seems redundant, but
+ *  it is not. We need to find out why.
+ */
+
+bool
+masterbus::setup (clientinfo & cinfo)
+{
+    bool result = client_info_reset(cinfo);
+    if (result)
+        result = engine_initialize(cinfo);
+
+    if (result)
+        result = engine_activate();
+
+    return result;
 }
 
 /**
@@ -501,14 +538,6 @@ masterbus::get_clock (midi::bussbyte b) const
     return m_outbus_array.get_clock(b);
 }
 
-// TODO: perhaps implement:
-//
-// mastermidibase::copy_io_busses ()
-// mastermidibase::get_port_statuses()
-// mastermidibase::get_out_port_statuses()
-// mastermidibase::get_in_port_statuses()
-//      
-
 /**
  *  Set the status of the given input buss, if a legal buss number.
  *
@@ -597,12 +626,6 @@ masterbus::get_input (midi::bussbyte b) const
 {
     return m_inbus_array.get_input(b);
 }
-
-// TODO:
-//
-// mastermidibase::is_input_system_port (bussbyte bus) const
-// mastermidibase::is_port_unavailable (bussbyte bus, midibase::io iotype) const
-// mastermidibase::is_port_locked (bussbyte bus, midibase::io iotype) const
 
 /**
  *  Get the MIDI input/output buss name for the given (legal) buss number.

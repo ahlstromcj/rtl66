@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-10-28
+ * \updates       2025-10-30
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -126,22 +126,6 @@ public:
      */
 
     using info = midi::clientinfo;
-
-     /**
-      * Holds information meant for input busses. The callback function
-      * must adhere to the function signature rtmidi_in_data::callback_t.
-      * We don't enforce that in the midi namespace. We need this structure
-      * to pass these settings to rtl::rtmidi_in.
-      */
-
-    using inputspecs = struct
-    {
-        bool input_use_sysex;
-        bool input_use_time_code;
-        bool input_use_active_sensing;
-        void * input_callback;
-        void * input_user_data;
-    };
 
 private:
 
@@ -242,15 +226,12 @@ private:
     info m_client_info { };
 
     /**
-     *  By default, masterbus allows input of sysex, time code, and
-     *  active sensing to be processed. And, by default, there is no
-     *  input callback and user-data for it.
-     *
-     *  The caller creating the masterbus can provide an inputspecs
-     *  structure and pass it to the set_inputspecs() function.
-     */
 
-    inputspecs m_input_specs { false, false, false, nullptr, nullptr };
+    input_specs m_input_specs
+    {
+        false, false, false, false, false, nullptr, nullptr
+    };
+     */
 
     /**
      *  Provides access to the selected API in order to hook up to the desired
@@ -271,6 +252,16 @@ public:
         rtl::rtmidi::api rapi,
         const midi::clientinfo & ci
     );
+
+#if 0
+    masterbus
+    (
+        rtl::rtmidi::api rapi,
+        const midi::clientinfo & ci,
+        const input_specs & is
+    );
+#endif
+
     masterbus (const masterbus &) = delete;
     masterbus (masterbus &&) = delete;              /* forced by recmutex   */
     masterbus & operator = (const masterbus &) = delete;
@@ -340,6 +331,7 @@ public:
         return client_info().queue_size();
     }
 
+    bool setup (clientinfo & cinfo);
     bool client_info_reset ();
     bool client_info_reset (clientinfo & cinfo);
     std::string port_listing () const;
@@ -416,20 +408,20 @@ public:
         return client_info().global_ppqn();
     }
 
-    const inputspecs & get_inputspecs () const
+    input_specs & get_input_specs ()
     {
-        return m_input_specs;
+        return client_info().get_input_specs();
     }
 
-    void set_inputspecs (const inputspecs & is)
+    const input_specs & get_input_specs () const
     {
-        m_input_specs = is;
+        return client_info().get_input_specs();
     }
 
 #if defined USE_THIS_CODE
 
     /*
-     * The function above is easier.
+     * The free function set_inputspecs_callback() is easier.
      */
 
     void user_callback (void * cb, void * userdata)
@@ -506,7 +498,7 @@ public:     // public because used in test applications
     (
         int busno,
         midi::port::io iotype,
-        int qsize = RTL66_DEFAULT_Q_SIZE
+        int qsize = RTL66_DEFAULT_INPUT_Q_SIZE
     );
     bool engine_initialize ();
     bool engine_initialize (const clientinfo & ci);

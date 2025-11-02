@@ -110,7 +110,7 @@
 
 #define RTL66_DEFAULT_PPQN              384     /* pulses per quarter note  */
 #define RTL66_DEFAULT_BPM               120.0   /* beats per minute         */
-#define RTL66_DEFAULT_Q_SIZE            100     /* input queue size         */
+#define RTL66_DEFAULT_INPUT_Q_SIZE      100     /* input queue size         */
 #define RTL66_DEFAULT_BEATS_PER_BAR       4     /* beats per bar            */
 #define RTL66_DEFAULT_BEAT_WIDTH          4     /* quarter note             */
 #define RTL66_DEFAULT_METRO_CLOCKS       24     /* clocks per metronome     */

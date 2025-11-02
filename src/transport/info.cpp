@@ -134,13 +134,15 @@ info::left_tick (midi::pulse t)
 {
     m_start_tick = m_left_tick = t;
     m_reposition = false;
-//  if (is_jack_master())                       /* don't use in slave mode  */
-//  {
-//      position_jack(true, t);
-//      tick(t);
-//  }
-//  else if (! is_jack_running())
-//      tick(t);
+#if defined THIS_CODE_IS_FOR_JACK
+    if (is_jack_master())                       /* don't use in slave mode  */
+    {
+        position_jack(true, t);
+        tick(t);
+    }
+    else if (! is_jack_running())
+        tick(t);
+#endif
 
     if (m_left_tick >= m_right_tick)
         m_right_tick = m_left_tick + m_one_measure;
@@ -161,10 +163,12 @@ info::left_tick_snap (midi::pulse t, midi::pulse snap)
     m_left_tick = t;
     start_tick(t);
     m_reposition = false;
-//  if (is_jack_master())                       /* don't use in slave mode  */
-//      position_jack(true, tick);
-//  else if (! is_jack_running())
-//      set_tick(tick);
+#if defined THIS_CODE_IS_FOR_JACK
+    if (is_jack_master())                       /* don't use in slave mode  */
+        position_jack(true, tick);
+    else if (! is_jack_running())
+        set_tick(tick);
+#endif
 
     return t;
 }
@@ -197,10 +201,12 @@ info::right_tick (midi::pulse t)
             m_left_tick = m_right_tick - m_one_measure;
             start_tick(m_left_tick);
             m_reposition = false;
-//          if (is_jack_master())
-//              position_jack(true, m_left_tick);
-//          else
-//              set_tick(m_left_tick);
+#if defined THIS_CODE_IS_FOR_JACK
+            if (is_jack_master())
+                position_jack(true, m_left_tick);
+            else
+                set_tick(m_left_tick);
+#endif
         }
     }
 }
@@ -219,10 +225,12 @@ info::right_tick_snap (midi::pulse t, midi::pulse snap)
         m_right_tick = t;
         start_tick(m_left_tick);
         m_reposition = false;
-//      if (is_jack_master())
-//          position_jack(true, m_left_tick);
-//      else
-//          set_tick(m_left_tick);
+#if defined THIS_CODE_IS_FOR_JACK
+        if (is_jack_master())
+            position_jack(true, m_left_tick);
+        else
+            set_tick(m_left_tick);
+#endif
     }
     return m_left_tick;
 }
