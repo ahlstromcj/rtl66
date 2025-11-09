@@ -1502,8 +1502,8 @@ audio_jack::send_event (const ::audio::event * ev, ::audio::byte channel)
 void
 audio_jack::send_sysex (const ::audio::event * ev)
 {
-    const audio_message & message = ev->get_message();
-    if (! send_message(message))
+    const audio_message & msg = ev->get_message();
+    if (! send_message(msg))
     {
         errprint("JACK SysEx failed");
     }
@@ -1640,10 +1640,10 @@ audio_jack::send_message (const ::audio::byte * message, size_t sz)
  */
 
 bool
-audio_jack::send_message (const audio_message & message)
+audio_jack::send_message (const audio_message & msg)
 {
     xpc::ring_buffer<audio_message> * rb = jack_data().jack_buffer();
-    return rb->push_back(message);
+    return rb->push_back(msg);
 }
 
 }           // namespace rtl

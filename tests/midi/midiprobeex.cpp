@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-10-29
+ * \updates       2025-11-07
  * \license       See above.
  *
  */
@@ -59,6 +59,8 @@ midi::client_defaults s_client_defaults
     384,                                /* global PPQN, not 192             */
     148,                                /* global BPM, not 120              */
     midi::port::io::duplex,             /* MIDI port type                   */
+    -1,                                 /* queue size, a bad value          */
+    false,                              /* ALSA MIDI is not threadsafe      */
     -1,                                 /* input port number                */
     -1                                  /* output port number               */
 };

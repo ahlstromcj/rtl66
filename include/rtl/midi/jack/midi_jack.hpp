@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-27
+ * \updates       2025-11-03
  * \license       See above.
  *
  */
@@ -122,7 +122,7 @@ private:
 
 public:
 
-    midi_jack ();
+    midi_jack (midi::masterbus & mbus, midi::port::io iotype);
     midi_jack
     (
         midi::port::io iotype,

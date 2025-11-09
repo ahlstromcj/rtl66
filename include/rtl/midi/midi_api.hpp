@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-27
+ * \updates       2025-11-03
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -170,11 +170,14 @@ private:
 public:
 
     /*
-     * The default constructor creates an output port.  The queuesize
+     * The default constructor does nothing but use the in-class
+     * definition.  The masterbus constructor changes how the API
+     * works; it is more akin to how Seq66 does it. The queuesize
      * parameter is meant only for input.
      */
 
-    midi_api ();
+    midi_api () = default;
+    midi_api (midi::masterbus & mbus, midi::port::io iotype);
     midi_api (midi::port::io iotype, unsigned queuesize = 0);
     midi_api (const midi_api &) = delete;
     midi_api (midi_api &&) = delete;
@@ -520,7 +523,7 @@ protected:
         rtmidi_in_data::callback_t callback, void * userdata
     );
     void cancel_input_callback ();
-    double get_message (midi::message & message);
+    double get_message (midi::message & msg);
 
     void port_number (int n)
     {

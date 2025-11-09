@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-10-09
- * \updates       2025-10-30
+ * \updates       2025-11-09
  * \license       See above.
  *
  *      This application but merely opens one port and accepts messages,
@@ -41,10 +41,12 @@
 #include "midi/event.hpp"               /* midi::event class                */
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
 #include "midi/message.hpp"             /* midi::message class              */
+#include "midi/poller.hpp"              /* midi::poller class               */
 #include "rtl/midi/find_midi_api.hpp"   /* rtl::find_midi_api() module      */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
+#include "xpc/kbhit.hpp"                /* xpc::kbhit_ex()                  */
 
 namespace
 {
@@ -89,6 +91,7 @@ midi::client_defaults s_client_defaults
     148,                                /* global BPM, not 120              */
     midi::port::io::duplex,             /* MIDI port type                   */
     -1,                                 /* queue size, a bad value          */
+    true, // false,                     /* ALSA MIDI is not threadsafe      */
     -1,                                 /* input port number (default)      */
     -1                                  /* output port number (default)     */
 };
@@ -195,6 +198,103 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
     return s_master_bus;
 }
 
+/**
+ *  A usage that breaks (can cause segfaults) in ALSA because the RtMidi-based
+ *  implementation uses a polling thread, but ALSA is not thread-safe, and thus
+ *  cannot be used with a single ALSA client and multiple ports.
+ */
+
+bool
+run_susceptible_test (int portnumber)
+{
+    rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
+    midi::masterbus & master { master_bus(rapi, app_client_info()) };
+    midi::bus & inbus { master.get_in_bus(portnumber) };
+    bool result { inbus.initialize() };
+    if (result)
+    {
+        try
+        {
+            midi::bus_in & busin
+            {
+                dynamic_cast<midi::bus_in &>(inbus)
+            };
+
+            /*
+             * Don't ignore sysex, timing, or active sensing
+             * messages. Install an interrupt handler function.
+             * Periodically check input queue.
+             *
+             * busin.ignore_midi_types(false, false, false);
+             */
+
+            midi::message msg;
+            if (rt_use_callback())
+            {
+                /*
+                 * Disabled, occurs too late in the process.
+                 *
+                 * busin.set_input_callback(&midibytes_callback);
+                 */
+
+                std::cout
+                    << "Reading MIDI input ... press <Enter> to quit.\n"
+                    ;
+
+                char input;
+                std::cin.get(input);
+            }
+            else
+            {
+                s_is_done = false;
+                (void) signal(SIGINT, finish);
+                std::cout
+                    << "Reading MIDI from port "
+                    << busin.port_name()
+                    << " ... quit with any key or <Ctrl-C>."
+                    << std::endl
+                    ;
+                xpc::clear_kb_ex();
+                while (! s_is_done)
+                {
+                    (void) busin.get_message(msg);
+                    if (msg.count() > 0)
+                    {
+                        std::string msgline { "Msg:" };
+                        msgline += msg.to_string();
+                        util::status_message(msgline);
+                    }
+                    if (xpc::kbcheck_ex())
+                        break;
+
+                    rt_test_sleep(10);  /* sleep for 10 msec    */
+                }
+            }
+        }
+        catch (const rtl::rterror & error)
+        {
+            std::cerr << "Caught rtl::rterror!" << std::endl;
+            result = false;
+        }
+    }
+    return result;
+}
+
+bool
+run_polling_test (int portnumber)
+{
+    rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
+    midi::masterbus & master { master_bus(rapi, app_client_info()) };
+    midi::bus & inbus { master.get_in_bus(portnumber) };
+    bool result { inbus.initialize() };
+    if (result)
+    {
+        midi::poller p { master };
+        result = p.launch();
+    }
+    return result;
+}
+
 }           // namespace anonymous
 
 /**
@@ -214,10 +314,31 @@ main (int argc, char * argv [])
         {
             if (! rt_virtual_test_port())
             {
-                if (! rt_test_port_valid(rt_test_port()))
+                if (! rt_test_port_valid(rt_test_port()))   /* check --port */
                 {
-                    rtl::rtmidi_in midiin { rtl::rtmidi::desired_api() };
-                    can_run = rt_choose_input_port(midiin);
+                    /*
+                     * rt_choose_input_port() gets the port number and also
+                     * opens the port, which starts an input-thread.
+                     * We call rt_choose_port_number() instead.
+                     *
+                     * Note: The midiout test uses rt_choose_output_port(),
+                     * as does busout. These open the port, but no thread
+                     * is started.
+                     *
+                     *  rtl::rtmidi_in midiin { rtl::rtmidi::desired_api() };
+                     *  can_run = rt_choose_input_port(midiin);
+                     */
+
+                    int pn { rt_choose_port_number(false) /* input */ };
+                    if (rt_test_port_valid(pn))
+                    {
+                        set_rt_test_port(pn);
+                    }
+                    else
+                    {
+                        set_rt_test_port(0);
+                        infoprint("Using port 0; use --port p option if desired.");
+                    }
                 }
             }
         }
@@ -232,80 +353,12 @@ main (int argc, char * argv [])
             int portnumber { rt_test_port() };
             app_client_info().input_portnumber(portnumber);
 
-            rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
-            midi::masterbus & master { master_bus(rapi, app_client_info()) };
-            midi::bus & inbus { master.get_in_bus(portnumber) };
-            can_run = inbus.initialize();
-            if (can_run)
-            {
-                try
-                {
-                    midi::bus_in & busin
-                    {
-                        dynamic_cast<midi::bus_in &>(inbus)
-                    };
+            bool ok { run_susceptible_test(portnumber) };
+            if (ok)
+                ok = run_polling_test(portnumber);
 
-                    /*
-                     * Don't ignore sysex, timing, or active sensing
-                     * messages. Install an interrupt handler function.
-                     * Periodically check input queue.
-                     *
-                     * busin.ignore_midi_types(false, false, false);
-                     */
-
-                    midi::message msg;
-                    if (rt_use_callback())
-                    {
-                        /*
-                         * Disabled, occurs too late in the process.
-                         *
-                         * busin.set_input_callback(&midibytes_callback);
-                         */
-
-                        std::cout
-                            << "Reading MIDI input ... press <Enter> to quit.\n"
-                            ;
-
-                        char input;
-                        std::cin.get(input);
-                    }
-                    else
-                    {
-                        s_is_done = false;
-                        (void) signal(SIGINT, finish);
-                        std::cout
-                            << "Reading MIDI from port "
-                            << busin.port_name()
-                            << " ... quit with Ctrl-C."
-                            << std::endl
-                            ;
-                        while (! s_is_done)
-                        {
-                            (void) busin.get_message(msg);
-                            if (msg.count() > 0)
-                            {
-                                std::string msgline { "Msg:" };
-                                msgline += msg.to_string();
-                                util::status_message(msgline);
-                            }
-                            rt_test_sleep(10);  /* sleep for 10 msec    */
-                        }
-                    }
-                }
-                catch (const rtl::rterror & error)
-                {
-                    std::cerr << "Caught rtl::rterror!" << std::endl;
-                    had_error = true;           // error.print_message()
-                }
-            }
-            else
-            {
-                std::cerr
-                    << "Could not initialize port #" << portnumber << "!"
-                    << std::endl
-                    ;
+            if (! ok)
                 had_error = true;
-            }
         }
         else
         {

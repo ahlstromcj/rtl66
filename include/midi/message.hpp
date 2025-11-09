@@ -332,7 +332,7 @@ public:
 
 using rt_midi_callback_t = void (*)
 (
-    message & message,             /* includes the timestamp already */
+    message & msg,              /* includes the timestamp already */
     void * userdata
 );
 

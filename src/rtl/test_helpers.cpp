@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-10-27
+ * \updates       2025-11-06
  * \license       See above.
  *
  */
@@ -71,6 +71,30 @@ rt_test_sleep (int ms)
 }
 
 #endif
+
+/**
+ * Functions to choose ports:
+ *
+ *  -   rt_choose_port_number(bool).
+ *
+ *      -   Creates an rtmidi_out or rtmidi_in object.
+ *      -   Gets the port count.
+ *      -   For each port, gets the number and name, and shows it
+ *          for the user to pick.
+ *      -   Note: No port-opening is done.
+ *
+ *  -   choose_midi_port(RTMIDI_TYPE &, isoutput)
+ *      -   A template called with type rtmidi_out or rtmidi_in.
+ *      -   If virtual, a virtual port is opened, otherwise...
+ *      -   rt_choose_port_number() is called as above.
+ *      -   The test output or input port number is set to the chosen
+ *          port.
+ *      -   The test port is opened.
+ *
+ *  -   rt_choose_input_port() calls choose_midi_port<rtl::rtmidi_in>(false);
+ *
+ *  -   rt_choose_output_port() calls choose_midi_port<rtl::rtmidi_out>(false);
+ */
 
 /**
  *  Note:
@@ -143,6 +167,8 @@ rt_choose_port_number (bool isoutput)
                 /*
                  * Set to clear and ignore the Enter after the port
                  * number, so that follow-on input requests will work.
+                 *
+                 * TODO: Add to the xpc66 kbhit module.
                  */
 
                 std::cin.clear();
@@ -357,9 +383,19 @@ rt_test_port_out ()
 }
 
 bool
-rt_test_port_valid (int port)
+rt_test_port_valid (int portnumber)
 {
-    return port >= 0;
+    return portnumber >= 0 && portnumber <= RTL66_PORT_NUMBER_LIMIT;
+}
+
+/**
+ *  The default port number is RTL66_PORT_ALL_PORTS.
+ */
+
+bool
+rt_open_all_ports (int portnumber)
+{
+    return portnumber == RTL66_PORT_ALL_PORTS;
 }
 
 /**

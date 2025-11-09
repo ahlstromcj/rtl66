@@ -51,10 +51,10 @@ namespace seq66
 
 enum class portname
 {
-    brief,  /**< "short": Use short names: "[0] midi_out".              */
-    pair,   /**< "pair": Pair names: "36:0 fluidsynth:midi_out".        */
-    full,   /**< "long": Long names: "[0] 36:0 fluidsynth:midi_out".    */
-    max     /**< Keep this last... a size value.                        */
+    brief,      /**< "short": Use short names: "[0] midi_out".              */
+    pair,       /**< "pair": Pair names: "36:0 fluidsynth:midi_out".        */
+    full,       /**< "long": Long names: "[0] 36:0 fluidsynth:midi_out".    */
+    max         /**< Keep this last... a size value.                        */
 };
 
 /**
@@ -84,13 +84,33 @@ public:
 public:
 
     /**
-     *  Provides a port name and the input or output values.  Note that the
-     *  clock setting will be off (not disabled) for all input values.  This
-     *  is so that we can disable missing inputs when port-mapping.  The clock
+     *  Provides a port name and the input or output values. Note that the
+     *  clock setting will be off (not disabled) for all input values. This
+     *  is so that we can disable missing inputs when port-mapping. The clock
      *  setting will be disabled for output values that are actually disabled
-     *  by the user or are missing from the actual system ports.  There is
+     *  by the user or are missing from the actual system ports. There is
      *  also a static function valid() in portslist to check that the io_name
      *  is not empty.
+     *
+     *  Compare this item to
+     *
+     *      midi::port:             seq66::portslist::io
+     *
+     *      m_buss_number           io_client_number
+     *      m_buss_name             <provided by the API's client name>
+     *      m_port_number           io_port_number
+     *      m_port_name             io_name, io_nick_name, io_alias
+     *      m_queue_number          <not stored>
+     *      m_io_type               <Indicated by which portlist is active>
+     *      m_port_type             <To be stored in the configuration>
+     *      m_port_alias            <To be stored in the configuration>
+     *      m_port_index            <To be stored in the configuration>
+     *      m_internal_id           <not stored>
+     *      m_io_status             out_clock, io_enabled, io_available
+     *
+     *  Basically, the port class defines what is encountered in the
+     *  system, while the io structure holds information to be stored
+     *  in a configuration file.
      */
 
     using io = struct

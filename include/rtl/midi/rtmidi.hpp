@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-09
+ * \updates       2025-11-03
  * \license       See above.
  *
  *      Also contains some additional capabilities.
@@ -373,7 +373,7 @@ protected:
         const std::string & clientname  = "",
         unsigned queuesize              = 0     /* useful with input ports  */
     ) = 0;
-    virtual bool open_midi_api (const midi::masterbus & mb) = 0;
+    virtual bool open_midi_api (/* const */ midi::masterbus & mb) = 0;
 
 };          // class rtmidi
 

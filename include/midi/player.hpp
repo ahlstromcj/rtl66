@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-10
- * \updates       2025-10-28
+ * \updates       2025-11-08
  * \license       GNU GPLv2 or above
  *
  *  The player class is a severely cut-down version of seq66::performer, with
@@ -65,8 +65,6 @@
  *  It will be a base class for the new version of performer.
  */
 
-#include <functional>                       /* std::function<void(int)>     */
-#include <memory>                           /* std::unique_ptr<>            */
 #include <thread>                           /* std::thread                  */
 
 #include "xpc/condition.hpp"                /* xpc::condition/synchronizer  */
@@ -134,7 +132,7 @@ public:
 
         synch () = delete;
         synch (const synch &) = delete;
-        synch & operator =(const synch &) = delete;
+        synch & operator = (const synch &) = delete;
 
         virtual bool predicate () const override
         {
@@ -143,29 +141,6 @@ public:
     };
 
 public:
-
-    /**
-     *  Provides a function type that can be applied to each track number in a
-     *  selection. Generally, the caller will bind a member function to use
-     *  in operate_on_set(). The first parameter is a track number (obtained
-     *  from the selection). The caller can bind additional placeholders or
-     *  parameters, if desired. See the old seq64 perfroll module.
-     */
-
-#if defined USE_SONG_BOX_SELECT
-    using seqoperation = std::function<void(int)>;
-#endif
-
-private:
-
-    /**
-     *  Holds the "manufacturer ID" for the current application. Usually it is
-     *  one byte. For Seq66-related applications, it is "0x24 0x24 0x00" and
-     *  is followed by a one-byte feature code (e.g. for "triggers"); the last
-     *  byte is variable then.
-     */
-
-    midi::bytes m_manufacturer_id { 0x24, 0x24, 0x00 };
 
     /**
      *  Provides our MIDI buss. We changed this item to a pointer so that we
@@ -399,7 +374,7 @@ public:
     player & operator = (player &&) = delete;       /* ditto */
     virtual ~player ();
 
-    virtual bool create_master_bus
+    virtual bool setup_master_bus
     (
         clientinfo & ci = midi::global_client_info()
     );
@@ -633,33 +608,6 @@ public:
     );
 
 public:
-
-#if THIS_CODE_IS_READY
-    midi::ppqn file_ppqn () const
-    {
-        return m_file_ppqn;
-    }
-
-    void file_ppqn (midi::ppqn p)
-    {
-        m_file_ppqn = p;
-    }
-#endif
-
-    midi::bytes & manufacturer_id ()
-    {
-        return m_manufacturer_id;
-    }
-
-    const midi::bytes & manufacturer_id () const
-    {
-        return m_manufacturer_id;
-    }
-
-    void manufacturer_id (const midi::bytes & manufid)
-    {
-        m_manufacturer_id = manufid;
-    }
 
     int client_id () const
     {
@@ -966,16 +914,6 @@ public:
     void needs_update (bool flag = true)
     {
         m_needs_update = flag;
-    }
-
-    const masterbus * master_bus_ptr () const
-    {
-        return &m_master_bus;   // .get();
-    }
-
-    masterbus * master_bus_ptr ()
-    {
-        return &m_master_bus;   // .get();
     }
 
     const masterbus & master_bus () const

@@ -48,6 +48,7 @@
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
 #include "util/msgfunctions.hpp"        /* util::status_message()           */
+#include "xpc/kbhit.hpp"                /* xpc::kbget()                     */
 
 /**
  *  This callback just shows the incoming bytes (in hex format).
@@ -149,9 +150,7 @@ main (int argc, char * argv [])
 
                 midiin.open_port(port);
                 std::cout << "Reading MIDI input ... press <Enter> to quit.\n";
-
-                char input;
-                std::cin.get(input);
+                (void) xpc::kbget();                /* c = std::cin.get()   */
             }
             catch (rtl::rterror & error)
             {

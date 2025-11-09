@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-13
+ * \updates       2025-11-03
  * \license       See above.
  *
  */
@@ -47,12 +47,18 @@ namespace rtl
  *  These constructors use "in-class" member initialization.
  */
 
-midi_api::midi_api () : api_base ()
+midi_api::midi_api
+(
+    midi::masterbus & mbus,
+    midi::port::io iotype
+) :
+    api_base        (),
+    m_port_io_type  (iotype),
+    m_input_data    (mbus.queue_size()),        /* input data structure     */
+    m_master_bus    (&mbus),
+    m_has_master    (true),
+    m_queue_size    (mbus.queue_size())
 {
-    /*
-     * Currently we use midi::port::io::output for probing for an existing API
-     * [see the rtl::find_midi_api() function.]
-     */
 }
 
 midi_api::midi_api (midi::port::io iotype, unsigned qsize) :

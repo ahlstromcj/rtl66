@@ -190,9 +190,9 @@ protected:
 
     // virtual void set_error_callback (rterror::callback_t cb, void * userdata);
 
-    virtual bool send_message (const midi::byte * message, size_t sz) override;
+    virtual bool send_message (const midi::byte * msg, size_t sz) override;
 
-    virtual bool send_message (const midi::message & message) override
+    virtual bool send_message (const midi::message & msg) override
     {
         return send_message(message.data(), message.size());
     }

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-10-28
+ * \updates       2025-11-08
  * \license       GNU GPLv2 or above
  *
  */
@@ -352,9 +352,7 @@ player::set_ppqn (midi::ppqn p, bool user_change)
     bool result { p != transportinfo().get_ppqn() || ! user_change };
     if (result)
     {
-        if (master_bus_ptr())
-            result = master_bus_ptr()->PPQN(p);
-
+        result = master_bus().PPQN(p);
         if (result)
         {
             /*
@@ -530,8 +528,7 @@ player::jack_set_beats_per_minute (midi::bpm bpmin)
 #if defined RTL66_BUILD_JACK
         m_jack_transport.beats_per_minute(bpmin);   /* see banner note      */
 #endif
-        if (master_bus_ptr())
-            master_bus_ptr()->BPM(bpmin);
+        master_bus().BPM(bpmin);
 
         transportinfo().us_per_quarter_note(tempo_us_from_bpm(bpmin));
         transportinfo().beats_per_minute(bpmin);
@@ -592,6 +589,8 @@ player::clear_all (bool clearplaylist)
  *  We did it.  Note that std::shared_ptr does not support operator::->*, so
  *  we have to get() the pointer.
  *
+ *  The loop also flushes.
+ *
  * \param p
  *      Try to prevent notes from lingering on pause if true.  By default, it
  *      is false.
@@ -607,13 +606,6 @@ player::reset_tracks (bool p)
         track * trkptr { trk.get() };
         (trkptr->*f)(songmode);
     }
-
-    /*
-     * Alread flushed in the loop above.
-     *
-     * if (master_bus_ptr())
-     *     master_bus_ptr()->flush();
-     */
 }
 
 /**
@@ -626,57 +618,55 @@ player::reset_tracks (bool p)
  */
 
 bool
-player::create_master_bus (clientinfo & ci)
+player::setup_master_bus (clientinfo & ci)
 {
-    bool result { bool(master_bus_ptr()) };
-    if (! result)                               /* no master buss yet?      */
+    bool result { false };
+
+    /*
+     *  Find an available API.  Here, we rely on finding the fallback API,
+     *  rather than a specified API. Hmmmmmm.
+     *
+     *      rtl::rtmidi::api midiapi = rtl::rtmidi::selected(api);
+     */
+
+    rtl::rtmidi::api midiapi { rtl::find_midi_api() };
+    if (midiapi != rtl::rtmidi::api::unspecified)
     {
         /*
-         *  Find an available API.  Here, we rely on finding the fallback API,
-         *  rather than a specified API. Hmmmmmm.
+         * Cannot use std::make_unique<midi::masterbus> because its copy
+         * constructor is deleted.
          *
-         *      rtl::rtmidi::api midiapi = rtl::rtmidi::selected(api);
+         *  Also, at this point, do we have the actual complement of
+         *  inputs and clocks, as opposed to what's in the rc file?
          */
 
-        rtl::rtmidi::api midiapi { rtl::find_midi_api() };
-        if (midiapi != rtl::rtmidi::api::unspecified)
+        result = master_bus().client_info_reset(ci);
+        if (result)
         {
-            /*
-             * Cannot use std::make_unique<midi::masterbus> because its copy
-             * constructor is deleted.
-             *
-             *  Also, at this point, do we have the actual complement of
-             *  inputs and clocks, as opposed to what's in the rc file?
-             */
+            result = master_bus().engine_initialize(ci);
+            if (result)
+                result = master_bus().engine_activate();
 
-            result = master_bus().client_info_reset(ci);
             if (result)
             {
-                result = master_bus().engine_initialize(ci);
-                if (result)
-                    result = master_bus().engine_activate();
-
-                if (result)
-                {
 #if DERIVED_CLASS       // for the Future!
 
-                    master_bus().filter_by_channel(m_filter_by_channel);
-                    master_bus().set_port_statuses(m_clocks, m_inputs);
-                    master_bus().record_by_buss(m_record_by_buss);
-                    master_bus().record_by_channel(m_record_by_channel);
-                    master_bus().set_port_statuses(m_clocks, m_inputs);
-                    midi_control_out().set_master_bus(master_bus());
+                master_bus().filter_by_channel(m_filter_by_channel);
+                master_bus().set_port_statuses(m_clocks, m_inputs);
+                master_bus().record_by_buss(m_record_by_buss);
+                master_bus().record_by_channel(m_record_by_channel);
+                master_bus().set_port_statuses(m_clocks, m_inputs);
+                midi_control_out().set_master_bus(master_bus());
 #endif
-                    m_transport_info.time_signature
-                    (
-                        ci.global_beats_per_bar(),
-                        ci.global_beat_width()
-                    );
-                    m_transport_info.time_resolution
-                    (
-                        ci.global_ppqn(), ci.global_bpm()
-                    );
-                }
+                m_transport_info.time_signature
+                (
+                    ci.global_beats_per_bar(),
+                    ci.global_beat_width()
+                );
+                m_transport_info.time_resolution
+                (
+                    ci.global_ppqn(), ci.global_bpm()
+                );
             }
         }
     }
@@ -703,7 +693,7 @@ player::done () const
  *  The former is normally unchanged after startup, but the latter might
  *  change during song composition and playback.
  *
- *  Note that create_master_bus() also calls engine_initialize(), no need
+ *  Note that setup_master_bus() also calls engine_initialize(), no need
  *  to do that here.
  *
  *  Calls the MIDI buss and JACK initialization functions and the input/output
@@ -715,7 +705,7 @@ player::done () const
 bool
 player::launch (clientinfo & ci)
 {
-    bool result { create_master_bus(ci) };
+    bool result { setup_master_bus(ci) };
     if (result)
         result = init_transport();
 
@@ -730,9 +720,9 @@ player::launch (clientinfo & ci)
              * clocks and inputs now have names.  These calls are necessary to
              * populate the port lists the first time Seq66 is run.
              *
-             * master_bus_ptr()->get_port_statuses(m_clocks, m_inputs); the
+             * master_bus().get_port_statuses(m_clocks, m_inputs); the
              * statuses from e.g. midi_jack_info are already obtained in the
-             * call stack of create_master_bus().
+             * call stack of setup_master_bus().
              */
 
 #if defined USE_MASTER_BUS_PORTMAP
@@ -741,8 +731,8 @@ player::launch (clientinfo & ci)
              * Not defined in the base class yet.
              */
 
-            master_bus_ptr()->copy_io_busses();
-            master_bus_ptr()->get_port_statuses(m_clocks, m_inputs);
+            master_bus().copy_io_busses();
+            master_bus().get_port_statuses(m_clocks, m_inputs);
 #endif
 
             if (m_in_portnumber >= 0)
@@ -935,9 +925,7 @@ player::finish ()
          * We're supporting only one of each I/O port here.
          */
 
-        result = bool(master_bus_ptr());
-        if (result)
-            master_bus_ptr()->get_port_statuses(m_clocks, m_inputs);
+        master_bus().get_port_statuses(m_clocks, m_inputs);
 #endif
 
         result = ok && result;
@@ -963,9 +951,9 @@ player::activate ()
      * Currently just returns true (see midi_api::engine_activate().
      */
 
-    bool result { master_bus_ptr() && master_bus_ptr()->engine_activate() };
+    bool result { master_bus().engine_activate() };
     if (result)
-        result = master_bus_ptr()->activate();
+        result = master_bus().activate();
 
 #if defined RTL66_BUILD_JACK_ACTIVATE_HERE // init_jack_transport() instead
     if (result)
@@ -1351,7 +1339,7 @@ player::jack_transport () const
 #if defined RTL66_BUILD_JACK
     bool is_jack_api
     {
-        master_bus_ptr()->selected_api() == rtl::rtmidi::api::jack
+        master_bus().selected_api() == rtl::rtmidi::api::jack
     };
     return is_jack_api && transportinfo().jack_transport();
 #else
@@ -1580,8 +1568,8 @@ player::output_func ()
          */
 
         double bwdenom { 4.0 / beat_width() };
-        midi::bpm bpmfactor { master_bus_ptr()->BPM() * bwdenom };
-        int ppq { master_bus_ptr()->PPQN() };
+        midi::bpm bpmfactor { master_bus().BPM() * bwdenom };
+        int ppq { master_bus().PPQN() };
         int bpm_times_ppqn { int(bpmfactor) * ppq };
         double dct { double_ticks_from_ppqn(ppq) };
         double pus { pulse_length_us(bpmfactor, ppq) };
@@ -1594,8 +1582,8 @@ player::output_func ()
             if (transportinfo().resolution_change())    /* atomic boolean   */
             {
                 bwdenom = 4.0 / beat_width();
-                bpmfactor = master_bus_ptr()->BPM() * bwdenom;
-                ppq = master_bus_ptr()->PPQN();
+                bpmfactor = master_bus().BPM() * bwdenom;
+                ppq = master_bus().PPQN();
                 bpm_times_ppqn = bpmfactor * ppq;
                 dct = double_ticks_from_ppqn(ppq);
                 pus = pulse_length_us(bpmfactor, ppq);
@@ -1669,7 +1657,7 @@ player::output_func ()
 
             if (pad().js_init_clock)
             {
-                master_bus_ptr()->handle_clock
+                master_bus().handle_clock
                 (
                     midi::clock::action::init, midi::pulse(pad().js_clock_tick)
                 );
@@ -1725,7 +1713,7 @@ player::output_func ()
                  */
 
                 set_jack_tick(pad().js_current_tick);
-                master_bus_ptr()->handle_clock
+                master_bus().handle_clock
                 (
                     midi::clock::action::emit, midi::pulse(pad().js_clock_tick)
                 );
@@ -1795,8 +1783,7 @@ player::output_func ()
          * if m_usemidiclock == true.
          */
 
-        master_bus_ptr()->flush();
-        // (void) master_bus_ptr()->handle_clock(midi::clock::action::stop);
+        master_bus().flush();
     }
     (void) xpc::set_timer_services(false);
     return true;
@@ -1834,7 +1821,7 @@ player::poll_cycle ()
 {
     bool result { ! done() };
     if (result)
-        result = master_bus_ptr()->poll_for_midi() > 0;
+        result = master_bus().poll_for_midi() > 0;
 
     if (result)
     {
@@ -1847,7 +1834,7 @@ player::poll_cycle ()
             }
 
             event ev;
-            bool incoming { master_bus_ptr()->get_midi_event(&ev) };
+            bool incoming { master_bus().get_midi_event(&ev) };
             if (incoming)
             {
                 if (ev.is_below_sysex())                    /* below 0xF0   */
@@ -1857,13 +1844,13 @@ player::poll_cycle ()
                     util::status_message("MIDI event", estr);
 #endif
 #if defined USE_MASTER_BUS
-                    if (master_bus_ptr()->is_dumping())         /* see banner   */
+                    if (master_bus().is_dumping())         /* see banner   */
                     {
                         ev.set_timestamp(tick());
                         if (m_filter_by_channel)
-                            master_bus_ptr()->dump_midi_input(ev);
+                            master_bus().dump_midi_input(ev);
                         else
-                            master_bus_ptr()->get_track()->stream_event(ev);
+                            master_bus().get_track()->stream_event(ev);
                     }
 #endif
                 }
@@ -1912,7 +1899,7 @@ player::poll_cycle ()
                     /* ignore the event */
                 }
             }
-        } while (master_bus_ptr()->is_more_input());
+        } while (master_bus().is_more_input());
     }
     return result;
 }
@@ -2092,7 +2079,7 @@ player::midi_song_pos (const event & ev)
 void
 player::midi_sysex (const event & ev)
 {
-     master_bus_ptr()->sysex(/*port/buss number */ 0, &ev);     // TODO
+     master_bus().sysex(/*port/buss number */ 0, &ev);     // TODO
 }
 
 /**
@@ -2340,7 +2327,7 @@ player::play (midi::pulse tick)
             else
                 append_error_message("play() on null track");
         }
-        master_bus_ptr()->flush();                      /* flush MIDI buss  */
+        master_bus().flush();                      /* flush MIDI buss  */
     }
     return true;
 }
@@ -2358,7 +2345,7 @@ player::simple_play (midi::pulse tick)
             else
                 append_error_message("simple_play() on null track");
         }
-        master_bus_ptr()->flush();                      /* flush MIDI buss  */
+        master_bus().flush();                      /* flush MIDI buss  */
     }
     return true;
 }
@@ -2371,8 +2358,7 @@ player::simple_play (midi::pulse tick)
 void
 player::all_notes_off ()
 {
-    if (master_bus_ptr())
-        master_bus_ptr()->flush();                      /* flush MIDI buss  */
+    master_bus().flush();                      /* flush MIDI buss  */
 }
 
 /**
@@ -2383,11 +2369,10 @@ player::all_notes_off ()
 bool
 player::panic ()
 {
-    bool result { bool(master_bus_ptr()) };
     stop_playing();
     inner_stop();                                   /* force inner stop     */
     transportinfo().tick(0);
-    return result;
+    return true;
 }
 
 /*

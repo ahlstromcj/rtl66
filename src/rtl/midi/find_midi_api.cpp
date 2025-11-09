@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-10-27
+ * \updates       2025-11-03
  * \license       See above.
  *
  */
@@ -211,7 +211,7 @@ try_open_midi_api
  */
 
 midi_api *
-try_open_midi_api (const midi::masterbus & mb, midi::port::io iotype)
+try_open_midi_api (/* const */ midi::masterbus & mb, midi::port::io iotype)
 {
     midi_api * result { nullptr };
     rtmidi::api rapi { mb.selected_api() };
@@ -230,7 +230,7 @@ try_open_midi_api (const midi::masterbus & mb, midi::port::io iotype)
             if (is_nullptr(result))
             {
                 if (try_match(rapi, rtmidi::api::jack))
-                    result = new midi_jack(iotype, clientname, qsize);
+                    result = new midi_jack(mb, iotype);
 //                  result = new midi_jack(iotype, clientname, qsize);
             }
 #endif
@@ -238,7 +238,7 @@ try_open_midi_api (const midi::masterbus & mb, midi::port::io iotype)
             if (is_nullptr(result))
             {
                 if (try_match(rapi, rtmidi::api::alsa))
-                    result = new midi_alsa(iotype, clientname, qsize);
+                    result = new midi_alsa(mb, iotype);
 //                  result = new midi_alsa(iotype, clientname, qsize);
             }
 #endif

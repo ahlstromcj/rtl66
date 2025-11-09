@@ -1,6 +1,6 @@
 Various Ways MIDI Input is handled.
 Chris Ahlstrom
-2025-10-08 to 2025-10-08
+2025-10-08 to 2025-11-07
 
 This file present some of the ways input works and how to improve it.
 One issue is how poll_for_midi() is not implemented in ALSA but is used
@@ -8,8 +8,45 @@ by midi::player.
 
     Basics:
 
-        First, the basic inputs as done by the cbminiin and qmidiin test
-        applications.
+        ALSA:
+
+            The basic inputs as done by the cbminiin and qmidiin test
+            applications rely on the midi_api object starting an input
+            thread. This thread starts rtl::midi_alsa_handler(). That does
+            the following:
+
+                -   Set up a MIDI event parser.
+                -   Reallocate, if needed, a data buffer.
+                -   Set up ALSA sequencer poll descriptors.
+                -   Run a loop that checks for pending input; if not,
+                    it polls the descriptor, reading the first descriptor.
+                    Otherwise....
+                    -   Retrieves the event.
+                    -   Checks for certain "SND_SEQ_EVENT" data, such as
+                        SysEx, and flags to decode them.
+                    -   Decodes the event. The data is entered into
+                        a midi::message which gets time-stamped.
+                    -   If using an input callback, the message is
+                        passed to the callback. Otherwise it is pushed
+                        into the rtmidi_in_data message queue.
+
+            One disadvantage of using an input thread is that ALSA is
+            not, at the user level, threadsafe. Therefore, each
+            client/port must have its own thread, or segfaults are likely.
+
+        JACK:
+
+            Processing is handled by setting up callbacks. There is
+            no input thread for polling. The primary callback is
+            jack_process_in().
+
+                -   It gets the event count.
+                -   It loops, getting the delta time.
+                -   It handles the realtime messages somewhat like
+                    in the ALSA code.
+                -   If using an input callback, the message is passed to
+                    the callback. Otherwise it is pushed into the
+                    rtmidi_in_data message queue, just as in ALSA.
 
         Input callback usage, cbmidiin:
 
@@ -38,6 +75,71 @@ by midi::player.
             -   Why is Ctrl-C needed? It is not in cbmidiin.
             -   Need to silence JACK messages when not running with JACK.
             -   Still need to check poll_for_midi() vs get_midi_event().
+
+        Seq66 (a master bus implementation):
+
+            The master bus creates an array of input buses. Each bus
+            represents one MIDI port, and holds information about
+            the type of port, order in the list of ports, the client ID
+            (for ALSA), the port ID and name, etc.
+
+            -   midibase. This class provides for setup and teardown of a
+                port. It provides mutex locking and calls to API
+                functions.
+            -   midibus. The RtMidi implementation of this class provides
+                various overrides of midibase API functions. These functions
+                pass the processing to the specific midi_api pointer
+                that implements portmidi, ALSA, and JACK processing.
+                Important for input is api_poll_for_midi().
+            -   businfo. Holds a pointer to a midibus, and adds
+                information about activity and status.
+            -   busarray. Holds a vector of businfo objects. API functions
+                can be called by bus ID or loop over all businfos. In
+                particular, poll_for_midi() calls the function of the
+                same name for each input buss, in that order.
+            -   mastermidibase. Holds global setting for clocking and
+                I/O, an input and output busarrays, a set of tracks
+                ("sequences") to which it can provide input, and functions
+                like api_poll_for_midi() which calls the same function
+                in the input busarray.
+            -   mastermidibus. This class add support to get all of the
+                virtual (configured) and real (existing) ports and
+                then create midibusses that get added to the I/O
+                busarrays.
+
+            One thing to note is that the API does not use an input
+            thread directly. Instead, another class creates it
+            and uses it to communicate to ports via a masterbus,
+            using periodic polls of the input.
+
+            Disadvantages:
+
+                -   The businfo class items could simply be included
+                    in midibus.
+                -   Iterating through the input busses can starve the
+                    busses with higher ID numbers.
+                -   There is an extra layer of indirection (to support
+                    PortMidi) which adds latency.
+                -   JACK: the methods used cause erratic timing at
+                    lower jack frame rates.
+
+        Rtl66 masterbus implementation:
+
+            The masterbus essentially replaces and augments the standard
+            parts of RtMidi so that one ALSA client is shared between
+            all the ports, just as done in Seq66.
+
+                -   It turns off the usage of an input thread for each
+                    MIDI input port.
+                -   It replaces it with serial polling of all the ports.
+                    Should support a round robin.
+
+            To do:
+
+                -   Add support similar to the inputs/clocks list of
+                    Seq66.
+                -   Derive seq66/portslist from the newer midi/ports
+                    class
 
 # vim: sw=4 ts=4 wm=8 et ft=sh
 

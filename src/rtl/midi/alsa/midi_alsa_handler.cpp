@@ -141,8 +141,6 @@ decode_event
             bool ok = mad_data->reallocate(nbytes);
             if (ok)
             {
-//              buff = mad_data->buffer();
-//              midi::byte * buff { mad_data->buffer() };
                 rtidata->do_input(false);
                 error_print
                 (
@@ -226,12 +224,16 @@ midi_alsa_handler (void * ptr)
 {
     rtmidi_in_data * rtidata { midi_api::static_in_data_cast(ptr) };
     if (rtidata->queue().unallocated())
+    {
+        error_print("midi_alsa_handler()", "queue unallocated");
         return nullptr;
+    }
 
     midi_alsa_data * mad_data
     {
         midi_alsa::static_data_cast(rtidata->api_data())
     };
+    ::snd_seq_t * client { mad_data->alsa_client() };
 
     /*
      * Why 0? That's the buffer size. RtMidi does this, too. Makes no sense.
@@ -249,48 +251,41 @@ midi_alsa_handler (void * ptr)
         return nullptr;
     }
     ok = mad_data->reallocate();
-
-//  size_t nbytes { mad_data->buffer_size() };
-//  midi::byte * buff { mad_data->buffer() };
     if (! ok)
     {
         rtidata->do_input(false);
         return nullptr;
     }
 
-    ::snd_seq_t * client { mad_data->alsa_client() };
-    midi::message message;
-    int poll_fd_count
-    {
-        ::snd_seq_poll_descriptors_count(client, POLLIN) + 1
-    };
-    struct pollfd * poll_fds
-    {
-        (struct pollfd *) alloca(poll_fd_count * sizeof(struct pollfd))
-    };
-    ::snd_seq_poll_descriptors(client, poll_fds + 1, poll_fd_count - 1, POLLIN);
+    bool moresysex { false };
+    midi::message mmsg;
+    int fdcount { ::snd_seq_poll_descriptors_count(client, POLLIN) + 1 };
+    size_t pollfdsize = fdcount * sizeof(struct pollfd);
+    struct pollfd * poll_fds { (struct pollfd *) alloca(pollfdsize) };
+    ::snd_seq_poll_descriptors(client, poll_fds + 1, fdcount - 1, POLLIN);
     poll_fds[0].fd = mad_data->trigger_fd(0);
     poll_fds[0].events = POLLIN;
-
-    ::snd_seq_event_t * ev;
-    bool moresysex { false };
     while (rtidata->do_input())
     {
         int count { ::snd_seq_event_input_pending(client, 1) };
         if (count == 0)                                 /* no data pending  */
         {
-            if (::poll(poll_fds, poll_fd_count, -1) >= 0)
+            if (::poll(poll_fds, fdcount, -1) >= 0)
             {
                 if (poll_fds[0].revents & POLLIN)
                 {
                     bool dummy;
-                    int rc { int(read(poll_fds[0].fd, &dummy, sizeof(dummy))) };
-                    if (rc == (-1))                     /* (void) rc ???    */
-                        break;
+                    (void) ::read(poll_fds[0].fd, &dummy, sizeof(dummy));
                 }
             }
             continue;                                   /* no MIDI data     */
         }
+
+        /*
+         * Seqfaults can occur here!!!
+         */
+
+        ::snd_seq_event_t * ev;
         int rc { ::snd_seq_event_input(client, &ev) };  /* retrieve event   */
         if (rc == -ENOSPC)
         {
@@ -310,7 +305,7 @@ midi_alsa_handler (void * ptr)
          */
 
         if (! moresysex)
-            message.clear();
+            mmsg.clear();
 
         bool dodecode { decode_event(rtidata, mad_data, ev) };
         if (dodecode)
@@ -327,18 +322,17 @@ midi_alsa_handler (void * ptr)
             if (nbytes > 0)                 // see banner
             {
                 if (! moresysex)
-                    message.assign(buff, &buff[nbytes]);
+                    mmsg.assign(buff, &buff[nbytes]);
                 else
-                    message.append(buff, &buff[nbytes]);
+                    mmsg.append(buff, &buff[nbytes]);
 
                 moresysex = (ev->type == SND_SEQ_EVENT_SYSEX) &&
-                    ! midi::is_sysex_end_msg(message.back());     // 0xF7
+                    ! midi::is_sysex_end_msg(mmsg.back());     // 0xF7
 
                 if (! moresysex)
                 {
                     /*
-                     * Calculate the time stamp.  See the banner.
-                     * Then compute the time difference.
+                     * Calculate the time difference.  See the banner.
                      */
 
                     double time = calculate_time
@@ -349,10 +343,10 @@ midi_alsa_handler (void * ptr)
                     if (rtidata->first_message())
                     {
                         rtidata->first_message(false);
-                        message.jack_stamp(0.0);
+                        mmsg.jack_stamp(0.0);
                     }
                     else
-                        message.jack_stamp(time);
+                        mmsg.jack_stamp(time);
                 }
                 else
                 {
@@ -363,22 +357,17 @@ midi_alsa_handler (void * ptr)
             }
         }
         ::snd_seq_free_event(ev);
-        if (message.empty() || moresysex)
+        if (mmsg.empty() || moresysex)
             continue;
 
         if (rtidata->using_callback())
         {
             rtmidi_in_data::callback_t cb = rtidata->user_callback();
-            cb(message.jack_stamp(), &message, rtidata->user_data());
+            cb(mmsg.jack_stamp(), &mmsg, rtidata->user_data());
         }
         else
         {
-            /*
-             * As long as we haven't reached our queue size limit, push the
-             * message.
-             */
-
-            if (! rtidata->queue().push(message))
+            if (! rtidata->queue().push(mmsg))
                 error_print("midi_alsa_handler()", "input queue limit hit");
         }
     }

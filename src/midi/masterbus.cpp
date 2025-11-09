@@ -144,22 +144,6 @@ masterbus::masterbus
     // no code
 }
 
-#if 0
-masterbus::masterbus
-(
-    rtl::rtmidi::api rapi,
-    const midi::clientinfo & ci,
-    const input_specs & is
-) :
-    m_selected_api  (rapi),                 /* rtmidi::api::unspecified)    */
-    m_client_info   (ci),
-    m_input_specs   (is),
-    m_engine        (*this, rapi)           /* "mbus", keep client name     */
-{
-    // no code
-}
-#endif
-
 /**
  *  Implements a common sequence needed near startup-time.
  *

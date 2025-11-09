@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-10-30
+ * \updates       2025-11-05
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -350,34 +350,6 @@ public:
     {
         m_ignore_flags = static_cast<ignoreflag>(unsigned(flags));
     }
-
-#if USE_THIS_CODE
-
-    void allow_sysex (bool flag)
-    {
-        if (flag)
-            m_ignore_flags |= ignoreflag::sysex;
-        else
-            m_ignore_flags &= ~ignoreflag::sysex;
-    }
-
-    void allow_time_code (bool flag)
-    {
-        if (ignoreflag)
-            m_ignore_flags |= ignoreflag::time_code;
-        else
-            m_ignore_flags &= ~ignoreflag::time_code;
-    }
-
-    void allow_active_sensing (bool flag)
-    {
-        if (flag)
-            m_ignore_flags |= ignoreflag::active_sensing;
-        else
-            m_ignore_flags &= ~ignoreflag::active_sensing;
-    }
-
-#endif
 
 private:
 

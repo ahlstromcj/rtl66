@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2025-10-29
+ * \updates       2025-11-07
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -203,18 +203,28 @@ struct client_defaults
     int cd_queue_size { RTL66_DEFAULT_INPUT_Q_SIZE };
 
     /**
-     *  The input port number.  If equal to -1, then (in the future)
-     *  will work with all ports.
+     *  Indicates to start a thread to handle incoming MIDI events.
+     *  Applies only to ALSA. Note that ALSA (MIDI and audio) are
+     *  not threadsafe. The default is true here in line with the
+     *  original (and latest) RtMidi code.
      */
 
-    int cd_input_portnumber { -1 };
+    bool cd_use_input_thread { true };
+
+    /**
+     *  The input port number.  If equal to RTL66_PORT_ALL_PORTS (99),
+     *  then (in the future) will work with all ports. The default
+     *  value here is -1.
+     */
+
+    int cd_input_portnumber { RTL66_VALUE_UNUSED };
 
     /**
      *  The output port number.  If equal to -1, then (in the future)
      *  will work with all ports.
      */
 
-    int cd_output_portnumber { -1 };
+    int cd_output_portnumber { RTL66_VALUE_UNUSED };
 
 };          // client_defaults
 
@@ -403,7 +413,17 @@ public:
 
     static bool all_ports (int portnumber)
     {
-        return portnumber == (-1);
+        return portnumber == RTL66_PORT_ALL_PORTS;      /* i.e. 99 */
+    }
+
+    bool use_input_thread () const
+    {
+        return m_cd.cd_use_input_thread;
+    }
+
+    void use_input_thread (bool flag)
+    {
+        m_cd.cd_use_input_thread = flag;
     }
 
     int input_portnumber () const
@@ -413,7 +433,7 @@ public:
 
     void input_portnumber (int p)
     {
-        if (p >= (-1))
+        if (p >= 0 && p <= RTL66_PORT_NUMBER_LIMIT)     /* i.e. 48  */
             m_cd.cd_input_portnumber = p;
     }
 
@@ -424,7 +444,7 @@ public:
 
     void output_portnumber (int p)
     {
-        if (p >= (-1))
+        if (p >= 0 && p <= RTL66_PORT_NUMBER_LIMIT)     /* i.e. 48  */
             m_cd.cd_output_portnumber = p;
     }
 

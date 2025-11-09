@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-10-09
+ * \updates       2025-11-06
  * \license       See above.
  *
  *  Note that these functions are not in a namespace so that most of them
@@ -51,23 +51,24 @@ extern bool rt_simple_cli
     const std::string & appname,
     int argc, char * argv []
 );
-extern void rt_test_sleep (int ms);
-extern int rt_choose_port_number (bool isoutput = true);
+extern bool rt_test_port_valid (int portno);
+extern bool rt_open_all_ports (int portnumber = RTL66_PORT_ALL_PORTS);
 extern bool rt_virtual_test_port ();
+extern bool rt_show_help ();
+extern bool rt_use_callback ();
+extern int rt_choose_port_number (bool isoutput = true);
 extern int rt_test_port ();
 extern int rt_test_port_in ();
 extern int rt_test_port_out ();
+extern int rt_test_data_length ();
 extern const std::string  & rt_test_name ();
+extern void rt_test_sleep (int ms);
 extern void set_rt_test_port (int portno);
 extern void set_rt_test_port_in (int portno);
 extern void set_rt_test_port_out (int portno);
 extern void set_rt_test_port_name (const std::string & portname);
 extern void set_rt_test_name (const std::string & portname);
-extern bool rt_test_port_valid (int portno);
 extern void set_test_data_length (int len);
-extern int rt_test_data_length ();
-extern bool rt_show_help ();
-extern bool rt_use_callback ();
 
 #endif      // defined __cplusplus
 

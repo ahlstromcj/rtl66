@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-09-04
+ * \updates       2025-11-03
  * \license       See above.
  *
  */
@@ -58,7 +58,7 @@ extern midi_api * try_open_midi_api
 );
 extern midi_api * try_open_midi_api
 (
-    const midi::masterbus & mb,
+    /* const */ midi::masterbus & mb,
     midi::port::io iotype
 );
 

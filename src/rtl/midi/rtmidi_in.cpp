@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-30
+ * \updates       2025-11-03
  * \license       See above.
  *
  */
@@ -92,7 +92,7 @@ rtmidi_in::rtmidi_in
     }
 }
 
-rtmidi_in::rtmidi_in (const midi::masterbus & mb) : rtmidi ()
+rtmidi_in::rtmidi_in (/* const */ midi::masterbus & mb) : rtmidi ()
 {
     rtmidi::api rapi { mb.selected_api() };
     const std::string & clientname { mb.client_name() };
@@ -179,7 +179,7 @@ rtmidi_in::open_midi_api
 }
 
 bool
-rtmidi_in::open_midi_api (const midi::masterbus & mb)
+rtmidi_in::open_midi_api (/* const */ midi::masterbus & mb)
 {
     rtmidi::api rapi { mb.selected_api() };
     bool result { rapi != rtmidi::api::max };
@@ -303,9 +303,9 @@ rtmidi_in::ignore_midi_types (bool midisysex, bool miditime, bool midisense)
  */
 
 double
-rtmidi_in::get_message (midi::message & message)
+rtmidi_in::get_message (midi::message & msg)
 {
-    return static_cast<midi_api *>(rt_api_ptr())->get_message(message);
+    return static_cast<midi_api *>(rt_api_ptr())->get_message(msg);
 }
 
 /**

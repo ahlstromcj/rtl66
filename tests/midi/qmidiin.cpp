@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-07-01
- * \updates       2025-11-01
+ * \updates       2025-11-07
  * \license       See above.
  *
  *      Simple program to test MIDI input and retrieval from the queue.
@@ -37,13 +37,13 @@
 #include <signal.h>                     /* is there a C++ version?          */
 
 #include "cfg/appinfo.hpp"              /* cfg::set_client_name()           */
-#include "midi/clientinfo.hpp"          /* midi::clientinfo class           */
+#include "midi/clientinfo.hpp"          /* midi::clientinfo etc.            */
 #include "midi/message.hpp"             /* midi::message class              */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
 #include "util/msgfunctions.hpp"        /* util::status_message()           */
-#include "xpc/kbhit.hpp"                /* xpc::kbhit_ex()                     */
+#include "xpc/kbhit.hpp"                /* xpc::kbhit_ex()                  */
 
 namespace
 {
@@ -118,7 +118,7 @@ main (int argc, char * argv[])
                  */
 
                 int nports = midiin->get_port_count();
-                if (port == (-1))
+                if (! rt_test_port_valid(port))
                 {
                     port = 0;
                     infoprint("Using port 0; use --port p option if desired.");
@@ -146,16 +146,11 @@ main (int argc, char * argv[])
                             std::cout
                                 << "Reading MIDI from port "
                                 << midiin->get_port_name(port)
-                                << " ... quit with <Enter> or <Ctrl-C>."
+                                << " ... quit with any key or <Ctrl-C>."
                                 << std::endl
                                 ;
 
-                            /*
-                             * while (kbhit())
-                             *     (void) getchar();
-                             */
-
-                            xpc::clear_kb();
+                            xpc::clear_kb_ex();
                             while (! s_is_done)
                             {
                                 (void) midiin->get_message(msg);
@@ -165,23 +160,9 @@ main (int argc, char * argv[])
                                     msgline += msg.to_string();
                                     util::status_message(msgline);
                                 }
-
-                                /*
-                                 *  if (kbhit())
-                                 *  {
-                                 *      (void) getchar();
-                                 *      break;
-                                 *  }
-                                 *
-                                 *  if (xpc::kbcheck())
-                                 *      break;
-                                 */
-
-                                if (xpc::kbhit_ex())
-                                {
-                                    (void) getchar();
+                                if (xpc::kbcheck_ex())
                                     break;
-                                }
+
                                 rt_test_sleep(10);  /* sleep for 10 msec    */
                             }
                         }

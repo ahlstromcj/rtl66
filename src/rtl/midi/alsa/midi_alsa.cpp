@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-31
+ * \updates       2025-11-07
  * \license       See above.
  *
  */
@@ -398,13 +398,19 @@ get_port_info
  *  rtl::rtmidi I/O objects.
  */
 
-midi_alsa::midi_alsa () : midi_api ()
+midi_alsa::midi_alsa
+(
+    midi::masterbus & mbus,
+    midi::port::io iotype
+) :
+    midi_api        (mbus, iotype),
+    m_client_name   (mbus.client_name())
 {
     /*
      *  (void) initialize(client_name());
+     *
+     * m_alsa_data.set_initialized(true);
      */
-
-    m_alsa_data.set_initialized(true);
 }
 
 /**
@@ -835,11 +841,17 @@ midi_alsa::setup_input_port ()
         snd_seq_start_queue(data.alsa_client(), data.queue_id(), NULL);
         result = drain_output();
 #endif
-        result = start_input_thread(input_data());
+        bool startthread { true };
+        if (has_master())
+            startthread = master_bus()->use_input_thread();
+
+        if (startthread)
+            result = start_input_thread(input_data());
+
         if (result)
         {
             input_data().do_input(true);
-            is_connected(true);
+            is_connected(true);             // ?
         }
         else
         {
@@ -848,7 +860,7 @@ midi_alsa::setup_input_port ()
             error
             (
                 rterror::kind::thread_error,
-                "setup_input_port(): error starting input thread"
+                "setup_input_port(): error starting thread"
             );
         }
     }
@@ -864,7 +876,8 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
 {
     if (is_connected())
     {
-        warning("open_port(): connection already exists");
+//      warning("open_port(): connection already exists");
+        error_print("open_port()", "connection already exists");
         return true;
     }
 
@@ -876,6 +889,11 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
         ::snd_seq_port_info_t * src_pinfo { nullptr };  /* input only       */
         ::snd_seq_port_info_t * dest_pinfo { nullptr }; /* output only      */
         result = nsrc > 0;
+        if (! result)
+        {
+            error_print("open_port()", "no MIDI ports");
+            return false;
+        }
 
 #if defined PLATFORM_DEBUG_TMI
         printf
@@ -885,7 +903,7 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
             (void *)(data.alsa_client())
         );
 #endif
-        if (result)
+        if (result)             /* compare get_port_info() to portInfo()    */
         {
             int pcount;
             if (is_output())
@@ -999,7 +1017,6 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                     }
                     if (result)
                     {
-
 #if defined PLATFORM_DEBUG_TMI
                         printf
                         (
@@ -1021,6 +1038,7 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
         }
         if (result)
         {
+            port_number(portnumber);
             if (is_input())
                 result = setup_input_port();
         }
@@ -1030,8 +1048,8 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
             result = false;
         }
     }
-    if (result)
-        port_number(portnumber);
+    else
+        error_print("open_port()", "no MIDI ports");
 
     return result;
 }
@@ -1056,7 +1074,6 @@ midi_alsa::setup_input_virtual_port ()
         snd_seq_start_queue(data.alsa_client(), data.queue_id(), NULL);
         result = drain_output();
 #endif
-
         result = start_input_thread(input_data());
         if (result)
         {
@@ -1178,13 +1195,13 @@ midi_alsa::subscription
             {
                 ::snd_seq_port_subscribe_free(data.subscription());
                 data.subscription(nullptr);
-                error_print("subscription():", snd_strerror(rc));
+                error_print("subscription()", snd_strerror(rc));
                 result = false;
             }
         }
         else
         {
-            error_print("subscription():", snd_strerror(rc));
+            error_print("subscription()", snd_strerror(rc));
             result = false;
         }
     }
@@ -1212,6 +1229,7 @@ midi_alsa::remove_subscription ()
 bool
 midi_alsa::start_input_thread (rtmidi_in_data & indata)
 {
+printf("START_INPUT_THREAD()\n");
     bool result { true };
     if (is_input())
     {
@@ -1675,7 +1693,7 @@ midi_alsa::PPQN (midi::ppqn ppq)
     if (result)
     {
         midi_alsa_data & data { alsa_data() };
-        int q { midi_tempo_queue()  /* data.queue_id() */ };
+        int q { midi_tempo_queue() };               /* data.queue_id()      */
         ::snd_seq_queue_tempo_t * qtempo;
         snd_seq_queue_tempo_alloca(&qtempo);
 
@@ -1718,7 +1736,7 @@ midi_alsa::BPM (midi::bpm bp)
     if (result)
     {
         midi_alsa_data & data { alsa_data() };
-        int q { midi_tempo_queue()  /* data.queue_id() */ };
+        int q { midi_tempo_queue() };                   /* data.queue_id()  */
         unsigned tempo_us { unsigned(midi::tempo_us_from_bpm(bp)) };
         ::snd_seq_queue_tempo_t * qtempo;
         snd_seq_queue_tempo_alloca(&qtempo);            /* make tempo struc */

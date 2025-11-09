@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-27
+ * \updates       2025-11-03
  * \license       See above.
  *
  *  Written primarily by Alexander Svetalkin, with updates for delta time by
@@ -66,7 +66,7 @@
  *
  *      The input JACK callback can call an rtmidi input callback of the form
  *
- *          void callback (midi_message & message, void * userdata)
+ *          void callback (midi_message & msg, void * userdata)
  *
  *      This callback is wired in by calling rtmidi_in_data ::
  *      user_callback(). Unlike RtMidi, the delta time is stored as part of
@@ -498,7 +498,13 @@ silence_jack_messages (bool silent)
  * midi_jack constructors
  *------------------------------------------------------------------------*/
 
-midi_jack::midi_jack () : midi_api ()
+midi_jack::midi_jack
+(
+    midi::masterbus & mbus,
+    midi::port::io iotype
+) :
+    midi_api        (mbus, iotype),
+    m_client_name   (mbus.client_name())
 {
     /*
      * Let's allow delaying initialization until after setting the

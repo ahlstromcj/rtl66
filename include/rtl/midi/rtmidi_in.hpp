@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-11
+ * \updates       2025-11-03
  * \license       See above.
  *
  */
@@ -73,7 +73,7 @@ public:
         const std::string & clientname  = "",
         unsigned queuesizelimit         = 0
     );
-    rtmidi_in (const midi::masterbus & mb);
+    rtmidi_in (/* const */ midi::masterbus & mb);
     rtmidi_in (const rtmidi_in & other) = delete;
     rtmidi_in & operator = (rtmidi_in & other) = delete;
     rtmidi_in (rtmidi_in && other) = default;
@@ -114,7 +114,7 @@ protected:
         const std::string & clientname  = "",
         unsigned queuesize              = 0
     ) override;
-    virtual bool open_midi_api (const midi::masterbus & mb) override;
+    virtual bool open_midi_api (/* const */ midi::masterbus & mb) override;
 
 };          // class rtmidi_in
 

@@ -146,7 +146,7 @@ private:
     {
         null_system_port_id()
     };
-    clocking m_io_status                /**< *On off (disabled) clocking... */
+    clocking m_io_status                /**< On Off (disabled) Clocking...  */
     {
         clocking::none                  /**< Basic flag for "port enabled". */
     };

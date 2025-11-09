@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-19
+ * \updates       2025-11-03
  * \license       See above.
  *
  */
@@ -91,7 +91,7 @@ private:
 
 public:
 
-    midi_alsa ();
+    midi_alsa (midi::masterbus & mbus, midi::port::io iotype);
     midi_alsa
     (
         midi::port::io iotype,

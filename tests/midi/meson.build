@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-13
-# \updates     2025-11-01
+# \updates     2025-11-04
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the "rtl66" library. See the top-level meson.build
@@ -27,7 +27,10 @@ api_names_exe = executable(
 cbmidiin_exe = executable(
    'cbmidiin',
    sources : ['cbmidiin.cpp'],
-   dependencies : [ rtl66_dep, liblib66_library_dep, libcfg66_library_dep ]
+   dependencies : [
+      rtl66_dep, liblib66_library_dep, libcfg66_library_dep,
+      libxpc66_library_dep
+      ]
    )
 
 #-----------------------------------------------------------------------------

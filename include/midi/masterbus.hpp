@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-10-30
+ * \updates       2025-11-07
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -50,10 +50,10 @@
  * get_port_alias (string name)                     -    - ADD TO rtmidi
  * get_io_port_info (midi::ports &, bool clear)     x    x     x     x   x
  * ignore_midi_types (bool, bool, bool)             x
- * get_message (midi::message & message)            x
+ * get_message (midi::message & msg)                x
  * set_buffer_size (size_t sz, int count)           x
  * set_error_callback (callback_t, void * data)     x    x
- * send_message (midi_message & message)            x    x
+ * send_message (midi_message & msg)                x    x
  * send_message (const midi::byte *, size_t sz)          x
  *
  * set_master_bus()                                                  x   x
@@ -110,6 +110,7 @@ namespace midi
 class masterbus final
 {
     friend class player;
+    friend class poller;
     friend class track;
 
 public:
@@ -252,16 +253,6 @@ public:
         rtl::rtmidi::api rapi,
         const midi::clientinfo & ci
     );
-
-#if 0
-    masterbus
-    (
-        rtl::rtmidi::api rapi,
-        const midi::clientinfo & ci,
-        const input_specs & is
-    );
-#endif
-
     masterbus (const masterbus &) = delete;
     masterbus (masterbus &&) = delete;              /* forced by recmutex   */
     masterbus & operator = (const masterbus &) = delete;
@@ -319,6 +310,16 @@ public:
     port::io port_type () const
     {
         return client_info().port_type();
+    }
+
+    bool use_input_thread () const
+    {
+        return client_info().use_input_thread();
+    }
+
+    void cancel_input_thread ()
+    {
+        client_info().use_input_thread(false);
     }
 
     const std::string & client_name () const

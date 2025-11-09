@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-12-15
- * \updates       2025-10-28
+ * \updates       2025-11-03
  * \license       See above.
  *
  */
@@ -94,7 +94,7 @@ protected:
      *  Not needed for the engine, just for the in and out rtmidi's.
      */
 
-    virtual bool open_midi_api (const midi::masterbus & mb) override
+    virtual bool open_midi_api (/* const */ midi::masterbus & mb) override
     {
         (void) mb;
         return true;

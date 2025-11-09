@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-10-28
+ * \updates       2025-11-08
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -78,6 +78,8 @@ midi::client_defaults s_clientinfo_defaults
     384,                                /* global PPQN, not 192             */
     148,                                /* global BPM, not 120              */
     midi::port::io::duplex,             /* MIDI port type                   */
+    -1,                                 /* queue size, a bad value          */
+    false,                              /* ALSA MIDI is not threadsafe      */
     -1,                                 /* input port number                */
     0                                   /* output port number               */
 };
@@ -337,7 +339,7 @@ main (int argc, char * argv [])
             can_run = p.launch();
             if (can_run)
             {
-                midi::masterbus * const masterptr { p.master_bus_ptr() };
+                midi::masterbus * const masterptr { &p.master_bus() };
                 if (not_nullptr(masterptr))
                 {
                     midi::bus & outbus

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-05
- * \updates       2025-10-27
+ * \updates       2025-11-07
  * \license       See above.
  *
  * Introduction:
@@ -119,6 +119,9 @@
 #define RTL66_DEFAULT_ALSA_EV_BUFSIZE    32     /* event parser buffer size */
 #define RTL66_DEFAULT_JACK_BUFSIZE      256     /* microseconds per quarter */
 #define RTL66_DEFAULT_JACK_RING_SIZE   2048     /* microseconds per quarter */
+#define RTL66_PORT_ALL_PORTS             99     /* activate all ports       */
+#define RTL66_PORT_NUMBER_LIMIT          48     /* for sanity's sake        */
+#define RTL66_VALUE_UNUSED             (-1)     /* indicates "not used"     */
 
 /**
  *  What Platform APIS to build? A few notes:

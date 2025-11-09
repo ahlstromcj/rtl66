@@ -205,7 +205,6 @@ rtmidi::set_master_bus_ptr (midi::masterbus * mb)
         {
             master_client_ptr(mvch);
             rt_api_ptr()->master_bus(mb);
-            // m_has_master = true; // already done above
         }
     }
     return true;
