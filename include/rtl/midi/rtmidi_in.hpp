@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-03
+ * \updates       2025-11-10
  * \license       See above.
  *
  */
@@ -94,7 +94,7 @@ public:
 
     void set_input_callback
     (
-        rtmidi_in_data::callback_t callback,
+        rtmidi_in_data::callback_t cb,
         void * userdata = nullptr
     );
     void cancel_input_callback ();
@@ -104,7 +104,7 @@ public:
         bool miditime   = true,
         bool midisense  = true
     );
-    double get_message (midi::message & msg);
+    midi::message get_message () const;
 
 protected:
 

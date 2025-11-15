@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-07
+ * \updates       2025-11-13
  * \license       See above.
  *
  */
@@ -686,7 +686,7 @@ midi_alsa::reuse_connection ()
  *  that of the implementation in Seq66:  Here there are separate process
  *  callbacks for input and output (for each port!), while in Seq66 there
  *  is one callback that calls either the input or output callback in a loop
- *  querying each port.
+ *  querying each port serially.
  *
  *  What implications does this have for latency, thread starvation, and
  *  total processor usage? Does JACK do thread-pooling?
@@ -876,7 +876,6 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
 {
     if (is_connected())
     {
-//      warning("open_port(): connection already exists");
         error_print("open_port()", "connection already exists");
         return true;
     }
@@ -1229,7 +1228,8 @@ midi_alsa::remove_subscription ()
 bool
 midi_alsa::start_input_thread (rtmidi_in_data & indata)
 {
-printf("START_INPUT_THREAD()\n");
+    // printf("START_INPUT_THREAD()\n");   // CAN WE USE IOTHREAD HERE???
+
     bool result { true };
     if (is_input())
     {
@@ -1668,7 +1668,7 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
     return result;
 }
 
-#if defined RTL66_MIDI_EXTENSIONS
+#if defined RTL66_MIDI_EXTENSIONS       /* leave this defined   */
 
 /*
  * --------------------------------------------------------------------------
@@ -1886,6 +1886,97 @@ midi_alsa::clock_continue (midi::pulse /* tick */, midi::pulse beats)
     return true;
 }
 
+#if defined USE_THIS_CODE
+
+/**
+ *  Get the number of MIDI input poll file descriptors.  Allocate the
+ *  poll-descriptors array.  Then get the input poll-descriptors into the
+ *  array.  Finally, set the input and output buffer sizes.  Can we do this
+ *  before creating all the MIDI busses?  If not, we'll put them in a separate
+ *  function to call later.
+ *
+ *  This function is called in the constructor and in api_port_start().
+ *
+ *  According to https://users.suse.com/~mana/alsa090_howto.html#sect04
+ *  snd_seq_poll_descriptors_count(alsa_seq, POLLIN) always returns 1.
+ *
+ *  midi_alsa_handler() adds one to the count of poll descriptors. Why?
+ *
+ */
+
+void
+midi_alsa::get_poll_descriptors ()
+{
+    m_num_poll_descriptors = ::snd_seq_poll_descriptors_count
+    (
+        m_alsa_seq, POLLIN  // + 1 ?!
+    );
+    if (m_num_poll_descriptors > 0)
+    {
+        m_poll_descriptors =
+            new (std::nothrow) ::pollfd[m_num_poll_descriptors];
+
+        if (not_nullptr(m_poll_descriptors))
+        {
+            ::snd_seq_poll_descriptors               /* input descriptors   */
+            (
+                m_alsa_seq, m_poll_descriptors, m_num_poll_descriptors, POLLIN
+            );
+//          snd_seq_set_output_buffer_size(m_alsa_seq, c_midibus_output_size);
+//          snd_seq_set_input_buffer_size(m_alsa_seq, c_midibus_input_size);
+        }
+    }
+    else
+    {
+        errprint("No ALSA poll descriptors found");
+    }
+}
+
+#endif
+
+/**
+ *  Checks to see if events (midi::messages) are in the input queue.
+ */
+
+int
+midi_alsa::poll_for_midi () const
+{
+    static bool s_using_input_thread { true };          // TEMPORARY TESTING
+    if (s_using_input_thread)                       /* midi_alsa_handler()  */
+    {
+        const rtmidi_in_data & rtidata { input_data() };
+        const midi_queue & mq { rtidata.queue() };
+        return mq.count();
+    }
+    else
+    {
+#if defined USE_THIS_CODE
+
+    /**
+     *  The number of descriptors for polling.
+     */
+
+    int m_num_poll_descriptors;
+
+    /**
+     *  Points to the list of descriptors for polling.
+     */
+
+    struct pollfd * m_poll_descriptors;
+
+static const int c_poll_wait_ms { 10 };
+
+    m_num_poll_descriptors  (0),            /* from ALSA mastermidibus      */
+    m_poll_descriptors      (nullptr)       /* ditto                        */
+
+        int result = ::poll
+        (
+            m_poll_descriptors, m_num_poll_descriptors, c_poll_wait_ms
+        );
+#endif
+    }
+}
+
 /**
  *  Grab a MIDI event.  First, a rather large buffer is allocated on the stack
  *  to hold the MIDI event data.  Next, if the --alsa-manual-ports option is
@@ -1934,7 +2025,7 @@ midi_alsa::clock_continue (midi::pulse /* tick */, midi::pulse beats)
  *
  *      This ALSA-based application is weird and causes weird behavior.
  *      Running it, letting Seq66 auto-connect, then hitting a piano key in
- *      VMPK, causes a Seq66 message "input FIFO overrun".  Later, VMPK
+ *      VMPK, causes a Seq66 message "input overrun".  Later, VMPK
  *      crashes.
  *
  * \todo
@@ -1965,7 +2056,7 @@ midi_alsa::get_midi_event (midi::event * inev)
             // no input in non-blocking mode
         }
         else if (remcount == -ENOSPC)
-            error_print("get_midi_event()", "input FIFO overrun");
+            error_print("get_midi_event()", "input overrun");
         else
             error_print("get_midi_event()", "failure");
 
@@ -2051,7 +2142,7 @@ midi_alsa::get_midi_event (midi::event * inev)
 #endif
             while (sysex)           /* sysex might be more than one message */
             {
-                int remcount { ::snd_seq_event_input(sseq, &ev) };
+                remcount = ::snd_seq_event_input(sseq, &ev);
                 bytecount = ::snd_midi_event_decode
                 (
                     mididev, buff.data(), long(buffersize), ev
@@ -2079,6 +2170,132 @@ midi_alsa::get_midi_event (midi::event * inev)
     ::snd_midi_event_free(mididev);
     return result;
 }
+
+#if defined USE_THIS_CODE
+
+/**
+ *  A simpler version of get_midi_event() that merely puts the incoming event
+ *  onto the input queue.
+ *
+ * snd_seq_event_t::type
+ *
+ *      SND_SEQ_EVENT_CLIENT_START = 60     (/usr/include/alsa/seq_event.h)
+ *      SND_SEQ_EVENT_CLIENT_EXIT
+ *      SND_SEQ_EVENT_CLIENT_CHANGE
+ *      SND_SEQ_EVENT_PORT_START
+ *      SND_SEQ_EVENT_PORT_EXIT
+ *      SND_SEQ_EVENT_PORT_CHANGE
+ *      SND_SEQ_EVENT_PORT_SUBSCRIBED
+ *      SND_SEQ_EVENT_PORT_UNSUBSCRIBED
+ *
+ * snd_seq_tick_time_t snd_seq_event_t::tick
+ * snd_seq_tick_time_t is an unsigned int.
+ *
+ * snd_seq_event_data_t union:
+ *
+ *      snd_seq_ev_note_t note
+ *      snd_seq_ev_ctrl_t control
+ *      snd_seq_ev_raw8_t  raw8
+ *      snd_seq_ev_raw32_t  raw32
+ *      snd_seq_ev_ext_t  ext
+ *      snd_seq_ev_queue_control_t  queue
+ *      snd_seq_timestamp_t  time
+ *      snd_seq_addr_t  addr
+ *      snd_seq_connect_t  connect
+ *      snd_seq_result_t  result
+ */
+
+bool
+midi_alsa::get_midi_message (midi::message & incoming)
+{
+    bool result { false };
+    ::snd_seq_event_t * ev;
+    int remcount { ::snd_seq_event_input(client_handle(), &ev) };
+    if (remcount < 0 || is_nullptr(ev))
+    {
+        if (remcount == -EAGAIN)
+        {
+            // no input in non-blocking mode
+        }
+        else if (remcount == -ENOSPC)
+            error_print("get_midi_event()", "input overrun");
+        else
+            error_print("get_midi_event()", "input error");
+
+        return false;
+    }
+
+    /*
+     * SND_SEQ_EVENT_xxx codes stripped. We might need to add another
+     * code or two to the midi::message.
+     */
+
+    const size_t buffersize { 256 };            /* 12 enough but for SysEx  */
+    midi::bytes buff(buffersize);               /* pre-allocate the data    */
+    ::snd_midi_event_t * mididev;               /* make ALSA MIDI parser    */
+    int rc { ::snd_midi_event_new(buffersize, &mididev) };
+    if (rc < 0)                                 /* || is_nullptr(mididev)   */
+    {
+        error_print("snd_midi_event_new()", "failed");
+        return false;
+    }
+
+    long bytecount
+    {
+        ::snd_midi_event_decode(mididev, buff.data(), long(buffersize), ev)
+    };
+    if (bytecount > 0)
+    {
+        buff.resize(size_t(bytecount);
+        midi::message msg(buff);
+        msg.jack_stamp(double(ev->time.tick));
+
+//      result = inev->set_midi_event(ev->time.tick, buff, bytecount);
+        ::snd_seq_t * sseq { alsa_data().alsa_client() };
+
+        midi::bussbyte b { 0 };       // TODO
+        if (has_master())
+        {
+            midi::bussbyte b
+            {
+                master_bus()->get_port_id
+                (
+                    midi::port::io::input,
+                    int(ev->source.client), int(ev->source.port)
+                )
+            };
+        }
+
+        bool sysex { msg.is_sysex() };
+        msg.set_input_bus(b);
+        while (sysex)           /* sysex might be more than one message */
+        {
+            remcount = ::snd_seq_event_input(sseq, &ev);
+            bytecount = ::snd_midi_event_decode
+            (
+                mididev, buff.data(), long(buffersize), ev
+            );
+            if (bytecount > 0)
+            {
+                sysex = msg.append_sysex(buff, bytecount);
+                if (remcount == 0)
+                    sysex = false;
+            }
+            else
+                sysex = false;
+        }
+        result = true;
+    }
+    else
+    {
+        incoming.clear();
+        result = false;
+    }
+    ::snd_midi_event_free(mididev);
+    return result;
+}
+
+#endif
 
 /**
  *  This send_event() function takes a native event, encodes it to an ALSA MIDI

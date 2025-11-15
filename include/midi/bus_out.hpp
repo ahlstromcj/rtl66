@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-08-30
+ * \updates       2025-11-11
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -77,7 +77,7 @@ private:
 
 public:
 
-    bus_out () = delete;
+    bus_out () = default;
     bus_out (midi::masterbus & master, int index);
     bus_out (const bus_out &) = delete;
     bus_out (bus_out &&) = delete;

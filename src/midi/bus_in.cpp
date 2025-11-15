@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-09-29
+ * \updates       2025-11-11
  * \license       GNU GPLv2 or above
  *
  */
@@ -125,6 +125,8 @@ bus_in::init_input (bool inputing)
     return result;
 }
 
+#if defined USE_MIDI_API_PTR
+
 /**
  *  Does checking for port_enabled() take too much time?
  */
@@ -132,13 +134,13 @@ bus_in::init_input (bool inputing)
 int
 bus_in::poll_for_midi () const
 {
+    int result { 0 };
     if (port_enabled())
     {
-        return not_nullptr(midi_api_ptr()) ?
-            midi_api_ptr()->poll_for_midi() : 0 ;
+        if (not_nullptr(midi_api_ptr()))
+            result = midi_api_ptr()->poll_for_midi();
     }
-    else
-        return false;
+    return result;
 }
 
 bool
@@ -152,6 +154,60 @@ bus_in::get_midi_event (event * inev)
     else
         return false;
 }
+
+midi::message
+bus_in::get_message () const
+{
+    if (port_enabled())
+    {
+        return not_nullptr(midi_api_ptr()) ?
+            midi_api_ptr()->get_message();
+    }
+    else
+        return midi::message();
+}
+
+#else
+
+int
+bus_in::poll_for_midi () const
+{
+#if defined PLATFORM_DEBUG
+    if (port_enabled())
+    {
+        int count { m_rtmidi_in.poll_for_midi() };
+        if (count > 0)
+        {
+            printf("%s ", to_string().c_str());
+            printf("    %d events\n", count);
+        }
+        return count;
+    }
+    else
+    {
+        printf("%s ", to_string().c_str());
+        printf("    Not enabled\n");
+        return 0;
+    }
+#else
+    return port_enabled() ? m_rtmidi_in.poll_for_midi() : 0 ;
+#endif
+
+}
+
+bool
+bus_in::get_midi_event (event * inev)
+{
+    return port_enabled() ? m_rtmidi_in.get_midi_event(inev) : false ;
+}
+
+midi::message
+bus_in::get_message () const
+{
+    return port_enabled() ? m_rtmidi_in.get_message() : midi::message() ;
+}
+
+#endif
 
 }           // namespace midi
 

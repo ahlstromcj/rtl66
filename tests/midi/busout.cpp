@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2025-08-26
- * \updates       2025-11-07
+ * \updates       2025-11-14
  * \license       See above.
  *
  *      This application has elements of the play test application,
@@ -74,8 +74,8 @@ midi::client_defaults s_client_defaults
     midi::port::io::duplex,             /* MIDI port type                   */
     -1,                                 /* queue size immaterial for output */
     false,                              /* threads immaterial for output    */
-    -1,                                 /* input port number                */
-    -1                                  /* output port number               */
+    midi::c_port_null,                  /* input port number (default)      */
+    midi::c_port_null                   /* output port number (default)     */
 };
 
 /**

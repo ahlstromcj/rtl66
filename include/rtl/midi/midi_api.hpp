@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-03
+ * \updates       2025-11-11
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -119,9 +119,11 @@ private:
      *  It also contains flags for first-message, continue-sysex, ignoring
      *  certain events, allowing input, and using a callback function (with a
      *  pointer to user data).
+     *
+     *  It's mutable so that we can pop const function.
      */
 
-    rtmidi_in_data m_input_data { };
+    mutable rtmidi_in_data m_input_data { };
 
     /**
      *  Holds optional application-wide information about the MIDI ports.
@@ -355,6 +357,11 @@ public:
         return m_input_data;
     }
 
+    const rtmidi_in_data & input_data () const
+    {
+        return m_input_data;
+    }
+
     static rtmidi_in_data * static_in_data_cast (void * vp)
     {
         return reinterpret_cast<rtmidi_in_data *>(vp);
@@ -486,6 +493,8 @@ protected:
         return false;
     }
 
+    virtual midi::message get_message () const;
+
 #endif  // defined RTL66_MIDI_EXTENSIONS
 
     bool is_connected () const
@@ -520,10 +529,9 @@ protected:
     void set_buffer_size (size_t sz, int count);
     void set_input_callback
     (
-        rtmidi_in_data::callback_t callback, void * userdata
+        rtmidi_in_data::callback_t cb, void * userdata
     );
     void cancel_input_callback ();
-    double get_message (midi::message & msg);
 
     void port_number (int n)
     {

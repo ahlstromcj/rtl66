@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-03
+ * \updates       2025-11-10
  * \license       See above.
  *
  */
@@ -113,7 +113,8 @@ rtmidi_in::rtmidi_in (/* const */ midi::masterbus & mb) : rtmidi ()
             bool midisense { mis.input_use_active_sensing };
             rtmidi_in_data::callback_t cb
             {
-                reinterpret_cast<rtmidi_in_data::callback_t>(mis.input_callback)
+                mis.input_callback
+//              reinterpret_cast<rtmidi_in_data::callback_t>(mis.input_callback)
             };
             ignore_midi_types(midisysex, miditime, midisense);
             if (not_nullptr(cb))
@@ -302,10 +303,10 @@ rtmidi_in::ignore_midi_types (bool midisysex, bool miditime, bool midisense)
  *  connection was not previously established.
  */
 
-double
-rtmidi_in::get_message (midi::message & msg)
+midi::message
+rtmidi_in::get_message () const
 {
-    return static_cast<midi_api *>(rt_api_ptr())->get_message(msg);
+    return static_cast<const midi_api *>(rt_api_ptr())->get_message();
 }
 
 /**

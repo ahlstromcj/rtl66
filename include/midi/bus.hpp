@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-10-29
+ * \updates       2025-11-11
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -309,14 +309,14 @@ public:
 
 #endif
 
-    void get_port_items (port::io iotype);
+    void get_port_items (midi::port::io iotype);
 
-    masterbus * master_bus ()
+    midi::masterbus * master_bus ()
     {
         return m_master_bus;
     }
 
-    const masterbus * master_bus () const
+    const midi::masterbus * master_bus () const
     {
         return m_master_bus;
     }
@@ -362,6 +362,11 @@ public:
     const midi::port & midi_port () const
     {
         return m_port;
+    }
+
+    std::string to_string () const
+    {
+        return midi_port().to_string();
     }
 
     /*
@@ -426,19 +431,19 @@ public:
         return (port_number() == p) && (bus_number() == b);
     }
 
-    port::kind port_type () const
+    midi::port::kind port_type () const
     {
         return midi_port().port_type();
     }
 
-    void port_type (port::kind pk)
+    void port_type (midi::port::kind pk)
     {
         midi_port().port_type(pk);
     }
 
     bool is_virtual_port () const
     {
-        return port_type() == port::kind::manual;
+        return port_type() == midi::port::kind::manual;
     }
 
     /**
@@ -452,37 +457,49 @@ public:
     void is_virtual_port (bool flag)
     {
         if (! is_system_port())
-            port_type(flag ? port::kind::manual : port::kind::normal);
+        {
+            port_type
+            (
+                flag ? midi::port::kind::manual : midi::port::kind::normal
+            );
+        }
     }
 
-    port::io io_type () const
+    midi::port::io io_type () const
     {
         return midi_port().io_type();
     }
 
-    void io_type (port::io iot)
+    void io_type (midi::port::io iot)
     {
         midi_port().io_type(iot);
     }
 
     bool is_input_port () const
     {
-        return io_type() == port::io::input;
+        return io_type() == midi::port::io::input ||
+            io_type() == midi::port::io::duplex;
     }
 
     bool is_output_port () const
     {
-        return io_type() == port::io::output;
+        return io_type() == midi::port::io::output ||
+            io_type() == midi::port::io::duplex;
+    }
+
+    bool is_duplex_port () const
+    {
+        return io_type() == midi::port::io::duplex;
     }
 
     void is_input_port (bool flag)
     {
-        io_type(flag ? port::io::input : port::io::output);
+        io_type(flag ? midi::port::io::input : midi::port::io::output);
     }
 
     bool is_system_port () const
     {
-        return port_type() == port::kind::system;
+        return port_type() == midi::port::kind::system;
     }
 
     bool is_port_connectable () const;

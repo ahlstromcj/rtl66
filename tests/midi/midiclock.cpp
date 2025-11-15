@@ -62,40 +62,36 @@ void
 midi_clock_callback
 (
     double deltatime,
-    midi::message * message,
+    midi::message & msg,
     void * userdata
 )
 {
-    if (not_nullptr(message))
+    unsigned * clock_count = reinterpret_cast<unsigned *>(userdata);
+    if (msg.size() == 1)           /* ignore longer messages           */
     {
-        unsigned * clock_count = reinterpret_cast<unsigned *>(userdata);
-        midi::message & msg = *message;
-        if (msg.size() == 1)           /* ignore longer messages           */
+        midi::byte b = msg[0];                      // message->at(0);
+        if (midi::is_midi_start_msg(b))             // 0xFA
+            std::cout << "START" << std::endl;
+
+        if (midi::is_midi_continue_msg(b))          // 0xFB
+            std::cout << "CONTINUE" << std::endl;
+
+        if (midi::is_midi_stop_msg(b))              // 0xFC
+            std::cout << "STOP" << std::endl;
+
+        if (midi::is_midi_clock_msg(b))             // 0xF8
         {
-            midi::byte b = msg[0];                      // message->at(0);
-            if (midi::is_midi_start_msg(b))             // 0xFA
-                std::cout << "START" << std::endl;
-
-            if (midi::is_midi_continue_msg(b))          // 0xFB
-                std::cout << "CONTINUE" << std::endl;
-
-            if (midi::is_midi_stop_msg(b))              // 0xFC
-                std::cout << "STOP" << std::endl;
-
-            if (midi::is_midi_clock_msg(b))             // 0xF8
+            if (++*clock_count == 24)               /* yikes! */
             {
-                if (++*clock_count == 24)               /* yikes! */
-                {
-                    double bpminute = 60.0 / 24.0 / deltatime;
-                    std::cout << "One beat, estimated BPM = "
-                        << bpminute <<std::endl
-                        ;
-                    *clock_count = 0;
-                }
+                double bpminute = 60.0 / 24.0 / deltatime;
+                std::cout << "One beat, estimated BPM = "
+                    << bpminute <<std::endl
+                    ;
+                *clock_count = 0;
             }
-            else
-            *clock_count = 0;
         }
+        else
+            *clock_count = 0;
     }
 }
 

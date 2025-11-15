@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-10-29
+ * \updates       2025-11-14
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -94,10 +94,10 @@
  *      -   make_virtual_bus(), make_normal_bus()
  */
 
+#include "midi/bus_in.hpp"              /* midi::bus_in                     */
+#include "midi/bus_out.hpp"             /* midi::bus_out                    */
 #include "midi/event.hpp"               /* midi::event class                */
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
-#include "midi/bus_in.hpp"              /* midi::bus_in class               */
-#include "midi/bus_out.hpp"             /* midi::bus_out class              */
 #include "midi/track.hpp"               /* midi::track class                */
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in port              */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out port             */
@@ -700,11 +700,44 @@ masterbus::poll_for_midi () const
     return result;
 }
 
+int
+masterbus::poll_port (int portnumber) const
+{
+    xpc::automutex locker(m_mutex);
+    masterbus * ncthis { const_cast<masterbus *>(this) };
+    midi::bus_in & busin { ncthis->get_in_bus(portnumber) };
+    int result { busin.poll_for_midi() };
+    if (result > 0)
+    {
+        if (result <= 2)
+            (void) xpc::microsleep(xpc::std_sleep_us());    /* sensible?    */
+    }
+    else
+    {
+        (void) xpc::microsleep(xpc::std_sleep_us());
+    }
+    return result;
+}
+
 bool
 masterbus::get_midi_event (midi::event * inev)
 {
     xpc::automutex locker(m_mutex);
     return engine().get_midi_event(inev);
+}
+
+midi::message
+masterbus::get_message (int portnumber) const
+{
+    xpc::automutex locker(m_mutex);
+    if (portnumber != RTL66_PORTS_ALL)
+    {
+        masterbus * ncthis { const_cast<masterbus *>(this) };
+        midi::bus_in & busin { ncthis->get_in_bus(portnumber) };
+        return busin.get_message();
+    }
+    else
+        return engine().get_message();
 }
 
 /**
@@ -1007,6 +1040,7 @@ masterbus::engine_initialize (const clientinfo & ci)
                     {
                         isinput ? inbus_array() : outbus_array()
                     };
+                    busarray_1.set_io_type(iotype);
                     for (int p = 0; p < pcount; ++p)
                     {
                         midi::bus * b = make_bus(p, iotype);
@@ -1031,6 +1065,7 @@ masterbus::engine_initialize (const clientinfo & ci)
                     {
                         isinput ? inbus_array() : outbus_array()
                     };
+                    busarray_2.set_io_type(iotype);
                     for (int p = 0; p < pcount; ++p)
                     {
                         midi::bus * b = make_bus(p, iotype);

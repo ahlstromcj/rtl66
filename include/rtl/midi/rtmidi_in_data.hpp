@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-11-05
+ * \updates       2025-11-10
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -103,8 +103,8 @@ public:
     using callback_t = void (*)
     (
         double deltatime,
-        midi::message * msg,
-        void * userdata
+        midi::message & msg,
+        void * userdata             /* optional */
     );
 
 private:

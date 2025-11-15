@@ -98,8 +98,8 @@ public:
         input,          /**< The port is an input MIDI port.                */
         output,         /**< The port is an output MIDI port.               */
         duplex,         /**< Input or output port.                          */
-        engine,         /**< The port can be used by midi::masterbus.       */
-        dummy           /**< Use by the midi_dummy class                    */
+        engine,         /**< The port is purely for use by midi::masterbus. */
+        dummy           /**< Use by midi_dummy or for undetermined ports.   */
     };
 
     /**

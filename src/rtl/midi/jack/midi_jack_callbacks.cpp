@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-27
+ * \updates       2025-11-10
  * \license       See above.
  *
  *  The JACK callbacks have been moved into a separate file for better
@@ -452,7 +452,7 @@ jack_process_in (jack_nframes_t framect, void * arg)
             if (rtdata->using_callback())
             {
                 rtmidi_in_data::callback_t cb = rtdata->user_callback();
-                cb(msg.jack_stamp(), &msg, rtdata->user_data());
+                cb(msg.jack_stamp(), msg, rtdata->user_data());
             }
             else
             {

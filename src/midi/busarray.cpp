@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-10-27
+ * \updates       2025-11-11
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -34,8 +34,9 @@
  */
 
 #include "cpp_types.hpp"                /* CSTR() function from lib66       */
-#include "midi/bus.hpp"                 /* midi::bus, clocking              */
 #include "midi/busarray.hpp"            /* rtl66::busarray class            */
+#include "midi/bus_in.hpp"              /* midi::bus_in                     */
+#include "midi/bus_out.hpp"             /* midi::bus_out                    */
 #include "midi/event.hpp"               /* rtl66::event class               */
 
 namespace midi
@@ -204,6 +205,8 @@ public:
         }
         return false;
     }
+
+    // TODO: add get_message() function.
 
     int replacement_port (int b, int p)
     {
@@ -596,8 +599,8 @@ busarray::print () const
 }
 
 /**
- *  Turn off the given port for the given client.  Both the busses for the given
- *  client are stopped: that is, set to inactive.
+ *  Turn off the given port for the given client.  Both the busses for the
+ *  given client are stopped: that is, set to inactive.
  *
  *  This function is called by api_get_midi_event() when the ALSA event
  *  SND_SEQ_EVENT_PORT_EXIT is received.  Since port_exit() has no direct
@@ -852,6 +855,50 @@ busarray::buss (midi::bussbyte b)
     midi::bus * bptr { p_impl->bus_ptr(b) };
     bool good_busnumber { not_nullptr(bptr) };
     return good_busnumber ? *bptr : s_dummy_bus ;
+}
+
+midi::bus_in &
+busarray::buss_in (midi::bussbyte b)
+{
+    static midi::bus_in s_dummy_bus;
+    midi::bus * bptr { p_impl->bus_ptr(b) };
+    bool good_busnumber { not_nullptr(bptr) };
+    if (good_busnumber)
+    {
+        try
+        {
+            midi::bus_in & bin { dynamic_cast<midi::bus_in &>(*bptr) };
+            return bin;
+        }
+        catch (std::bad_cast &)
+        {
+            return s_dummy_bus ;
+        }
+    }
+    else
+        return s_dummy_bus ;
+}
+
+midi::bus_out &
+busarray::buss_out (midi::bussbyte b)
+{
+    static midi::bus_out s_dummy_bus;
+    midi::bus * bptr { p_impl->bus_ptr(b) };
+    bool good_busnumber { not_nullptr(bptr) };
+    if (good_busnumber)
+    {
+        try
+        {
+            midi::bus_out & bout { dynamic_cast<midi::bus_out &>(*bptr) };
+            return bout;
+        }
+        catch (std::bad_cast &)
+        {
+            return s_dummy_bus ;
+        }
+    }
+    else
+        return s_dummy_bus ;
 }
 
 /**

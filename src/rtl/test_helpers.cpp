@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-11-06
+ * \updates       2025-11-15
  * \license       See above.
  *
  */
@@ -75,15 +75,24 @@ rt_test_sleep (int ms)
 /**
  * Functions to choose ports:
  *
- *  -   rt_choose_port_number(bool).
+ *  -   rt_choose_port(bool, int &) [static]
  *
  *      -   Creates an rtmidi_out or rtmidi_in object.
- *      -   Gets the port count.
+ *      -   Gets the port count; it is copied to the integer output
+ *          parameter.
  *      -   For each port, gets the number and name, and shows it
- *          for the user to pick.
+ *          for the user to pick, along with the "All ports" option..
+ *          Sets the static value s_open_all_ports to true with the
+ *          "all" option.
  *      -   Note: No port-opening is done.
  *
+ *  -   rt_choose_port_number(bool).
+ *
+ *      -   Calls the rt_choose_port() function described above.
+ *      -   Ignores the port count.
+ *
  *  -   choose_midi_port(RTMIDI_TYPE &, isoutput)
+ *
  *      -   A template called with type rtmidi_out or rtmidi_in.
  *      -   If virtual, a virtual port is opened, otherwise...
  *      -   rt_choose_port_number() is called as above.
@@ -92,8 +101,9 @@ rt_test_sleep (int ms)
  *      -   The test port is opened.
  *
  *  -   rt_choose_input_port() calls choose_midi_port<rtl::rtmidi_in>(false);
- *
  *  -   rt_choose_output_port() calls choose_midi_port<rtl::rtmidi_out>(false);
+ *  -   rt_choose_input_ports() calls rt_choose_port(false, portcount);
+ *  -   rt_choose_output_ports() calls rt_choose_port(true, portcount);
  */
 
 /**
@@ -104,11 +114,17 @@ rt_test_sleep (int ms)
  *      port number official.
  */
 
-int
-rt_choose_port_number (bool isoutput)
+static bool s_open_all_ports { false };
+
+bool rt_open_all_ports ()
+{
+    return s_open_all_ports;
+}
+
+static int
+rt_choose_port (bool isoutput, int & portcount)
 {
     int result { -1 };
-    int portcount { 0 };
     std::string direction { isoutput ? _("output") : _("input") };
     std::string portname;
     std::unique_ptr<rtl::rtmidi> rt;
@@ -156,11 +172,32 @@ rt_choose_port_number (bool isoutput)
                         << std::endl
                         ;
                 }
+                std::cout
+                    << "  " << direction << " " << _("port") << " #"
+                    << portcount << ": All ports"
+                    << std::endl
+                    ;
                 do
                 {
                     std::cout << _("Choose a port number") << ": ";
-                    std::cin >> p;
-
+                    try
+                    {
+                        std::cin >> p;
+                    }
+                    catch (...)
+                    {
+                        /*
+                         * Entering a letter yields p == 0, but causes
+                         * a seqgfault. Entering 0? No problem. So we catch.
+                         * DOESN'T HELP.
+                         */
+                    }
+                    if (p == portcount)
+                    {
+                        p = midi::c_ports_all;
+                        s_open_all_ports = true;
+                        break;
+                    }
                 } while (p < 0 || p >= portcount);
                 result = p;
 
@@ -186,6 +223,14 @@ rt_choose_port_number (bool isoutput)
         std::string msg { _("Unknown exception... fix the catch") };
         errprint(CSTR(msg));
     }
+    return result;
+}
+
+int
+rt_choose_port_number (bool isoutput)
+{
+    int portcount { 0 };
+    int result { rt_choose_port(isoutput, portcount) };
     return result;
 }
 
@@ -246,6 +291,24 @@ rt_choose_output_port (rtl::rtmidi_out & rtout)
 }
 
 /**
+ *  These versions choose the port number and also return the port-count,
+ *  for convenience.
+ */
+
+int
+rt_choose_input_ports (int & portcount)
+{
+    return rt_choose_port(false, portcount);
+}
+
+int
+rt_choose_output_ports (int & portcount)
+{
+    return rt_choose_port(true, portcount);
+}
+
+
+/**
  *  This stuff provides a very simple set of command-line options, mostly
  *  for the test applications.
  *
@@ -287,6 +350,7 @@ static const char * s_help_text_fmt
 "  --bpm value      Change the default BPM from 120.0 to the given value.\n"
 "  --client cn      Provide a client name (e.g. to be shown in JACK graph.\n"
 "  --port p         Set the test port, for applications that use that option.\n"
+"                   'all' means all ports, if the application supports it.\n"
 "  --port-in p      Set the input test port, for apps that need I/O ports.\n"
 "  --port-out p     Set the output test port, for apps that need I/O ports.\n"
 "  --port-name n    Provides a test name for the port. Otherwise empty.\n"
@@ -385,17 +449,21 @@ rt_test_port_out ()
 bool
 rt_test_port_valid (int portnumber)
 {
-    return portnumber >= 0 && portnumber <= RTL66_PORT_NUMBER_LIMIT;
+    return
+    (
+        (portnumber >= 0 && portnumber <= RTL66_PORT_NUMBER_LIMIT) ||
+        portnumber == RTL66_PORTS_ALL
+    );
 }
 
 /**
- *  The default port number is RTL66_PORT_ALL_PORTS.
+ *  The default port number is RTL66_PORTS_ALL.
  */
 
 bool
 rt_open_all_ports (int portnumber)
 {
-    return portnumber == RTL66_PORT_ALL_PORTS;
+    return portnumber == RTL66_PORTS_ALL;
 }
 
 /**
@@ -618,8 +686,15 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
             if (i + 1 < argc)
             {
                 std::string value { std::string(argv[i + 1]) };
-                int v { string_to_int(value) };
-                set_rt_test_port(v);
+                if (value == "all")
+                {
+                    set_rt_test_port(RTL66_PORTS_ALL);
+                }
+                else
+                {
+                    int v { string_to_int(value) };
+                    set_rt_test_port(v);
+                }
             }
         }
         else if (arg == "--port-in")
@@ -627,8 +702,15 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
             if (i + 1 < argc)
             {
                 std::string value { std::string(argv[i + 1]) };
-                int v { string_to_int(value) };
-                set_rt_test_port_in(v);
+                if (value == "all")
+                {
+                    set_rt_test_port(RTL66_PORTS_ALL);
+                }
+                else
+                {
+                    int v { string_to_int(value) };
+                    set_rt_test_port_in(v);
+                }
             }
         }
         else if (arg == "--port-out")
@@ -636,8 +718,15 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
             if (i + 1 < argc)
             {
                 std::string value { std::string(argv[i + 1]) };
-                int v { string_to_int(value) };
-                set_rt_test_port_out(v);
+                if (value == "all")
+                {
+                    set_rt_test_port(RTL66_PORTS_ALL);
+                }
+                else
+                {
+                    int v { string_to_int(value) };
+                    set_rt_test_port_out(v);
+                }
             }
         }
         else if (arg == "--port-name")

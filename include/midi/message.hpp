@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-10-08
+ * \updates       2025-11-13
  * \license       See above.
  *
  *  Should we add operator [] for setting as well?
@@ -67,7 +67,7 @@ public:
 
 private:
 
-#if defined RTL66_PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG
 
     /**
      *  Provide a static counter to keep track of events. Currently needed
@@ -122,7 +122,16 @@ private:
      *  array.
      */
 
-    midi::byte m_channel { null_channel() };  // FOLD INTO STATUS BYTE??
+    midi::byte m_channel { null_channel() };
+
+    /**
+     *  For use in a new get_midi_message() function, currently in progress
+     *  only in midi_alsa. For ALSA, it is an unsigned char
+     *  snd_seq_event_type_t value.
+     */
+
+    int m_midi_buss { c_bussbyte_max };         /* e.g. 0xFF */
+    unsigned m_midi_event_type;
 
 public:
 
@@ -215,7 +224,7 @@ public:
         return int(size());
     }
 
-#if defined RTL66_PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG
 
     unsigned msg_number () const
     {
@@ -274,6 +283,14 @@ public:
         m_bytes.insert(m_bytes.end(), beginning, ending);
     }
 
+    void assign (midi::bytes & b, size_t sz = 0)
+    {
+        if (sz == 0)
+            sz = b.size();
+
+        m_bytes.assign(b.begin(), b.begin() + sz);
+    }
+
     void resize (int len)
     {
         m_bytes.resize(size_t(len));
@@ -309,6 +326,26 @@ public:
         return m_channel;
     }
 
+    int midi_buss () const
+    {
+        return m_midi_buss;
+    }
+
+    void midi_buss (int b)
+    {
+        m_midi_buss = b;
+    }
+
+    unsigned midi_event_type () const
+    {
+        return m_midi_event_type;
+    }
+
+    void midi_event_type (unsigned t)
+    {
+        m_midi_event_type = t;
+    }
+
     bool is_sysex () const
     {
         return m_bytes.size() > 0 ? midi::is_sysex_msg(m_bytes[0]) : false ;
@@ -319,6 +356,7 @@ public:
         return event_byte_count() > 0 ? m_bytes[0] : 0 ;
     }
 
+    bool append_sysex (const midi::bytes & data, size_t dsize = 0);
     std::string to_string () const;
 
 };          // class message

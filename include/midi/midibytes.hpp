@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2025-06-30
+ * \updates       2025-11-14
  * \license       GNU GPLv2 or above
  *
  *  These aliases are intended to remove ambiguity seen between signed and
@@ -52,6 +52,8 @@
 #include <cstdint>                      /* uint64_t and other types         */
 #include <string>                       /* std::string, basic_string        */
 #include <vector>                       /* std::vector<byte> etc.           */
+
+#include "rtl/rtl_build_macros.h"       /* RTL66_PORTS_ALL, etc.            */
 
 /*
  *  Since we're using unsigned variables for counting pulses, we can't do the
@@ -181,9 +183,9 @@ using booleans = std::vector<boolean>;
  *  Default settings for MIDI as per the specification.
  */
 
-const int c_midi_clocks_per_metronome   { 24 };
-const int c_midi_32nds_per_quarter      {  8 };
-const int c_midi_pitch_wheel_range      {  2 };     /* +/- 2 semitones      */
+const int c_midi_clocks_per_metronome   { RTL66_DEFAULT_CLOCKS_PER_METRO };
+const int c_midi_32nds_per_quarter      { RTL66_DEFAULT_32NDS_PER_QUARTER };
+const int c_midi_pitch_wheel_range      { RTL66_DEFAULT_PITCHBEND_SEMITONES };
 
 /**
  *  We need a unique pulse value that can be used to be indicate a bad,
@@ -215,20 +217,24 @@ const byte c_note_max   { 127 };
 /**
  *  Maximum and unusable values.  Use these values to avoid sign issues.
  *  Also see c_null_pulse.  No global buss override is in force if the
- *  buss override number is c_bussbyte_max (0xFF).
+ *  buss override number is c_bussbyte_max (0xFF). Note that the terms
+ *  "buss" and "port" are somewhat interchangeable; "port" can be negative
+ *  to indicate bad values..
  */
 
 const byte c_byte_max           { byte(0xFFu) };
 const bussbyte c_bussbyte_max   { bussbyte(0xFFu) };
+const int c_ports_all           { RTL66_PORTS_ALL };        /* 0xFE */
+const int c_port_null           { RTL66_PORT_NULL };        /* 0xFF */
 const ushort c_ushort_max       { ushort(0xFFFF) };
 const ulong c_ulong_max         { ulong(0xFFFFFFFF) };
 
 /**
  *  Default value for c_max_busses.  Some people use a lot of ports, so we
- *  have increased this value from 32 to 48.
+ *  have increased this value from 32 to 48. See rtl_build_macros.h.
  */
 
-const int c_busscount_max       { 48 };
+const int c_busscount_max       { RTL66_PORT_NUMBER_LIMIT };
 
 /**
  *  Indicates the maximum number of MIDI channels, counted internally from 0

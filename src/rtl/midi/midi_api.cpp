@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-03
+ * \updates       2025-11-10
  * \license       See above.
  *
  */
@@ -133,13 +133,13 @@ midi_api::set_input_callback (rtmidi_in_data::callback_t cb, void * userdata)
 {
     if (m_input_data.using_callback())
     {
-        std::string msg { "midi_in_api::set_callback: already set" };
+        std::string msg { "midi_api::set_input_callback: already set" };
         error(rterror::kind::warning, msg);
         return;
     }
     if (is_nullptr(cb))
     {
-        std::string msg { "rtmidi_in::set_callback: null function" };
+        std::string msg { "rtmidi::set_input_callback: null function" };
         error(rterror::kind::warning, msg);
         return;
     }
@@ -164,18 +164,19 @@ midi_api::ignore_midi_types (bool midisysex, bool miditime, bool midisense)
     m_input_data.ignore_flags(midisysex, miditime, midisense);
 }
 
-double
-midi_api::get_message (midi::message & msg)
+midi::message
+midi_api::get_message () const
 {
-    msg.clear();
+    midi::message result;
     if (m_input_data.using_callback())
     {
         std::string msg { "midi_in_api::get_message: user callback in use" };
         error(rterror::kind::warning, msg);
-        return 0.0;
     }
-    msg = m_input_data.queue().pop_front();
-    return ! msg.empty() ? msg.jack_stamp() : 0.0 ;
+    else
+        result = m_input_data.queue().pop_front();
+
+    return result;
 }
 
 void

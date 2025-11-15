@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-11-07
+ * \updates       2025-11-14
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -50,7 +50,7 @@
  * get_port_alias (string name)                     -    - ADD TO rtmidi
  * get_io_port_info (midi::ports &, bool clear)     x    x     x     x   x
  * ignore_midi_types (bool, bool, bool)             x
- * get_message (midi::message & msg)                x
+ * get_message ()                                   x
  * set_buffer_size (size_t sz, int count)           x
  * set_error_callback (callback_t, void * data)     x    x
  * send_message (midi_message & msg)                x    x
@@ -307,7 +307,7 @@ public:
         return m_selected_api;
     }
 
-    port::io port_type () const
+    midi::port::io port_type () const
     {
         return client_info().port_type();
     }
@@ -372,14 +372,14 @@ public:
      *  bus. Useful mainly for testing.
      */
 
-    midi:: bus & get_in_bus (int index)
+    midi::bus_in & get_in_bus (int index)
     {
-        return inbus_array().buss(bussbyte(index));
+        return inbus_array().buss_in(bussbyte(index));
     }
 
-    midi:: bus & get_out_bus (int index)
+    midi::bus_out & get_out_bus (int index)
     {
-        return outbus_array().buss(bussbyte(index));
+        return outbus_array().buss_out(bussbyte(index));
     }
 
     int get_num_out_buses () const
@@ -419,26 +419,14 @@ public:
         return client_info().get_input_specs();
     }
 
-#if defined USE_THIS_CODE
-
-    /*
-     * The free function set_inputspecs_callback() is easier.
+    /**
+     *  Gets the application index (Seq66-style buss number).
      */
 
-    void user_callback (void * cb, void * userdata)
+    int get_port_id (port::io iotype, int bussno, int portno) const
     {
-        m_input_specs.input_callback = cb;
-        m_input_specs.input_userdata = userdata;
+        return client_info().get_port_id(iotype, bussno, portno);
     }
-
-    void ignore_flags (bool sysex, bool timecode, bool sense)
-    {
-        m_input_specs.input_use_sysex = sysex;
-        m_input_specs.input_use_time_code = timecode;
-        m_input_specs.input_use_active_sensing = sense;
-    }
-
-#endif
 
     /*
      * These rt_api_ptr() functions are duplicates of those in the
@@ -538,7 +526,9 @@ protected:  // API implementations
         midi::bussbyte bus, midi::port::io iotype
     ) const;
     int poll_for_midi () const;
+    int poll_port (int portnumber) const;
     bool get_midi_event (midi::event * inev);
+    midi::message get_message (int portnumber = RTL66_PORTS_ALL) const;
     bool port_start (int client, int port);     // TODO
     bool port_exit (int client, int port);      // TODO
     bool set_track_input (bool state, midi::track * trk);

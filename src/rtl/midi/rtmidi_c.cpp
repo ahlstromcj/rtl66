@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-27
+ * \updates       2025-11-10
  * \license       See above.
  *
  */
@@ -516,7 +516,7 @@ static void
 callback_proxy
 (
     double tstamp,
-    midi::message * message,
+    midi::message & msg,
     void * userdata
 )
 {
@@ -525,7 +525,7 @@ callback_proxy
 
     d->callback()
     (
-        tstamp, message->data_ptr(), message->size(), d->user_data()
+        tstamp, msg.data_ptr(), msg.size(), d->user_data()
     );
 }
 
@@ -651,8 +651,8 @@ rtmidi_in_get_message
 
         *psz = v.size();
 #else
-        midi::message m;
-        double ret = static_cast<rtl::rtmidi_in *>(device->ptr)->get_message(m);
+        midi::message m = static_cast<rtl::rtmidi_in *>(device->ptr)->get_message();
+        double ret = m.time_stamp();
         if (m.size () > 0 && m.size() <= *psz)
             memcpy(msg, m.data_ptr(), m.size());
 

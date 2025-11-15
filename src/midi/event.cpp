@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-10-27
+ * \updates       2025-11-13
  * \license       GNU GPLv2 or above
  *
  *  A MIDI event (i.e. "track event") is encapsulated by the midi::event
@@ -93,15 +93,11 @@ namespace midi
  *
  *  Note that the MIDI status and data are stored in a MIDI message and
  *  we currently insure it has three data bytes for easier modification.
+ *
+ *  Also note that all default member values are declared "in-class".
  */
 
-event::event () :
-#if defined RTL66_SUPPORT_PAINTED_EVENTS
-    m_marked        (false),
-    m_painted       (false)
-#else
-    m_marked        (false)
-#endif
+event::event ()
 {
     m_message.push(midi::to_byte(status::note_off));
     m_message.push(0);
@@ -109,17 +105,15 @@ event::event () :
 }
 
 /**
- *  This constructor just copies the midi::message bytes.
+ *  This constructor just copies the midi::message bytes and sets up
+ *  a few values extracted from the message.`
  */
 
 event::event (const midi::message & msg) :
+    m_input_buss    (bussbyte(msg.midi_buss())),
+    m_timestamp     (msg.time_stamp()),
     m_message       (msg),
-#if defined RTL66_SUPPORT_PAINTED_EVENTS
-    m_marked        (false),
-    m_painted       (false)
-#else
-    m_marked        (false)
-#endif
+    m_channel       (msg.channel())
 {
     // no code, but we might need more parsing
 }
@@ -749,7 +743,7 @@ event::set_midi_event
         else if (count == 1)
         {
             set_status(buffer[0]);
-            clear_data();
+            clear_bytes();
         }
     }
     else
@@ -822,7 +816,7 @@ event::set_midi_event
         default:
 
             set_status(eventstatus);
-            clear_data();
+            clear_bytes();
             break;
         }
     }

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-10-09
- * \updates       2025-11-09
+ * \updates       2025-11-14
  * \license       See above.
  *
  *      This application but merely opens one port and accepts messages,
@@ -91,9 +91,9 @@ midi::client_defaults s_client_defaults
     148,                                /* global BPM, not 120              */
     midi::port::io::duplex,             /* MIDI port type                   */
     -1,                                 /* queue size, a bad value          */
-    true, // false,                     /* ALSA MIDI is not threadsafe      */
-    -1,                                 /* input port number (default)      */
-    -1                                  /* output port number (default)     */
+    true, // false,           /* ALSA MIDI is not threadsafe      */
+    midi::c_port_null,                  /* input port number (default)      */
+    midi::c_port_null                   /* output port number (default)     */
 };
 
 /**
@@ -131,32 +131,26 @@ void
 midibytes_callback
 (
     double deltatime,                   /* always 0 in this test program    */
-    midi::message * msg,
+    midi::message & msg,
     void * userdata
 )
 {
     (void) userdata;
-    if (not_nullptr(msg))
+    deltatime = msg.jack_stamp();
+    size_t nbytes = msg.size();
+    if (nbytes > 0)
     {
-        midi::message & m = *msg;
-        deltatime = m.jack_stamp();
-        size_t nbytes = m.size();
-        if (nbytes > 0)
-        {
-            std::string msgline { "Input:" };
-            msgline += m.to_string();
-            util::status_message(msgline);
-        }
-        else
-        {
-            std::cout
-                << "input callback: empty message w/delta "
-                << deltatime << std::endl
-                ;
-        }
+        std::string msgline { "Input:" };
+        msgline += msg.to_string();
+        util::status_message(msgline);
     }
     else
-        std::cerr << "input callback: null message" << std::endl;
+    {
+        std::cout
+            << "input callback: empty message w/delta "
+            << deltatime << std::endl
+            ;
+    }
 }
 
 /**
@@ -182,7 +176,7 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
          */
 
         if (rt_use_callback())
-            ci.set_callback(midibytes_callback);
+            ci.set_input_callback(midibytes_callback);
     }
 
     static midi::masterbus s_master_bus { rapi, ci };
@@ -209,16 +203,16 @@ run_susceptible_test (int portnumber)
 {
     rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
     midi::masterbus & master { master_bus(rapi, app_client_info()) };
-    midi::bus & inbus { master.get_in_bus(portnumber) };
-    bool result { inbus.initialize() };
+    midi::bus_in & busin { master.get_in_bus(portnumber) };
+    bool result { busin.initialize() };
     if (result)
     {
         try
         {
-            midi::bus_in & busin
-            {
-                dynamic_cast<midi::bus_in &>(inbus)
-            };
+            // midi::bus_in & busin
+            // {
+            //    dynamic_cast<midi::bus_in &>(inbus)
+            // };
 
             /*
              * Don't ignore sysex, timing, or active sensing
@@ -228,7 +222,6 @@ run_susceptible_test (int portnumber)
              * busin.ignore_midi_types(false, false, false);
              */
 
-            midi::message msg;
             if (rt_use_callback())
             {
                 /*
@@ -257,7 +250,7 @@ run_susceptible_test (int portnumber)
                 xpc::clear_kb_ex();
                 while (! s_is_done)
                 {
-                    (void) busin.get_message(msg);
+                    midi::message msg { busin.get_message() };
                     if (msg.count() > 0)
                     {
                         std::string msgline { "Msg:" };
@@ -289,8 +282,66 @@ run_polling_test (int portnumber)
     bool result { inbus.initialize() };
     if (result)
     {
-        midi::poller p { master };
-        result = p.launch();
+        midi::poller p(master, portnumber);
+        result = p.launch(app_client_info());   /* global info is default   */
+        if (result)
+        {
+            p.start_polling();
+            try
+            {
+                midi::bus_in & busin
+                {
+                    dynamic_cast<midi::bus_in &>(inbus)
+                };
+                if (rt_use_callback())
+                {
+                    /*
+                     * Disabled, occurs too late in the process.
+                     *
+                     * busin.set_input_callback(&midibytes_callback);
+                     */
+
+                    std::cout
+                        << "Reading MIDI input ... press <Enter> to quit.\n"
+                        ;
+
+                    char input;
+                    std::cin.get(input);
+                }
+                else
+                {
+                    s_is_done = false;
+                    (void) signal(SIGINT, finish);
+                    std::cout
+                        << "Reading MIDI from port "
+                        << busin.port_name()
+                        << " ... quit with any key or <Ctrl-C>."
+                        << std::endl
+                        ;
+                    xpc::clear_kb_ex();
+                    while (! s_is_done)
+                    {
+                        midi::message msg { busin.get_message() };
+                        if (msg.count() > 0)
+                        {
+                            std::string msgline { "Msg:" };
+                            msgline += msg.to_string();
+                            util::status_message(msgline);
+                        }
+                        if (xpc::kbcheck_ex())
+                            break;
+
+                        rt_test_sleep(10);  /* sleep for 10 msec    */
+                    }
+                    p.stop_polling();
+                }
+            }
+            catch (const rtl::rterror & error)
+            {
+                std::cerr << "Caught rtl::rterror!" << std::endl;
+                result = false;
+            }
+        }
     }
     return result;
 }
@@ -353,9 +404,13 @@ main (int argc, char * argv [])
             int portnumber { rt_test_port() };
             app_client_info().input_portnumber(portnumber);
 
+#if 0
             bool ok { run_susceptible_test(portnumber) };
             if (ok)
                 ok = run_polling_test(portnumber);
+#else
+            bool ok { run_polling_test(portnumber) };
+#endif
 
             if (! ok)
                 had_error = true;

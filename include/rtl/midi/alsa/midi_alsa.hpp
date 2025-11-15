@@ -241,13 +241,7 @@ public:
     virtual bool clock_send (midi::pulse tick) override;
     virtual bool clock_stop () override;
     virtual bool clock_continue (midi::pulse tick, midi::pulse beats) override;
-
-    /*
-     * The ALSA poll_for_midi() function is not implemented at this time.
-     *
-     *      virtual int poll_for_midi () override;
-     */
-
+    virtual int poll_for_midi () const override;
     virtual bool get_midi_event (midi::event * inev) override;
 
     /*

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-02
+ * \updates       2025-11-10
  * \license       See above.
  *
  *  This module is meant to be #include'd in midi_alsa.cpp. It's been
@@ -223,17 +223,16 @@ void *
 midi_alsa_handler (void * ptr)
 {
     rtmidi_in_data * rtidata { midi_api::static_in_data_cast(ptr) };
-    if (rtidata->queue().unallocated())
-    {
-        error_print("midi_alsa_handler()", "queue unallocated");
-        return nullptr;
-    }
-
     midi_alsa_data * mad_data
     {
         midi_alsa::static_data_cast(rtidata->api_data())
     };
     ::snd_seq_t * client { mad_data->alsa_client() };
+    if (rtidata->queue().unallocated())
+    {
+        error_print("midi_alsa_handler()", "queue unallocated");
+        return nullptr;
+    }
 
     /*
      * Why 0? That's the buffer size. RtMidi does this, too. Makes no sense.
@@ -282,7 +281,7 @@ midi_alsa_handler (void * ptr)
         }
 
         /*
-         * Seqfaults can occur here!!!
+         * Seqfaults can occur here when two threads call midi_alsa_handler().
          */
 
         ::snd_seq_event_t * ev;
@@ -363,7 +362,7 @@ midi_alsa_handler (void * ptr)
         if (rtidata->using_callback())
         {
             rtmidi_in_data::callback_t cb = rtidata->user_callback();
-            cb(mmsg.jack_stamp(), &mmsg, rtidata->user_data());
+            cb(mmsg.jack_stamp(), mmsg, rtidata->user_data());
         }
         else
         {

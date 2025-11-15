@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-10-27
+ * \updates       2025-11-14
  * \license       See above.
  *
  * Classes defined:
@@ -46,6 +46,7 @@
  *      get_io_port_info() to find new ports or missing ports.
  */
 
+#include "cpp_types.hpp"                /* V() and other functions          */
 
 #if defined USE_CONFIGURATION
 #include "cfg/settings.hpp"             /* access to rc() configuration     */
@@ -56,6 +57,10 @@
 #endif
 
 #include "midi/ports.hpp"               /* midi::ports etc.                 */
+
+#if defined PLATFORM_DEBUG
+#include "util/msgfunctions.hpp"        /* util::info_message()             */
+#endif
 
 namespace midi
 {
@@ -168,29 +173,29 @@ ports::add
  *  Retrieve the index of a client:port combination (e.g. in ALSA, the output
  *  of the "aplaymidi -l" or "arecordmidi -l" commands) in the port-container.
  *
- * \param bussnum
- *      Provides the buss number, the major number of "bus:port"..
+ * \param bussno
+ *      Provides the buss number, the major number of "bus:port".
  *
- * \param portnum
+ * \param portno
  *      Provides the port number, the number of a sub-port of the bus.
  *
  * \return
  *      Returns the index of the pair in the port container, which will match
  *      up with the listing one sees in the "MIDI Input" or "MIDI Clocks"
- *      pages in the "Preferences" dialog.  If not found, a -1 (ie. the
+ *      pages in the "Preferences" dialog.  If not found, a -1 (i.e. the
  *      value of null_buss()] is returned.
  */
 
 bussbyte
-ports::get_port_id (int bussnum, int portnum) const
+ports::get_port_id (int bussno, int portno) const
 {
     bussbyte result { null_buss() };
     for (int i = 0; i < m_port_count; ++i)
     {
-        if (m_port_container[i].m_buss_number != bussnum)
+        if (m_port_container[i].m_buss_number != bussno)
             continue;
 
-        if (m_port_container[i].m_port_number == portnum)
+        if (m_port_container[i].m_port_number == portno)
         {
             result = bussbyte(i);
             break;

@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-09-08
+ * \updates       2025-11-13
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -201,9 +201,6 @@ private:
      *  Overload: For Meta events, where is_meta() is true, this value holds
      *  the type of Meta event. See the editable_event::sm_meta_event_names[]
      *  array.
-     *
-     *  TODO: This item is already present in the message class. We should use
-     *        that one.
      */
 
     midi::byte m_channel { null_channel() };
@@ -298,6 +295,11 @@ public:
     bool match (const event & target) const;
     void prep_for_send (midi::pulse tick, const event & source);
 
+    /**
+     *  The input bus can be set by this function or during the
+     *  event(message &) constructor.
+     */
+
     void set_input_bus (midi::bussbyte b)
     {
         if (is_good_buss(b))
@@ -307,6 +309,15 @@ public:
     midi::bussbyte input_bus () const
     {
         return m_input_buss;
+    }
+
+    /**
+     *  The event type, useful for ALSA so far.
+     */
+
+    unsigned midi_event_type () const
+    {
+        return m_message.midi_event_type();
     }
 
     void set_timestamp (midi::pulse time)
@@ -481,12 +492,12 @@ public:
      *  The name isn't quite accurate, but is legacy.
      *
      *  The second function clears all bytes ni the message.
-     */
 
     void clear_data ()
     {
         m_message[1] = m_message[2] = 0;
     }
+     */
 
     void clear_bytes ()
     {

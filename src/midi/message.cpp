@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-12-01
- * \updates       2025-10-08
+ * \updates       2025-11-13
  * \license       See above.
  *
  *  Provides a basic type for the (heavily-factored) rtl66 library, very
@@ -211,6 +211,41 @@ message::message (const midi::bytes & mbs) :
 {
     for (auto c : mbs)
         m_bytes.push_back(c);
+}
+
+/**
+ *  Appends SYSEX data.
+ *
+ * \param data
+ *      Provides the additional SysEx/Meta data.  If not provided, nothing is
+ *      done, and false is returned.
+ *
+ * \param dsize
+ *      Provides the size of the additional SYSEX data.  If not provided,
+ *      nothing is done.
+ *
+ * \return
+ *      Returns true if there was data to add.  The End-of-SysEx byte is
+ *      included.
+ */
+
+bool
+message::append_sysex (const midi::bytes & data, size_t dsize)
+{
+    if (dsize == 0)
+        dsize = data.size();
+
+    bool result { dsize > 0 };
+    if (result)
+    {
+        for (size_t i = 0; i < dsize; ++i)
+        {
+            m_bytes.push_back(data[i]);
+            if (is_sysex_end_msg(data[i]))
+                break;
+        }
+    }
+    return result;
 }
 
 /**

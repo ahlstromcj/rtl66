@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-11-06
+ * \updates       2025-11-15
  * \license       See above.
  *
  *  Note that these functions are not in a namespace so that most of them
@@ -46,17 +46,19 @@ namespace rtl
 
 extern bool rt_choose_input_port (rtl::rtmidi_in & rtin);
 extern bool rt_choose_output_port (rtl::rtmidi_out & rtout);
+extern int rt_choose_input_ports (int & portcount);
+extern int rt_choose_output_ports (int & portcount);
+extern int rt_choose_port_number (bool isoutput = true);
 extern bool rt_simple_cli
 (
     const std::string & appname,
     int argc, char * argv []
 );
 extern bool rt_test_port_valid (int portno);
-extern bool rt_open_all_ports (int portnumber = RTL66_PORT_ALL_PORTS);
+extern bool rt_open_all_ports ();
 extern bool rt_virtual_test_port ();
 extern bool rt_show_help ();
 extern bool rt_use_callback ();
-extern int rt_choose_port_number (bool isoutput = true);
 extern int rt_test_port ();
 extern int rt_test_port_in ();
 extern int rt_test_port_out ();

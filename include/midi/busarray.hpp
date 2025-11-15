@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-08-28
+ * \updates       2025-11-11
  * \license       GNU GPLv2 or above
  *
  *  The busarray module defines the busarray and busarray classes so that we
@@ -39,6 +39,7 @@
 #include <memory>                       /* std::unique_ptr<>                */
 #include <vector>                       /* for containing the bus objects   */
 
+#include "midi/port.hpp"                /* midi::port & enum classes        */
 #include "midi/clocking.hpp"            /* midi::clocking I/O enum class    */
 #include "midi/midibytes.hpp"           /* midi::bussbyte and other types   */
 
@@ -46,6 +47,8 @@ namespace midi
 {
 
 class bus;
+class bus_in;
+class bus_out;
 class event;
 
 /**
@@ -70,6 +73,14 @@ private:
 
     std::unique_ptr<container> p_impl;
 
+    /**
+     *  Holds the kind of ports stored in this container.
+     *  The default is a mix of input and output (duplex).
+     *  Change this with set_io_type().
+     */
+
+    midi::port::io m_io_type { midi::port::io:: duplex };
+
 public:
 
     busarray ();
@@ -84,6 +95,8 @@ public:
     int count () const;
     bool bus_valid (midi::bussbyte b) const;
     midi::bus & buss (midi::bussbyte b);
+    midi::bus_in & buss_in (midi::bussbyte b);
+    midi::bus_out & buss_out (midi::bussbyte b);
     int client_id (midi::bussbyte b);;
     bool port_active (midi::bussbyte b);
 
@@ -122,6 +135,16 @@ public:
     int poll_for_midi () const;
     bool get_midi_event (midi::event * inev);
     int replacement_port (int b, int p);
+
+    midi::port::io io_type () const
+    {
+        return m_io_type;
+    }
+
+    void set_io_type (midi::port::io iot)
+    {
+        m_io_type = iot;
+    }
 
 };          // class busarray
 

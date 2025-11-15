@@ -39,32 +39,33 @@
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
 
+namespace   // anonymous
+{
+
 static void
 midi_input_callback
 (
     double deltatime,
-    midi::message * message,
+    midi::message & msg,
     void * /*userdata*/
 )
 {
-    if (not_nullptr(message))
+    size_t nbytes = msg.size();
+    for (size_t i = 0; i < nbytes; ++i)
     {
-        midi::message & msg = *message;
-        size_t nbytes = msg.size();
-        for (size_t i = 0; i < nbytes; ++i)
-        {
-            midi::byte b = msg[i];
-            std::cout << "Byte " << i << " = " << int(b) << "; ";
-        }
-        if (nbytes > 0)
-        {
-            std::cout
-                << "# of bytes = " << nbytes
-                << ", timestamp = " << deltatime << std::endl
-                ;
-        }
+        midi::byte b = msg[i];
+        std::cout << "Byte " << i << " = " << int(b) << "; ";
+    }
+    if (nbytes > 0)
+    {
+        std::cout
+            << "# of bytes = " << nbytes
+            << ", timestamp = " << deltatime << std::endl
+            ;
     }
 }
+
+}       // namespace anonymous
 
 int
 main (int argc, char * argv [])

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2025-11-08
- * \updates       2025-11-09
+ * \updates       2025-11-14
  * \license       GNU GPLv2 or above
  *
  */
@@ -44,14 +44,29 @@ namespace midi
 /**
  *  Principal constructor. Note that most of the members are default in
  *  the class header (i.e. "in-class").
+ *
+ * Callback (optional):
+ *
+ *      -   The application (e.g. tests/midi/busin.cpp) provides an
+ *          rtmidi_in_data::callback_t static/extern function.
+ *      -   It fills in a midi::input_specs structure with the callback
+ *          and an optional pointer to user-data.
+ *      -   This structure is copied into a midi::clientinfo object.
+ *      -   That object is used in constructing a midi::masterbus.
+ *          After construction, midi::masterbus::setup() is called.
  */
 
-poller::poller (midi::masterbus & mbus) :
+poller::poller (midi::masterbus & mbus, int portnumber ) :
     m_master_bus            (mbus),
+    m_in_portnumber         (portnumber),       /* default is all in-ports  */
     m_condition_var         (*this)             /* private access via cv()  */
 {
     const midi::clientinfo & ci { mbus.client_info() };
     m_in_portnumber = ci.input_portnumber();
+
+    const midi::input_specs & mis { mbus.get_input_specs() };
+    m_input_callback = mis.input_callback;
+    m_input_using_callback = not_nullptr(m_input_callback);
 }
 
 /**
@@ -95,7 +110,6 @@ void
 poller::inner_stop (bool midiclock)
 {
     is_running(false);
-    // reset_tracks();              /* resets, and flushes the buss         */
     (void) midiclock;               /* clockinfo().usemidiclock(midiclock); */
 }
 
@@ -185,7 +199,17 @@ poller::launch_input_thread ()
     {
         std::bind(&poller::input_func, this)
     };
+#if defined PLATFORM_DEBUG
+    bool result { in_thread().launch(threadfunc) };
+    if (result)
+        printf("Input thread launched\n");
+    else
+        printf("Input thread launch failed\n");
+
+    return result;
+#else
     return in_thread().launch(threadfunc);
+#endif
 }
 
 /**
@@ -212,6 +236,9 @@ poller::finish ()
         in_thread().deactivate();           /* set the output 'done' flag   */
         cv().signal();                      /* signal the end of play       */
         (void) in_thread().finish();
+#if defined PLATFORM_DEBUG
+        printf("Input thread finished\n");
+#endif
     }
     return result;
 }
@@ -244,7 +271,12 @@ poller::input_func ()
         while (! done())
         {
             if (! poll_cycle())
+            {
+#if defined PLATFORM_DEBUG
+                printf("leaving input func\n");
+#endif
                 break;
+            }
         }
         xpc::set_timer_services(false);
         return true;
@@ -260,26 +292,56 @@ poller::input_func ()
 bool
 poller::poll_cycle ()
 {
+#if defined PLATFORM_DEBUG_TMI
+    printf("poll cycle\n");
+#endif
+    bool ok { false };
     bool result { ! done() };
     if (result)
-        result = master_bus().poll_for_midi() > 0;
-
-    if (result)
+    {
+        if (use_all_ports())
+            ok = master_bus().poll_for_midi() > 0;
+        else
+            ok = master_bus().poll_port(in_portnumber()) > 0;
+    }
+    if (ok)
     {
         do
         {
             if (done())
             {
+#if defined PLATFORM_DEBUG
+                printf("done!\n");
+#endif
                 result = false;
                 break;                              /* spurious exit events */
             }
 
-            midi::event ev;
-            bool incoming { master_bus().get_midi_event(&ev) };
-            if (incoming)
+            /*
+             * Here, we pass the port number logged in the constructor.
+             * By default, all ports are queried (RTL66_PORTS_ALL).
+             */
+
+            midi::message incoming
             {
-                std::string estr { ev.to_string() };
+                master_bus().get_message(in_portnumber())
+            };
+            if (! incoming.empty())
+            {
+                midi::event ev(incoming);
+                std::string estr { ev.to_string() };        /* incoming     */
                 util::status_message("MIDI event", estr);
+
+                if (m_input_using_callback)
+                {
+                    /*
+                     * In this simple polling class we don't care about
+                     * maintaining delta-time, so it is set to zero.
+                     * Use incoming or ev.get_message()?
+                     */
+
+                    input_callback()(0.0, incoming, nullptr);
+                }
                 if (ev.is_below_sysex())                    /* below 0xF0   */
                 {
 #if defined USE_MASTER_BUS
@@ -300,30 +362,6 @@ poller::poll_cycle ()
 }
 
 /**
- * http://www.blitter.com/~russtopia/MIDI/~jglatt/tech/midispec/ssp.htm
- */
-
-void
-poller::midi_start ()
-{
-    /*
-     * (void) auto_stop(); (void) auto_play();
-     */
-
-    start_polling();
-}
-
-/**
- * EVENT_MIDI_CONTINUE
- */
-
-void
-poller::midi_continue ()
-{
-    start_polling();
-}
-
-/**
  * EVENT_MIDI_STOP
  */
 
@@ -331,18 +369,6 @@ void
 poller::midi_stop ()
 {
     (void) auto_stop();
-}
-
-void
-poller::start_polling ()
-{
-    start();
-}
-
-void
-poller::stop_polling ()
-{
-    stop();
 }
 
 bool

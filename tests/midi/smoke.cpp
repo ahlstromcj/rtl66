@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-11-25
- * \updates       2025-11-07
+ * \updates       2025-11-14
  * \license       See above.
  *
  *      Provides a smoke test for reading and writing a short MIDI file and
@@ -94,8 +94,8 @@ midi::client_defaults s_clientinfo_defaults
     midi::port::io::duplex,             /* MIDI port type                   */
     -1,                                 /* queue size, a bad value          */
     false,                              /* ALSA MIDI is not threadsafe      */
-    -1,                                 /* input port number                */
-    -1                                  /* output port number               */
+    midi::c_port_null,                  /* input port number (default)      */
+    midi::c_port_null                   /* output port number (default)     */
 };
 
 bool

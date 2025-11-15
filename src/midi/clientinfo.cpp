@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-10-30
+ * \updates       2025-11-09
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -361,7 +361,7 @@ get_all_port_info (midi::clientinfo & cinfo, rtl::rtmidi::api rapi)
 }
 
 void
-clientinfo::set_callback
+clientinfo::set_input_callback
 (
     rtl::rtmidi_in_data::callback_t cb,
     void * userdata

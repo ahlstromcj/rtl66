@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-05
- * \updates       2025-11-07
+ * \updates       2025-11-14
  * \license       See above.
  *
  * Introduction:
@@ -108,6 +108,9 @@
  *  Default values for the most common parameters.
  */
 
+#define RTL66_DEFAULT_CLOCKS_PER_METRO   24     /* clocks per metronome     */
+#define RTL66_DEFAULT_32NDS_PER_QUARTER   8     /* 32nds per quarter        */
+#define RTL66_DEFAULT_PITCHBEND_SEMITONES 2     /* +/- pitchbend range      */
 #define RTL66_DEFAULT_PPQN              384     /* pulses per quarter note  */
 #define RTL66_DEFAULT_BPM               120.0   /* beats per minute         */
 #define RTL66_DEFAULT_INPUT_Q_SIZE      100     /* input queue size         */
@@ -119,9 +122,9 @@
 #define RTL66_DEFAULT_ALSA_EV_BUFSIZE    32     /* event parser buffer size */
 #define RTL66_DEFAULT_JACK_BUFSIZE      256     /* microseconds per quarter */
 #define RTL66_DEFAULT_JACK_RING_SIZE   2048     /* microseconds per quarter */
-#define RTL66_PORT_ALL_PORTS             99     /* activate all ports       */
 #define RTL66_PORT_NUMBER_LIMIT          48     /* for sanity's sake        */
-#define RTL66_VALUE_UNUSED             (-1)     /* indicates "not used"     */
+#define RTL66_PORTS_ALL                0xFE     /* activate/poll all ports  */
+#define RTL66_PORT_NULL                0xFF     /* "not used" (or use < 0)  */
 
 /**
  *  What Platform APIS to build? A few notes:

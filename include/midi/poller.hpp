@@ -1,5 +1,5 @@
-#if ! defined RTL66_MIDI_PLAYER_HPP
-#define RTL66_MIDI_PLAYER_HPP
+#if ! defined RTL66_MIDI_POLLER_HPP
+#define RTL66_MIDI_POLLER_HPP
 
 /*
  *  This file is part of rtl66.
@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-11-08
- * \updates       2025-11-09
+ * \updates       2025-11-14
  * \license       GNU GPLv2 or above
  *
  *  The poller class is a severely cut-down version of midi::poller with
@@ -41,6 +41,7 @@
 #include "midi/masterbus.hpp"               /* access to all MIDI busses    */
 #include "midi/ports.hpp"                   /* access to MIDI ports         */
 #include "rtl/iothread.hpp"                 /* rtl::iothread class          */
+#include "rtl/midi/rtmidi_in_data.hpp"      /* rtl::rtmidi_in_data class    */
 #include "transport/clock/info.hpp"         /* transport::clock::info       */
 
 namespace midi
@@ -114,12 +115,26 @@ public:
 
     /**
      *  Supports a single input port and a single output port. A port is used
-     *  if the port number is greater than or equal to 0 and the port exists.
+     *  if the port number is greater than or equal to 0, the port exists,
+     *  and the number isn't the special value RTL66_PORTS_ALL.
      */
 
-    int m_in_portnumber { -1 };
+    int m_in_portnumber { RTL66_PORTS_ALL };
 
 private:                            /* key, midi, and op container section  */
+
+    /**
+     *  Rather than a whole midi::input_specs structure, just the two
+     *  callback-related items.
+     */
+
+    bool m_input_using_callback { false };
+
+    /**
+     *  The optional callback function pointer.
+     */
+
+    rtl::rtmidi_in_data::callback_t m_input_callback { nullptr };
 
     /**
      *  Provides information for managing threads. Provides a "handle" to
@@ -166,7 +181,7 @@ private:                            /* key, midi, and op container section  */
 
 public:
 
-    poller (midi::masterbus & mbus);
+    poller (midi::masterbus & mbus, int portnumber = RTL66_PORTS_ALL);
     poller (const poller &) = delete;
     poller (poller &&) = delete;                    /* forced by iothread   */
     poller & operator = (const poller &) = delete;
@@ -183,6 +198,16 @@ public:
         return m_tick;
     }
 
+    int in_portnumber () const
+    {
+        return m_in_portnumber;
+    }
+
+    bool use_all_ports () const
+    {
+        return m_in_portnumber == RTL66_PORTS_ALL;
+    }
+
 public:
 
     int client_id () const
@@ -196,10 +221,6 @@ public:
     }
 
     bool done () const;
-
-
-public:
-
     bool launch (clientinfo & ci = midi::global_client_info());
     bool finish ();
     bool activate ();
@@ -207,25 +228,21 @@ public:
 
 public:
 
-    void inner_start ();
-    void inner_stop (bool midiclock = false);
+    /**
+     * http://www.blitter.com/~russtopia/MIDI/~jglatt/tech/midispec/ssp.htm
+     */
 
-    void start ()
+    void start_polling ()
     {
         // if (! is_jack_running())
             inner_start();
     }
 
-    void stop ()
+    void stop_polling ()
     {
         // if (! is_jack_running())
             inner_stop();
     }
-
-public:
-
-    void start_polling ();
-    void stop_polling ();
 
     const masterbus & master_bus () const
     {
@@ -237,7 +254,20 @@ public:
         return m_master_bus;
     }
 
+    bool input_using_callback () const
+    {
+        return m_input_using_callback;
+    }
+
+    rtl::rtmidi_in_data::callback_t input_callback ()
+    {
+        return m_input_callback;
+    }
+
 protected:
+
+    void inner_start ();
+    void inner_stop (bool midiclock = false);
 
     rtl::iothread & in_thread ()
     {
@@ -279,7 +309,7 @@ private:
 
 }           // namespace midi
 
-#endif      // RTL66_MIDI_PLAYER_HPP
+#endif      // RTL66_MIDI_POLLER_HPP
 
 /*
  * poller.hpp

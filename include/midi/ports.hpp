@@ -217,6 +217,10 @@ public:
             return std::string("");
     }
 
+    /**
+     *  Get minor port number.
+     */
+
     int get_port_number (int index) const
     {
         if (index < get_port_count())
@@ -224,6 +228,11 @@ public:
         else
             return (-1);
     }
+
+    /**
+     *  Get the port index. This is weird. Using
+     *  get_port_id() makes more sense.
+     */
 
     int get_port_index (int index) const
     {

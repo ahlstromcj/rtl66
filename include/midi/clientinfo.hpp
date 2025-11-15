@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2025-11-07
+ * \updates       2025-11-14
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -212,19 +212,19 @@ struct client_defaults
     bool cd_use_input_thread { true };
 
     /**
-     *  The input port number.  If equal to RTL66_PORT_ALL_PORTS (99),
+     *  The input port number.  If equal to RTL66_PORTS_ALL (99),
      *  then (in the future) will work with all ports. The default
      *  value here is -1.
      */
 
-    int cd_input_portnumber { RTL66_VALUE_UNUSED };
+    int cd_input_portnumber { RTL66_PORT_NULL };
 
     /**
      *  The output port number.  If equal to -1, then (in the future)
      *  will work with all ports.
      */
 
-    int cd_output_portnumber { RTL66_VALUE_UNUSED };
+    int cd_output_portnumber { RTL66_PORT_NULL };
 
 };          // client_defaults
 
@@ -280,7 +280,9 @@ private:
      *  input callback and user-data for it.
      *
      *  The caller creating the masterbus can provide an input_specs
-     *  structure and pass it to the set_inputspecs() function.
+     *  structure and pass it to the clientinfo constructor. Also, the
+     *  set_input_callback() member function can be used. [Also see
+     *  rtmidi_in::set_input_callback().]
      */
 
     input_specs m_is
@@ -300,7 +302,7 @@ private:
      *  Use midi::io_to_int() or port::for_input and port::for_output.
      */
 
-    ports m_io_ports[2];
+    ports m_io_ports [2];
 
     /**
      *  Stores that last port configuration, used when port-registration or
@@ -309,7 +311,7 @@ private:
      *  Not yet processed. See macro RTL66_JACK_PORT_REFRESH above.
      */
 
-    ports m_previous_ports[2];
+    ports m_previous_ports [2];
 
     /**
      *  Provides a handle to the main ALSA or JACK implementation object.
@@ -413,7 +415,7 @@ public:
 
     static bool all_ports (int portnumber)
     {
-        return portnumber == RTL66_PORT_ALL_PORTS;      /* i.e. 99 */
+        return portnumber == RTL66_PORTS_ALL;       /* i.e. 99 */
     }
 
     bool use_input_thread () const
@@ -602,6 +604,17 @@ public:
         return m_io_ports[element(iotype)];
     }
 
+    /**
+     *  Gets the application index (Seq66-style buss number) for
+     *  the given buss:port number (ALSA) combination. This function
+     *  is used to plant the buss number in a midi::event.
+     */
+
+    int get_port_id (port::io iotype, int bussno, int portno) const
+    {
+        return io_ports(iotype).get_port_id(bussno, portno);
+    }
+
     ports & previous_ports (port::io iotype)
     {
         return m_previous_ports[element(iotype)];
@@ -709,19 +722,6 @@ public:
         return m_global_queue;
     }
 
-#if 0
-using input_specs = struct
-{
-    bool input_active;
-    bool input_use_sysex;
-    bool input_use_time_code;
-    bool input_use_active_sensing;
-    bool input_using_callback;
-    rtl::rtmidi_in_data::callback_t input_callback;
-    void * input_user_data;
-};
-#endif
-
     bool input_active () const
     {
         return m_is.input_active;
@@ -737,7 +737,7 @@ using input_specs = struct
         return m_is;
     }
 
-    void set_callback
+    void set_input_callback
     (
         rtl::rtmidi_in_data::callback_t cb = nullptr,
         void * userdata = nullptr

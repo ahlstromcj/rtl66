@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-03
+ * \updates       2025-11-10
  * \license       See above.
  *
  *      Also contains some additional capabilities.
@@ -301,6 +301,7 @@ public:
     bool clock_continue (midi::pulse tick, int beats);
     int poll_for_midi () const;
     bool get_midi_event (midi::event * inev);
+    midi::message get_message () const;
 
     bool send_byte (midi::byte evbyte) const;
     bool send_event

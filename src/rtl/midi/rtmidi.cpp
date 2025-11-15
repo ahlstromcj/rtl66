@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-10-27
+ * \updates       2025-11-10
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -994,6 +994,17 @@ rtmidi::get_midi_event (midi::event * inev)
     bool result { not_nullptr(rt_api_ptr()) };
     if (result)
         result = rt_api_ptr()->get_midi_event(inev);
+
+    return result;
+}
+
+midi::message
+rtmidi::get_message () const
+{
+    midi::message result;
+    bool ok { not_nullptr(rt_api_ptr()) };
+    if (ok)
+        result = rt_api_ptr()->get_message();
 
     return result;
 }
