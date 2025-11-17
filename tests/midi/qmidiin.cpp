@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-07-01
- * \updates       2025-11-16
+ * \updates       2025-11-17
  * \license       See above.
  *
  *      Simple program to test MIDI input and retrieval from the queue.
@@ -250,9 +250,14 @@ main (int argc, char * argv[])
         {
             rtl::rtmidi::api rapi = rtl::rtmidi::desired_api();
             if (rt_open_all_ports())
+            {
                 success = read_all_ports(rapi, portcount);
+            }
             else
+            {
+                port = rt_test_port();
                 success = read_port(rapi, port);
+            }
         }
     }
     return success ? EXIT_SUCCESS : EXIT_FAILURE ;
