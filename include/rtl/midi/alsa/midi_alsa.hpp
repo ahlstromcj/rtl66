@@ -41,11 +41,7 @@
 #include "midi/ports.hpp"                   /* midi::port etc. enums        */
 #include "rtl/midi/midi_api.hpp"            /* rtl::midi_in/out_api classes */
 #include "rtl/midi/alsa/midi_alsa_data.hpp" /* rtl::midi_alsa_data class    */
-
-#undef  USE_POLLWRAPPER                     /* EXPERIMENTAL                 */
-#if defined USE_POLLWRAPPER
 #include "rtl/midi/alsa/pollwrapper.hpp"    /* rtl::pollwrapper class       */
-#endif
 
 #undef  RTL66_USE_SEQ66_EXTENSIONS
 
@@ -88,15 +84,11 @@ private:
 
     std::string m_client_name { "rtl-alsa" };
 
-#if defined USE_POLLWRAPPER
-
     /**
      * Experimental
      */
 
     pollwrapper m_poll_wrapper;
-
-#endif
 
     /**
      *  Moved the ALSA data to this class.

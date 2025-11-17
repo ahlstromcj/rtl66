@@ -60,8 +60,8 @@ pollwrapper::pollwrapper
 ) :
     m_alsa_client   (client)
 {
-    if (! not_nullptr(client))
-    m_is_initialized = get_poll_descriptors(extra);
+    if (not_nullptr(client))
+        m_is_initialized = get_poll_descriptors(extra);
 }
 
 pollwrapper::~pollwrapper ()
@@ -69,8 +69,14 @@ pollwrapper::~pollwrapper ()
     remove_poll_descriptors();
 }
 
+/**
+ *  This function might not be needed.
+ *
+ *  set_trigger_fd() should be called in midi_alsa_handler().
+ */
+
 bool
-pollwrapper::initialize (snd_seq_t * c)
+pollwrapper::initialize (snd_seq_t * c, int extra)
 {
     bool result { not_nullptr(c) };
     if (result)

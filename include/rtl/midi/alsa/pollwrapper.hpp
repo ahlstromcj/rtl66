@@ -105,7 +105,7 @@ public:
 
 private:
 
-    bool initialize (snd_seq_t * c);
+    bool initialize (snd_seq_t * c, int extra = 0);
 
     void alsa_client (snd_seq_t * c)
     {

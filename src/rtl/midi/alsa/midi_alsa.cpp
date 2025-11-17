@@ -405,12 +405,10 @@ midi_alsa::midi_alsa
 ) :
     midi_api        (mbus, iotype),
     m_client_name   (mbus.client_name()),
-#if defined USE_POLLWRAPPER
     m_poll_wrapper
     (
         reinterpret_cast<snd_seq_t *>(mbus.void_client_handle())
     ),
-#endif
     m_alsa_data     ()
 {
     /*
@@ -433,9 +431,7 @@ midi_alsa::midi_alsa
 ) :
     midi_api        (iotype, queuesize),
     m_client_name   (clientname),
-#if defined USE_POLLWRAPPER
     m_poll_wrapper  (),
-#endif
     m_alsa_data     ()
 {
     if (clientname.empty())
@@ -526,11 +522,7 @@ midi_alsa::engine_connect ()
             bool ok { set_seq_client_name(seq, client_name()) };
             if (ok)
             {
-#if defined USE_POLLWRAPPER
-                // NEW
                 (void) m_poll_wrapper.initialize(seq);  // NEW
-                // NEW
-#endif
                 if (is_engine())
                 {
                     rc = ::snd_seq_alloc_queue(seq);    /* tempo queue id   */
@@ -1918,9 +1910,7 @@ midi_alsa::poll_for_midi () const
     }
     else
     {
-#if defined USE_POLLWRAPPER
         return m_poll_wrapper.poll_for_midi();
-#endif
     }
 }
 
