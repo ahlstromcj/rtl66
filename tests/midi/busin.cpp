@@ -91,7 +91,7 @@ midi::client_defaults s_client_defaults
     148,                                /* global BPM, not 120              */
     midi::port::io::duplex,             /* MIDI port type                   */
     -1,                                 /* queue size, a bad value          */
-    true, // false,           /* ALSA MIDI is not threadsafe      */
+    false,                              /* ALSA MIDI is not threadsafe      */
     midi::c_port_null,                  /* input port number (default)      */
     midi::c_port_null                   /* output port number (default)     */
 };
@@ -199,9 +199,8 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
  */
 
 bool
-run_susceptible_test (int portnumber)
+run_susceptible_test (rtl::rtmidi::api rapi, int portnumber)
 {
-    rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
     midi::masterbus & master { master_bus(rapi, app_client_info()) };
     midi::bus_in & busin { master.get_in_bus(portnumber) };
     bool result { busin.initialize() };
@@ -274,12 +273,13 @@ run_susceptible_test (int portnumber)
 }
 
 bool
-run_polling_test (int portnumber)
+poll_port (rtl::rtmidi::api rapi, int portnumber)
 {
-    rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
     midi::masterbus & master { master_bus(rapi, app_client_info()) };
     midi::bus & inbus { master.get_in_bus(portnumber) };
     bool result { inbus.initialize() };
+    app_client_info().input_portnumber(portnumber);
+    std::cout << "Using port #" << portnumber << std::endl;
     if (result)
     {
         midi::poller p(master, portnumber);
@@ -346,6 +346,14 @@ run_polling_test (int portnumber)
     return result;
 }
 
+bool
+poll_all_ports (rtl::rtmidi::api rapi, int portcount)
+{
+    bool result { true };
+    std::cout << "All-ports test NOT READY" << std::endl;
+    return result;
+}
+
 }           // namespace anonymous
 
 /**
@@ -356,11 +364,12 @@ int
 main (int argc, char * argv [])
 {
     bool can_run { rt_simple_cli("busin", argc, argv) };
-    bool had_error = false;
+    bool success { true };;
     if (can_run)
     {
         cfg::set_app_name(app_client_info().app_name());
         cfg::set_client_name(app_client_info().client_name());
+        int portcount { 0 };
         try
         {
             if (! rt_virtual_test_port())
@@ -378,50 +387,44 @@ main (int argc, char * argv [])
                      *
                      *  rtl::rtmidi_in midiin { rtl::rtmidi::desired_api() };
                      *  can_run = rt_choose_input_port(midiin);
+                     *  int pn { rt_choose_port_number(false) // input // };
                      */
 
-                    int pn { rt_choose_port_number(false) /* input */ };
-                    if (rt_test_port_valid(pn))
-                    {
-                        set_rt_test_port(pn);
-                    }
-                    else
-                    {
-                        set_rt_test_port(0);
-                        infoprint("Using port 0; use --port p option if desired.");
-                    }
+                    can_run = rt_select_input_ports(portcount);
                 }
             }
         }
         catch (rtl::rterror & error)
         {
             std::cerr << "Caught rtl::rterror!" << std::endl;
-            had_error = true;                        // error.print_message()
-            can_run = false;
+            can_run = success = false;
         }
         if (can_run)
         {
+            rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
             int portnumber { rt_test_port() };
-            app_client_info().input_portnumber(portnumber);
+            if (rt_open_all_ports())
+                success = poll_all_ports(rapi, portcount);
+            else
+                success = poll_port(rapi, portnumber);
 
 #if 0
             bool ok { run_susceptible_test(portnumber) };
             if (ok)
-                ok = run_polling_test(portnumber);
-#else
-            bool ok { run_polling_test(portnumber) };
-#endif
+                ok = poll_port(portnumber);
+            bool ok { poll_port(portnumber) };
 
             if (! ok)
                 had_error = true;
+#endif
         }
         else
         {
             std::cerr << "Could not choose a port!" << std::endl;
-            had_error = true;
+            success = false;
         }
     }
-    return had_error ? EXIT_FAILURE : EXIT_SUCCESS ;
+    return success ? EXIT_SUCCESS : EXIT_FAILURE ;
 }
 
 /*

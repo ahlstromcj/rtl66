@@ -76,10 +76,6 @@ main (int argc, char * argv [])
             rtl::rtmidi_out midiout { rtl::rtmidi::desired_api() };
             if (! rt_virtual_test_port())
             {
-                /*
-                 * if (rt_test_port() == (-1))
-                 */
-
                 if (! rt_test_port_valid(rt_test_port()))
                 {
                     /*

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-11-15
+ * \updates       2025-11-16
  * \license       See above.
  *
  *  Note that these functions are not in a namespace so that most of them
@@ -48,6 +48,7 @@ extern bool rt_choose_input_port (rtl::rtmidi_in & rtin);
 extern bool rt_choose_output_port (rtl::rtmidi_out & rtout);
 extern int rt_choose_input_ports (int & portcount);
 extern int rt_choose_output_ports (int & portcount);
+extern bool rt_select_input_ports (int & portcount);
 extern int rt_choose_port_number (bool isoutput = true);
 extern bool rt_simple_cli
 (

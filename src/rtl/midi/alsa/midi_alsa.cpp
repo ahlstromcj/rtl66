@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-13
+ * \updates       2025-11-17
  * \license       See above.
  *
  */
@@ -404,7 +404,14 @@ midi_alsa::midi_alsa
     midi::port::io iotype
 ) :
     midi_api        (mbus, iotype),
-    m_client_name   (mbus.client_name())
+    m_client_name   (mbus.client_name()),
+#if defined USE_POLLWRAPPER
+    m_poll_wrapper
+    (
+        reinterpret_cast<snd_seq_t *>(mbus.void_client_handle())
+    ),
+#endif
+    m_alsa_data     ()
 {
     /*
      *  (void) initialize(client_name());
@@ -425,7 +432,11 @@ midi_alsa::midi_alsa
     unsigned queuesize
 ) :
     midi_api        (iotype, queuesize),
-    m_client_name   (clientname)
+    m_client_name   (clientname),
+#if defined USE_POLLWRAPPER
+    m_poll_wrapper  (),
+#endif
+    m_alsa_data     ()
 {
     if (clientname.empty())
         client_name("rtl-alsa");
@@ -515,6 +526,11 @@ midi_alsa::engine_connect ()
             bool ok { set_seq_client_name(seq, client_name()) };
             if (ok)
             {
+#if defined USE_POLLWRAPPER
+                // NEW
+                (void) m_poll_wrapper.initialize(seq);  // NEW
+                // NEW
+#endif
                 if (is_engine())
                 {
                     rc = ::snd_seq_alloc_queue(seq);    /* tempo queue id   */
@@ -549,7 +565,7 @@ midi_alsa::engine_disconnect ()
         int rc { ::snd_seq_close(c) };
         (void) ::snd_config_update_free_global();   /* new: more cleanup    */
         data.alsa_client(nullptr);
-        // TODO??? remove_poll_descriptors();
+        // remove_poll_descriptors();
         if (rc != 0)
             error_print("snd_seq_close()", "failed");
     }
@@ -1886,54 +1902,6 @@ midi_alsa::clock_continue (midi::pulse /* tick */, midi::pulse beats)
     return true;
 }
 
-#if defined USE_THIS_CODE
-
-/**
- *  Get the number of MIDI input poll file descriptors.  Allocate the
- *  poll-descriptors array.  Then get the input poll-descriptors into the
- *  array.  Finally, set the input and output buffer sizes.  Can we do this
- *  before creating all the MIDI busses?  If not, we'll put them in a separate
- *  function to call later.
- *
- *  This function is called in the constructor and in api_port_start().
- *
- *  According to https://users.suse.com/~mana/alsa090_howto.html#sect04
- *  snd_seq_poll_descriptors_count(alsa_seq, POLLIN) always returns 1.
- *
- *  midi_alsa_handler() adds one to the count of poll descriptors. Why?
- *
- */
-
-void
-midi_alsa::get_poll_descriptors ()
-{
-    m_num_poll_descriptors = ::snd_seq_poll_descriptors_count
-    (
-        m_alsa_seq, POLLIN  // + 1 ?!
-    );
-    if (m_num_poll_descriptors > 0)
-    {
-        m_poll_descriptors =
-            new (std::nothrow) ::pollfd[m_num_poll_descriptors];
-
-        if (not_nullptr(m_poll_descriptors))
-        {
-            ::snd_seq_poll_descriptors               /* input descriptors   */
-            (
-                m_alsa_seq, m_poll_descriptors, m_num_poll_descriptors, POLLIN
-            );
-//          snd_seq_set_output_buffer_size(m_alsa_seq, c_midibus_output_size);
-//          snd_seq_set_input_buffer_size(m_alsa_seq, c_midibus_input_size);
-        }
-    }
-    else
-    {
-        errprint("No ALSA poll descriptors found");
-    }
-}
-
-#endif
-
 /**
  *  Checks to see if events (midi::messages) are in the input queue.
  */
@@ -1950,29 +1918,8 @@ midi_alsa::poll_for_midi () const
     }
     else
     {
-#if defined USE_THIS_CODE
-
-    /**
-     *  The number of descriptors for polling.
-     */
-
-    int m_num_poll_descriptors;
-
-    /**
-     *  Points to the list of descriptors for polling.
-     */
-
-    struct pollfd * m_poll_descriptors;
-
-static const int c_poll_wait_ms { 10 };
-
-    m_num_poll_descriptors  (0),            /* from ALSA mastermidibus      */
-    m_poll_descriptors      (nullptr)       /* ditto                        */
-
-        int result = ::poll
-        (
-            m_poll_descriptors, m_num_poll_descriptors, c_poll_wait_ms
-        );
+#if defined USE_POLLWRAPPER
+        return m_poll_wrapper.poll_for_midi();
 #endif
     }
 }

@@ -1,10 +1,53 @@
 Various Ways MIDI Input is handled.
 Chris Ahlstrom
-2025-10-08 to 2025-11-07
+2025-10-08 to 2025-11-16
 
 This file present some of the ways input works and how to improve it.
 One issue is how poll_for_midi() is not implemented in ALSA but is used
 by midi::player.
+
+General Methods:
+
+    Here we discuss how input works at a high level. First, possible
+    features.
+
+        -   One client, one thread, and one input queue per port.
+            A poll of that queue, and a pop of any existing event.
+        -   One client, one thread, and one queue to handle all ports.
+            The port for each event used to route to a specific track.
+        -   ZZ
+
+    ALSA:
+
+        RtMidi:
+
+            The original RtMidi (v. 5 or v. 6) code works by creating a
+            new client for each port. [See the discussion of main in the
+            cbmidiin.cpp test module.] Each port has its own thread
+            running the MIDI input function, which uses the input-data
+            queue established for each port. The input function
+            loops, using poll() to detect input.
+
+            An alternative would be to use one client and a mutex
+            in the MIDI handler.
+
+        Poll-for-MIDI [tentative]:
+
+            It is assumed that a single client will be created, so
+            that only one thread can be used to handle the input.
+            This thread would poll, either for any input or the input
+            of a specific port. The input thread would then
+            call get_midi_event() or get_midi_message().
+
+            A. In the poll function, get the message, stick it
+               in the input queue of the port. and return "true"
+               to get it via get_message().
+
+            B. Have the 
+
+    JACK:
+
+        To do.
 
     Basics:
 

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-10
+ * \updates       2025-11-17
  * \license       See above.
  *
  *  This module is meant to be #include'd in midi_alsa.cpp. It's been
@@ -258,17 +258,35 @@ midi_alsa_handler (void * ptr)
 
     bool moresysex { false };
     midi::message mmsg;
+
+#if defined USE_POLLWRAPPER
+    pollwrapper pwrap(client, 1);
+    if (! pwrap.set_trigger_fd(mad_data->trigger_fd(0)))
+        return nullptr;
+#else
     int fdcount { ::snd_seq_poll_descriptors_count(client, POLLIN) + 1 };
-    size_t pollfdsize = fdcount * sizeof(struct pollfd);
+    size_t pollfdsize { fdcount * sizeof(struct pollfd) };
     struct pollfd * poll_fds { (struct pollfd *) alloca(pollfdsize) };
-    ::snd_seq_poll_descriptors(client, poll_fds + 1, fdcount - 1, POLLIN);
+#if defined PLATFORM_DEBUG
+    int fdfilled
+    {
+        ::snd_seq_poll_descriptors(client, poll_fds + 1, fdcount - 1, POLLIN)
+    };
+    printf("%d file descriptors, %d filled\n", fdcount, fdfilled);
+#else
+    ::snd_seq_poll_descriptors(client, poll_fds + 1, fdcount - 1, POLLIN)
+#endif
     poll_fds[0].fd = mad_data->trigger_fd(0);
     poll_fds[0].events = POLLIN;
+#endif
     while (rtidata->do_input())
     {
         int count { ::snd_seq_event_input_pending(client, 1) };
         if (count == 0)                                 /* no data pending  */
         {
+#if defined USE_POLLWRAPPER
+            (void) pwrap.poll_file_descriptor();
+#else
             if (::poll(poll_fds, fdcount, -1) >= 0)
             {
                 if (poll_fds[0].revents & POLLIN)
@@ -277,6 +295,7 @@ midi_alsa_handler (void * ptr)
                     (void) ::read(poll_fds[0].fd, &dummy, sizeof(dummy));
                 }
             }
+#endif
             continue;                                   /* no MIDI data     */
         }
 

@@ -27,20 +27,25 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-03
+ * \updates       2025-11-17
  * \license       See above.
  *
  */
 
-#include "rtl/rtl_build_macros.h"       /* RTL66_EXPORT, etc.               */
+#include "rtl/rtl_build_macros.h"           /* RTL66_EXPORT, etc.           */
 
 #if defined RTL66_BUILD_ALSA
 
-#include <string>                       /* std::string class                */
+#include <string>                           /* std::string class            */
 
-#include "midi/ports.hpp"               /* midi::port etc. enums            */
-#include "rtl/midi/midi_api.hpp"        /* rtl::midi_in/out_api classes     */
-#include "rtl/midi/alsa/midi_alsa_data.hpp"  /* rtl::midi_alsa_data class   */
+#include "midi/ports.hpp"                   /* midi::port etc. enums        */
+#include "rtl/midi/midi_api.hpp"            /* rtl::midi_in/out_api classes */
+#include "rtl/midi/alsa/midi_alsa_data.hpp" /* rtl::midi_alsa_data class    */
+
+#undef  USE_POLLWRAPPER                     /* EXPERIMENTAL                 */
+#if defined USE_POLLWRAPPER
+#include "rtl/midi/alsa/pollwrapper.hpp"    /* rtl::pollwrapper class       */
+#endif
 
 #undef  RTL66_USE_SEQ66_EXTENSIONS
 
@@ -82,6 +87,16 @@ private:
      */
 
     std::string m_client_name { "rtl-alsa" };
+
+#if defined USE_POLLWRAPPER
+
+    /**
+     * Experimental
+     */
+
+    pollwrapper m_poll_wrapper;
+
+#endif
 
     /**
      *  Moved the ALSA data to this class.

@@ -24,9 +24,10 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-11-15
+ * \updates       2025-11-16
  * \license       See above.
  *
+ *  We have a lot of functions for selecting ports !
  */
 
 #include <iostream>                     /* std::cout, std::cin              */
@@ -200,6 +201,7 @@ rt_choose_port (bool isoutput, int & portcount)
                     }
                 } while (p < 0 || p >= portcount);
                 result = p;
+                set_rt_test_port(p);            /* includes RTL66_PORTS_ALL */
 
                 /*
                  * Set to clear and ignore the Enter after the port
@@ -231,6 +233,16 @@ rt_choose_port_number (bool isoutput)
 {
     int portcount { 0 };
     int result { rt_choose_port(isoutput, portcount) };
+    if (rt_test_port_valid(result))
+    {
+        set_rt_test_port(result);
+    }
+    else
+    {
+        set_rt_test_port(0);
+        result = 0;
+        infoprint("Using port 0; use --port p option if desired.");
+    }
     return result;
 }
 
@@ -291,7 +303,7 @@ rt_choose_output_port (rtl::rtmidi_out & rtout)
 }
 
 /**
- *  These versions choose the port number and also return the port-count,
+ *  These function choose the port number and also return the port-count,
  *  for convenience.
  */
 
@@ -307,6 +319,42 @@ rt_choose_output_ports (int & portcount)
     return rt_choose_port(true, portcount);
 }
 
+/**
+ *  These function encapsulate a common sequence of selecting one or
+ *  more ports in an application. See the MIDI input test applications.
+ *
+ *  Does not handle virtual ports yet.
+ */
+
+bool
+rt_select_input_ports (int & portcount)
+{
+    bool result { false };
+    int port = rt_test_port();
+    if (port < 0)
+    {
+        /*
+         * We have added new test functions to also get the port
+         * count.
+         *
+         *  port = rt_choose_port_number(false); // for in, not out
+         */
+
+        port = rt_choose_input_ports(portcount);
+        result = port >= 0;
+    }
+    else
+    {
+        if (rt_open_all_ports())                /* the "--port all" option. */
+        {
+            port = rt_choose_input_ports(portcount);
+            result = port >= 0;                 /* includes RTL66_PORTS_ALL */
+        }
+        else
+            result = rt_test_port_valid(port);
+    }
+    return result;
+}
 
 /**
  *  This stuff provides a very simple set of command-line options, mostly

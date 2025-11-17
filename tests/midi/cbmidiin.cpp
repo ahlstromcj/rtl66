@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-11-15
+ * \updates       2025-11-16
  * \license       See above.
  *
  *      A simple program to test MIDI input and the use of a user callback
@@ -72,7 +72,7 @@ midibytes_callback
 {
     (void) userdata;
     deltatime = msg.jack_stamp();
-    size_t nbytes = msg.size();
+    size_t nbytes { msg.size() };
     if (nbytes > 0)
     {
         std::string msgline { "Msg:" };
@@ -81,6 +81,103 @@ midibytes_callback
     }
     else
         std::cout << "Empty message w/delta " << deltatime << std::endl;
+}
+
+/*
+ * Set our callback function.  This should be done immediately after opening
+ * the port to avoid having incoming messages written to the queue instead
+ * of sent to the callback function. This seems like a race-condition we
+ * should fix, so we now set it before opening a port.
+ */
+
+bool
+read_port (rtl::rtmidi::api rapi, int port)
+{
+    bool result { rt_test_port_valid(port) };
+    try
+    {
+        rtl::rtmidi_in midiin(rapi, "cbmidiin");
+        midiin.set_input_callback(&midibytes_callback);
+
+        /*
+         * Don't ignore sysex, timing, or active sensing
+         * messages.
+         */
+
+        midiin.ignore_midi_types(false, false, false);
+
+        /*
+         * Open the port.
+         */
+
+        (void) midiin.open_port(port);
+        std::cout << "Reading MIDI input ... press <Enter> to quit.\n";
+        (void) xpc::kbget();                /* c = std::cin.get()   */
+    }
+    catch (rtl::rterror & error)
+    {
+        error.print_message();
+        result = false;
+    }
+    return result;
+}
+
+/*
+ * We could use a unique_ptr<>, to avoid the delete loop after kbget(). See
+ * the other test, qmidiiin.
+ */
+
+bool
+read_all_ports (rtl::rtmidi::api rapi, int portcount)
+{
+    bool result { portcount > 0 };
+    if (result)
+    {
+        try
+        {
+            std::vector<rtl::rtmidi_in *> allports;
+            std::string basename { "cbmidiin-" };
+            for (int p = 0; p < portcount; ++p)
+            {
+                std::string name { basename };
+                name += std::to_string(p);
+
+                rtl::rtmidi_in * inptr
+                {
+                    new (std::nothrow) rtl::rtmidi_in(rapi, name)
+                };
+                if (not_nullptr(inptr))
+                {
+                    inptr->set_input_callback(&midibytes_callback);
+                    if (inptr->open_port(p, name))
+                    {
+                        allports.push_back(inptr);
+                    }
+                    else
+                    {
+                        std::cerr << "Aborting at port #" << p << std::endl;
+                        result = false;
+                    }
+                }
+            }
+            if (result)
+            {
+                std::cout
+                    << "Reading MIDI inputs ... press <Enter> to quit."
+                    << std::endl
+                    ;
+                (void) xpc::kbget();                /* c = std::cin.get()   */
+                for (auto ptr : allports)
+                    delete ptr;
+            }
+        }
+        catch (rtl::rterror & error)
+        {
+            result = false;
+            error.print_message();
+        }
+    }
+    return result;
 }
 
 }           // namespace anonymous
@@ -126,8 +223,9 @@ midibytes_callback
 int
 main (int argc, char * argv [])
 {
-    bool can_run = rt_simple_cli("cbmidiin", argc, argv);
+    bool can_run { rt_simple_cli("cbmidiin", argc, argv) };
     cfg::set_client_name("cbmidiin");
+    bool success { true };
     if (can_run)
     {
         int port { 0 };
@@ -143,111 +241,19 @@ main (int argc, char * argv [])
         }
         else
         {
-            port = rt_test_port();
-            if (port < 0)
-            {
-                /*
-                 * We have added new test functions to also get the port
-                 * count.
-                 *
-                 *  port = rt_choose_port_number(false); // for in, not out
-                 */
-
-                port = rt_choose_input_ports(portcount);
-                can_run = port >= 0;
-            }
-            else
-            {
-                if (rt_open_all_ports())            /* the "--port all" option. */
-                {
-                    port = rt_choose_input_ports(portcount);
-                    can_run = port >= 0;            /* includes RTL66_PORTS_ALL */
-                }
-                else
-                    can_run = rt_test_port_valid(port);
-            }
+            can_run = rt_select_input_ports(portcount);
         }
         if (can_run)
         {
-            rtl::rtmidi::api rapi = rtl::rtmidi::desired_api();
-            try
-            {
-                if (rt_open_all_ports())
-                {
-                    /*
-                     * We could use a unique_ptr<>, to avoid the delete
-                     * loop after kbget(). See the other test, qmidiiin.
-                     */
-
-                    std::vector<rtl::rtmidi_in *> allports;
-                    std::string basename { "cbmidiin-" };
-                    for (int p = 0; p < portcount; ++p)
-                    {
-                        std::string name { basename };
-                        name += std::to_string(p);
-
-                        rtl::rtmidi_in * inptr
-                        {
-                            new (std::nothrow) rtl::rtmidi_in(rapi, name)
-                        };
-                        if (not_nullptr(inptr))
-                        {
-                            inptr->set_input_callback(&midibytes_callback);
-                            if (inptr->open_port(p, name))
-                            {
-                                allports.push_back(inptr);
-                            }
-                            else
-                            {
-                                std::cerr
-                                    << "Aborting at port #" << p << std::endl
-                                    ;
-                                exit(EXIT_FAILURE);         /* no clean-up  */
-                            }
-                        }
-                    }
-                    std::cout << "Reading MIDI inputs ... press <Enter> to quit.\n";
-                    (void) xpc::kbget();                /* c = std::cin.get()   */
-                    for (auto ptr : allports)
-                        delete ptr;
-                }
-                else
-                {
-                    /*
-                     * Set our callback function.  This should be done
-                     * immediately after opening the port to avoid having
-                     * incoming messages written to the queue instead of
-                     * sent to the callback function. This seems like a
-                     * race-condition we should fix, so we now set it before
-                     * opening a port.
-                     */
-
-                    rtl::rtmidi_in midiin(rapi, "cbmidiin");
-                    midiin.set_input_callback(&midibytes_callback);
-
-                    /*
-                     * Don't ignore sysex, timing, or active sensing
-                     * messages.
-                     */
-
-                    midiin.ignore_midi_types(false, false, false);
-
-                    /*
-                     * Open the port.
-                     */
-
-                    (void) midiin.open_port(port);
-                    std::cout << "Reading MIDI input ... press <Enter> to quit.\n";
-                    (void) xpc::kbget();                /* c = std::cin.get()   */
-                }
-            }
-            catch (rtl::rterror & error)
-            {
-                exit(EXIT_FAILURE);                 /* msg already shown    */
-            }
+/////       rtl::rtmidi::api rapi { rtl::rtmidi::desired_api() };
+            rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
+            if (rt_open_all_ports())
+                success = read_all_ports(rapi, portcount);
+            else
+                success = read_port(rapi, port);
         }
     }
-    return EXIT_SUCCESS;
+    return success ? EXIT_SUCCESS : EXIT_FAILURE ;
 }
 
 /*
@@ -255,4 +261,3 @@ main (int argc, char * argv [])
  *
  * vim: sw=4 ts=4 wm=4 et ft=cpp
  */
-

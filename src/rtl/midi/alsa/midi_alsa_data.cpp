@@ -97,7 +97,7 @@ midi_alsa_data::initialize
         m_trigger_fds[0] = m_trigger_fds[1] = (-1);
         buffer_size(buffsize);
 
-        int rc { pipe(m_trigger_fds) };
+        int rc { ::pipe(m_trigger_fds) };
         result = rc == 0;
         if (! result)
         {
