@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-11-14
+ * \updates       2025-11-20
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -227,14 +227,6 @@ private:
     info m_client_info { };
 
     /**
-
-    input_specs m_input_specs
-    {
-        false, false, false, false, false, nullptr, nullptr
-    };
-     */
-
-    /**
      *  Provides access to the selected API in order to hook up to the desired
      *  MIDI engine as a client and perform key operations on it.
      *
@@ -244,6 +236,13 @@ private:
      */
 
     rtl::rtmidi_engine m_engine;            /* default ctor is deleted      */
+
+    /**
+     *  Indicates that setup has already been done. Call the clear() function
+     *  to start over.
+     */
+
+    bool m_is_setup { false };
 
 public:
 
@@ -332,7 +331,13 @@ public:
         return client_info().queue_size();
     }
 
+    bool is_setup () const
+    {
+        return m_is_setup;
+    }
+
     bool setup (clientinfo & cinfo);
+    void clear ();
     bool client_info_reset ();
     bool client_info_reset (clientinfo & cinfo);
     std::string port_listing () const;
@@ -493,6 +498,7 @@ public:     // public because used in test applications
     bool engine_initialize (const clientinfo & ci);
     bool engine_query ();
     bool engine_activate ();
+    bool engine_deactivate ();
 
 protected:  // API pass-alongs
 
@@ -528,7 +534,7 @@ protected:  // API implementations
     int poll_for_midi () const;
     int poll_port (int portnumber) const;
     bool get_midi_event (midi::event * inev);
-    midi::message get_message (int portnumber = RTL66_PORTS_ALL) const;
+    midi::message get_message (int portnumber = RTL66_PORTS_ALL);
     bool port_start (int client, int port);     // TODO
     bool port_exit (int client, int port);      // TODO
     bool set_track_input (bool state, midi::track * trk);

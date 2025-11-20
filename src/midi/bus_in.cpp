@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-11-11
+ * \updates       2025-11-20
  * \license       GNU GPLv2 or above
  *
  */
@@ -156,7 +156,7 @@ bus_in::get_midi_event (event * inev)
 }
 
 midi::message
-bus_in::get_message () const
+bus_in::get_message ()
 {
     if (port_enabled())
     {
@@ -172,7 +172,7 @@ bus_in::get_message () const
 int
 bus_in::poll_for_midi () const
 {
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
     if (port_enabled())
     {
         int count { m_rtmidi_in.poll_for_midi() };
@@ -202,7 +202,7 @@ bus_in::get_midi_event (event * inev)
 }
 
 midi::message
-bus_in::get_message () const
+bus_in::get_message ()
 {
     return port_enabled() ? m_rtmidi_in.get_message() : midi::message() ;
 }

@@ -301,7 +301,7 @@ public:
     bool clock_continue (midi::pulse tick, int beats);
     int poll_for_midi () const;
     bool get_midi_event (midi::event * inev);
-    midi::message get_message () const;
+    midi::message get_message ();
 
     bool send_byte (midi::byte evbyte) const;
     bool send_event

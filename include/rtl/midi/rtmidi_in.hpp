@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-10
+ * \updates       2025-11-20
  * \license       See above.
  *
  */
@@ -104,7 +104,7 @@ public:
         bool miditime   = true,
         bool midisense  = true
     );
-    midi::message get_message () const;
+    midi::message get_message ();
 
 protected:
 

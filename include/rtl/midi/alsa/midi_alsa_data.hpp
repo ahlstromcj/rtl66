@@ -216,7 +216,7 @@ public:
 
     int trigger_fd (int i) const
     {
-        return (i == 0 || i == 1) ?  m_trigger_fds[i] : (-1) ;
+        return (i == 0 || i == 1) ? m_trigger_fds[i] : (-1) ;
     }
 
 public:

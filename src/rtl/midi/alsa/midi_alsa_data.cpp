@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2024-09-26
+ * \updates       2024-11-19
  * \license       See above.
  *
  */
@@ -67,6 +67,30 @@ midi_alsa_data::clear ()
     (void) free_event_parser();
 }
 
+/**
+ *  The m_trigger_fds[2] array represents the end of the pipe. Element 0
+ *  is the read end of the pipe, and element 1 is the write end of the
+ *  pipe.
+ *
+ *      Read end:  m_triggers_fds[0]
+ *      Write end: m_triggers_fds[1]
+ *
+ *      struct pollfd * poll_fds[2] is set in midi_alsa_handler:
+ *
+ *          poll_fds[0].fd = m_triggers_fds[0], and .events = POLLIN
+ *          poll_fds[1].fd = snd_seq_poll_description(), .events = POLLIN
+ *
+ *  In midi_alsa_handler(), this is first set up. Then, in the while()
+ *  loop, it checks for snd_seq_event_input_pending(). If the count is 0,
+ *  then poll(poll_fds, 2, -1) is called.
+ *
+ *  Then if poll_fds[0].revents has a POLLIN bit, then we read
+ *  from poll_fds[0] into a dummy boolean, and the loop continues.
+ *
+ *  If the count is greater than 0, then the event is retrieved and
+ *  decoded.
+ */
+
 bool
 midi_alsa_data::initialize
 (
@@ -100,9 +124,7 @@ midi_alsa_data::initialize
         int rc { ::pipe(m_trigger_fds) };
         result = rc == 0;
         if (! result)
-        {
-            util::error_message("ALSA pipe() failed");
-        }
+            util::error_message("ALSA pipe() failure", snd_strerror(rc));
     }
     else if (iotype == midi::port::io::output)
     {

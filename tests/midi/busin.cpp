@@ -364,7 +364,7 @@ int
 main (int argc, char * argv [])
 {
     bool can_run { rt_simple_cli("busin", argc, argv) };
-    bool success { true };;
+    bool success { true };
     if (can_run)
     {
         cfg::set_app_name(app_client_info().app_name());
@@ -404,18 +404,23 @@ main (int argc, char * argv [])
             rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
             int portnumber { rt_test_port() };
             if (rt_open_all_ports())
+            {
                 success = poll_all_ports(rapi, portcount);
+            }
             else
+            {
+                app_client_info().input_portnumber(portnumber);
                 success = poll_port(rapi, portnumber);
+            }
 
-#if 0
+#if defined USE_SUSCEPTIBLE_TEST
             bool ok { run_susceptible_test(portnumber) };
             if (ok)
                 ok = poll_port(portnumber);
             bool ok { poll_port(portnumber) };
 
             if (! ok)
-                had_error = true;
+                success = false;
 #endif
         }
         else

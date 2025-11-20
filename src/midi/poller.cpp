@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2025-11-08
- * \updates       2025-11-14
+ * \updates       2025-11-20
  * \license       GNU GPLv2 or above
  *
  */
@@ -130,9 +130,11 @@ poller::setup_master_bus (clientinfo & ci)
     /*
      *  Find an available API.  Here, we rely on finding the fallback API,
      *  rather than a specified API. Hmmmmmm.
+     *
+     *      rtl::rtmidi::api midiapi { rtl::find_midi_api() };
      */
 
-    rtl::rtmidi::api midiapi { rtl::find_midi_api() };
+    rtl::rtmidi::api midiapi { rtl::rtmidi::selected_api() };
     if (midiapi != rtl::rtmidi::api::unspecified)
     {
         /*
@@ -143,13 +145,7 @@ poller::setup_master_bus (clientinfo & ci)
          *  inputs and clocks, as opposed to what's in the rc file?
          */
 
-        result = master_bus().client_info_reset(ci);
-        if (result)
-        {
-            result = master_bus().engine_initialize(ci);
-            if (result)
-                result = master_bus().engine_activate();
-        }
+        result = master_bus().setup(ci);
     }
     return result;
 }
@@ -199,7 +195,7 @@ poller::launch_input_thread ()
     {
         std::bind(&poller::input_func, this)
     };
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
     bool result { in_thread().launch(threadfunc) };
     if (result)
         printf("Input thread launched\n");
@@ -236,7 +232,7 @@ poller::finish ()
         in_thread().deactivate();           /* set the output 'done' flag   */
         cv().signal();                      /* signal the end of play       */
         (void) in_thread().finish();
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
         printf("Input thread finished\n");
 #endif
     }
@@ -244,7 +240,10 @@ poller::finish ()
 }
 
 /**
- *  Performs a controlled activation of the ...
+ *  Performs a controlled activation of the rtmidi_engine and
+ *  the logged busses.
+ *
+ *  Also see poller::setup_master_bus().
  */
 
 bool
@@ -326,12 +325,17 @@ poller::poll_cycle ()
             {
                 master_bus().get_message(in_portnumber())
             };
-            if (! incoming.empty())
+            if (incoming.empty())
+            {
+                break;
+            }
+            else
             {
                 midi::event ev(incoming);
+#if defined PLATFORM_DEBUG_TMI
                 std::string estr { ev.to_string() };        /* incoming     */
                 util::status_message("MIDI event", estr);
-
+#endif
                 if (m_input_using_callback)
                 {
                     /*
@@ -356,7 +360,16 @@ poller::poll_cycle ()
 #endif
                 }
             }
-        } while (master_bus().is_more_input());
+            if (use_all_ports())
+                ok = master_bus().poll_for_midi() > 0;
+            else
+                ok = master_bus().poll_port(in_portnumber()) > 0;
+
+        } while (ok);
+
+        /*
+         * } while (master_bus().is_more_input());
+         */
     }
     return result;
 }

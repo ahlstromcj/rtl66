@@ -332,30 +332,33 @@ get_global_client_info (clientinfo & ci)
 bool
 get_all_port_info (midi::clientinfo & cinfo, rtl::rtmidi::api rapi)
 {
-    bool result { false };
-    try
+    bool result { cinfo.ports_queried() };
+    if (! result)
     {
-        rtl::rtmidi_in midiin(rapi);
-        ports & in { cinfo.io_ports(port::io::input) };
-        int incount { midiin.get_io_port_info(in, false) };    /* !preclear */
-        if (incount > 0)
+        try
         {
-            // anything to do with the output port info?
-        }
+            rtl::rtmidi_in midiin(rapi);
+            ports & in { cinfo.io_ports(port::io::input) };
+            int incount { midiin.get_io_port_info(in, false) };
+            if (incount > 0)
+            {
+                // anything to do with the output port info?
+            }
 
-        rtl::rtmidi_out midiout(rapi);
-        ports & out { cinfo.io_ports(port::io::output) };
-        int outcount { midiout.get_io_port_info(out, false) }; /* !preclear */
-        if (outcount > 0)
-        {
-            // anything to do with the output port info?
+            rtl::rtmidi_out midiout(rapi);
+            ports & out { cinfo.io_ports(port::io::output) };
+            int outcount { midiout.get_io_port_info(out, false) };
+            if (outcount > 0)
+            {
+                // anything to do with the output port info?
+            }
+            result = incount > 0 || outcount > 0;
+            cinfo.ports_queried(true);
         }
-        result = incount > 0 || outcount > 0;
-        cinfo.ports_queried(true);
-    }
-    catch (rtl::rterror & error)
-    {
-        result = false;
+        catch (rtl::rterror & error)
+        {
+            result = false;
+        }
     }
     return result;
 }
@@ -367,7 +370,7 @@ clientinfo::set_input_callback
     void * userdata
 )
 {
-    input_specs & is = m_is;
+    input_specs & is { m_is };
     is.input_active = true;
     is.input_callback = cb;
     is.input_using_callback = not_nullptr(cb);

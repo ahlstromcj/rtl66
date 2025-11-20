@@ -145,8 +145,6 @@ ports::add
         clientnumber, clientname, portnumber, portname,
         iotype, porttype, portid, queuenumber, alias
     );
-    // m_port_container.push_back(temp);
-    // m_port_count = int(m_port_container.size());
 
 #if defined PLATFORM_DEBUG
     bool makevirtual { porttype == port::kind::manual };

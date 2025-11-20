@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-17
+ * \updates       2025-11-20
  * \license       See above.
  *
  */
@@ -250,6 +250,7 @@ public:
     virtual bool clock_continue (midi::pulse tick, midi::pulse beats) override;
     virtual int poll_for_midi () const override;
     virtual bool get_midi_event (midi::event * inev) override;
+    virtual midi::message get_message () override;
 
     /*
      * Strictly speaking, we could implement some of these functions directly

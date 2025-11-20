@@ -999,7 +999,7 @@ rtmidi::get_midi_event (midi::event * inev)
 }
 
 midi::message
-rtmidi::get_message () const
+rtmidi::get_message ()
 {
     midi::message result;
     bool ok { not_nullptr(rt_api_ptr()) };

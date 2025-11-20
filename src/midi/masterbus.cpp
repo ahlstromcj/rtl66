@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-11-14
+ * \updates       2025-11-19
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -149,19 +149,34 @@ masterbus::masterbus
  *
  *  The client_info_reset() call seems redundant, but
  *  it is not. We need to find out why.
+ *
+ *  Note that engine_activate() ultimately calls rt_api_ptr() ->
+ *  engine_activate().
  */
 
 bool
 masterbus::setup (clientinfo & cinfo)
 {
-    bool result = client_info_reset(cinfo);
-    if (result)
-        result = engine_initialize(cinfo);
+    bool result { m_is_setup };
+    if (! result)
+    {
+        result = client_info_reset(cinfo);
+        if (result)
+            result = engine_initialize(cinfo);
 
-    if (result)
-        result = engine_activate();
-
+        if (result)
+            result = engine_activate();
+    }
     return result;
+}
+
+void
+masterbus::clear ()
+{
+    engine_deactivate();
+    client_info().clear();
+    inbus_array().clear();
+    outbus_array().clear();
 }
 
 /**
@@ -542,7 +557,7 @@ bool
 masterbus::set_input (midi::bussbyte b, bool inputing)
 {
     xpc::automutex locker(m_mutex);
-    bool result { m_inbus_array.set_input(b, inputing) };
+    bool result { inbus_array().set_input(b, inputing) };
     if (result)
     {
         result = flush();
@@ -608,7 +623,7 @@ masterbus::save_input (midi::bussbyte b, bool inputing)
 bool
 masterbus::get_input (midi::bussbyte b) const
 {
-    return m_inbus_array.get_input(b);
+    return inbus_array().get_input(b);
 }
 
 /**
@@ -701,12 +716,10 @@ masterbus::poll_for_midi () const
 }
 
 int
-masterbus::poll_port (int portnumber) const
+masterbus::poll_port (int portindex) const
 {
     xpc::automutex locker(m_mutex);
-    masterbus * ncthis { const_cast<masterbus *>(this) };
-    midi::bus_in & busin { ncthis->get_in_bus(portnumber) };
-    int result { busin.poll_for_midi() };
+    int result { inbus_array().poll_for_midi(portindex) };
     if (result > 0)
     {
         if (result <= 2)
@@ -727,14 +740,12 @@ masterbus::get_midi_event (midi::event * inev)
 }
 
 midi::message
-masterbus::get_message (int portnumber) const
+masterbus::get_message (int portindex)
 {
     xpc::automutex locker(m_mutex);
-    if (portnumber != RTL66_PORTS_ALL)
+    if (portindex != RTL66_PORTS_ALL)
     {
-        masterbus * ncthis { const_cast<masterbus *>(this) };
-        midi::bus_in & busin { ncthis->get_in_bus(portnumber) };
-        return busin.get_message();
+        return inbus_array().get_message(portindex);
     }
     else
         return engine().get_message();
@@ -798,8 +809,8 @@ bool
 masterbus::port_exit (int client, int port)
 {
     xpc::automutex locker(m_mutex);
-    m_outbus_array.port_exit(client, port);
-    m_inbus_array.port_exit(client, port);
+    outbus_array().port_exit(client, port);
+    inbus_array().port_exit(client, port);
     return false;
 }
 
@@ -952,6 +963,13 @@ masterbus::engine_activate ()
 {
     xpc::automutex locker(m_mutex);
     return engine().engine_activate();
+}
+
+bool
+masterbus::engine_deactivate ()
+{
+    xpc::automutex locker(m_mutex);
+    return engine().engine_deactivate();
 }
 
 /**

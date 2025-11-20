@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-11-11
+ * \updates       2025-11-20
  * \license       GNU GPLv2 or above
  *
  *  The busarray module defines the busarray and busarray classes so that we
@@ -41,6 +41,7 @@
 
 #include "midi/port.hpp"                /* midi::port & enum classes        */
 #include "midi/clocking.hpp"            /* midi::clocking I/O enum class    */
+#include "midi/message.hpp"             /* midi::message                    */
 #include "midi/midibytes.hpp"           /* midi::bussbyte and other types   */
 
 namespace midi
@@ -61,7 +62,7 @@ class busarray
 private:
 
     /**
-     *  Got stuck in header madness some how, so trying to hide the
+     *  Got stuck in header madness somehow, so trying to hide the
      *  dependence on midi::bus, which is broken.
      */
 
@@ -91,6 +92,7 @@ public:
     ~busarray ();
 
     bool add (midi::bus * b);
+    void clear ();
     bool initialize ();
     int count () const;
     bool bus_valid (midi::bussbyte b) const;
@@ -133,7 +135,9 @@ public:
     bool is_port_unavailable (midi::bussbyte b) const;
     bool is_port_locked (midi::bussbyte b) const;
     int poll_for_midi () const;
+    int poll_for_midi (int portindex) const;
     bool get_midi_event (midi::event * inev);
+    midi::message get_message (int portindex = RTL66_PORTS_ALL);
     int replacement_port (int b, int p);
 
     midi::port::io io_type () const

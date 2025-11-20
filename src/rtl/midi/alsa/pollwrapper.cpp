@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-11-17
- * \updates       2025-11-17
+ * \updates       2025-11-19
  * \license       See above.
  *
  */
@@ -101,7 +101,7 @@ pollwrapper::initialize (snd_seq_t * c, int extra)
  *
  *  midi_alsa_handler() adds one to the count of poll descriptors. Why?
  *  It allocates an extra poll-descriptor, sets POLLIN to the extra
- *  one, and manually hardwires 
+ *  one.
  *
  *  In poll.h, these bitmasks (and more) are defined:
  *
@@ -114,6 +114,9 @@ pollwrapper::initialize (snd_seq_t * c, int extra)
  *
  *  Returns the number of poll descriptors. Accepts a sequencer handle,
  *  the poll events to be checked (POLLIN and POLLOUT or POLLIN|POLLOUT)
+ *
+ *  Also see the midi_alsa_data::initialize() function and the usage of the
+ *  poll descriptors described there.
  *
  * \param extra
  *      A special case for midi_alsa_handler(), which adds and extra descriptor
@@ -202,6 +205,13 @@ pollwrapper::poll_for_midi () const
         (
             poll_descriptors(), num_poll_descriptors(), c_poll_wait_ms
         );
+        if (result >= 0)
+        {
+            /*
+             * The original seq24 code did not do anything with
+             * a pipe and reading.
+             */
+        }
     }
     else
         xpc::millisleep(c_poll_wait_ms);

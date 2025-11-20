@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-11-11
+ * \updates       2025-11-20
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -67,7 +67,8 @@
 
 #include "c_macros.h"                   /* not_nullptr() macro              */
 #include "midi/clientinfo.hpp"          /* midi::clientinfo class           */
-#include "midi/clocking.hpp"            /* midi::clocking enum class */
+#include "midi/clocking.hpp"            /* midi::clocking enum class        */
+#include "midi/message.hpp"             /* midi::message class              */
 #include "midi/midibytes.hpp"           /* midi::byte alias, etc.           */
 #include "rtl/midi/midi_api.hpp"        /* rtl::rtmidi::midi_api            */
 #include "xpc/automutex.hpp"            /* xpc::recmutex recursive mutex    */
@@ -672,6 +673,12 @@ public:
     {
         (void) inev;
         return false;
+    }
+
+    virtual midi::message get_message ()
+    {
+        static midi::message s_dummy;
+        return s_dummy;
     }
 
     /*----------------------------------------------------------------------

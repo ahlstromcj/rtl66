@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-17
+ * \updates       2025-11-20
  * \license       See above.
  *
  */
@@ -149,7 +149,7 @@ static const unsigned sm_generic_caps                           /* 0x100002 */
  * ALSA port capability strings (for troubleshooting)
  *------------------------------------------------------------------------*/
 
-#if defined PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG  // _TMI
 
 /**
  *  See /usr/include/alsa/seq.h.
@@ -168,30 +168,30 @@ static const unsigned sm_generic_caps                           /* 0x100002 */
 static std::string
 alsa_port_capabilities (unsigned bitmask)
 {
-    std::string result { "ALSA caps: " };
+    std::string result { "Caps:" };
     if ((bitmask & SND_SEQ_PORT_CAP_READ) != 0)
-        result += "read ";
+        result += " R";
 
     if ((bitmask & SND_SEQ_PORT_CAP_WRITE) != 0)
-        result += "write ";
+        result += " W";
 
     if ((bitmask & SND_SEQ_PORT_CAP_SYNC_READ) != 0)
-        result += "syncread ";
+        result += " SyncR";
 
     if ((bitmask & SND_SEQ_PORT_CAP_SYNC_WRITE) != 0)
-        result += "syncwrite ";
+        result += " SyncW";
 
     if ((bitmask & SND_SEQ_PORT_CAP_DUPLEX) != 0)
-        result += "duplex ";
+        result += " Duplex";
 
     if ((bitmask & SND_SEQ_PORT_CAP_SUBS_READ) != 0)
-        result += "subread ";
+        result += " SubR";
 
     if ((bitmask & SND_SEQ_PORT_CAP_SUBS_WRITE) != 0)
-        result += "subwrite ";
+        result += " SubW";
 
     if ((bitmask & SND_SEQ_PORT_CAP_NO_EXPORT) != 0)
-        result += "noexport";
+        result += " NoExport";
 
     return result;
 }
@@ -309,8 +309,11 @@ no_routing_allowed (unsigned caps)
  * \param seq
  *      Provides the ALSA client pointer, which must not be null.
  *
+ * \param cinfo
+ *      Provides the ALSA client info pointer, which must not be null.
+ *
  * \param pinfo
- *      Provides the ALSA port pointer, which must not be null.
+ *      Provides the ALSA port info pointer, which must not be null.
  *
  * \param capstype
  *      Provides the type of port to process.  The capabilities of
@@ -330,6 +333,7 @@ static int
 get_port_info
 (
     ::snd_seq_t * seq,
+    ::snd_seq_client_info_t * cinfo,
     ::snd_seq_port_info_t * pinfo,
     unsigned capstype,
     int portnumber
@@ -338,8 +342,6 @@ get_port_info
     int count { 0 };
     if (not_nullptr_2(seq, pinfo))
     {
-        ::snd_seq_client_info_t * cinfo;
-        snd_seq_client_info_alloca(&cinfo);                 /* a macro      */
         ::snd_seq_client_info_set_client(cinfo, -1);        /* all clients  */
         while (::snd_seq_query_next_client(seq, cinfo) >= 0)
         {
@@ -357,12 +359,6 @@ get_port_info
                     continue;
 
                 unsigned caps { ::snd_seq_port_info_get_capability(pinfo) };
-#if defined PLATFORM_DEBUG_TMI
-                std::string s { alsa_port_capabilities(caps) };
-                s += ": port ";
-                s += std::to_string(count);
-                infoprint(CSTR(s));
-#endif
                 if ((caps & capstype) != capstype)
                     continue;
 
@@ -384,6 +380,80 @@ get_port_info
     }
     return 0;
 }
+
+static int
+get_port_info
+(
+    ::snd_seq_t * seq,
+    ::snd_seq_port_info_t * pinfo,
+    unsigned capstype,
+    int portnumber
+)
+{
+    if (not_nullptr_2(seq, pinfo))
+    {
+        ::snd_seq_client_info_t * cinfo;
+        snd_seq_client_info_alloca(&cinfo);                 /* a macro      */
+        return get_port_info(seq, cinfo, pinfo, capstype, portnumber);
+    }
+    return 0;
+}
+
+#if defined USE_SHOW_BASIC_CLIENT_INFO
+
+/**
+ *  These functions are to be enabled only for trouble-shooting.
+ */
+
+static void
+show_basic_client_info (snd_seq_t * client)
+{
+    if (not_nullptr(client))
+    {
+        int clientid { ::snd_seq_client_id(client) };
+        ::snd_seq_client_info_t * cinfo;
+        snd_seq_client_info_alloca(&cinfo);
+        ::snd_seq_get_any_client_info(client, clientid, cinfo);
+
+        const char * cname { ::snd_seq_client_info_get_name(cinfo) };
+
+        printf
+        (
+            "Client '%s' at %p; ID %d;\n",
+            cname, client, clientid
+        );
+    }
+    else
+        printf("null client pointer\n");
+}
+
+static void
+show_basic_port_info (snd_seq_t * client, bool isoutput, int portnumber)
+{
+    if (not_nullptr(port))
+    {
+        int clientid { ::snd_seq_client_id(client) };
+
+        unsigned caps { is_output() ? sm_output_caps : sm_input_caps };
+        ::snd_seq_client_info_t * cinfo;
+        ::snd_seq_port_info_t * pinfo;
+        snd_seq_client_info_alloca(&cinfo);
+        snd_seq_port_info_alloca(&pinfo);
+
+        (void) get_port_info(client, ....
+
+        printf
+        (
+            "Client %d at %p: Port   \n"
+            clientid, client
+        );
+    }
+    else
+        printf("null client pointer\n");
+}
+
+#endif  // defined USE_SHOW_CLIENT_INFO
+
 
 /*------------------------------------------------------------------------
  * midi_alsa constructors
@@ -522,7 +592,9 @@ midi_alsa::engine_connect ()
             bool ok { set_seq_client_name(seq, client_name()) };
             if (ok)
             {
-                (void) m_poll_wrapper.initialize(seq);  // NEW
+                if (is_input())
+                    (void) m_poll_wrapper.initialize(seq);  // NEW
+
                 if (is_engine())
                 {
                     rc = ::snd_seq_alloc_queue(seq);    /* tempo queue id   */
@@ -1580,6 +1652,8 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
 
         snd_seq_client_info_alloca(&cinfo);
         ::snd_seq_client_info_set_client(cinfo, -1);
+
+        int index { 0 };
         while (::snd_seq_query_next_client(seq, cinfo) >= 0)
         {
             int client { ::snd_seq_client_info_get_client(cinfo) };
@@ -1636,16 +1710,18 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                         (caps & sm_output_caps) == sm_output_caps : /* 0x42 */
                         (caps & sm_input_caps) == sm_input_caps     /* 0x21 */
                 };
-
-#if defined PLATFORM_DEBUG_TMI
                 std::string s { alsa_port_capabilities(caps) };
-                s += "- ";
-                s += clientname;
-                infoprint(CSTR(s));
-#endif
-
                 if (can_add)
                 {
+#if defined PLATFORM_DEBUG  // _TMI
+                    printf
+                    (
+                        "[%d] Add %s ALSA buss '%s' #%d  "
+                        "'%s'\n",
+                        result, ( iswriteable ? "out" : "in" ),
+                        V(clientname), portnumber, V(s)
+                    );
+#endif
                     ioports.add
                     (
                         client, clientname, portnumber, portname,
@@ -1662,12 +1738,14 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
 
                     printf
                     (
-                        "Ignoring %s ALSA port '%s'\n",
-                        ( iswriteable ? "output" : "input" ),
-                        V(clientname)
+                        "[%d] Skip %s ALSA buss '%s' #%d "
+                        "'%s'\n",
+                        index, ( iswriteable ? "out" : "in" ),
+                        V(clientname), portnumber, V(s)
                     );
                 }
             }
+            ++index;
         }
     }
     if (result == 0)
@@ -1901,16 +1979,16 @@ midi_alsa::clock_continue (midi::pulse /* tick */, midi::pulse beats)
 int
 midi_alsa::poll_for_midi () const
 {
-    static bool s_using_input_thread { true };          // TEMPORARY TESTING
-    if (s_using_input_thread)                       /* midi_alsa_handler()  */
+    bool usepolling { has_master() && ! master_bus()->use_input_thread() };
+    if (usepolling)
+    {
+        return m_poll_wrapper.poll_for_midi();
+    }
+    else
     {
         const rtmidi_in_data & rtidata { input_data() };
         const midi_queue & mq { rtidata.queue() };
         return mq.count();
-    }
-    else
-    {
-        return m_poll_wrapper.poll_for_midi();
     }
 }
 
@@ -2060,26 +2138,25 @@ midi_alsa::get_midi_event (midi::event * inev)
         result = inev->set_midi_event(ev->time.tick, buff, bytecount);
         if (result)
         {
-            ::snd_seq_t * sseq { alsa_data().alsa_client() };
-
-            midi::bussbyte b { 0 };       // TODO
-#if defined THIS_CODE_IS_READY
-            midi::bussbyte b
+            if (has_master())
             {
-                input_ports().get_port_index
-                (
-                    int(ev->source.client), int(ev->source.port)
-                )
-            };
-#endif
+                int b
+                {
+                    master_bus()->get_port_id       /* i.e. bus index   */
+                    (
+                        midi::port::io::input,
+                        int(ev->source.client), int(ev->source.port)
+                    )
+                };
+                inev->set_input_bus(midi::bussbyte(b));
+            }
             bool sysex { inev->is_sysex() };
-            inev->set_input_bus(b);
 #if defined PLATFORM_DEBUG_TMI
             warnprintf("Input on buss %d\n", int(b));
 #endif
             while (sysex)           /* sysex might be more than one message */
             {
-                remcount = ::snd_seq_event_input(sseq, &ev);
+                remcount = ::snd_seq_event_input(client_handle(), &ev);
                 bytecount = ::snd_midi_event_decode
                 (
                     mididev, buff.data(), long(buffersize), ev
@@ -2108,7 +2185,7 @@ midi_alsa::get_midi_event (midi::event * inev)
     return result;
 }
 
-#if defined USE_THIS_CODE
+// #if defined USE_THIS_CODE
 
 /**
  *  A simpler version of get_midi_event() that merely puts the incoming event
@@ -2142,12 +2219,13 @@ midi_alsa::get_midi_event (midi::event * inev)
  *      snd_seq_result_t  result
  */
 
-bool
-midi_alsa::get_midi_message (midi::message & incoming)
+midi::message
+midi_alsa::get_message ()
 {
-    bool result { false };
+    midi::message result;
+    ::snd_seq_t * ncclient { const_cast<::snd_seq_t *>(client_handle()) };
     ::snd_seq_event_t * ev;
-    int remcount { ::snd_seq_event_input(client_handle(), &ev) };
+    int remcount { ::snd_seq_event_input(ncclient, &ev) };
     if (remcount < 0 || is_nullptr(ev))
     {
         if (remcount == -EAGAIN)
@@ -2183,31 +2261,28 @@ midi_alsa::get_midi_message (midi::message & incoming)
     };
     if (bytecount > 0)
     {
-        buff.resize(size_t(bytecount);
+        buff.resize(size_t(bytecount));
         midi::message msg(buff);
         msg.jack_stamp(double(ev->time.tick));
 
 //      result = inev->set_midi_event(ev->time.tick, buff, bytecount);
-        ::snd_seq_t * sseq { alsa_data().alsa_client() };
+//      ::snd_seq_t * sseq { alsa_data().alsa_client() };
 
-        midi::bussbyte b { 0 };       // TODO
+        int b { int(midi::null_buss()) };
         if (has_master())
         {
-            midi::bussbyte b
-            {
-                master_bus()->get_port_id
-                (
-                    midi::port::io::input,
-                    int(ev->source.client), int(ev->source.port)
-                )
-            };
+            b = master_bus()->get_port_id
+            (
+                midi::port::io::input,
+                int(ev->source.client), int(ev->source.port)
+            );
         }
 
         bool sysex { msg.is_sysex() };
-        msg.set_input_bus(b);
+        msg.midi_buss(b);
         while (sysex)           /* sysex might be more than one message */
         {
-            remcount = ::snd_seq_event_input(sseq, &ev);
+            remcount = ::snd_seq_event_input(ncclient, &ev);
             bytecount = ::snd_midi_event_decode
             (
                 mididev, buff.data(), long(buffersize), ev
@@ -2221,18 +2296,13 @@ midi_alsa::get_midi_message (midi::message & incoming)
             else
                 sysex = false;
         }
-        result = true;
-    }
-    else
-    {
-        incoming.clear();
-        result = false;
+        result = msg;           /* inefficient? */
     }
     ::snd_midi_event_free(mididev);
     return result;
 }
 
-#endif
+// #endif
 
 /**
  *  This send_event() function takes a native event, encodes it to an ALSA MIDI

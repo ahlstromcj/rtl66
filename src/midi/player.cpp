@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-11-08
+ * \updates       2025-11-19
  * \license       GNU GPLv2 or above
  *
  */
@@ -94,6 +94,8 @@ static const int c_thread_priority { 1 };
 /**
  *  Principal constructor. Note that most of the members are default in
  *  the class header (i.e. "in-class").
+ *
+ *  Also compare player to the poller class.
  */
 
 player::player (midi::masterbus & mbus) :
@@ -640,34 +642,27 @@ player::setup_master_bus (clientinfo & ci)
          *  inputs and clocks, as opposed to what's in the rc file?
          */
 
-        result = master_bus().client_info_reset(ci);
+        result = master_bus().setup(ci);
         if (result)
         {
-            result = master_bus().engine_initialize(ci);
-            if (result)
-                result = master_bus().engine_activate();
-
-            if (result)
-            {
 #if DERIVED_CLASS       // for the Future!
 
-                master_bus().filter_by_channel(m_filter_by_channel);
-                master_bus().set_port_statuses(m_clocks, m_inputs);
-                master_bus().record_by_buss(m_record_by_buss);
-                master_bus().record_by_channel(m_record_by_channel);
-                master_bus().set_port_statuses(m_clocks, m_inputs);
-                midi_control_out().set_master_bus(master_bus());
+            master_bus().filter_by_channel(m_filter_by_channel);
+            master_bus().set_port_statuses(m_clocks, m_inputs);
+            master_bus().record_by_buss(m_record_by_buss);
+            master_bus().record_by_channel(m_record_by_channel);
+            master_bus().set_port_statuses(m_clocks, m_inputs);
+            midi_control_out().set_master_bus(master_bus());
 #endif
-                m_transport_info.time_signature
-                (
-                    ci.global_beats_per_bar(),
-                    ci.global_beat_width()
-                );
-                m_transport_info.time_resolution
-                (
-                    ci.global_ppqn(), ci.global_bpm()
-                );
-            }
+            m_transport_info.time_signature
+            (
+                ci.global_beats_per_bar(),
+                ci.global_beat_width()
+            );
+            m_transport_info.time_resolution
+            (
+                ci.global_ppqn(), ci.global_bpm()
+            );
         }
     }
     return result;

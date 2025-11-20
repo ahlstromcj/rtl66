@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-10
+ * \updates       2025-11-20
  * \license       See above.
  *
  */
@@ -304,9 +304,9 @@ rtmidi_in::ignore_midi_types (bool midisysex, bool miditime, bool midisense)
  */
 
 midi::message
-rtmidi_in::get_message () const
+rtmidi_in::get_message ()
 {
-    return static_cast<const midi_api *>(rt_api_ptr())->get_message();
+    return rt_api_ptr()->get_message();
 }
 
 /**

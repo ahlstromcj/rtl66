@@ -164,8 +164,17 @@ midi_api::ignore_midi_types (bool midisysex, bool miditime, bool midisense)
     m_input_data.ignore_flags(midisysex, miditime, midisense);
 }
 
+/**
+ *  Here we note that we cannot do anything if an input callback has been
+ *  specified.
+ *
+ *  Otherwise we pop from the front of a queue.
+ *
+ *  A derived class might instead get the message and return it directly.
+ */
+
 midi::message
-midi_api::get_message () const
+midi_api::get_message ()
 {
     midi::message result;
     if (m_input_data.using_callback())

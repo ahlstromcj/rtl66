@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-11-11
+ * \updates       2025-11-20
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -98,6 +98,11 @@ public:
             m_bus_container.push_back(std::move(bp));
         }
         return result;
+    }
+
+    void clear ()
+    {
+        m_bus_container.clear();
     }
 
     bool bus_valid (midi::bussbyte b) const
@@ -189,6 +194,15 @@ public:
         return result;
     }
 
+    int poll_for_midi (int portindex) const
+    {
+        int result { 0 };
+        if (portindex < int(m_bus_container.size()))
+            result = m_bus_container[portindex]->poll_for_midi();
+
+        return result;
+    }
+
     bool get_midi_event (event * inev)
     {
         for (auto & b : m_bus_container)
@@ -206,7 +220,14 @@ public:
         return false;
     }
 
-    // TODO: add get_message() function.
+    midi::message get_message (int portindex)
+    {
+        static midi::message s_dummy;
+        if (portindex < int(m_bus_container.size()))
+            return m_bus_container[portindex]->get_message();
+        else
+            return s_dummy;
+    }
 
     int replacement_port (int b, int p)
     {
@@ -286,6 +307,12 @@ bool
 busarray::add (midi::bus * b)
 {
     return p_impl->add(b);
+}
+
+void
+busarray::clear ()
+{
+    p_impl->clear();
 }
 
 int
@@ -793,6 +820,12 @@ busarray::poll_for_midi () const
     return p_impl->poll_for_midi();
 }
 
+int
+busarray::poll_for_midi (int portindex) const
+{
+    return p_impl->poll_for_midi(portindex);
+}
+
 /**
  *  Gets the first MIDI event in finds on an input bus.
  *
@@ -810,6 +843,12 @@ bool
 busarray::get_midi_event (event * inev)
 {
     return p_impl->get_midi_event(inev);
+}
+
+midi::message
+busarray::get_message (int portindex)
+{
+    return p_impl->get_message(portindex);
 }
 
 /**
@@ -872,11 +911,11 @@ busarray::buss_in (midi::bussbyte b)
         }
         catch (std::bad_cast &)
         {
-            return s_dummy_bus ;
+            return s_dummy_bus;
         }
     }
     else
-        return s_dummy_bus ;
+        return s_dummy_bus;
 }
 
 midi::bus_out &

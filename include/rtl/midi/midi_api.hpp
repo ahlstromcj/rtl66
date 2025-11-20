@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-11
+ * \updates       2025-11-20
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -493,7 +493,7 @@ protected:
         return false;
     }
 
-    virtual midi::message get_message () const;
+    virtual midi::message get_message ();
 
 #endif  // defined RTL66_MIDI_EXTENSIONS
 
