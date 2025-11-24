@@ -1532,7 +1532,7 @@ eventlist::randomize_note_pitches
                     }
                     else
                     {
-#if defined SEQ66_PLATFORM_DEBUG
+#if defined SEQ66_PLATFORM_DEBUG_TMI
                         printf("Orphaned Note On in randomizing pitch\n");
 #endif
                     }
@@ -1543,7 +1543,7 @@ eventlist::randomize_note_pitches
                     {
                         result = true;
                         e.set_note(midi::byte(p));
-#if defined SEQ66_PLATFORM_DEBUG
+#if defined SEQ66_PLATFORM_DEBUG_TMI
                         printf("Orphaned Note Off in randomizing pitch\n");
 #endif
                     }

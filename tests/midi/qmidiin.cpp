@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-07-01
- * \updates       2025-11-17
+ * \updates       2025-11-24
  * \license       See above.
  *
  *      Simple program to test MIDI input and retrieval from the queue.
@@ -38,7 +38,14 @@
 
 #include "cfg/appinfo.hpp"              /* cfg::set_client_name()           */
 #include "midi/clientinfo.hpp"          /* midi::global_client_info()       */
+
+#define USE_GET_MESSAGE                 /* use midi::message vs midi::event */
+#if defined USE_GET_MESSAGE
 #include "midi/message.hpp"             /* midi::message class              */
+#else
+#include "midi/event.hpp"               /* midi::event class                */
+#endif
+
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
@@ -68,8 +75,17 @@ read_port (rtl::rtmidi::api rapi, int port)
     {
         try
         {
+            /*
+             * We pass false as the last parameter so that the internal
+             * MIDI API input thread is *not* used. We do our own polling.
+             * We also pass a 0 queue-size which means the default size is
+             * used.
+             *
+             * Too tricky!
+             */
+
             std::string name { midi::global_client_info().client_name() };
-            rtl::rtmidi_in midiin(rapi, name);
+            rtl::rtmidi_in midiin(rapi, name, 0, false);
 
             /*
              * Check available ports vs. specified.
@@ -94,7 +110,8 @@ read_port (rtl::rtmidi::api rapi, int port)
                  */
 
                 midiin.ignore_midi_types(false, false, false);
-                if (midiin.open_port(port))
+                result = midiin.open_port(port);
+                if (result)
                 {
                     s_is_done = false;
                     (void) signal(SIGINT, finish);
@@ -106,6 +123,7 @@ read_port (rtl::rtmidi::api rapi, int port)
                         ;
 
                     xpc::clear_kb_ex();
+#if defined USE_GET_MESSAGE
                     while (! s_is_done)
                     {
                         midi::message msg { midiin.get_message() };
@@ -120,6 +138,30 @@ read_port (rtl::rtmidi::api rapi, int port)
 
                         rt_test_sleep(10);  /* sleep for 10 msec    */
                     }
+#else
+                    while (! s_is_done)
+                    {
+                        midi::event ev;
+                        bool got_it { midiin.get_midi_event(&ev) };
+                        if (got_it)
+                        {
+                            std::string msgline { "Event: " };
+                            msgline += ev.to_string();
+                            util::status_message(msgline);
+                        }
+                        if (xpc::kbcheck_ex())
+                            break;
+
+                        rt_test_sleep(10);  /* sleep for 10 msec    */
+                    }
+#endif
+                }
+                else
+                {
+                    std::cerr
+                        << "Could not open port " << port
+                        << " ... aborting" << std::endl
+                        ;
                 }
             }
         }

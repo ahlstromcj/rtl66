@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-10
- * \updates       2025-11-08
+ * \updates       2025-11-23
  * \license       GNU GPLv2 or above
  *
  *  The player class is a severely cut-down version of seq66::performer, with
@@ -374,10 +374,7 @@ public:
     player & operator = (player &&) = delete;       /* ditto */
     virtual ~player ();
 
-    virtual bool setup_master_bus
-    (
-        clientinfo & ci = midi::global_client_info()
-    );
+    virtual bool setup_master_bus ();
     virtual bool clear_all (bool clearplaylist = false);
     virtual bool track_playing_toggle (midi::track::number trkno);
     virtual bool track_playing_change (midi::track::number trkno, bool on);
@@ -840,7 +837,7 @@ public:
     );
     bool set_thru (midi::track::ref t, bool thruon, bool toggle);
     bool set_thru (midi::track::number trkno, bool thruon, bool toggle);
-    bool launch (clientinfo & ci = midi::global_client_info());
+    bool launch ();
     bool finish ();
     bool activate ();
     bool new_track

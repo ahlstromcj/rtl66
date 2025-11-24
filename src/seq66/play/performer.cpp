@@ -3485,7 +3485,7 @@ performer::sequence_inbus_setup ()
                     m_buss_patterns.push_back(seqi.get());
                     result = true;
 
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
                     char temp[64];
                     snprintf
                     (
@@ -4898,14 +4898,14 @@ performer::poll_cycle ()
 
                                 if (not_nullptr(sp))
                                     sp->stream_event(ev);
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
                                 else
                                     warn_message("no buss-recording pattern");
 #endif
                             }
                             else if (record_by_channel())
                             {
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
                                 if (! m_master_bus->dump_midi_input(ev))
                                     warn_message("no matching channel");
 #else
@@ -4917,7 +4917,7 @@ performer::poll_cycle ()
                                 sequence * sp = m_master_bus->get_sequence();
                                 if (not_nullptr(sp))
                                     sp->stream_event(ev);
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
                                 else
                                     error_message("no active pattern");
 #endif
@@ -7067,7 +7067,7 @@ performer::replace_for_solo (seq::number seqno, bool queued)
 
         if (seqno == m_solo_seqno)              /* user toggle of slot  */
         {
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
             msgprintf(msglevel::debug, "Pattern %d solo cleared", seqno);
 #endif
             (void) set_ctrl_status              /* restores snapshot    */
@@ -7079,7 +7079,7 @@ performer::replace_for_solo (seq::number seqno, bool queued)
         }
         else
         {
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
             msgprintf(msglevel::debug, "Pattern %d soloed", seqno);
 #endif
             (void) set_ctrl_status              /* saves snapshot       */

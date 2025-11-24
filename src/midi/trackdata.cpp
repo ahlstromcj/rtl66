@@ -1572,7 +1572,7 @@ trackdata::parse_track
     {
         if (done())                         /* safety check                 */
         {
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
             printf("Length reached for track %d\n", trk.track_number());
             printf
             (
@@ -1777,8 +1777,6 @@ trackdata::parse_track
                     error_reported = true;
             }
 #endif
-
-//          return result;      /* allow further processing */
             break;
         }
     }                          /* while not done loading Trk chunk */

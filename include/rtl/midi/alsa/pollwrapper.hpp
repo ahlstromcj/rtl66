@@ -127,14 +127,6 @@ private:
         return m_num_poll_descriptors;
     }
 
-#if 0
-    struct pollfd * poll_descriptors (int index = 0)
-    {
-        bool ok { is_initialized() && index < num_poll_descriptors() };
-        return ok ? m_poll_descriptors + index : nullptr ;
-    }
-#endif
-
     struct pollfd * poll_descriptors (int index = 0) const
     {
         bool ok { is_initialized() && index < num_poll_descriptors() };

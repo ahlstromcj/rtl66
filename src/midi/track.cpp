@@ -589,7 +589,7 @@ track::simple_play (midi::pulse tick)
 
     midi::pulse end_tick_offset { tick + len };
     auto e { events().begin() };
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
     int count { events().count() };
     int playcount { events().playable_count() };
     printf

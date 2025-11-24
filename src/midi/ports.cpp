@@ -58,7 +58,7 @@
 
 #include "midi/ports.hpp"               /* midi::ports etc.                 */
 
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
 #include "util/msgfunctions.hpp"        /* util::info_message()             */
 #endif
 
@@ -146,7 +146,7 @@ ports::add
         iotype, porttype, portid, queuenumber, alias
     );
 
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
     bool makevirtual { porttype == port::kind::manual };
     bool makesystem { porttype == port::kind::system };
     bool makeinput {  iotype == port::io::input };

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-10-09
- * \updates       2025-11-14
+ * \updates       2025-11-22
  * \license       See above.
  *
  *      This application but merely opens one port and accepts messages,
@@ -199,20 +199,15 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
  */
 
 bool
-run_susceptible_test (rtl::rtmidi::api rapi, int portnumber)
+run_susceptible_test (rtl::rtmidi::api rapi, int portno)
 {
     midi::masterbus & master { master_bus(rapi, app_client_info()) };
-    midi::bus_in & busin { master.get_in_bus(portnumber) };
+    midi::bus_in & busin { master.get_in_bus(portno) };
     bool result { busin.initialize() };
     if (result)
     {
         try
         {
-            // midi::bus_in & busin
-            // {
-            //    dynamic_cast<midi::bus_in &>(inbus)
-            // };
-
             /*
              * Don't ignore sysex, timing, or active sensing
              * messages. Install an interrupt handler function.
@@ -273,16 +268,16 @@ run_susceptible_test (rtl::rtmidi::api rapi, int portnumber)
 }
 
 bool
-poll_port (rtl::rtmidi::api rapi, int portnumber)
+poll_port (rtl::rtmidi::api rapi, int portno)
 {
     midi::masterbus & master { master_bus(rapi, app_client_info()) };
-    midi::bus & inbus { master.get_in_bus(portnumber) };
+    midi::bus & inbus { master.get_in_bus(portno) };
     bool result { inbus.initialize() };
-    app_client_info().input_portnumber(portnumber);
-    std::cout << "Using port #" << portnumber << std::endl;
+    app_client_info().input_portnumber(portno);
+    std::cout << "Using port #" << portno << std::endl;
     if (result)
     {
-        midi::poller p(master, portnumber);
+        midi::poller p(master, portno);
         result = p.launch(app_client_info());   /* global info is default   */
         if (result)
         {
@@ -324,9 +319,21 @@ poll_port (rtl::rtmidi::api rapi, int portnumber)
                         midi::message msg { busin.get_message() };
                         if (msg.count() > 0)
                         {
-                            std::string msgline { "Msg:" };
-                            msgline += msg.to_string();
-                            util::status_message(msgline);
+                            if (msg.midi_buss() == portno)
+                            {
+                                std::string msgline { "Msg:" };
+                                msgline += msg.to_string();
+                                util::status_message(msgline);
+                            }
+                            else
+                            {
+                                std::string msgline
+                                {
+                                    "Msg from unselected port "
+                                };
+                                msgline += std::to_string(msg.midi_buss());
+                                util::warn_message(msgline);
+                            }
                         }
                         if (xpc::kbcheck_ex())
                             break;
@@ -350,7 +357,67 @@ bool
 poll_all_ports (rtl::rtmidi::api rapi, int portcount)
 {
     bool result { true };
-    std::cout << "All-ports test NOT READY" << std::endl;
+    int portno { RTL66_PORTS_ALL };
+    app_client_info().input_portnumber(portno);
+
+    midi::masterbus & master { master_bus(rapi, app_client_info()) };
+    midi::poller p(master, portno);
+    result = p.launch(app_client_info());   /* global info is default   */
+    if (result)
+    {
+        p.start_polling();
+        try
+        {
+            if (rt_use_callback())
+            {
+                std::cout
+                    << "Reading MIDI input ... press <Enter> to quit.\n"
+                    ;
+
+                char input;
+                std::cin.get(input);
+            }
+            else
+            {
+                s_is_done = false;
+                (void) signal(SIGINT, finish);
+                std::cout
+                    << "Reading MIDI from all ports "
+                    << " ... quit with any key or <Ctrl-C>."
+                    << std::endl
+                    ;
+                xpc::clear_kb_ex();
+                while (! s_is_done)
+                {
+                    /*
+                     * Note: the default port number for
+                     * masterbus::get_message(int portno)
+                     * is RTL66_PORTS_ALL.
+                     */
+
+                    midi::message msg { master.get_message() };
+                    if (msg.count() > 0)
+                    {
+                        std::string msgline { "Msg:" };
+                        msgline += msg.to_string();
+                        util::status_message(msgline);
+                    }
+                    if (xpc::kbcheck_ex())
+                        break;
+
+                    rt_test_sleep(10);  /* sleep for 10 msec    */
+                }
+                p.stop_polling();
+            }
+        }
+        catch (const rtl::rterror & error)
+        {
+            std::cerr << "Caught rtl::rterror!" << std::endl;
+            result = false;
+        }
+    }
+
+    std::cout << "All-ports test" << std::endl;
     return result;
 }
 
@@ -402,22 +469,22 @@ main (int argc, char * argv [])
         if (can_run)
         {
             rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
-            int portnumber { rt_test_port() };
+            int portno { rt_test_port() };
             if (rt_open_all_ports())
             {
                 success = poll_all_ports(rapi, portcount);
             }
             else
             {
-                app_client_info().input_portnumber(portnumber);
-                success = poll_port(rapi, portnumber);
+                app_client_info().input_portnumber(portno);
+                success = poll_port(rapi, portno);
             }
 
 #if defined USE_SUSCEPTIBLE_TEST
-            bool ok { run_susceptible_test(portnumber) };
+            bool ok { run_susceptible_test(portno) };
             if (ok)
-                ok = poll_port(portnumber);
-            bool ok { poll_port(portnumber) };
+                ok = poll_port(portno);
+            bool ok { poll_port(portno) };
 
             if (! ok)
                 success = false;

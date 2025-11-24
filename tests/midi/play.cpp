@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-11-14
+ * \updates       2025-11-23
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -81,7 +81,7 @@ midi::client_defaults s_clientinfo_defaults
     -1,                                 /* queue size, a bad value          */
     false,                              /* ALSA MIDI is not threadsafe      */
     midi::c_port_null,                  /* input port number (default)      */
-    0                                   /* output port number               */
+    midi::c_port_null                   /* output port number (default)     */
 };
 
 /**

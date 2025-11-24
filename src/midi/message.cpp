@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-12-01
- * \updates       2025-11-13
+ * \updates       2025-11-21
  * \license       See above.
  *
  *  Provides a basic type for the (heavily-factored) rtl66 library, very
@@ -137,7 +137,7 @@ namespace midi
  * class message
  */
 
-#if defined RTL66_PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
 unsigned message::sm_msg_number { 0 };
 #endif
 
@@ -151,7 +151,7 @@ unsigned message::sm_msg_number { 0 };
  */
 
 message::message (double ts) :
-#if defined RTL66_PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
     m_msg_number    (sm_msg_number++),
 #endif
     m_time_stamp    (ts)
@@ -175,7 +175,7 @@ message::message (double ts) :
 
 message::message (const midi::byte * mbs, std::size_t sz) :
 
-#if defined RTL66_PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
     m_msg_number    (sm_msg_number++),
 #endif
     m_time_stamp    (0),                    /* TODO */
@@ -199,7 +199,7 @@ message::message (const midi::byte * mbs, std::size_t sz) :
 
 message::message (const midi::bytes & mbs) :
 
-#if defined RTL66_PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
     m_msg_number    (sm_msg_number++),
 #endif
     m_time_stamp    (0),
@@ -280,6 +280,8 @@ message::to_string () const
     if (incomplete)
         result += "...";
 
+    result += " buss/index ";
+    result += std::to_string(midi_buss());
     return result;
 }
 

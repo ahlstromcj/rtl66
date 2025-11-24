@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-11-19
+ * \updates       2025-11-23
  * \license       GNU GPLv2 or above
  *
  */
@@ -620,9 +620,10 @@ player::reset_tracks (bool p)
  */
 
 bool
-player::setup_master_bus (clientinfo & ci)
+player::setup_master_bus () // (clientinfo & ci)
 {
-    bool result { false };
+    rtl::rtmidi::api midiapi { rtl::find_midi_api() };          /* hmmmmm   */
+    bool result { midiapi != rtl::rtmidi::api::unspecified };
 
     /*
      *  Find an available API.  Here, we rely on finding the fallback API,
@@ -631,8 +632,7 @@ player::setup_master_bus (clientinfo & ci)
      *      rtl::rtmidi::api midiapi = rtl::rtmidi::selected(api);
      */
 
-    rtl::rtmidi::api midiapi { rtl::find_midi_api() };
-    if (midiapi != rtl::rtmidi::api::unspecified)
+    if (result)
     {
         /*
          * Cannot use std::make_unique<midi::masterbus> because its copy
@@ -640,30 +640,34 @@ player::setup_master_bus (clientinfo & ci)
          *
          *  Also, at this point, do we have the actual complement of
          *  inputs and clocks, as opposed to what's in the rc file?
+         *
+         *  And still more, we expect the masterbus to be setup already,
+         *  by the caller of launch(). Otherwise the default clientinfo gets
+         *  insinuated into the process.
+         *
+         *      result = master_bus().setup(ci);
          */
 
-        result = master_bus().setup(ci);
-        if (result)
-        {
+        const clientinfo & ci { master_bus().client_info() };
+
 #if DERIVED_CLASS       // for the Future!
 
-            master_bus().filter_by_channel(m_filter_by_channel);
-            master_bus().set_port_statuses(m_clocks, m_inputs);
-            master_bus().record_by_buss(m_record_by_buss);
-            master_bus().record_by_channel(m_record_by_channel);
-            master_bus().set_port_statuses(m_clocks, m_inputs);
-            midi_control_out().set_master_bus(master_bus());
+        master_bus().filter_by_channel(m_filter_by_channel);
+        master_bus().set_port_statuses(m_clocks, m_inputs);
+        master_bus().record_by_buss(m_record_by_buss);
+        master_bus().record_by_channel(m_record_by_channel);
+        master_bus().set_port_statuses(m_clocks, m_inputs);
+        midi_control_out().set_master_bus(master_bus());
 #endif
-            m_transport_info.time_signature
-            (
-                ci.global_beats_per_bar(),
-                ci.global_beat_width()
-            );
-            m_transport_info.time_resolution
-            (
-                ci.global_ppqn(), ci.global_bpm()
-            );
-        }
+        m_transport_info.time_signature
+        (
+            ci.global_beats_per_bar(),
+            ci.global_beat_width()
+        );
+        m_transport_info.time_resolution
+        (
+            ci.global_ppqn(), ci.global_bpm()
+        );
     }
     return result;
 }
@@ -698,9 +702,9 @@ player::done () const
  */
 
 bool
-player::launch (clientinfo & ci)
+player::launch ()
 {
-    bool result { setup_master_bus(ci) };
+    bool result { setup_master_bus() };
     if (result)
         result = init_transport();
 
@@ -1736,7 +1740,7 @@ player::output_func ()
             }
             else
             {
-#if defined RTL66_PLATFORM_DEBUG
+#if defined RTL66_PLATFORM_DEBUG_TMI
                 if (delta_us != 0)
                 {
                     print_client_tag(lib66::msglevel::warn);

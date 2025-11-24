@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-11-19
+ * \updates       2025-11-23
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -166,6 +166,8 @@ masterbus::setup (clientinfo & cinfo)
 
         if (result)
             result = engine_activate();
+
+        m_is_setup = result;
     }
     return result;
 }
@@ -743,12 +745,8 @@ midi::message
 masterbus::get_message (int portindex)
 {
     xpc::automutex locker(m_mutex);
-    if (portindex != RTL66_PORTS_ALL)
-    {
-        return inbus_array().get_message(portindex);
-    }
-    else
-        return engine().get_message();
+    return portindex == RTL66_PORTS_ALL ?
+        engine().get_message() : inbus_array().get_message(portindex) ;
 }
 
 /**
@@ -969,6 +967,7 @@ bool
 masterbus::engine_deactivate ()
 {
     xpc::automutex locker(m_mutex);
+    m_is_setup = false;
     return engine().engine_deactivate();
 }
 

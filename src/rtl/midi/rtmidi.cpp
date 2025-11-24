@@ -998,6 +998,16 @@ rtmidi::get_midi_event (midi::event * inev)
     return result;
 }
 
+/**
+ *  Fill the user-provided vector with the data bytes for the next available
+ *  MIDI message in the input queue and return the event delta-time in seconds.
+ *
+ *  This function returns immediately whether a new message is available or
+ *  not.  A valid message is indicated by a non-zero vector size.  An exception
+ *  is thrown if an error occurs during message retrieval or an input
+ *  connection was not previously established.
+ */
+
 midi::message
 rtmidi::get_message ()
 {

@@ -67,7 +67,7 @@ public:
 
 private:
 
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
 
     /**
      *  Provide a static counter to keep track of events. Currently needed
@@ -224,7 +224,7 @@ public:
         return int(size());
     }
 
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
 
     unsigned msg_number () const
     {

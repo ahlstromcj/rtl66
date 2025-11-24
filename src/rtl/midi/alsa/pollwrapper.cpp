@@ -131,7 +131,7 @@ pollwrapper::get_poll_descriptors (int extra)
 {
     int pdcount
     {
-        snd_seq_poll_descriptors_count(alsa_client(), POLLIN | POLLPRI)
+        snd_seq_poll_descriptors_count(alsa_client(), POLLIN) // | POLLPRI)
     };
     bool result { pdcount > 0 };
     if (result)
@@ -229,7 +229,7 @@ pollwrapper::poll_file_descriptor () const
     int result { 0 };
     if (is_initialized() && use_file_descriptor())
     {
-        result = ::poll(poll_descriptors(0), num_poll_descriptors(), -1);
+        result = ::poll(poll_descriptors(), num_poll_descriptors(), -1);
         if (result >= 0)
         {
             if (poll_descriptors(0)->revents & POLLIN)  /* short */

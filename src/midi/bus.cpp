@@ -56,7 +56,7 @@
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
 #include "midi/bus.hpp"                 /* midi::bus class                  */
 
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
 #include "util/msgfunctions.hpp"        /* util::verbose                    */
 #endif
 
@@ -170,7 +170,7 @@ bus::bus
             const midi::ports & portlist { ci.io_ports(iotype) };
             const midi::port & p { portlist.portref(index) };
             m_port = p;
-#if defined PLATFORM_DEBUG   // TODO add clocking
+#if defined PLATFORM_DEBUG_TMI
             if (util::verbose())
             {
                 printf

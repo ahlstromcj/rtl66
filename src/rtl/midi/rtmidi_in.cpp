@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-20
+ * \updates       2025-11-24
  * \license       See above.
  *
  */
@@ -67,13 +67,20 @@ namespace rtl
  *  \param qsize
  *      An optional size of the MIDI input queue can be specified. The default
  *      is 100.
+ *
+ *  \param use_internal_thread
+ *      Indicates to use the internal input thread (if the API supports it).
+ *      Defaults to true. Callers that do their own input polling should set
+ *      this value to false. See the qmidiin test for one example.
+ *      Also, using a masterbus should set this to false.
  */
 
 rtmidi_in::rtmidi_in
 (
     rtmidi::api rapi,
     const std::string & clientname,
-    unsigned qsize
+    unsigned qsize,
+    bool use_internal_thread
 ) :
     rtmidi  ()
 {
@@ -87,7 +94,11 @@ rtmidi_in::rtmidi_in
         if (is_midiapi_valid(rapi))
         {
             if (open_midi_api(rapi, clientname, qsize))
+            {
                 rtmidi::selected_api(rapi);
+                if (! use_internal_thread)
+                    rt_api_ptr()->cancel_internal_thread();
+            }
         }
     }
 }
@@ -111,11 +122,7 @@ rtmidi_in::rtmidi_in (/* const */ midi::masterbus & mb) : rtmidi ()
             bool midisysex { mis.input_use_sysex };
             bool miditime { mis.input_use_time_code };
             bool midisense { mis.input_use_active_sensing };
-            rtmidi_in_data::callback_t cb
-            {
-                mis.input_callback
-//              reinterpret_cast<rtmidi_in_data::callback_t>(mis.input_callback)
-            };
+            rtmidi_in_data::callback_t cb { mis.input_callback };
             ignore_midi_types(midisysex, miditime, midisense);
             if (not_nullptr(cb))
                 set_input_callback(cb, mis.input_user_data);
@@ -291,22 +298,6 @@ void
 rtmidi_in::ignore_midi_types (bool midisysex, bool miditime, bool midisense)
 {
     rt_api_ptr()->ignore_midi_types(midisysex, miditime, midisense);
-}
-
-/**
- *  Fill the user-provided vector with the data bytes for the next available
- *  MIDI message in the input queue and return the event delta-time in seconds.
- *
- *  This function returns immediately whether a new message is available or
- *  not.  A valid message is indicated by a non-zero vector size.  An exception
- *  is thrown if an error occurs during message retrieval or an input
- *  connection was not previously established.
- */
-
-midi::message
-rtmidi_in::get_message ()
-{
-    return rt_api_ptr()->get_message();
 }
 
 /**

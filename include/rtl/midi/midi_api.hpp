@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-20
+ * \updates       2025-11-24
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -360,6 +360,16 @@ public:
     const rtmidi_in_data & input_data () const
     {
         return m_input_data;
+    }
+
+    bool use_internal_thread () const
+    {
+        return input_data().use_internal_thread();
+    }
+
+    void cancel_internal_thread ()
+    {
+        input_data().cancel_internal_thread();
     }
 
     static rtmidi_in_data * static_in_data_cast (void * vp)

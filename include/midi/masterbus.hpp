@@ -109,9 +109,14 @@ namespace midi
 
 class masterbus final
 {
-    friend class player;
-    friend class poller;
-    friend class track;
+    /*
+     * Let's make certain calls public, rather than have a bunch of
+     * friends.
+     *
+     *  friend class player;
+     *  friend class poller;
+     *  friend class track;
+     */
 
 public:
 
@@ -448,7 +453,7 @@ public:
         return engine().rt_api_ptr();
     }
 
-protected:
+public:
 
     void selected_api (rtl::rtmidi::api rapi)
     {
@@ -482,8 +487,6 @@ protected:
         return poll_for_midi() > 0;
     }
 
-protected:
-
     bool activate ();
 
 public:     // public because used in test applications
@@ -505,8 +508,7 @@ protected:  // API pass-alongs
     void * engine_connect ();
     void engine_disconnect ();
 
-protected:  // API implementations
-
+public:  // API implementations
 
     /*
      * This function replaces start(), continue_from(), etc.

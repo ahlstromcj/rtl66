@@ -271,7 +271,7 @@ poller::input_func ()
         {
             if (! poll_cycle())
             {
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
                 printf("leaving input func\n");
 #endif
                 break;
@@ -309,7 +309,7 @@ poller::poll_cycle ()
         {
             if (done())
             {
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
                 printf("done!\n");
 #endif
                 result = false;

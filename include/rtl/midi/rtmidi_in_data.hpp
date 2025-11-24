@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-11-10
+ * \updates       2025-11-24
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -111,7 +111,8 @@ private:
 
     /**
      *  Provides a queue of MIDI messages. Used when not using a JACK callback
-     *  for MIDI input.
+     *  for MIDI input or when using an internal input thread (such as with
+     *  ALSA input).
      */
 
     midi_queue m_queue { };
@@ -169,6 +170,14 @@ private:
     bool m_do_input { false };
 
     /**
+     *  This boolean indicates to use an internal thread for polling
+     *  for data. Some callers might want to set this to false
+     *  in the rtmidi_in constructor.
+     */
+
+    bool m_use_internal_thread { true };
+
+    /**
      *  Points to the midi_api-derived object representing the input port.
      *  Note that the derived class will provide a function [such as
      *  midi_alsa::alsa_client()] that can be accessed indirectly through
@@ -221,6 +230,16 @@ public:
     rtmidi_in_data (rtmidi_in_data &&) = default;
     rtmidi_in_data & operator = (const rtmidi_in_data &) = delete;
     rtmidi_in_data & operator = (rtmidi_in_data &&) = default;
+
+    bool use_internal_thread () const
+    {
+        return m_use_internal_thread;
+    }
+
+    void cancel_internal_thread ()
+    {
+        m_use_internal_thread = false;
+    }
 
     const midi_queue & queue () const
     {

@@ -1006,7 +1006,7 @@ audio_jack::get_io_port_info (::audio::ports & ioports, bool preclear)
 
     if (not_nullptr(data.jack_client()))
     {
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
         infoprint(iswriteable ? "Writable ports:" : "Readable ports:");
 #endif
         unsigned long flag = iswriteable ?
@@ -1416,7 +1416,7 @@ audio_jack::get_audio_event (::audio::event * inev)           // input
              */
 
             ::audio::byte st = mm[0];
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
             if (::audio::is_realtime_msg(st))
             {
                 ::audio::status eventstat = ::audio::to_status(st);

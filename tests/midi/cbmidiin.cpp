@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-11-17
+ * \updates       2025-11-20
  * \license       See above.
  *
  *      A simple program to test MIDI input and the use of a user callback
@@ -110,9 +110,19 @@ read_port (rtl::rtmidi::api rapi, int port)
          * Open the port.
          */
 
-        (void) midiin.open_port(port);
-        std::cout << "Reading MIDI input ... press <Enter> to quit.\n";
-        (void) xpc::kbget();                /* c = std::cin.get()   */
+        result = midiin.open_port(port);
+        if (result)
+        {
+            std::cout << "Reading MIDI input ... press <Enter> to quit.\n";
+            (void) xpc::kbget();                /* c = std::cin.get()   */
+        }
+        else
+        {
+            std::cerr
+                << "Could not open port " << port
+                << " ... aborting" << std::endl
+                ;
+        }
     }
     catch (rtl::rterror & error)
     {

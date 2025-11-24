@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-20
+ * \updates       2025-11-24
  * \license       See above.
  *
  */
@@ -35,7 +35,7 @@
 
 #include <sstream>                      /* std::ostringstream class         */
 
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
 #include <iostream>                     /* std::cerr, cout classes          */
 #endif
 
@@ -149,8 +149,6 @@ static const unsigned sm_generic_caps                           /* 0x100002 */
  * ALSA port capability strings (for troubleshooting)
  *------------------------------------------------------------------------*/
 
-#if defined PLATFORM_DEBUG  // _TMI
-
 /**
  *  See /usr/include/alsa/seq.h.
  *
@@ -195,8 +193,6 @@ alsa_port_capabilities (unsigned bitmask)
 
     return result;
 }
-
-#endif  // defined PLATFORM_DEBUG
 
 /**
  *  Checks the port type for not being the "generic" types
@@ -905,6 +901,14 @@ midi_alsa::set_seq_tempo_ppqn
     return result;
 }
 
+/**
+ *  In what situations does the input thread need to be used?
+ *
+ *      -   When using an input callback.
+ *      -   When not using midi_alsa::get_message() or
+ *          midi_alsa::get_midi_event().
+ */
+
 bool
 midi_alsa::setup_input_port ()
 {
@@ -921,7 +925,7 @@ midi_alsa::setup_input_port ()
         snd_seq_start_queue(data.alsa_client(), data.queue_id(), NULL);
         result = drain_output();
 #endif
-        bool startthread { true };
+        bool startthread { use_internal_thread() };
         if (has_master())
             startthread = master_bus()->use_input_thread();
 
@@ -1153,7 +1157,13 @@ midi_alsa::setup_input_virtual_port ()
         snd_seq_start_queue(data.alsa_client(), data.queue_id(), NULL);
         result = drain_output();
 #endif
-        result = start_input_thread(input_data());
+        bool startthread { true };
+        if (has_master())
+            startthread = master_bus()->use_input_thread();
+
+        if (startthread)
+            result = start_input_thread(input_data());
+
         if (result)
         {
             input_data().do_input(true);
@@ -1710,10 +1720,10 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                         (caps & sm_output_caps) == sm_output_caps : /* 0x42 */
                         (caps & sm_input_caps) == sm_input_caps     /* 0x21 */
                 };
-                std::string s { alsa_port_capabilities(caps) };
                 if (can_add)
                 {
-#if defined PLATFORM_DEBUG  // _TMI
+#if defined PLATFORM_DEBUG_TMI
+                    std::string s { alsa_port_capabilities(caps) };
                     printf
                     (
                         "[%d] Add %s ALSA buss '%s' #%d  "
@@ -1736,6 +1746,7 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                      * client-name of 'VMPK Output'.
                      */
 
+                    std::string s { alsa_port_capabilities(caps) };
                     printf
                     (
                         "[%d] Skip %s ALSA buss '%s' #%d "
@@ -1979,7 +1990,10 @@ midi_alsa::clock_continue (midi::pulse /* tick */, midi::pulse beats)
 int
 midi_alsa::poll_for_midi () const
 {
-    bool usepolling { has_master() && ! master_bus()->use_input_thread() };
+    bool usepolling { false };          /* as opposed to checking the queue */
+    if (has_master())
+        usepolling = ! master_bus()->use_input_thread();
+
     if (usepolling)
     {
         return m_poll_wrapper.poll_for_midi();
@@ -2055,15 +2069,17 @@ midi_alsa::poll_for_midi () const
  *      This function returns false if we are not using virtual/manual ports
  *      and the event is an ALSA port-start, port-exit, or port-change event.
  *      It also returns false if there is no event to decode.  Otherwise, it
- *      returns true.
+ *      returns true. Note that this function does not work if the input
+ *      thread is getting events.
  */
 
 bool
 midi_alsa::get_midi_event (midi::event * inev)
 {
     bool result { false };
+    ::snd_seq_t * client { alsa_data().alsa_client() };
     ::snd_seq_event_t * ev;
-    int remcount { ::snd_seq_event_input(client_handle(), &ev) };
+    int remcount { ::snd_seq_event_input(client, &ev) };
     if (remcount < 0 || is_nullptr(ev))
     {
         if (remcount == -EAGAIN)
@@ -2156,7 +2172,7 @@ midi_alsa::get_midi_event (midi::event * inev)
 #endif
             while (sysex)           /* sysex might be more than one message */
             {
-                remcount = ::snd_seq_event_input(client_handle(), &ev);
+                remcount = ::snd_seq_event_input(client, &ev);
                 bytecount = ::snd_midi_event_decode
                 (
                     mididev, buff.data(), long(buffersize), ev
@@ -2185,11 +2201,11 @@ midi_alsa::get_midi_event (midi::event * inev)
     return result;
 }
 
-// #if defined USE_THIS_CODE
-
 /**
  *  A simpler version of get_midi_event() that merely puts the incoming event
- *  onto the input queue.
+ *  onto the input queue. Not true. It overrides midi_api::get_message()
+ *  which either calss the input callback or gets a message from the front
+ *  of the input queue.
  *
  * snd_seq_event_t::type
  *
@@ -2217,6 +2233,10 @@ midi_alsa::get_midi_event (midi::event * inev)
  *      snd_seq_addr_t  addr
  *      snd_seq_connect_t  connect
  *      snd_seq_result_t  result
+ *
+ * \return
+ *      Returns the retrieved message, or an empty message.  Note that this
+ *      function does not work if the input thread is getting events.
  */
 
 midi::message
@@ -2265,9 +2285,6 @@ midi_alsa::get_message ()
         midi::message msg(buff);
         msg.jack_stamp(double(ev->time.tick));
 
-//      result = inev->set_midi_event(ev->time.tick, buff, bytecount);
-//      ::snd_seq_t * sseq { alsa_data().alsa_client() };
-
         int b { int(midi::null_buss()) };
         if (has_master())
         {
@@ -2301,8 +2318,6 @@ midi_alsa::get_message ()
     ::snd_midi_event_free(mididev);
     return result;
 }
-
-// #endif
 
 /**
  *  This send_event() function takes a native event, encodes it to an ALSA MIDI

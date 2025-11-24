@@ -1360,7 +1360,7 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
 
     if (not_nullptr(data.jack_client()))
     {
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
         if (util::verbose())
             infoprint(iswriteable ? "Writable ports:" : "Readable ports:");
 #endif
@@ -1655,12 +1655,7 @@ bool
 midi_jack::clock_send (midi::pulse tick)
 {
     if (tick >= 0)
-    {
-#if defined PLATFORM_DEBUG_TMI
-        // bus::show_clock("JACK", tick);
-#endif
         return send_status(midi::status::clk_clock);
-    }
     else
         return false;
 }

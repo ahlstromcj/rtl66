@@ -351,11 +351,13 @@ midi_alsa_handler (void * ptr)
 
         if (rtidata->using_callback())
         {
+printf("CALLBACK\n");
             rtmidi_in_data::callback_t cb = rtidata->user_callback();
             cb(mmsg.jack_stamp(), mmsg, rtidata->user_data());
         }
         else
         {
+printf("PUSH\n");
             if (! rtidata->queue().push(mmsg))
                 error_print("midi_alsa_handler()", "input queue limit hit");
         }

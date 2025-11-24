@@ -69,9 +69,10 @@ public:
 
     rtmidi_in                           /* default & principal constructor   */
     (
-        api rapi                        = api::unspecified,
+        api rapi                        = rtmidi::api::unspecified,
         const std::string & clientname  = "",
-        unsigned queuesizelimit         = 0
+        unsigned queuesizelimit         = 0,
+        bool use_internal_thread        = true
     );
     rtmidi_in (/* const */ midi::masterbus & mb);
     rtmidi_in (const rtmidi_in & other) = delete;
@@ -104,13 +105,12 @@ public:
         bool miditime   = true,
         bool midisense  = true
     );
-    midi::message get_message ();
 
 protected:
 
     virtual bool open_midi_api
     (
-        api rapi                        = api::unspecified,
+        rtmidi::api rapi                = rtmidi::api::unspecified,
         const std::string & clientname  = "",
         unsigned queuesize              = 0
     ) override;
