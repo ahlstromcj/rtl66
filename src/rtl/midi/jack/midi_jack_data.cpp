@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-26
- * \updates       2023-10-07
+ * \updates       2025-11-25
  * \license       See above.
  *
  */
@@ -43,6 +43,22 @@ namespace rtl
  */
 
 transport::jack::info midi_jack_data::m_transport_info;
+
+/*------------------------------------------------------------------------
+ * midi_jack_data sized constructor
+ *------------------------------------------------------------------------*/
+
+/**
+ *  Allocates data. Tired of pointers.
+ *
+ *  The other members are initialized "in-class".
+ */
+
+midi_jack_data::midi_jack_data (std::size_t sz) :
+    m_jack_buffer   (sz)
+{
+    // no other code
+}
 
 /**
  *  The default constructor uses "in-class" member initialization.

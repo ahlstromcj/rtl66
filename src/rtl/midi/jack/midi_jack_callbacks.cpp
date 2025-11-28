@@ -515,13 +515,13 @@ jack_get_event_data
 )
 {
     jack_nframes_t result { UINT32_MAX };
-    xpc::ring_buffer<midi::message> * buffmsg { jackdata->jack_buffer() };
-    int count { int(buffmsg->read_space()) };
+    xpc::ring_buffer<midi::message> & buffmsg { jackdata->jack_buffer() };
+    int count { int(buffmsg.read_space()) };
     bool process { count > 0 };
     if (process)
     {
         static bool s_use_offset { midi_jack_data::use_offset() };
-        const midi::message & msg { buffmsg->front() };
+        const midi::message & msg { buffmsg.front() };
         midi::pulse ts { midi::pulse(msg.jack_stamp()) };   // correct?
         if (s_use_offset)
         {
@@ -557,7 +557,7 @@ jack_get_event_data
                 std::memcpy(dest, msg.data_ptr(), datasz);
                 destsz = datasz;
             }
-            buffmsg->pop_front();
+            buffmsg.pop_front();
         }
         else
         {

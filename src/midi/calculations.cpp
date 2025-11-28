@@ -1746,7 +1746,7 @@ wave_type_name (waveform wavetype)
 }
 
 /**
- *  Moved to portnames:
+ *  Moved to the portnaming module:
  *
  *      -   extract_port_names ()
  *      -   extract_bus_name ()

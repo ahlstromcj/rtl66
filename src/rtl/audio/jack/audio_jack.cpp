@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2023-03-17
- * \updates       2025-10-27
+ * \updates       2025-11-26
  * \license       See above.
  *
  */
@@ -120,9 +120,9 @@ static const size_t c_jack_ringbuffer_size = 2048;  /* tentative */
 bool
 detect_jack (bool forcecheck)
 {
-    bool result = false;
-    static bool s_already_checked = false;
-    static bool s_jack_was_detected = false;
+    static bool s_already_checked { false };
+    static bool s_jack_was_detected { false };
+    bool result { false };
     if (forcecheck)
     {
         s_already_checked = false;
@@ -134,24 +134,28 @@ detect_jack (bool forcecheck)
     }
     else
     {
-        const char * cname = "rtl_jack_detector";
+        const char * cname { "rtl_jack_detector" };
         jack_status_t status;
-        jack_status_t * ps = &status;
-        jack_options_t jopts = JackNoStartServer;
-        jack_client_t * jackman = ::jack_client_open(cname, jopts, ps);
+        jack_status_t * ps { &status };
+        jack_options_t jopts { JackNoStartServer };
+        jack_client_t * jackman { ::jack_client_open(cname, jopts, ps) };
         if (not_nullptr(jackman))
         {
-            int rc = ::jack_activate(jackman);
+            int rc { ::jack_activate(jackman) };
             if (rc == 0)
             {
-                const char ** ports = ::jack_get_ports
-                (
-                    jackman, NULL, JACK_DEFAULT_MIDI_TYPE, JackPortIsOutput
-                );
+                const char ** ports
+                {
+                    ::jack_get_ports
+                    (
+                        jackman, NULL, JACK_DEFAULT_MIDI_TYPE, JackPortIsOutput
+                                                // AUDIO ????
+                    )
+                };
                 result = not_nullptr(ports);
                 if (result)
                 {
-                    int count = 0;
+                    int count { 0 };
                     while (not_nullptr(ports[count]))
                         ++count;
 
@@ -181,11 +185,11 @@ set_jack_version ()
     const char * sjv = ::jack_get_version_string();
     if (not_nullptr(sjv) && std::strlen(sjv) > 0)
     {
-        std::string jv{sjv};
+        std::string jv { sjv };
         ::audio::global_client_info().api_version(std::string(jv));
     }
 #else
-    std::string jv{"JACK < v. 1"};
+    std::string jv {"JACK < v. 1" };
     ::audio::global_client_info().api_version(jv);
 #endif
 }
@@ -333,66 +337,68 @@ audio_jack::~audio_jack ()
 void *
 audio_jack::engine_connect ()
 {
-    void * result = nullptr;
-    audio_jack_data & data = jack_data();
-    bool ok = is_nullptr(data.jack_client()) || ! is_engine();
+    void * result { nullptr };
+    audio_jack_data & data { jack_data() };
+    bool ok { is_nullptr(data.jack_client()) || ! is_engine() };
     if (ok)
     {
-        const char * cname = CSTR(client_name());
-
-        jack_options_t jopts = JackNoStartServer;
+        const char * cname { CSTR(client_name()) };
+        jack_options_t jopts { JackNoStartServer };
         if (rtaudio::start_jack())
             jopts = JackNullOption;
 
 #if defined USE_JACK_STATUS_RETURN
         jack_status_t status;
-        jack_status_t * ps = &status;
-        jack_client_t * c = ::jack_client_open(cname, jopts, ps);
+        jack_status_t * ps { &status };
+        jack_client_t * c { ::jack_client_open(cname, jopts, ps) };
 
         // Here, can shows the bits of the status, if desired.
 #else
-        jack_client_t * c = ::jack_client_open(cname, jopts, NULL /*ps*/);
+        jack_client_t * c { ::jack_client_open(cname, jopts, NULL /*ps*/) };
 #endif
         if (not_nullptr(c))
         {
-            void * apidata = reinterpret_cast<void *>(&data);
+            void * apidata { reinterpret_cast<void *>(&data) };
             data.jack_client(c);
             api_data(&data);
 //          if (have_master_bus())
 //              master_bus()->client_handle(c);
 
-            JackProcessCallback cb = jack_process_io;
+            JackProcessCallback cb { jack_process_io };
             if (is_output())
                 cb = jack_process_out;
             else if (is_input())
                 cb = jack_process_in;
 
-            bool ok = jack_set_process_cb(c, cb, apidata);
+            bool ok { jack_set_process_cb(c, cb, apidata) };
             if (ok)
             {
-#if defined RTL66_JACK_PORT_SHUTDOWN                    // TODO
-#if defined RTL66_JACK_SESSION                          // TODO
-                std::string uuid = rc().jack_session(); // e.g. 8589934670
+#if defined RTL66_JACK_PORT_SHUTDOWN                      // TODO
+#if defined RTL66_JACK_SESSION                            // TODO
+                std::string uuid { rc().jack_session() }; // e.g. 8589934670
                 if (uuid.empty())
                     uuid = get_jack_client_uuid(result);
 
                 if (! uuid.empty())
                     rc().jack_session(uuid);
 #endif
-                JackShutdownCallback cb = jack_shutdown_callback;
+                JackShutdownCallback cb { jack_shutdown_callback };
                 (void) jack_set_shutdown_cb(c, cb, (void *) this);
 #endif
 #if defined RTL66_JACK_PORT_CONNECT_CALLBACK
-                JackPortConnectCallback cb = jack_port_connect_callback;
+                JackPortConnectCallback cb { jack_port_connect_callback };
                 (void) jack_set_port_connect_cb (c, cb, (void *) this);
 #endif
 #if defined RTL66_JACK_PORT_REFRESH_CALLBACK
-                JackPortRegistrationCallback cb = jack_port_register_callback;
+                JackPortRegistrationCallback cb
+                {
+                    jack_port_register_callback
+                };
                 (void) jack_set_port_registration_cb(c, cb, (void *) this);
 #endif
 #if defined RTL66_JACK_METADATA
-                std::string n = "seq_icon_name()";
-                bool ok = jack_set_meta_data(c, n);
+                std::string n { "seq_icon_name()" };
+                bool ok { jack_set_meta_data(c, n) };
                 (
                     c, JACK_METADATA_ICON_NAME, n
                 );
@@ -411,11 +417,11 @@ audio_jack::engine_connect ()
 void
 audio_jack::engine_disconnect ()
 {
-    audio_jack_data & data = jack_data();
-    jack_client_t * c = data.jack_client();
+    audio_jack_data & data { jack_data() };
+    jack_client_t * c { data.jack_client() };
     if (not_nullptr(c))
     {
-        int rc = ::jack_client_close(c);
+        int rc { ::jack_client_close(c) };
         data.jack_client(nullptr);
         if (rc != 0)
         {
@@ -431,11 +437,11 @@ audio_jack::engine_disconnect ()
 bool
 audio_jack::engine_activate ()
 {
-    bool result = true;
-    audio_jack_data & data = jack_data();
+    bool result { true };
+    audio_jack_data & data { jack_data() };
     if (not_nullptr(data.jack_client()))
     {
-        int rc = ::jack_activate(data.jack_client());
+        int rc { ::jack_activate(data.jack_client()) };
         result = rc == 0;
         if (! result)
             error_print("jack_activate", "failed");
@@ -454,11 +460,11 @@ audio_jack::engine_activate ()
 bool
 audio_jack::engine_deactivate ()
 {
-    bool result = true;
-    audio_jack_data & data = jack_data();
+    bool result { true };
+    audio_jack_data & data { jack_data() };
     if (not_nullptr(data.jack_client()))
     {
-        int rc = ::jack_deactivate(data.jack_client());
+        int rc { ::jack_deactivate(data.jack_client()) };
         result = rc == 0;
     }
     return result;
@@ -480,24 +486,30 @@ audio_jack::engine_deactivate ()
 unsigned
 audio_jack::get_device_count ()
 {
-    unsigned result = 0;
-    jack_status_t * ps = nullptr;
-    jack_options_t jopts = JackNoStartServer;       /* JackNullOption */
-    jack_client_t * client = ::jack_client_open("rtapijackcount", jopts, status);
+    unsigned result { 0 };
+    jack_status_t * ps { nullptr };
+    jack_options_t jopts { JackNoStartServer };       /* JackNullOption */
+    jack_client_t * client
+    {
+        ::jack_client_open("rtapijackcount", jopts, status)
+    };
     if (not_nullptr(client)
     {
-        const char ** ports = ::jack_get_ports
-        (
-            client, NULL, JACK_DEFAULT_AUDIO_TYPE, 0
-        );
+        const char ** ports
+        {
+            ::jack_get_ports
+            (
+                client, NULL, JACK_DEFAULT_AUDIO_TYPE, 0
+            )
+        };
         if (not_nullptr(ports))         /* parse port names to first colon  */
         {
             std::string previousport;
-            unsigned nchannels = 0;
-            size_t icolon = 0;
+            unsigned nchannels { 0 };
+            size_t icolon { 0 };
             do
             {
-                std::string port = (char *) ports[nchannels];
+                std::string port { (char *) ports[nchannels] };
                 icolon = port.find(":");
                 if (icolon != std::string::npos)
                 {
@@ -527,12 +539,13 @@ audio_jack::get_device_count ()
 bool
 audio_jack::create_ringbuffer (size_t rbsize)
 {
-    bool result = rbsize > 0;
+    bool result { rbsize > 0 };
     if (result)
     {
-        xpc::ring_buffer<audio_message> * rb =
-            new (std::nothrow) xpc::ring_buffer<audio_message>(rbsize);
-
+        xpc::ring_buffer<audio_message> * rb
+        {
+            new (std::nothrow) xpc::ring_buffer<audio_message>(rbsize)
+        };
         result = not_nullptr(rb);
         if (result)
         {
@@ -582,12 +595,12 @@ audio_jack::create_ringbuffer (size_t rbsize)
 bool
 audio_jack::connect ()
 {
-    bool result = false;
-    audio_jack_data & data = jack_data();
+    bool result { false };
+    audio_jack_data & data { jack_data() };
     if (not_nullptr(data.jack_client()))
         return true;
 
-    jack_client_t * c = client_handle(engine_connect());
+    jack_client_t * c { client_handle(engine_connect()) };
     if (not_nullptr(c))
     {
         data.jack_client(c);
@@ -616,7 +629,7 @@ bool
 audio_jack::initialize (const std::string & clientname)
 {
     bool result;
-    audio_jack_data & data = jack_data();
+    audio_jack_data & data { jack_data() };
     data.jack_port(nullptr);
     data.jack_client(nullptr);
     client_name(clientname);                        /* necessary for API    */
@@ -628,7 +641,7 @@ audio_jack::initialize (const std::string & clientname)
 #endif
     if (! reuse_connection())
     {
-        audio_jack_data & data = jack_data();
+        audio_jack_data & data { jack_data() };
 //      if (have_master_bus())
 //          master_bus()->client_handle(data.jack_client());
 
@@ -666,21 +679,24 @@ audio_jack::open_port (int portnumber, const std::string & portname)
         return true;
     }
 
-    bool result = portnumber >= 0;                  /* -1 == uninit'ed      */
+    bool result { portnumber >= 0 };                /* -1 == uninit'ed      */
     if (result)
         result = connect();    /* WHY CALL THIS AGAIN? */
 
     if (result)
     {
-        audio_jack_data & data = jack_data();
+        audio_jack_data & data { jack_data() };
         if (is_nullptr(data.jack_port()))           /* can create the port  */
         {
-            const char * pn = CSTR(portname);
-            jack_port_t * jptr = ::jack_port_register
-            (
-                data.jack_client(), pn, JACK_DEFAULT_MIDI_TYPE,
-                is_output() ? JackPortIsOutput : JackPortIsInput, 0
-            );
+            const char * pn { CSTR(portname) };
+            jack_port_t * jptr
+            {
+                ::jack_port_register
+                (
+                    data.jack_client(), pn, JACK_DEFAULT_MIDI_TYPE,
+                    is_output() ? JackPortIsOutput : JackPortIsInput, 0
+                )
+            };
             if (is_nullptr(jptr))
             {
                 result = false;
@@ -688,14 +704,17 @@ audio_jack::open_port (int portnumber, const std::string & portname)
             }
             else
             {
-                std::string name = get_port_name(portnumber);
+                std::string name { get_port_name(portnumber) };
                 data.jack_port(jptr);
-                int rc = ::jack_connect             /* source/destin names  */
-                (
-                    data.jack_client(),
-                    jack_port_name(data.jack_port()),
-                    CSTR(name)
-                );
+                int rc
+                {
+                    ::jack_connect                  /* source/destin names  */
+                    (
+                        data.jack_client(),
+                        jack_port_name(data.jack_port()),
+                        CSTR(name)
+                    )
+                };
                 if (rc != 0)                        /* not connected!       */
                 {
                     result = false;
@@ -707,7 +726,7 @@ audio_jack::open_port (int portnumber, const std::string & portname)
     }
     if (! result)
     {
-        std::string msg = "audio_jack::open_port: error";
+        std::string msg { "audio_jack::open_port: error" };
         if (portname.size() >= size_t(::jack_port_name_size()))
             msg += " (port name too long?)";
 
@@ -719,18 +738,21 @@ audio_jack::open_port (int portnumber, const std::string & portname)
 bool
 audio_jack::open_virtual_port (const std::string & portname)
 {
-    bool result = connect();    /* WHY CALL THIS AGAIN? */
+    bool result { connect() };    /* WHY CALL THIS AGAIN? */
     if (result)
     {
-        audio_jack_data & data = jack_data();
+        audio_jack_data & data { jack_data() };
         if (is_nullptr(data.jack_port()))
         {
-            jack_port_t * jptr = ::jack_port_register
-            (
-                data.jack_client(), CSTR(portname),
-                JACK_DEFAULT_MIDI_TYPE,
-                is_output() ? JackPortIsOutput : JackPortIsInput, 0
-            );
+            jack_port_t * jptr
+            {
+                ::jack_port_register
+                (
+                    data.jack_client(), CSTR(portname),
+                    JACK_DEFAULT_MIDI_TYPE,
+                    is_output() ? JackPortIsOutput : JackPortIsInput, 0
+                )
+            };
             if (is_nullptr(jptr))
             {
                 result = false;
@@ -742,7 +764,10 @@ audio_jack::open_virtual_port (const std::string & portname)
     }
     if (! result)
     {
-        std::string msg = "audio_jack::open_virtual_port: error creating port";
+        std::string msg
+        {
+            "audio_jack::open_virtual_port: error creating port"
+        };
         if (portname.size() >= size_t(::jack_port_name_size()))
             msg += " (port name too long?)";
 
@@ -764,13 +789,13 @@ audio_jack::open_virtual_port (const std::string & portname)
 void
 audio_jack::delete_port ()
 {
-    audio_jack_data & data = jack_data();
+    audio_jack_data & data { jack_data() };
     (void) close_port();
     if (is_output())
     {
         if (not_nullptr(jack_data().jack_buffer()))
         {
-            xpc::ring_buffer<audio_message> * rb = jack_data().jack_buffer();
+            xpc::ring_buffer<audio_message> * rb { jack_data().jack_buffer() };
             if (rb->dropped() > 0 || rb->count_max() > (rb->buffer_size() / 2))
             {
                 char tmp[64];
@@ -813,19 +838,23 @@ std::string
 audio_jack::get_port_name (int portnumber)
 {
     std::string result;
-    audio_jack_data & data = jack_data();
+    audio_jack_data & data { jack_data() };
     if (not_nullptr(data.jack_client()) && portnumber >= 0)
     {
-        bool ok = connect();
+        bool ok { connect() };
         if (ok)
         {
-            unsigned long flag = is_output() ?
-                JackPortIsInput : JackPortIsOutput ;
-
-            const char ** ports = ::jack_get_ports
-            (
-                data.jack_client(), NULL, JACK_DEFAULT_MIDI_TYPE, flag
-            );
+            unsigned long flag
+            {
+                is_output() ?  JackPortIsInput : JackPortIsOutput
+            };
+            const char ** ports
+            {
+                ::jack_get_ports
+                (
+                    data.jack_client(), NULL, JACK_DEFAULT_MIDI_TYPE, flag
+                )
+            };
             if (is_nullptr(ports))
             {
                 error_print("jack_get_ports", "found no ports");
@@ -865,8 +894,8 @@ audio_jack::get_port_name (int portnumber)
 bool
 audio_jack::close_port ()
 {
-    bool result = false;
-    audio_jack_data & data = jack_data();
+    bool result { false };
+    audio_jack_data & data { jack_data() };
     if (not_nullptr_2(data.jack_client(), data.jack_port()))
     {
 #if RTL66_HAVE_SEMAPHORE_H
@@ -875,7 +904,10 @@ audio_jack::close_port ()
             (void) data.semaphore_post_and_wait();
         }
 #endif
-        int rc = ::jack_port_unregister(data.jack_client(), data.jack_port());
+        int rc
+        {
+            ::jack_port_unregister(data.jack_client(), data.jack_port())
+        };
         if (rc == 0)
             result = true;
         else
@@ -889,21 +921,27 @@ audio_jack::close_port ()
 bool
 audio_jack::set_port_name (const std::string & portname)
 {
-    bool result = false;
-    audio_jack_data & data = jack_data();
+    bool result { false };
+    audio_jack_data & data { jack_data() };
     if (not_nullptr_2(data.jack_client(), data.jack_port()))
     {
 #if RTL66_HAVE_JACK_PORT_RENAME
-        int rc = ::jack_port_rename
-        (
-            data.jack_client(), data.jack_port(), CSTR(portname)
-        );
+        int rc
+        {
+            ::jack_port_rename
+            (
+                data.jack_client(), data.jack_port(), CSTR(portname)
+            )
+        };
 #else
         /*
          * \deprecated
          */
 
-        int rc = ::jack_port_set_name(data.jack_port(), CSTR(portname));
+        int rc
+        {
+            ::jack_port_set_name(data.jack_port(), CSTR(portname))
+        };
 #endif
         if (rc == 0)
             result = true;
@@ -998,9 +1036,9 @@ audio_jack::set_client_name (const std::string & /*clientname*/)
 int
 audio_jack::get_io_port_info (::audio::ports & ioports, bool preclear)
 {
-    int result = 0;
-    bool iswriteable = is_output();
-    audio_jack_data & data = jack_data();
+    int result { 0 };
+    bool iswriteable { is_output() };
+    audio_jack_data & data { jack_data() };
     if (preclear)
         ioports.clear();
 
@@ -1009,20 +1047,24 @@ audio_jack::get_io_port_info (::audio::ports & ioports, bool preclear)
 #if defined PLATFORM_DEBUG_TMI
         infoprint(iswriteable ? "Writable ports:" : "Readable ports:");
 #endif
-        unsigned long flag = iswriteable ?
-            JackPortIsInput : JackPortIsOutput ;
-
-        const char ** ports = ::jack_get_ports
-        (
-            data.jack_client(), NULL, JACK_DEFAULT_MIDI_TYPE, flag
-        );
+        unsigned long flag
+        {
+            iswriteable ? JackPortIsInput : JackPortIsOutput
+        };
+        const char ** ports
+        {
+            ::jack_get_ports
+            (
+                data.jack_client(), NULL, JACK_DEFAULT_MIDI_TYPE, flag
+            )
+        };
         if (is_nullptr(ports))
         {
 #if defined RTL66_JACK_FALLBACK_TO_VIRTUAL_PORT
-            int clientnumber = 0;
-            int portnumber = 0;
-            std::string clientname = "";            // TODO: seq_client_name();
-            std::string portname = "audio in 0";
+            int clientnumber { 0 };
+            int portnumber { 0 };
+            std::string clientname { "" };          // TODO: seq_client_name();
+            std::string portname { "audio in 0" };
             ioports.add
             (
                 clientnumber, clientname, portnumber, portname,
@@ -1034,16 +1076,17 @@ audio_jack::get_io_port_info (::audio::ports & ioports, bool preclear)
         }
         else
         {
-            int clientnumber = 0;                   /* JACK: doesn't apply  */
-            int count = 0;
+            int clientnumber { 0 };                 /* JACK: doesn't apply  */
+            int count { 0 };
             while (not_nullptr(ports[count]))
             {
-                std::string fullname = ports[count];
+                std::string fullname { ports[count] };
                 std::string clientname;
                 std::string portname;
-                std::string alias = get_port_alias(fullname);
-                if (alias == fullname)
-                    alias.clear();
+//              lib66::tokenization aliases { get_port_aliases(fullname) };
+                lib66::tokenization & aliases { get_port_aliases(fullname) };
+//              if (alias == fullname)
+//                  alias.clear();
 
                 /*
                  * TODO:  somehow get the 32-bit ID of the port and add it as
@@ -1051,7 +1094,7 @@ audio_jack::get_io_port_info (::audio::ports & ioports, bool preclear)
                  * registered or unregistered ports.
                  */
 
-                ::audio::extract_port_names(fullname, clientname, portname);
+                audio::extract_port_names(fullname, clientname, portname);
 
                 /*
                  * Retrofit this commenting out!
@@ -1120,43 +1163,48 @@ audio_jack::get_io_port_info (::audio::ports & ioports, bool preclear)
  */
 
 std::string
-audio_jack::get_port_alias (const std::string & name)
+audio_jack::get_port_aliases (const std::string & name)
 {
     std::string result;
-    audio_jack_data & data = jack_data();
+    audio_jack_data & data { jack_data() };
     if (not_nullptr(data.jack_client()))
     {
-        bool is_system_port = ::audio::contains(name, "system:");  /* brittle code */
+        bool is_system_port
+        {
+            ::audio::contains(name, "system:")  /* brittle code */
+        };
         if (is_system_port)
         {
-            jack_port_t * p =
-                ::jack_port_by_name(data.jack_client(), CSTR(name));
-
+            jack_port_t * p
+            {
+                ::jack_port_by_name(data.jack_client(), CSTR(name))
+            };
             if (not_NULL(p))
             {
                 char * aliases[2];
-                const int sz = ::jack_port_name_size();
+                const int sz { ::jack_port_name_size() };
                 aliases[0] = reinterpret_cast<char *>(malloc(sz));  /* alsa_pcm */
                 aliases[1] = reinterpret_cast<char *>(malloc(sz));  /* dev name */
                 if (is_nullptr_2(aliases[0], aliases[1]))
                     return result;                                  /* bug out  */
 
                 aliases[0][0] = aliases[1][0] = 0;                  /* 0 length */
-                int rc = ::jack_port_get_aliases(p, aliases);
+                int rc { ::jack_port_get_aliases(p, aliases) };
                 if (rc > 1)
                 {
-                    std::string nick = std::string(aliases[1]);     /* brittle  */
-                    auto colonpos = nick.find_first_of(":");        /* brittle  */
+                    std::string nick { std::string(aliases[1])};   /* brittle  */
+                    auto colonpos { nick.find_first_of(":")};      /* brittle  */
                     if (colonpos != std::string::npos)
                         result = nick.substr(0, colonpos);
 
                     /*
                      * Another bit of brittleness:  the name generated via the
-                     * a2jaudiod program uses spaces, but the system alias returned
-                     * by JACK uses a hyphen.  Convert them to spaces.
+                     * a2jaudiod program uses spaces, but the system alias
+                     * returned by JACK uses a hyphen.  Convert them to
+                     * spaces.
                      */
 
-                    auto hyphenpos = result.find_first_of("-");     /* brittle  */
+                    auto hyphenpos { result.find_first_of("-") };   /* brittle  */
                     while (hyphenpos != std::string::npos)
                     {
                         result[hyphenpos] = ' ';
@@ -1251,7 +1299,7 @@ audio_jack::send_byte (::audio::byte evbyte)
 {
     audio_message message;
     message.push(evbyte);
-    bool result = send_message(message);
+    bool result { send_message(message) };
     if (! result)
     {
         errprint("JACK send_byte() failed");
@@ -1268,7 +1316,10 @@ audio_jack::send_byte (::audio::byte evbyte)
 bool
 audio_jack::clock_start ()
 {
-    audio_jack_data * jkdata = reinterpret_cast<audio_jack_data *>(api_data());
+    audio_jack_data * jkdata
+    {
+        reinterpret_cast<audio_jack_data *>(api_data())
+    };
     ::jack_transport_start(jkdata->jack_client());
     return send_status(::audio::status::clk_start);
 }
@@ -1305,7 +1356,10 @@ audio_jack::clock_stop ()
 {
     // Could use jack_data() as well.  Double-check.
 
-    audio_jack_data * jkdata = reinterpret_cast<audio_jack_data *>(api_data());
+    audio_jack_data * jkdata
+    {
+        reinterpret_cast<audio_jack_data *>(api_data())
+    };
     ::jack_transport_stop(jkdata->jack_client());
     return send_status(::audio::status::clk_stop);
 }
@@ -1324,16 +1378,19 @@ audio_jack::clock_stop ()
 bool
 audio_jack::clock_continue (::audio::pulse tick, ::audio::pulse /*beats*/)
 {
-    audio_jack_data * jkdata = reinterpret_cast<audio_jack_data *>(api_data());
-    int beat_width = 4;                                 // no m_beat_width !!!
-    int ticks_per_beat = audio_api::PPQN() * 10;
-    ::audio::bpm beats_per_minute = audio_api::BPM();
-    uint64_t tick_rate =
-    (
+    audio_jack_data * jkdata
+    {
+        reinterpret_cast<audio_jack_data *>(api_data())
+    };
+    int beat_width { 4 };                                 // no m_beat_width !!!
+    int ticks_per_beat { audio_api::PPQN() * 10 };
+    ::audio::bpm beats_per_minute { audio_api::BPM() };
+    uint64_t tick_rate
+    {
         uint64_t(::jack_get_sample_rate(jkdata->jack_client())) * tick * 60.0
-    );
-    long tpb_bpm = long(ticks_per_beat * beats_per_minute * 4.0 / beat_width);
-    uint64_t jack_frame = tick_rate / tpb_bpm;
+    };
+    long tpb_bpm { long(ticks_per_beat * beats_per_minute * 4.0 / beat_width) };
+    uint64_t jack_frame { tick_rate / tpb_bpm };
     if (::jack_transport_locate(jkdata->jack_client(), jack_frame) == 0)
     {
         /*
@@ -1365,7 +1422,7 @@ audio_jack::clock_continue (::audio::pulse tick, ::audio::pulse /*beats*/)
 int
 audio_jack::poll_for_audio ()         // input
 {
-    rtaudio_in_data * rtindata = jack_data().rt_audio_in();
+    rtaudio_in_data * rtindata { jack_data().rt_audio_in() };
 //     int result = rtindata->queue().count();
     (void) xpc::microsleep(xpc::std_sleep_us());            /* 10 us IIRC   */
     return rtindata->queue().count();
@@ -1397,11 +1454,11 @@ audio_jack::poll_for_audio ()         // input
 bool
 audio_jack::get_audio_event (::audio::event * inev)           // input
 {
-    rtaudio_in_data * rtindata = jack_data().rt_audio_in();
-    bool result = ! rtindata->queue().empty();
+    rtaudio_in_data * rtindata { jack_data().rt_audio_in() };
+    bool result { ! rtindata->queue().empty() };
     if (result)
     {
-        audio_message mm = rtindata->queue().pop_front();
+        audio_message mm { rtindata->queue().pop_front() };
         result = inev->set_audio_event
         (
             mm.timestamp(), mm.event_bytes(), mm.event_count()
@@ -1415,12 +1472,12 @@ audio_jack::get_audio_event (::audio::event * inev)           // input
              * to perform so it is available for frameworks beside JACK.
              */
 
-            ::audio::byte st = mm[0];
+            ::audio::byte st { mm[0] };
 #if defined PLATFORM_DEBUG_TMI
             if (::audio::is_realtime_msg(st))
             {
-                ::audio::status eventstat = ::audio::to_status(st);
-                static int s_count = 0;
+                ::audio::status eventstat { ::audio::to_status(st) };
+                static int s_count { 0 };
                 char c;
                 switch (eventstat)
                 {
@@ -1431,7 +1488,7 @@ audio_jack::get_audio_event (::audio::event * inev)           // input
                 case ::audio::status::clk_continue:   c = '|';    break;
                 case ::audio::status::clk_stop:       c = '<';    break;
                 case ::audio::status::sysex:          c = 'X';    break;
-                default:                           c = '.';    break;
+                default:                             c = '.';    break;
                 }
                 (void) putchar(c);
                 if (++s_count == 80)
@@ -1465,7 +1522,7 @@ audio_jack::get_audio_event (::audio::event * inev)           // input
 bool
 audio_jack::send_event (const ::audio::event * ev, ::audio::byte channel)
 {
-    ::audio::byte evstatus = ev->get_status(channel);
+    ::audio::byte evstatus { ev->get_status(channel) };
     ::audio::byte d0, d1;
     ev->get_data(d0, d1);
 
@@ -1502,7 +1559,7 @@ audio_jack::send_event (const ::audio::event * ev, ::audio::byte channel)
 void
 audio_jack::send_sysex (const ::audio::event * ev)
 {
-    const audio_message & msg = ev->get_message();
+    const audio_message & msg { ev->get_message() };
     if (! send_message(msg))
     {
         errprint("JACK SysEx failed");
@@ -1551,15 +1608,18 @@ audio_jack::connect_ports        // IN OR OUT!!!!!
     const std::string & destportname
 )
 {
-    bool result = true;
-    audio_jack_data * jkdata = reinterpret_cast<audio_jack_data *>(api_data());
+    bool result { true };
+    audio_jack_data * jkdata { reinterpret_cast<audio_jack_data *>(api_data()) };
     result = ! srcportname.empty() && ! destportname.empty();
     if (result)
     {
-        int rc = ::jack_connect
-        (
-            jkdata->jack_client(), CSTR(srcportname), CSTR(destportname)
-        );
+        int rc
+        {
+            ::jack_connect
+            (
+                jkdata->jack_client(), CSTR(srcportname), CSTR(destportname)
+            )
+        };
         result = rc == 0;
         if (! result)
         {
@@ -1571,8 +1631,8 @@ audio_jack::connect_ports        // IN OR OUT!!!!!
             }
             else
             {
-                bool input = iotype == ::audio::port::io::input;
-                std::string msg = "JACK Connect error";
+                bool input { iotype == ::audio::port::io::input };
+                std::string msg { "JACK Connect error" };
                 msg += input ? "input '" : "output '";
                 msg += srcportname;
                 msg += "' to '";
@@ -1599,7 +1659,7 @@ audio_jack::connect_ports        // IN OR OUT!!!!!
 bool
 audio_jack::send_message (const ::audio::byte * message, size_t sz)
 {
-    bool result = not_nullptr(message) && sz > 0;
+    bool result { not_nullptr(message) && sz > 0 };
     if (result)
     {
         audio_message msg;
@@ -1642,7 +1702,7 @@ audio_jack::send_message (const ::audio::byte * message, size_t sz)
 bool
 audio_jack::send_message (const audio_message & msg)
 {
-    xpc::ring_buffer<audio_message> * rb = jack_data().jack_buffer();
+    xpc::ring_buffer<audio_message> * rb { jack_data().jack_buffer() };
     return rb->push_back(msg);
 }
 

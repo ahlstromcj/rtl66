@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-03
+ * \updates       2025-11-25
  * \license       See above.
  *
  */
@@ -118,7 +118,7 @@ private:
      *  be allocated, just have it's pointer assigned.
      */
 
-    midi_jack_data m_jack_data { };
+    midi_jack_data m_jack_data { c_jack_ringbuffer_size };
 
 public:
 
@@ -258,8 +258,14 @@ public:
     (
         midi::ports & inputports, bool preclear = true
     ) override;
-    virtual std::string get_port_alias (const std::string & name) override;
-
+    virtual std::string get_port_alias
+    (
+        const std::string & name, int aliasno = 0
+    ) override;
+    virtual lib66::tokenization get_port_aliases
+    (
+        const std::string & name
+    ) override;
     virtual bool PPQN (midi::ppqn ppq) override;
     virtual bool BPM (midi::bpm bp) override;
     virtual bool clock_start () override;

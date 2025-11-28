@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-08
-# \updates     2025-11-17
+# \updates     2025-11-28
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the "rtl66" library. See the top-level meson.build
@@ -27,7 +27,6 @@ librtl66_headers += files(
    'midi/bus.hpp',
    'midi/bus_in.hpp',
    'midi/bus_out.hpp',
-   'midi/bussdata.hpp',
    'midi/calculations.hpp',
    'midi/clientinfo.hpp',
    'midi/clocking.hpp',
@@ -79,6 +78,7 @@ librtl66_headers += files(
    'rtl/midi/rtmidi_engine.hpp',
    'rtl/midi/rtmidi_in.hpp',
    'rtl/midi/rtmidi_in_data.hpp',
+   'rtl/midi/rtmidi_io_info.hpp',
    'rtl/midi/rtmidi_out.hpp',
    'rtl/midi/webmidi/midi_web_midi.hpp',
    'rtl/midi/winmm/midi_win_mm.hpp',

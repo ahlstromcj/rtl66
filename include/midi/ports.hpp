@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05        (seq66::midi_port_info)
- * \updates       2025-09-06
+ * \updates       2025-11-28
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -139,7 +139,9 @@ public:
         midi::port::kind porttype,
         int portid,                         /* an index value from 0 on up  */
         int queuenumber             = (-1),
-        const std::string & alias   = ""    /* not always available         */
+        const std::string & alias0  = "",   /* not always available         */
+        const std::string & alias1  = "",   /* not always available         */
+        const std::string & nick    = ""    /* if available, else construct */
     );
 
     /**
@@ -158,7 +160,7 @@ public:
         return m_port_container.empty();
     }
 
-    int get_port_count () const
+    int port_count () const
     {
         return m_port_count;
     }
@@ -203,7 +205,7 @@ public:
 
     int get_bus_number (int index) const
     {
-        if (index < get_port_count())
+        if (index < port_count())
             return portref(index).buss_number();
         else
             return (-1);
@@ -211,7 +213,7 @@ public:
 
     std::string get_bus_name (int index) const
     {
-        if (index < get_port_count())
+        if (index < port_count())
             return portref(index).buss_name();
         else
             return std::string("");
@@ -223,7 +225,7 @@ public:
 
     int get_port_number (int index) const
     {
-        if (index < get_port_count())
+        if (index < port_count())
             return portref(index).port_number();
         else
             return (-1);
@@ -236,7 +238,7 @@ public:
 
     int get_port_index (int index) const
     {
-        if (index < get_port_count())
+        if (index < port_count())
             return portref(index).port_index();
         else
             return (-1);
@@ -244,23 +246,29 @@ public:
 
     std::string get_port_name (int index) const
     {
-        if (index < get_port_count())
+        if (index < port_count())
             return portref(index).port_name();
         else
             return std::string("");
     }
 
-    std::string get_port_alias (int index) const
+    std::string get_port_alias (int index, int aliasno = 0) const
     {
-        if (index < get_port_count())
-            return portref(index).port_alias();
-        else
-            return std::string("");
+        static std::string s_dummy;
+        return index < port_count() ?
+            portref(index).port_alias(aliasno) : s_dummy ;
+    }
+
+    const lib66::tokenization & get_port_aliases (int index) const
+    {
+        static lib66::tokenization s_dummy;
+        return index < port_count() ?
+            portref(index).port_aliases() : s_dummy ;
     }
 
     bool get_port_is_input (int index) const
     {
-        if (index < get_port_count())
+        if (index < port_count())
             return portref(index).io_type() == midi::port::io::input;
         else
             return false;
@@ -268,7 +276,7 @@ public:
 
     midi::port::kind get_port_type (int index) const
     {
-        if (index < 0 || index >= get_port_count())
+        if (index < 0 || index >= port_count())
             index = 0;
 
         return portref(index).port_type();
@@ -280,7 +288,7 @@ public:
 
     bool get_port_is_virtual (int index) const
     {
-        if (index < get_port_count())
+        if (index < port_count())
             return portref(index).port_type() ==
                 midi::port::kind::manual;
         else
@@ -289,7 +297,7 @@ public:
 
     bool get_port_is_system (int index) const
     {
-        if (index < get_port_count())
+        if (index < port_count())
             return portref(index).port_type() ==
                 midi::port::kind::system;
         else
@@ -298,7 +306,7 @@ public:
 
     int get_port_queue_number (int index) const
     {
-        if (index < get_port_count())
+        if (index < port_count())
             return portref(index).queue_number();
         else
             return (-1);
@@ -306,7 +314,7 @@ public:
 
     midi::clocking get_port_status (int index) const
     {
-        if (index < get_port_count())
+        if (index < port_count())
             return portref(index).port_status();
         else
             return midi::clocking::unavailable;

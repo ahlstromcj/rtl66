@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-10
+ * \updates       2025-11-27
  * \license       See above.
  *
  *      Also contains some additional capabilities.
@@ -37,7 +37,7 @@
 #include <memory>                       /* std::unique_ptr<> template class */
 #include <string>                       /* omnipresent std::string class    */
 
-#include "c_macros.h"                   /* is_nullptr() macro               */
+#include "cpp_types.hpp"                /* lib66::tokenization of strings   */
 #include "midi/message.hpp"             /* midi::message data class         */
 #include "midi/midibytes.hpp"           /* midi::ppqn, midi::bpm            */
 #include "rtl/rtl_build_macros.h"       /* RTL66_DLL_PUBLIC, etc.           */
@@ -285,7 +285,11 @@ public:
 
 #if defined RTL66_MIDI_EXTENSIONS       // defined in Linux, FIXME
 
-    std::string get_port_alias (const std::string & portname);  // int??
+    std::string get_port_alias
+    (
+        const std::string & portname, int aliasno = 0
+    );
+    lib66::tokenization get_port_aliases (const std::string & portname);
     bool PPQN (midi::ppqn ppq);
     midi::ppqn PPQN () const;
     bool BPM (midi::bpm bp);

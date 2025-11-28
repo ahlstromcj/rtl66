@@ -1,9 +1,10 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-10-29
+2019-04-13 to 2025-11-25
 
 Hot:
 
+    -   Make sure meaningful JACK device aliases can be found.
     -   A sporadic race condition in JACK playback.
     -   play does not reload the PPQN (and BPM?) for each file.
     -   midiprobeex doubles the number of ports.

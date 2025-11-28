@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-03
+ * \updates       2025-11-27
  * \license       See above.
  *
  *  Written primarily by Alexander Svetalkin, with updates for delta time by
@@ -198,7 +198,7 @@
  *      -   get_port_count()      * [jack_get_ports()]
  *      -   get_io_port_info()      [jack_get_ports()]
  *      -   get_port_name()       * [jack_get_ports()]
- *      -   get_port_alias()        [jack_port_by_name()]
+ *      -   get_port_aliases()      [jack_get_port_aliases()]
  *
  *  Warnings *:
  *
@@ -234,26 +234,6 @@ namespace rtl
 /*------------------------------------------------------------------------
  * JACK implementation flags and values.
  *------------------------------------------------------------------------*/
-
-/**
- *  Delimits the size of the JACK ringbuffer. Related to issue #100, when
- *  we play the Sequencer64 MIDI tune "b4uacuse-stress.midi", we can fail to
- *  write to the ringbuffer.  So we've doubled the size. Without timestamps,
- *  that allows about 10K events. With time-stamps, about 4.7K events.
- *
- *  For the new midi::message ringbuffer, running the stress file from the
- *  Sequencer64 project, the maximum number of events in the ring buffer
- *  is about 200 at 192 PPQN.  At 960 PPQN, thousands of events are dropped
- *  and the buffer maxes out (1024 events).  Let's try 4096 instead.
- *  Weird, now that tune yields the max of 196! Let's try 2048. Might be a
- *  useful configuration option.
- */
-
-static const size_t c_jack_ringbuffer_size
-{
-    RTL66_DEFAULT_JACK_RING_SIZE    /* tentative */
-};
-
 
 /**
  *  JACK_DEFAULT_MIDI_TYPE is a pointer to the string "8 bit raw midi".
@@ -514,6 +494,8 @@ midi_jack::midi_jack
      *      (void) initialize(client_name());
      *      m_jack_data.set_initialized(true);
      */
+
+    m_jack_data.rt_midi_in(&(this->input_data()));
 }
 
 midi_jack::midi_jack
@@ -528,7 +510,8 @@ midi_jack::midi_jack
     if (clientname.empty())
         client_name("rtl-jack");
 
-    (void) initialize(client_name());
+    if (initialize(client_name()))
+        m_jack_data.rt_midi_in(&(this->input_data()));
 }
 
 /**
@@ -625,8 +608,10 @@ midi_jack::engine_connect ()
                 if (ok)
                 {
                     result = c;
+#if defined USE_JACK_RINGBUFFER_POINTER
                     if (is_output())
                         (void) create_ringbuffer(c_jack_ringbuffer_size);
+#endif
 
                     (void) set_auxiliary_callbacks(c);
                 }
@@ -782,8 +767,11 @@ midi_jack::get_port_count ()
 }
 
 /**
- *  Creates the JACK output ring-buffer.
+ *  Creates the JACK output ring-buffer. No longer needed, it is created
+ *  in the constructor.
  */
+
+#if defined USE_JACK_RINGBUFFER_POINTER
 
 bool
 midi_jack::create_ringbuffer (size_t rbsize)
@@ -808,6 +796,8 @@ midi_jack::create_ringbuffer (size_t rbsize)
     }
     return result;
 }
+
+#endif
 
 /**
  *  This function opens a JACK-client connection.  Here are the things it
@@ -875,6 +865,8 @@ midi_jack::initialize (const std::string & clientname)
 {
     bool result;
     midi_jack_data & data { jack_data() };
+    api_data(&data);
+
     /*
      * There is no need to nullify these items. In the masterbus
      * paradigm, they may be already set.
@@ -976,12 +968,14 @@ midi_jack::open_port (int portnumber, const std::string & portname)
     if (result)
     {
         midi_jack_data & data { jack_data() };
-        if (is_nullptr(data.jack_port()))           /* can create the port  */
+        int nsrc { get_port_count() };
+        result = nsrc > 0 && is_nullptr(data.jack_port());
+        if (result)                                 /* can create the port  */
         {
             jack_client_t * jclient { data.jack_client() };
             const char * pn { CSTR(portname) };
 #if defined PLATFORM_DEBUG_TMI
-        printf("open_port(%d, \"%s\")\n", portnumber, pn);
+            printf("open_port(%d, \"%s\")\n", portnumber, pn);
 #endif
             jack_port_t * srcptr
             {
@@ -1103,21 +1097,18 @@ midi_jack::delete_port ()
     (void) close_port();
     if (is_output())
     {
-        if (not_nullptr(data.jack_buffer()))
+        xpc::ring_buffer<midi::message> & rb { data.jack_buffer() };
+        if (rb.dropped() > 0 || rb.count_max() > (rb.buffer_size() / 2))
         {
-            xpc::ring_buffer<midi::message> * rb { data.jack_buffer() };
-            if (rb->dropped() > 0 || rb->count_max() > (rb->buffer_size() / 2))
-            {
-                char tmp[64];
-                snprintf
-                (
-                    tmp, sizeof tmp, "%d events dropped, %d max/%d",
-                    rb->dropped(), rb->count_max(), rb->buffer_size()
-                );
-                (void) util::warn_message("ring-buffer", tmp);
-            }
-            delete data.jack_buffer();
+            char tmp[64];
+            snprintf
+            (
+                tmp, sizeof tmp, "%d events dropped, %d max/%d",
+                rb.dropped(), rb.count_max(), rb.buffer_size()
+            );
+            (void) util::warn_message("ring-buffer", tmp);
         }
+//      delete data.jack_buffer();
     }
     if (! has_master())
         engine_disconnect();
@@ -1402,9 +1393,13 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
                 std::string fullname { ports[count] };
                 std::string clientname;
                 std::string portname;
-                std::string alias { get_port_alias(fullname) };
-                if (alias == fullname)
-                    alias.clear();
+                lib66::tokenization aliases { get_port_aliases(fullname) };
+
+                /*
+                 *
+                 *  if (aliases == fullname)
+                 *      aliases.clear();
+                 */
 
                 /*
                  * TODO:  somehow get the 32-bit ID of the port and add it as
@@ -1428,7 +1423,7 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
                 (
                     clientnumber, clientname, count, /* port number */
                     portname, iotype, midi::port::kind::normal,
-                    count /* result */, 0, alias
+                    count /* result */, 0 //// , alias
                 );
                 ++count;
             }
@@ -1438,6 +1433,29 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
     }
     return result;
 }
+
+/**
+ *  Get one set of aliases (for a port). A bit inefficient.
+ *  Could eventually be moved to midi_api.
+ */
+
+std::string
+midi_jack::get_port_alias
+(
+    const std::string & name, int aliasno
+)
+{
+    std::string result;
+    lib66::tokenization aliases
+    {
+        get_port_aliases(name)
+    };
+    if (std::size_t(aliasno) < aliases.size())
+        result = aliases[aliasno];
+
+    return result;
+}
+
 
 /**
  *  If the name includes "system:", try getting an alias instead via
@@ -1480,10 +1498,10 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
  *      an alias.
  */
 
-std::string
-midi_jack::get_port_alias (const std::string & name)
+lib66::tokenization
+midi_jack::get_port_aliases (const std::string & name)
 {
-    std::string result;
+    lib66::tokenization result;
     midi_jack_data & data { jack_data() };
     if (not_nullptr(data.jack_client()))
     {
@@ -1510,6 +1528,7 @@ midi_jack::get_port_alias (const std::string & name)
                 int rc { ::jack_port_get_aliases(p, aliases) };
                 if (rc > 1)
                 {
+#if 0
                     std::string nick { std::string(aliases[1]) }; /* brittle  */
                     auto colonpos { nick.find_first_of(":") };    /* brittle  */
                     if (colonpos != std::string::npos)
@@ -1527,16 +1546,19 @@ midi_jack::get_port_alias (const std::string & name)
                         result[hyphenpos] = ' ';
                         hyphenpos = result.find_first_of("-", hyphenpos);
                     }
+#endif
+                    for (int a = 0; a < rc; ++a)
+                        result.push_back(std::string(aliases[a]));
                 }
                 else
                 {
                     /*
                      * To do:
                      *
-                    if (rc < 0)
-                        errprint("JACK port aliases error");
-                    else
-                        infoprint("JACK aliases unavailable");
+                     *  if (rc < 0)
+                     *      errprint("JACK port aliases error");
+                     *  else
+                     *      infoprint("JACK aliases unavailable");
                      */
                 }
                 free(aliases[0]);
@@ -1731,9 +1753,14 @@ midi_jack::clock_continue (midi::pulse tick, midi::pulse /*beats*/)
 int
 midi_jack::poll_for_midi () const
 {
+#if defined USE_OLD_CODE
     const rtmidi_in_data * rtindata { jack_data().rt_midi_in() };
     (void) xpc::microsleep(xpc::std_sleep_us());            /* 10 us IIRC   */
-    return rtindata->queue().count();
+    return not_nullptr(rtindata) ? rtindata->queue().count() : 0 ;
+#else
+    (void) xpc::microsleep(xpc::std_sleep_us());            /* 10 us IIRC   */
+    return input_data().queue().count();
+#endif
 }
 
 /**
@@ -1762,17 +1789,19 @@ midi_jack::poll_for_midi () const
 bool
 midi_jack::get_midi_event (midi::event * inev)           // input
 {
+#if defined USE_OLD_CODE
     rtmidi_in_data * rtindata { jack_data().rt_midi_in() };
-    bool result { ! rtindata->queue().empty() };
+    bool result { not_nullptr(rtindata) && ! rtindata->queue().empty() };
+#else
+    bool result { ! input_data().queue().empty() };
+#endif
     if (result)
     {
-        /*
-         * Cannot speed this up.
-         *
-         *      result = inev->set_midi_event(rtindata->queue().pop_front());
-         */
-
+#if defined USE_OLD_CODE
         midi::message mm { rtindata->queue().pop_front() };
+#else
+        midi::message mm { input_data().queue().pop_front() };
+#endif
         result = inev->set_midi_event(mm);
         if (result)
         {
@@ -2021,12 +2050,12 @@ midi_jack::send_message (const midi::byte * msg, size_t sz) const
 bool
 midi_jack::send_message (const midi::message & msg) const
 {
-    const xpc::ring_buffer<midi::message> * rb { jack_data().jack_buffer() };
-    xpc::ring_buffer<midi::message> * ncrb
+    const xpc::ring_buffer<midi::message> & rb { jack_data().jack_buffer() };
+    xpc::ring_buffer<midi::message> & ncrb
     {
-        const_cast<xpc::ring_buffer<midi::message> *>(rb)
+        const_cast<xpc::ring_buffer<midi::message> &>(rb)
     };
-    return ncrb->push_back(msg);
+    return ncrb.push_back(msg);
 }
 
 }           // namespace rtl

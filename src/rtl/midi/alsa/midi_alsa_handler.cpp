@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-17
+ * \updates       2025-11-25
  * \license       See above.
  *
  *  This module is meant to be #include'd in midi_alsa.cpp. It's been
@@ -351,13 +351,11 @@ midi_alsa_handler (void * ptr)
 
         if (rtidata->using_callback())
         {
-printf("CALLBACK\n");
             rtmidi_in_data::callback_t cb = rtidata->user_callback();
             cb(mmsg.jack_stamp(), mmsg, rtidata->user_data());
         }
         else
         {
-printf("PUSH\n");
             if (! rtidata->queue().push(mmsg))
                 error_print("midi_alsa_handler()", "input queue limit hit");
         }

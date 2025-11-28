@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-08
-# \updates     2025-11-17
+# \updates     2025-11-28
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the "rtl66" library. See the top-level meson.build
@@ -15,6 +15,7 @@
 #  Here we locate the library source-code files.  They reside in:
 #
 #     -  src. The main include directory, currently nothing needed there.
+#     -  src/audio. RtAudio code adaptation. NOT READY.
 #     -  src/midi. Contains code adapted from the Seq66 project.
 #     -  src/rtl. Contains code refactored from the RtMidi project.
 #     -  src/transport. Contains code related to JACK transport
@@ -27,7 +28,6 @@ librtl66_sources += files(
    'midi/bus.cpp',
    'midi/bus_in.cpp',
    'midi/bus_out.cpp',
-   'midi/bussdata.cpp',
    'midi/calculations.cpp',
    'midi/clientinfo.cpp',
    'midi/clocking.cpp',
@@ -72,6 +72,7 @@ librtl66_sources += files(
    'rtl/midi/rtmidi_engine.cpp',
    'rtl/midi/rtmidi_in.cpp',
    'rtl/midi/rtmidi_in_data.cpp',
+   'rtl/midi/rtmidi_io_info.cpp',
    'rtl/midi/rtmidi_out.cpp',
    'rtl/midi/webmidi/midi_web_midi.cpp',
    'rtl/midi/winmm/midi_win_mm.cpp',

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-10-09
- * \updates       2025-11-22
+ * \updates       2025-11-28
  * \license       See above.
  *
  *      This application but merely opens one port and accepts messages,
@@ -192,6 +192,8 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
     return s_master_bus;
 }
 
+#if defined USE_SUSCEPTIBLE_TEST
+
 /**
  *  A usage that breaks (can cause segfaults) in ALSA because the RtMidi-based
  *  implementation uses a polling thread, but ALSA is not thread-safe, and thus
@@ -266,6 +268,8 @@ run_susceptible_test (rtl::rtmidi::api rapi, int portno)
     }
     return result;
 }
+
+#endif
 
 bool
 poll_port (rtl::rtmidi::api rapi, int portno)
@@ -356,6 +360,8 @@ poll_port (rtl::rtmidi::api rapi, int portno)
 bool
 poll_all_ports (rtl::rtmidi::api rapi, int portcount)
 {
+    (void) portcount;       // ???????????????????
+
     bool result { true };
     int portno { RTL66_PORTS_ALL };
     app_client_info().input_portnumber(portno);

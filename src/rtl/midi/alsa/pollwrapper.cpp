@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-11-17
- * \updates       2025-11-19
+ * \updates       2025-11-27
  * \license       See above.
  *
  */
@@ -79,6 +79,7 @@ bool
 pollwrapper::initialize (snd_seq_t * c, int extra)
 {
     bool result { not_nullptr(c) };
+    (void) extra;
     if (result)
     {
         m_alsa_client = c;

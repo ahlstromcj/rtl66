@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24        (seq66::midi_port_info)
- * \updates       2025-10-29
+ * \updates       2025-11-27
  * \license       See above.
  *
  *  Contains information about a single MIDI port, as determined by
@@ -37,6 +37,7 @@
 #include <cstdint>                      /* uint32_t and other types         */
 #include <string>                       /* std::string class                */
 
+#include "cpp_types.hpp"                /* lib66::tokenization of strings   */
 #include "midi/clocking.hpp"            /* output and input port statuses   */
 
 namespace midi
@@ -120,8 +121,8 @@ private:
 
     /*
      *  We provide a default constructor rather than set defaults here.
-     *  Compare this set to the seq66::portslist::io structure. The only
-     *  concept missing here is the "nick-name".
+     *  Compare this set to the seq66::portslist::io structure. The new
+     *  concept here is the "nick-name".
      *
      *  Also, note that the port number (in ALSA) comes from a query and
      *  indicates the number re a particular client. For example,
@@ -130,25 +131,136 @@ private:
      *  for the port, for lookup purposes. Hence the m_port_index number.
      */
 
-    int m_buss_number { -1 };           /**< Major buss number of the port. */
-    std::string m_buss_name { };        /**< System's name for the buss.    */
-    int m_port_number { -1 };           /**< Minor port number of the port. */
-    std::string m_port_name { };        /**< System's name for the port.    */
-    int m_queue_number { -1 };          /**< A number used in some APIs.    */
-    io m_io_type { io::dummy };         /**< Indicates input versus output. */
-    kind m_port_type                    /**< Flags normal/virt/system port. */
+    /**
+     *  Major buss number of the port. Applicable to ALSA. System devices
+     *  (which includes plugged-in MIDI hardware) range 0 to 128; software
+     *  MIDI clients go from 129 on up. Here's a typical setup; the
+     *  additional lines are port numbers:
+     *
+     *
+     *      client 0: 'System'
+     *          0 'Timer           '
+     *          1 'Announce        '
+     *      client 14: 'Midi Through'
+     *          0 'Midi Through Port-0'
+     *      client 28: 'nanoKEY2' [type=kernel,card=3]
+     *          0 'nanoKEY2 _ CTRL '
+     *      client 36: 'Q25' [type=kernel,card=5]
+     *          0 'Q25 MIDI 1      '
+     *
+     *  Also known as the "client number" or "client ID".
+     */
+
+    int m_buss_number { -1 };
+
+    /**
+     *  System's name for the buss. See ALSA examples above.
+     */
+
+    std::string m_buss_name { };
+
+    /**
+     *  Minor port number of the port/client/buss.
+     */
+
+    int m_port_number { -1 };
+
+    /**
+     *  System's name for the port. See ALSA examples above.
+     */
+
+    std::string m_port_name { };
+
+    /**
+     *  A number used in some APIs.
+     */
+
+    int m_queue_number { -1 };
+
+    /**
+     *  Indicates input versus output versus duplex.
+     */
+
+    io m_io_type { io::dummy };
+
+    /**
+     *  Flags normal/virtual/system port. Note that "normal" refers to
+     *  an actual port associate with a device to which the application
+     *  is to connect, and "virtual" refers to an application port
+     *  that can be connected manually (e.g. by aconnect).
+     */
+
+    kind m_port_type
     {
         kind::undetermined
     };
-    std::string m_port_alias { };       /**< Non-empty in some JACK setups. */
-    int m_port_index { -1 };            /**< Application port-number/index. */
-    uint32_t m_internal_id              /**< Internal port number.          */
+
+    /**
+     *  Non-empty in some JACK setups. For example, here is a list of
+     *  created ports:
+     *
+     *      jack_lsp --alias                midiout --jack (test app)
+     *
+     *      Midi-Through:midi/playback_1    system:midi_playback_1
+     *      Midi-Through:midi/capture_1     system:midi_capture_1
+     *      nanoKEY2:midi/playback_1        system:midi_playback_1
+     *      nanoKEY2:midi/capture_1         system:midi_capture_1
+     *      Q25:midi/playback_1             system:midi_playback_1
+     *      Q25:midi/capture_1              system:midi_capture_1
+     *
+     *  Not shown here are the aliases; here's an example:
+     *
+     *  system:midi_capture_3
+     *     alsa_pcm:Q25/midi_playback_1     The full name of the port.
+     *     Q25:midi/playback_1              The full alias of the port.
+     *  system:midi_playback_3
+     *     alsa_pcm:Q25/midi_capture_1
+     *     Q25:midi/capture_1
+     *
+     *  We want to store full alias, plus a nick name. Also, since JACK
+     *  can provide 2 alias, we use a (short) vector of strings from
+     *  the small lib66 library.
+     *
+     *  We could put all port names (normal name, nick-name, and aliases)
+     *  into the vector, but that seems too intractable at this time.
+     */
+
+    lib66::tokenization m_port_aliases { };
+
+    /**
+     *  The nick-name of the port, i.e. all characters up to the colon.
+     *  For example, "Q25:midi/capture_1" becomes "Q25". The purpose of
+     *  the nick-name is to make lookups easier for things like mapping
+     *  ports to integers.
+     */
+
+    std::string m_port_nickname { };
+
+    /**
+     *  Application port-number/index. These always range from 0 on up.
+     *  Input and output ports are numbered separately.
+     */
+
+    int m_port_index { -1 };
+
+    /**
+     *  Internal port number.
+     */
+
+    uint32_t m_internal_id
     {
         null_system_port_id()
     };
-    clocking m_io_status                /**< On Off (disabled) Clocking...  */
+
+    /**
+     *  On Off (disabled) Clocking...
+     *  A basic flag for "port enabled" (perhaps with MIDI clocking)
+     *  and "port disabled.
+     */
+
+    clocking m_io_status
     {
-        clocking::none                  /**< Basic flag for "port enabled". */
+        clocking::none
     };
 
 public:
@@ -164,7 +276,9 @@ public:
         kind porttype,
         int portid,                     // NEW
         int queuenumber                 = (-1),
-        const std::string & aliasname   = ""
+        const std::string & alias0      = "",
+        const std::string & alias1      = "",
+        const std::string & nickname    = ""
     );
     port (const port &) = default;
     port (port &&) = default;
@@ -207,9 +321,26 @@ public:                                 /* getters                          */
         return m_port_name;
     }
 
-    const std::string & port_alias () const
+    /**
+     *  The alias number is either 0 or 1, though we allow for even more
+     *  aliases to be added (developer's choice).
+     */
+
+    const std::string & port_alias (int aliasno = 0) const
     {
-        return m_port_alias;
+        static std::string s_dummy;
+        return std::size_t(aliasno) < m_port_aliases.size() ?
+            m_port_aliases[aliasno] : s_dummy ;
+    }
+
+    const lib66::tokenization & port_aliases () const
+    {
+        return m_port_aliases;
+    }
+
+    const std::string & port_nickname () const
+    {
+        return m_port_nickname;
     }
 
     int queue_number () const
@@ -274,9 +405,24 @@ public:                                 /* setters                          */
         m_port_name = pn;
     }
 
+    /**
+     *  Most APIs do not support aliases. JACK supports two. But
+     *  the developer can add more.
+     */
+
     void port_alias (const std::string & pa)
     {
-        m_port_alias = pa;
+        m_port_aliases.push_back(pa);
+    }
+
+    void port_aliases (const lib66::tokenization & pat)
+    {
+        m_port_aliases = pat;
+    }
+
+    void port_nickname (const std::string & pn)
+    {
+        m_port_nickname = pn;
     }
 
     void queue_number (int q)

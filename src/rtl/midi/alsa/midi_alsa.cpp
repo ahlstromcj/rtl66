@@ -462,6 +462,8 @@ show_basic_port_info (snd_seq_t * client, bool isoutput, int portnumber)
  *  It allows delaying initialization until after setting the masterbus via
  *  the midi::bus I/O objects and the masterbus overloads of the
  *  rtl::rtmidi I/O objects.
+ *
+ *  Some members are initialized "in-class".
  */
 
 midi_alsa::midi_alsa
@@ -474,8 +476,7 @@ midi_alsa::midi_alsa
     m_poll_wrapper
     (
         reinterpret_cast<snd_seq_t *>(mbus.void_client_handle())
-    ),
-    m_alsa_data     ()
+    )
 {
     /*
      *  (void) initialize(client_name());
@@ -487,6 +488,8 @@ midi_alsa::midi_alsa
 /**
  *  This constructor preserves (mostly) the RtMidi stand-alone port
  *  paradigm.
+ *
+ *  Some members are initialized "in-class".
  */
 
 midi_alsa::midi_alsa
@@ -497,8 +500,7 @@ midi_alsa::midi_alsa
 ) :
     midi_api        (iotype, queuesize),
     m_client_name   (clientname),
-    m_poll_wrapper  (),
-    m_alsa_data     ()
+    m_poll_wrapper  ()
 {
     if (clientname.empty())
         client_name("rtl-alsa");
@@ -625,7 +627,6 @@ midi_alsa::engine_disconnect ()
         int rc { ::snd_seq_close(c) };
         (void) ::snd_config_update_free_global();   /* new: more cleanup    */
         data.alsa_client(nullptr);
-        // remove_poll_descriptors();
         if (rc != 0)
             error_print("snd_seq_close()", "failed");
     }
@@ -1318,8 +1319,6 @@ midi_alsa::remove_subscription ()
 bool
 midi_alsa::start_input_thread (rtmidi_in_data & indata)
 {
-    // printf("START_INPUT_THREAD()\n");   // CAN WE USE IOTHREAD HERE???
-
     bool result { true };
     if (is_input())
     {

@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-24
+ * \updates       2025-11-27
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -120,7 +120,7 @@ private:
      *  certain events, allowing input, and using a callback function (with a
      *  pointer to user data).
      *
-     *  It's mutable so that we can pop const function.
+     *  It's mutable so that we can call the pop const function.
      */
 
     mutable rtmidi_in_data m_input_data { };
@@ -433,12 +433,26 @@ protected:
 
     /*
      * Gets an alternate name for the port. Currently supported only in some
-     * versions of JACK.
+     * versions of JACK. Up to two aliases can be set for each port.
      */
 
-    virtual std::string get_port_alias (const std::string & /*name*/)
+    virtual std::string get_port_alias
+    (
+        const std::string & name,
+        int aliasno = 0
+    )
     {
-        return std::string("");
+        static std::string s_dummy;
+        (void) name;
+        (void) aliasno;
+        return s_dummy;
+    }
+
+    virtual lib66::tokenization get_port_aliases (const std::string & name)
+    {
+        static lib66::tokenization s_dummy;
+        (void) name;
+        return s_dummy;
     }
 
 #if defined RTL66_MIDI_EXTENSIONS       // defined in Linux, FIXME
@@ -498,8 +512,9 @@ protected:
         return 0;
     }
 
-    virtual bool get_midi_event (midi::event * /*inev*/)
+    virtual bool get_midi_event (midi::event * inev)
     {
+        (void) inev;
         return false;
     }
 

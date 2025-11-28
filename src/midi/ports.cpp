@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-11-14
+ * \updates       2025-11-28
  * \license       See above.
  *
  * Classes defined:
@@ -121,7 +121,8 @@ ports::add (const port & p)
  *      rtl66 application grabs the client number (normally valued at 1)
  *      from the ALSA subsystem.
  *
- * \param alias
+ * \param alias0
+ * \param alias1
  *      In some JACK configurations an alias is available.  This lets one see
  *      the device's model name without running the a2jmidid daemon.
  */
@@ -135,15 +136,17 @@ ports::add
     const std::string & portname,
     port::io iotype,
     port::kind porttype,
-    int portid,                     // NEW
+    int portid,
     int queuenumber,
-    const std::string & alias
+    const std::string & alias0,
+    const std::string & alias1,
+    const std::string & nick
 )
 {
     port temp
     (
         clientnumber, clientname, portnumber, portname,
-        iotype, porttype, portid, queuenumber, alias
+        iotype, porttype, portid, queuenumber, alias0, alias1, nick
     );
 
 #if defined PLATFORM_DEBUG_TMI
@@ -159,7 +162,7 @@ ports::add
         str, sizeof str,
         "Added port #%d \"%s:%s\" [%d:%d] %s (%s %s %s)",
         portid, V(clientname), V(portname),
-        clientnumber, portnumber, V(alias),
+        clientnumber, portnumber, V(alias0),        // TODO
         vport, iport, sport
     );
     (void) util::info_message(str);
@@ -229,7 +232,7 @@ midi::port &
 ports::portref (int index)
 {
     static midi::port s_dummy;
-    return index < get_port_count() ?
+    return index < port_count() ?
         m_port_container[index] : s_dummy ;
 }
 
@@ -237,7 +240,7 @@ const midi::port &
 ports::portref (int index) const
 {
     static midi::port s_dummy;
-    return index < get_port_count() ?
+    return index < port_count() ?
         m_port_container[index] : s_dummy ;
 }
 

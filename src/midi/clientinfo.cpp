@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-11-09
+ * \updates       2025-11-28
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -51,6 +51,12 @@
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
 #include "util/strfunctions.hpp"        /* util::bool_to_string()           */
+
+#undef USE_RTMIDI_GET_IO_INFO_FUNCTION
+
+#if defined USE_RTMIDI_GET_IO_INFO_FUNCTION
+#include "rtl/midi/rtmidi_io_info.hpp"  /* rtl::rtmidi_get_io_info()        */
+#endif
 
 namespace midi
 {
@@ -156,11 +162,11 @@ clientinfo::port_count (port::io iotype) const
     int result { 0 };
     if (iotype == port::io::duplex)
     {
-        result += m_io_ports[0].get_port_count();
-        result += m_io_ports[1].get_port_count();
+        result = m_io_ports[0].port_count();
+        result += m_io_ports[1].port_count();
     }
     else
-        result = m_io_ports[element(iotype)].get_port_count();
+        result = m_io_ports[element(iotype)].port_count();
 
     return result;
 }
@@ -242,7 +248,7 @@ std::string
 clientinfo::port_list (port::io iotype) const
 {
     const ports & p { io_ports(iotype) };
-    int portcount { p.get_port_count() };
+    int portcount { p.port_count() };
     std::ostringstream os;
     os << (iotype == port::io::input ? "Inputs" : "Outputs");
     os << " ports (" << portcount << "):" << std::endl;
@@ -329,6 +335,32 @@ get_global_client_info (clientinfo & ci)
  *      TODO
  */
 
+#if defined USE_RTMIDI_GET_IO_INFO_FUNCTION
+
+bool
+get_all_port_info (midi::clientinfo & cinfo, rtl::rtmidi::api rapi)
+{
+    bool result { cinfo.ports_queried() };
+    if (! result)
+    {
+        midi::port::io iotype { midi::port::io::input };
+        ports & in { cinfo.io_ports(iotype) };
+        result = rtl::rtmidi_get_io_info(iotype, in, rapi);
+
+        int incount { in.port_count() };
+        iotype = midi::port::io::output;
+
+        ports & out { cinfo.io_ports(iotype) };
+        result = rtl::rtmidi_get_io_info(iotype, out, rapi);
+        int outcount { in.port_count() };
+        result = incount > 0 || outcount > 0;
+        cinfo.ports_queried(true);
+    }
+    return result;
+}
+
+#else   // defined USE_RTMIDI_GET_IO_INFO_FUNCTION
+
 bool
 get_all_port_info (midi::clientinfo & cinfo, rtl::rtmidi::api rapi)
 {
@@ -362,6 +394,8 @@ get_all_port_info (midi::clientinfo & cinfo, rtl::rtmidi::api rapi)
     }
     return result;
 }
+
+#endif  // defined USE_RTMIDI_GET_IO_INFO_FUNCTION
 
 void
 clientinfo::set_input_callback

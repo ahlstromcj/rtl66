@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2017-01-02
- * \updates       2025-10-07
+ * \updates       2025-11-25
  * \license       See above.
  *
  */
@@ -54,6 +54,25 @@ namespace rtl
 {
 
 class rtmidi_in_data;
+
+/**
+ *  Delimits the size of the JACK ringbuffer. Related to issue #100, when
+ *  we play the Sequencer64 MIDI tune "b4uacuse-stress.midi", we can fail to
+ *  write to the ringbuffer.  So we've doubled the size. Without timestamps,
+ *  that allows about 10K events. With time-stamps, about 4.7K events.
+ *
+ *  For the new midi::message ringbuffer, running the stress file from the
+ *  Sequencer64 project, the maximum number of events in the ring buffer
+ *  is about 200 at 192 PPQN.  At 960 PPQN, thousands of events are dropped
+ *  and the buffer maxes out (1024 events).  Let's try 4096 instead.
+ *  Weird, now that tune yields the max of 196! Let's try 2048. Might be a
+ *  useful configuration option.
+ */
+
+static const size_t c_jack_ringbuffer_size
+{
+    RTL66_DEFAULT_JACK_RING_SIZE    /* tentative */
+};
 
 /**
  *  Contains the JACK MIDI API data as a kind of scratchpad for this object.
@@ -93,13 +112,12 @@ class RTL66_DLL_PUBLIC midi_jack_data
     jack_port_t * m_jack_port { nullptr };
 
     /**
-     *  Holds a pointer to the size of data for communicating between the
-     *  client ring-buffer and the JACK port's internal buffer. Note that
-     *  the actual writable size is usually 1 less than the ringbuffer's
-     *  size.
+     *  Holds the data for communicating between the client output ring-buffer
+     *  and the JACK port's internal buffer. Note that the actual writable
+     *  size is usually 1 less than the ringbuffer's size.
      */
 
-    xpc::ring_buffer<midi::message> * m_jack_buffer { nullptr };
+    xpc::ring_buffer<midi::message> m_jack_buffer { c_jack_ringbuffer_size };
 
     /**
      *  The last time-stamp obtained.  Use for calculating the delta time, I
@@ -137,6 +155,10 @@ class RTL66_DLL_PUBLIC midi_jack_data
      *  Holds special data peculiar to the client and its MIDI input
      *  processing. This data consists of the midi_queue message queue and a
      *  few boolean flags.
+     *
+     *  Whoops! Already defined as a true member in midi_api, accessed via
+     *  midi_api::input_data(). A small waste of space if the port is not
+     *  meant for input.
      */
 
     rtmidi_in_data * m_jack_rtmidiin { nullptr };
@@ -144,6 +166,7 @@ class RTL66_DLL_PUBLIC midi_jack_data
 public:
 
     midi_jack_data () = default;
+    midi_jack_data (std::size_t sz);
     midi_jack_data (const midi_jack_data &) = delete;
     midi_jack_data (midi_jack_data &&) = delete;
     midi_jack_data & operator = (const midi_jack_data &) = delete;
@@ -322,22 +345,17 @@ public:
      *  Basic member access. Getters and setters.
      */
 
-    bool valid_buffer () const
-    {
-        return not_nullptr(m_jack_buffer);
-    }
-
-    xpc::ring_buffer<midi::message> * jack_buffer ()
+    xpc::ring_buffer<midi::message> & jack_buffer ()
     {
         return m_jack_buffer;
     }
 
-    const xpc::ring_buffer<midi::message> * jack_buffer () const
+    const xpc::ring_buffer<midi::message> & jack_buffer () const
     {
         return m_jack_buffer;
     }
 
-    void jack_buffer (xpc::ring_buffer<midi::message> * rb)
+    void jack_buffer (xpc::ring_buffer<midi::message> & rb)
     {
         m_jack_buffer = rb;
     }
@@ -352,15 +370,24 @@ public:
         return m_jack_port;
     }
 
-    rtmidi_in_data * rt_midi_in ()
-    {
-        return m_jack_rtmidiin;
-    }
+    /*
+     *  Already accessible via midi_api::input_data(), but we don't
+     *  have direct access to that here.
+     */
 
-    const rtmidi_in_data * rt_midi_in () const
-    {
+     void rt_midi_in (rtmidi_in_data * rid)
+     {
+         m_jack_rtmidiin = rid;
+     }
+
+     rtmidi_in_data * rt_midi_in ()
+     {
         return m_jack_rtmidiin;
-    }
+     }
+     const rtmidi_in_data * rt_midi_in () const
+     {
+        return m_jack_rtmidiin;
+     }
 
     jack_time_t jack_lasttime () const
     {
@@ -386,11 +413,6 @@ public:
     void jack_port (jack_port_t * p)
     {
         m_jack_port = p;
-    }
-
-    void rt_midi_in (rtmidi_in_data * rid)
-    {
-        m_jack_rtmidiin = rid;
     }
 
     void jack_lasttime (jack_time_t lt)

@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2025-11-14
+ * \updates       2025-11-28
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -640,7 +640,7 @@ public:
 
     int get_port_count (port::io iotype) const
     {
-        return io_ports(iotype).get_port_count();
+        return io_ports(iotype).port_count();
     }
 
     int get_bus_number (port::io iotype, int index) const
@@ -668,9 +668,17 @@ public:
         return io_ports(iotype).get_port_name(index);
     }
 
-    std::string get_port_alias (port::io iotype, int index) const
+    std::string get_port_alias
+    (
+        port::io iotype, int index, int aliasno
+    ) const
     {
-        return io_ports(iotype).get_port_alias(index);
+        return io_ports(iotype).get_port_alias(index, aliasno);
+    }
+
+    lib66::tokenization get_port_aliases (port::io iotype, int index) const
+    {
+        return io_ports(iotype).get_port_aliases(index);
     }
 
     port::kind get_port_type (port::io iotype, int index) const

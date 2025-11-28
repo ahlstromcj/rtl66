@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24
- * \updates       2025-09-26
+ * \updates       2025-11-27
  * \license       See above.
  *
  *  midi::port. A class holding data about a port.  This class is meant to
@@ -42,7 +42,7 @@ namespace midi
 {
 
 /*------------------------------------------------------------------------
- * port. See the in-class member initializations.
+ * port. See the in-class member initializations as well.
  *------------------------------------------------------------------------*/
 
 port::port
@@ -55,7 +55,9 @@ port::port
     kind porttype,
     int portindex,
     int queuenumber,
-    const std::string & alias
+    const std::string & alias0,
+    const std::string & alias1,
+    const std::string & nick
 ) :
     m_buss_number   (bussnumber),
     m_buss_name     (bussname),
@@ -64,7 +66,8 @@ port::port
     m_queue_number  (queuenumber),
     m_io_type       (iotype),
     m_port_type     (porttype),
-    m_port_alias    (alias),
+    m_port_aliases  (),
+    m_port_nickname (nick),
     m_port_index    (portindex)
 
     /*
@@ -72,7 +75,12 @@ port::port
      *  m_io_status     (clocking::none)
      */
 {
-    // No other code
+    if (! alias0.empty())
+    {
+        m_port_aliases.push_back(alias0);
+        if (! alias1.empty())
+            m_port_aliases.push_back(alias1);
+    }
 }
 
 std::string
@@ -86,8 +94,15 @@ port::to_string () const
         << io_to_string(m_io_type) << "/" << kind_to_string(m_port_type)
         ;
 
-    if (! m_port_alias.empty())
-        os << " (alias '" << m_port_alias << "')";
+    /*
+     * Too much for now. Maybe later.
+     *
+     *  if (! m_port_alias.empty())
+     *      os << " (alias '" << m_port_alias << "') ";
+     */
+
+    if (! m_port_nickname.empty())
+        os << " (nick '" << m_port_nickname << "')";
 
     os << std::endl;
     return os.str();

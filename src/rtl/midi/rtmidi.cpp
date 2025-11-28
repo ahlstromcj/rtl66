@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-10
+ * \updates       2025-11-27
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -820,13 +820,30 @@ rtmidi::get_io_port_info (midi::ports & ports, bool preclear)
  */
 
 std::string
-rtmidi::get_port_alias (const std::string & portname)
+rtmidi::get_port_alias
+(
+    const std::string & portname, int aliasno
+)
 {
     std::string result;
     if (not_nullptr(rt_api_ptr()))
-        result = rt_api_ptr()->get_port_alias(portname);
+        result = rt_api_ptr()->get_port_alias(portname, aliasno);
 
     return result;
+}
+
+/**
+ *  Issue: a bit intrusive.
+ *
+ *  Use clientinfo INSTEAD.
+ */
+
+lib66::tokenization
+rtmidi::get_port_aliases (const std::string & portname)
+{
+    static lib66::tokenization s_dummy;                 /* a size 0 vector  */
+    return not_nullptr(rt_api_ptr()) ?
+        rt_api_ptr()->get_port_aliases(portname) : s_dummy;
 }
 
 /**
