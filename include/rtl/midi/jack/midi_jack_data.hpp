@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2017-01-02
- * \updates       2025-11-25
+ * \updates       2025-12-04
  * \license       See above.
  *
  */
@@ -355,10 +355,15 @@ public:
         return m_jack_buffer;
     }
 
-    void jack_buffer (xpc::ring_buffer<midi::message> & rb)
-    {
-        m_jack_buffer = rb;
-    }
+    /*
+     * This function is unused, and ring_buffer<>::operator =() is
+     * deleted anyway.
+     *
+     *  void jack_buffer (xpc::ring_buffer<midi::message> & rb)
+     *  {
+     *      m_jack_buffer = rb;
+     *  }
+     */
 
     jack_client_t * jack_client ()
     {

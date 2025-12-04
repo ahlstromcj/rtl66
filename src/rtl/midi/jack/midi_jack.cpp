@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-27
+ * \updates       2025-11-29
  * \license       See above.
  *
  *  Written primarily by Alexander Svetalkin, with updates for delta time by
@@ -1396,34 +1396,32 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
                 lib66::tokenization aliases { get_port_aliases(fullname) };
 
                 /*
-                 *
-                 *  if (aliases == fullname)
-                 *      aliases.clear();
-                 */
-
-                /*
                  * TODO:  somehow get the 32-bit ID of the port and add it as
                  * a system port ID to use for lookup when detecting newly
                  * registered or unregistered ports.
-                 */
-
-                midi::extract_port_names(fullname, clientname, portname);
-
-                /*
-                 * Retrofit this commenting out!
                  *
-                 *  if (client == -1 || clientname != client_name_list.back())
-                 *  {
-                 *      client_name_list.push_back(clientname);
-                 *      ++client;
-                 *  }
+                 * Moved into the ports::add() function:
+                 *
+                 * midi::extract_port_names(fullname, clientname, portname);
+                 *
+                 * We might consider add the client (buss) name to a separate
+                 * list.
+                 *
+                 * Note that jack does not have port numbers, so we just
+                 * plug in the current count number. And 0 for the queue
+                 * number.
                  */
 
                 ioports.add
                 (
-                    clientnumber, clientname, count, /* port number */
-                    portname, iotype, midi::port::kind::normal,
-                    count /* result */, 0 //// , alias
+                    fullname,
+                    aliases,
+                    clientnumber,               /* buss number */
+                    count,                      /* port number */
+                    iotype,
+                    midi::port::kind::normal,
+                    count,                      /* port ID */
+                    0                           /* queue number */
                 );
                 ++count;
             }
@@ -1466,27 +1464,7 @@ midi_jack::get_port_alias
  *  The jack_port_t pointer type is actually an opaque value equivalent to an
  *  integer greater than 1, which is a port index.
  *
- *  Examples of aliases retrieved:
- *
-\verbatim
-      Out-port: "system:midi_capture_2":
-
-        alsa_pcm:Launchpad-Mini/midi_capture_1
-        Launchpad-Mini:midi/capture_1
-\endverbatim
- *
- *  and
- *
-\verbatim
-      In-port "system:midi_playback_2":
-
-        alsa_pcm:Launchpad-Mini/midi_playback_1
-        Launchpad-Mini:midi/playback_1
-\endverbatim
- *
- *  Ports created by "a2jmidid --export-hw" do not have JACK aliases.  Ports
- *  created by Seq66 do not have JACK aliases.  Ports created by qsynth do not
- *  have JACK aliases.
+ *  Aliases: See the discussion at the top of the midi/portnaming module.
  *
  * \param name
  *      Provides the name of the port as retrieved by jack_get_ports(). This

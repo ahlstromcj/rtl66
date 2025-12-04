@@ -276,9 +276,9 @@ public:
         kind porttype,
         int portid,                     // NEW
         int queuenumber                 = (-1),
+        const std::string & nick        = "",
         const std::string & alias0      = "",
-        const std::string & alias1      = "",
-        const std::string & nickname    = ""
+        const std::string & alias1      = ""
     );
     port (const port &) = default;
     port (port &&) = default;

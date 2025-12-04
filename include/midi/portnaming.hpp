@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2022-12-18
- * \updates       2022-12-19
+ * \updates       2025-11-29`
  * \license       GNU GPLv2 or above
  *
  *  These items were moved from the globals.h module so that only the modules
@@ -82,6 +82,14 @@ extern std::string extract_bus_name (const std::string & fullname);
 extern std::string extract_port_name (const std::string & fullname);
 extern std::string extract_nickname (const std::string & name);
 extern std::string extract_a2j_port_name (const std::string & alias);
+extern bool process_aliases
+(
+    const std::string & fullname,
+    const lib66::tokenization & aliases,
+    std::string & clientname,
+    std::string & portname,
+    std::string & nickname
+);
 
 }           // namespace midi
 

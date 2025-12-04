@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-11-13
+ * \updates       2025-12-01
  * \license       See above.
  *
  *  Should we add operator [] for setting as well?
@@ -125,13 +125,19 @@ private:
     midi::byte m_channel { null_channel() };
 
     /**
-     *  For use in a new get_midi_message() function, currently in progress
-     *  only in midi_alsa. For ALSA, it is an unsigned char
-     *  snd_seq_event_type_t value.
+     *  For use in a new get_message() function, we want to log the
+     *  buss index for the buss on which the event came in.
      */
 
     int m_midi_buss { c_bussbyte_max };         /* e.g. 0xFF */
-    unsigned m_midi_event_type;
+
+    /**
+     *  For use in a new get_message() function. For ALSA, it is an
+     *  unsigned char snd_seq_event_type_t value. The maximum value
+     *  is SND_SEQ_EVENT_NONE = 0xFF.
+     */
+
+    unsigned m_midi_event_type { 0xFF };
 
 public:
 
@@ -357,6 +363,7 @@ public:
     }
 
     bool append_sysex (const midi::bytes & data, size_t dsize = 0);
+    bool append_sysex (const midi::byte * data, size_t dsize);
     std::string to_string () const;
 
 };          // class message

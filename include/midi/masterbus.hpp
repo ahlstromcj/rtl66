@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-11-20
+ * \updates       2025-11-30
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -341,7 +341,7 @@ public:
         return m_is_setup;
     }
 
-    bool setup (clientinfo & cinfo);
+    bool setup ();
     void clear ();
     bool client_info_reset ();
     bool client_info_reset (clientinfo & cinfo);
@@ -503,12 +503,16 @@ public:     // public because used in test applications
     bool engine_activate ();
     bool engine_deactivate ();
 
-protected:  // API pass-alongs
+private:    // API pass-alongs
 
     void * engine_connect ();
     void engine_disconnect ();
 
-public:  // API implementations
+private:
+
+    bool setup (clientinfo & cinfo);
+
+public:     // API implementations
 
     /*
      * This function replaces start(), continue_from(), etc.

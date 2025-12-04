@@ -162,13 +162,6 @@ public:
         return m_event_parser;
     }
 
-#if 0
-    snd_midi_event_t ** event_parser_address ()
-    {
-        return &m_event_parser;
-    }
-#endif
-
     size_t buffer_size () const
     {
         return m_buffer_size;

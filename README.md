@@ -1,4 +1,4 @@
-# README for Library Rtl66 0.2.0 2025-11-11
+# README for Library Rtl66 0.2.0 2025-12-04
 
 __Rtl66__ is a Audio/MIDI API loosely adapted from the __RtAudio__
 and __RtMidi__ projects (https://www.music.mcgill.ca/~gary/rtaudio & rtmidi).

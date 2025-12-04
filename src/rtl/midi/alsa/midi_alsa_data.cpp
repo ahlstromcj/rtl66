@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2024-11-19
+ * \updates       2024-12-01
  * \license       See above.
  *
  */
@@ -126,32 +126,28 @@ midi_alsa_data::initialize
         if (! result)
             util::error_message("ALSA pipe() failure", snd_strerror(rc));
     }
-    else if (iotype == midi::port::io::output)
+    m_event_parser = nullptr;
+
+    /*
+     * result = new_event_parser(buffsize);
+     */
+
+    int rc { ::snd_midi_event_new(buffsize, &m_event_parser) };
+    result = rc == 0;
+    if (result)
     {
-        m_event_parser = nullptr;
-
-        /*
-         * result = new_event_parser(buffsize);
-         */
-
-        int rc { ::snd_midi_event_new(buffsize, &m_event_parser) };
-        result = rc == 0;
-        if (result)
+        result = reallocate(buffsize);
+        if (! result)
         {
-            result = reallocate(buffsize);
-            if (! result)
-            {
-                util::error_message("buffer allocation failed");
-            }
-        }
-        else
-        {
-            util::error_message("snd_midi_event_new() failed");
+            util::error_message("buffer allocation failed");
         }
     }
-    /*
-     * set_initialized(true);
-     */
+    else
+    {
+        util::error_message("snd_midi_event_new() failed");
+    }
+    if (result)
+        set_initialized(true);
 
     return result;
 }

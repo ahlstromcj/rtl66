@@ -1,9 +1,12 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-11-25
+2019-04-13 to 2025-12-04
 
 Hot:
 
+    -   Fix busin functionality and get_message(). DONE.
+        -   The event type includes codes for note on/off and other
+            specific events; we should take advantage of this.
     -   Make sure meaningful JACK device aliases can be found.
     -   A sporadic race condition in JACK playback.
     -   play does not reload the PPQN (and BPM?) for each file.

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-24
+ * \updates       2025-12-01
  * \license       See above.
  *
  */
@@ -590,16 +590,28 @@ midi_alsa::engine_connect ()
             bool ok { set_seq_client_name(seq, client_name()) };
             if (ok)
             {
-                if (is_input())
-                    (void) m_poll_wrapper.initialize(seq);  // NEW
-
+                result = seq;           /* reinterpret_cast<void *>(seq)    */
                 if (is_engine())
                 {
                     rc = ::snd_seq_alloc_queue(seq);    /* tempo queue id   */
                     if (rc >= 0)
                         midi_tempo_queue(rc);
                 }
-                result = seq;           /* reinterpret_cast<void *>(seq)    */
+                if (is_output())
+                {
+                    (void) alsa_data().initialize
+                    (
+                        seq, midi::port::io::output /*, buffsize*/
+                    );
+                }
+                if (is_input())
+                {
+                    (void) m_poll_wrapper.initialize(seq);  // NEW
+                    (void) alsa_data().initialize
+                    (
+                        seq, midi::port::io::input /*, buffsize*/
+                    );
+                }
             }
             else
             {
@@ -658,15 +670,16 @@ midi_alsa::delete_port ()
 
     if (is_output())
     {
-        if (not_nullptr(data.event_parser()))
-            ::snd_midi_event_free(data.event_parser());
-
         /*
          * Created in midi_alsa_data.cpp line 101; perhaps we should
          * delete it in that module.
+         *
+         *      data.unallocate();
+         *      if (not_nullptr(data.event_parser()))
+         *          ::snd_midi_event_free(data.event_parser());
          */
 
-        data.unallocate();
+        data.handler_cleanup();
     }
     else
     {
@@ -774,7 +787,7 @@ midi_alsa::initialize (const std::string & clientname)
 {
     bool result { true };
     if (! reuse_connection())
-        result = connect();         /* calls midi_alsa_data::initialize()   */
+        result = connect();
 
     midi_alsa_data & data { alsa_data() };
     api_data(&data);
@@ -1678,7 +1691,7 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
 
                 if (! iswriteable)
                 {
-                    ioports.add
+                    (void) ioports.add
                     (
                         SND_SEQ_CLIENT_SYSTEM, "system",
                         SND_SEQ_PORT_SYSTEM_ANNOUNCE, "announce",
@@ -1731,12 +1744,16 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                         V(clientname), portnumber, V(s)
                     );
 #endif
-                    ioports.add
-                    (
-                        client, clientname, portnumber, portname,
-                        iotype, midi::port::kind::normal, result   /* index */
-                    );
-                    ++result;
+                    bool ok
+                    {
+                        ioports.add
+                        (
+                            client, clientname, portnumber, portname,
+                            iotype, midi::port::kind::normal, result /*index*/
+                        )
+                    };
+                    if (ok)
+                        ++result;
                 }
                 else
                 {
@@ -2243,6 +2260,55 @@ midi_alsa::get_message ()
 {
     midi::message result;
     ::snd_seq_t * ncclient { const_cast<::snd_seq_t *>(client_handle()) };
+
+    /*
+     * Make sure the ALSA MIDI event parser is initialized.
+     * The following call will do actual work only once for this port.
+     */
+
+    bool inited { alsa_data().initialize(ncclient, midi::port::io::input) };
+    if (! inited)
+    {
+        error_print("snd_midi_event_new()", "parser setup failed");
+        return result;
+    }
+
+    midi::byte * buff { alsa_data().buffer() };
+    long buffsize { long(alsa_data().buffer_size()) };
+    ::snd_midi_event_t * mididev { alsa_data().event_parser() };
+    if (is_nullptr_2(buff, mididev))
+    {
+        error_print("snd_midi_event_new()", "no buffer or parser");
+        return result;
+    }
+
+    /*
+     * Now look for MIDI data. A note on snd_seq_event_input_pending():
+     *
+     *      If events remain on the input buffer (user-space), it returns
+     *      the total byte size of events on it. If fetch_sequencer argument is
+     *      non-zero, this function checks the presence of events on sequencer
+     *      FIFO When events exist, they are transferred to the input buffer,
+     *      and the number of received events are returned. If fetch_sequencer
+     *      argument is zero and no events remain on the input buffer, function
+     *      simply returns zero.
+     *
+     *  int count { ::snd_seq_event_input_pending(ncclient, 0) };
+     *
+     *  If we use 1, we always get remcount == 1. If we use 0, no events
+     *  are detected. Wtf?
+     */
+
+    int count { ::snd_seq_event_input_pending(ncclient, 1) };
+    if (count == 0)                             /* no data pending      */
+    {
+        /*
+         * (void) m_poll_wrapper.poll_for_midi();
+         */
+
+        return result;                          /* return empty message */
+    }
+
     ::snd_seq_event_t * ev;
     int remcount { ::snd_seq_event_input(ncclient, &ev) };
     if (remcount < 0 || is_nullptr(ev))
@@ -2258,30 +2324,15 @@ midi_alsa::get_message ()
 
         return false;
     }
+#if defined PLATFORM_DEBUG_TMI
+    else if (remcount > 0)                      /* more events waiting      */
+        printf("pending was %d; %d more bytes waiting\n", count, remcount);
+#endif
 
-    /*
-     * SND_SEQ_EVENT_xxx codes stripped. We might need to add another
-     * code or two to the midi::message.
-     */
-
-    const size_t buffersize { 256 };            /* 12 enough but for SysEx  */
-    midi::bytes buff(buffersize);               /* pre-allocate the data    */
-    ::snd_midi_event_t * mididev;               /* make ALSA MIDI parser    */
-    int rc { ::snd_midi_event_new(buffersize, &mididev) };
-    if (rc < 0)                                 /* || is_nullptr(mididev)   */
-    {
-        error_print("snd_midi_event_new()", "failed");
-        return false;
-    }
-
-    long bytecount
-    {
-        ::snd_midi_event_decode(mididev, buff.data(), long(buffersize), ev)
-    };
+    long bytecount { ::snd_midi_event_decode(mididev, buff, buffsize, ev) };
     if (bytecount > 0)
     {
-        buff.resize(size_t(bytecount));
-        midi::message msg(buff);
+        midi::message msg(buff, bytecount);
         msg.jack_stamp(double(ev->time.tick));
 
         int b { int(midi::null_buss()) };
@@ -2296,12 +2347,13 @@ midi_alsa::get_message ()
 
         bool sysex { msg.is_sysex() };
         msg.midi_buss(b);
+        msg.midi_event_type(ev->type);
         while (sysex)           /* sysex might be more than one message */
         {
             remcount = ::snd_seq_event_input(ncclient, &ev);
             bytecount = ::snd_midi_event_decode
             (
-                mididev, buff.data(), long(buffersize), ev
+                mididev, buff, long(buffsize), ev
             );
             if (bytecount > 0)
             {
@@ -2314,7 +2366,12 @@ midi_alsa::get_message ()
         }
         result = msg;           /* inefficient? */
     }
-    ::snd_midi_event_free(mididev);
+    else
+    {
+#if defined PLATFORM_DEBUG
+        printf("empty ALSA message\n");
+#endif
+    }
     return result;
 }
 

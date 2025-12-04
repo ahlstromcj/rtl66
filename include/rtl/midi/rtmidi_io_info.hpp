@@ -27,18 +27,13 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2025-11-28
- * \updates       2025-11-28
+ * \updates       2025-11-29
  * \license       See above.
  *
  */
 
 #include "midi/ports.hpp"               /* midi::ports and midi::port       */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi base class           */
-
-namespace midi
-{
-    class masterbus;
-}
 
 namespace rtl
 {

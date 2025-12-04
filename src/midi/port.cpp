@@ -55,9 +55,9 @@ port::port
     kind porttype,
     int portindex,
     int queuenumber,
+    const std::string & nick,
     const std::string & alias0,
-    const std::string & alias1,
-    const std::string & nick
+    const std::string & alias1
 ) :
     m_buss_number   (bussnumber),
     m_buss_name     (bussname),
@@ -88,10 +88,10 @@ port::to_string () const
 {
     std::ostringstream os;
     os
-        << "Port '" << m_buss_name << "': "
-        << m_buss_number << ":" << m_port_number
-        << " '" << m_port_name << "' "
-        << io_to_string(m_io_type) << "/" << kind_to_string(m_port_type)
+        << "Port '" << buss_name() << "': "
+        << buss_number() << ":" << port_number()
+        << " '" << port_name() << "' "
+        << io_to_string(io_type()) << "/" << kind_to_string(port_type())
         ;
 
     /*
@@ -101,10 +101,20 @@ port::to_string () const
      *      os << " (alias '" << m_port_alias << "') ";
      */
 
-    if (! m_port_nickname.empty())
-        os << " (nick '" << m_port_nickname << "')";
+    if (! port_nickname().empty())
+        os << " (nick '" << m_port_nickname << "')" << std::endl;
+    else
+        os << std::endl;
 
-    os << std::endl;
+    if (! port_aliases().empty())
+    {
+        os << "    Alias: '" << port_alias(0) << "'\n";
+        if (port_aliases().size() > 1)
+            os << "    Alias: '" << port_alias(1) << "'" << std::endl;
+    }
+    else
+        os << std::endl;
+
     return os.str();
 }
 

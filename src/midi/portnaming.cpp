@@ -25,9 +25,57 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2022-12-18
- * \updates       2025-09-12
+ * \updates       2025-11-29
  * \license       GNU GPLv2 or above
  *
+ *  Here is a summary of formats supported; note that the index numbers
+ *  in brackets are a Seq66 feature:
+ *
+ *      extract_port_names(full, client, port):
+ *
+ *          [0] 128:0 client name:port name
+ *          a2j:Midi Through [14] (playback): Midi Through Port-0
+ *
+ *      extract_bus_name(full):
+ *      extract_port_name(full):
+ *
+ *          bus::port
+ *
+ *      extract_nickname(name):
+ *
+ *          [6] 130:0 FLUID Synth (125507):Synth input port (125507:0)
+ *          [3] 36:0 Launchpad Mini MIDI 1
+ *          a2j:Midi Through [14] (playback): Midi Through Port-0
+ *
+ *      extract_a2j_port_name(alias): [ not yet used ]
+ *
+ *          ALSA: "[0] 14:0 Midi Through Port-0"
+ *          JACK: "[0] 0:0 rtl66:system midi_playback_1"
+ *          A2J:  "[0] 0:0 rtl66:a2j Midi Through [14] (playback):
+ *              Midi Through Port-0"
+ *
+ *  Aliases [TODO]:
+ *
+ *      JACK now supports a2jmidid-like functionality and the getting
+ *      of up to two aliases.
+ *
+ *  Examples of aliases retrieved:
+ *
+ *    Out-port: "system:midi_capture_2":
+ *
+ *      alsa_pcm:Launchpad-Mini/midi_capture_1
+ *      Launchpad-Mini:midi/capture_1
+ *
+ *  and
+ *
+ *    In-port "system:midi_playback_2":
+ *
+ *      alsa_pcm:Launchpad-Mini/midi_playback_1
+ *      Launchpad-Mini:midi/playback_1
+ *
+ *  Ports created by "a2jmidid --export-hw" do not have JACK aliases.  Ports
+ *  created by Seq66 do not have JACK aliases.  Ports created by qsynth do not
+ *  have JACK aliases.
  */
 
 #include <cctype>                       /* std::isspace(), std::isdigit()   */
@@ -375,6 +423,99 @@ extract_a2j_port_name (const std::string & alias)
                 result = alias.substr(lpos + 2);
                 result = "A2J " + result;
             }
+        }
+    }
+    return result;
+}
+
+/**
+ *  Examines the full name and the aliases (if present) in order to get
+ *  the most clear names for the client, port, and nick.
+ *
+ * \param fullname
+ *      Provides the main name (available from ALSA and JACK, for example,
+ *      of the port. If the name starts with "system", it is considered
+ *      too generic, and the aliases, if present, will be examined.
+ *
+ *      Examples:
+ *
+ *          "system:midi_capture_2"
+ *
+ * \param aliases
+ *      Provides 0, 1, or 2 aliases for the port. Can be provided by
+ *      later versions of JACK.
+ *
+ * \param [out] clientname
+ *      Provides the extracted client (buss) name.
+ *
+ * \param [out] portname
+ *      Provides the extracted port name.
+ *
+ * \param [out] nickname
+ *      Provides the extracted nick-name, which will contain only
+ *      the "model" name of the device or software port.
+ *
+ * \return
+ *      Returns true if the extraction succeeded.
+ */
+
+bool
+process_aliases
+(
+    const std::string & fullname,
+    const lib66::tokenization & aliases,
+    std::string & clientname,
+    std::string & portname,
+    std::string & nickname
+)
+{
+    bool result { ! fullname.empty() };
+    if (result)
+    {
+        std::string cname;
+        std::string pname;
+        result = extract_port_names(fullname, cname, pname);
+        if (result)
+        {
+            if (cname == "system")
+            {
+                if (aliases.size() > 0)
+                {
+                    std::string leftname;
+                    std::string rightname;
+                    bool ok
+                    {
+                        extract_port_names(fullname, leftname, rightname)
+                    };
+                    if (ok)
+                    {
+                        if (leftname == "alsa_pcm")
+                        {
+                            ok = aliases.size() > 1;
+                            if (ok)
+                            {
+                                ok = extract_port_names
+                                (
+                                    fullname, leftname, rightname
+                                );
+                                if (ok)
+                                {
+                                    cname = leftname;
+                                    pname = rightname;
+                                }
+                            }
+                            else
+                            {
+                                cname = leftname;
+                                pname.clear();  /* further parsing instead? */
+                            }
+                        }
+                    }
+                }
+            }
+            clientname = cname;
+            portname = pname;
+            nickname = extract_nickname(pname); /* what to do here???       */
         }
     }
     return result;

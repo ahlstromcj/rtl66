@@ -28,14 +28,15 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-11-08
- * \updates       2025-11-14
+ * \updates       2025-12-04
  * \license       GNU GPLv2 or above
  *
  *  The poller class is a severely cut-down version of midi::poller with
  *  only functionality pertaining to MIDI input.
  */
 
-#include <thread>                           /* std::thread                  */
+#include <memory>                           /* std::unique_ptr<>            */
+#include <queue>                            /* std::queue<>                 */
 
 #include "xpc/condition.hpp"                /* xpc::condition/synchronizer  */
 #include "midi/masterbus.hpp"               /* access to all MIDI busses    */
@@ -43,6 +44,7 @@
 #include "rtl/iothread.hpp"                 /* rtl::iothread class          */
 #include "rtl/midi/rtmidi_in_data.hpp"      /* rtl::rtmidi_in_data class    */
 #include "transport/clock/info.hpp"         /* transport::clock::info       */
+#include "xpc/fifo.hpp"                     /* xpc::filo template class     */
 
 namespace midi
 {
@@ -76,6 +78,36 @@ class poller
 #endif  // RTL66_BUILD_JACK
 
 public:
+
+    /**
+     *  A FIFO queue so that we can push incoming midi::messages to the
+     *  back and pop them from the front. Compare this to the home-grown
+     *  rtl::midi_queue for midi::messages in the rtl/midi directories.
+     */
+
+    using inqueue = xpc::fifo<midi::message>;
+    using inqueueptr = std::unique_ptr<inqueue>;
+
+    /**
+     *  The input queue is created only if requested.
+     */
+
+    inqueueptr m_input_q_ptr;
+
+    /**
+     *  A valid size (greater than 0) in the constructor sets this
+     *  to true and attempts to create the inqueueptr.
+     */
+
+    bool m_use_input_q { false };
+
+    /**
+     *  This boolean is a hand-massaged value for testing. If true,
+     *  messages are put on the queue to be retrieved via
+     *  poller::get_message(), otherwise they are handled by poller.
+     */
+
+    bool m_enqueue_messages { true };
 
     /**
      *  A nested class to provide an implementation of the synchronizer
@@ -137,6 +169,12 @@ private:                            /* key, midi, and op container section  */
     rtl::rtmidi_in_data::callback_t m_input_callback { nullptr };
 
     /**
+     *  Provides an optional queue for storing incoming events and
+     *  saving them for the caller to pop.
+     */
+
+
+    /**
      *  Provides information for managing threads. Provides a "handle" to
      *  the input thread.
      */
@@ -181,7 +219,12 @@ private:                            /* key, midi, and op container section  */
 
 public:
 
-    poller (midi::masterbus & mbus, int portnumber = RTL66_PORTS_ALL);
+    poller
+    (
+        midi::masterbus & mbus,
+        int portnumber = RTL66_PORTS_ALL,
+        int inqueuesz = (-1)
+    );
     poller (const poller &) = delete;
     poller (poller &&) = delete;                    /* forced by iothread   */
     poller & operator = (const poller &) = delete;
@@ -206,6 +249,27 @@ public:
     bool use_all_ports () const
     {
         return m_in_portnumber == RTL66_PORTS_ALL;
+    }
+
+    bool use_input_q () const
+    {
+        return m_use_input_q;
+    }
+
+    bool enqueue_messages () const
+    {
+        return m_enqueue_messages;
+    }
+
+    void enqueue_messages (bool flag)
+    {
+        m_enqueue_messages = flag;
+    }
+
+    midi::message get_message ()
+    {
+        static midi::message s_dummy;
+        return use_input_q() ? m_input_q_ptr->pop() : s_dummy ;
     }
 
 public:
@@ -268,6 +332,7 @@ protected:
 
     void inner_start ();
     void inner_stop (bool midiclock = false);
+    void handle_message (const midi::message & incoming);
 
     rtl::iothread & in_thread ()
     {

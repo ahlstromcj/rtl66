@@ -1,6 +1,6 @@
 NEWS for Rtl66 0.2.0
 Chris Ahlstrom
-2024-04-15 to 2025-10-06
+2024-04-15 to 2025-12-04
 
 Version 0.2.0 is a heavy refactoring of the original code. Beware.
 This revision now works for ALSA and JACK MIDI and MIDI Clock I/O.
@@ -21,6 +21,10 @@ To do: grab the highlights from the git log.
 - Meson.
   - Enabled the use of these subprojects instead of requiring them
     to be installed: lib66, cfg66, xpc66, and potext.
+- Additional tests:
+  - busin
+  - busout
+- Upgrades to all the test applications to work with the refactoring.
 
 ## [0.1.0] - 2024-04-15
 

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-12-01
- * \updates       2025-11-21
+ * \updates       2025-12-01
  * \license       See above.
  *
  *  Provides a basic type for the (heavily-factored) rtl66 library, very
@@ -235,6 +235,22 @@ message::append_sysex (const midi::bytes & data, size_t dsize)
     if (dsize == 0)
         dsize = data.size();
 
+    bool result { dsize > 0 };
+    if (result)
+    {
+        for (size_t i = 0; i < dsize; ++i)
+        {
+            m_bytes.push_back(data[i]);
+            if (is_sysex_end_msg(data[i]))
+                break;
+        }
+    }
+    return result;
+}
+
+bool
+message::append_sysex (const midi::byte * data, size_t dsize)
+{
     bool result { dsize > 0 };
     if (result)
     {

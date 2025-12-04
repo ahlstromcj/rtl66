@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-25
+ * \updates       2025-12-01
  * \license       See above.
  *
  *  This module is meant to be #include'd in midi_alsa.cpp. It's been
@@ -151,6 +151,45 @@ decode_event
         }
         dodecode = true;
         break;
+
+    /*
+     * Additional values, not handled, but also stored in midi::message.
+     * Key values only. See /usr/include/alsa/seq_event.h.
+     */
+
+#if defined USE_EXTRA_SND_SEQ_EVENT_CODES
+
+	case SND_SEQ_EVENT_NOTE:            // note on and off with duration
+	case SND_SEQ_EVENT_NOTEON:
+	case SND_SEQ_EVENT_NOTEOFF:
+	case SND_SEQ_EVENT_KEYPRESS:        // key pressure change (aftertouch)
+	case SND_SEQ_EVENT_CONTROLLER:
+	case SND_SEQ_EVENT_PGMCHANGE:
+	case SND_SEQ_EVENT_CHANPRESS:
+	case SND_SEQ_EVENT_PITCHBEND:
+	case SND_SEQ_EVENT_CONTROL14:       // 14 bit controller value
+	case SND_SEQ_EVENT_NONREGPARAM:     // 14 bit NRPN
+	case SND_SEQ_EVENT_REGPARAM:        // 14 bit RPN
+	case SND_SEQ_EVENT_SONGPOS:         // SPP with LSB and MSB values
+	case SND_SEQ_EVENT_SONGSEL:         // Song Select with song ID number
+	case SND_SEQ_EVENT_QFRAME:          // MIDI Time Code quarter frame
+	case SND_SEQ_EVENT_TIMESIGN:        // SMF Time Signature event
+	case SND_SEQ_EVENT_KEYSIGN:         // SMF Key Signature event
+	case SND_SEQ_EVENT_START:           // MIDI Real Time Start message
+	case SND_SEQ_EVENT_CONTINUE:        // MIDI Real Time Continue message
+	case SND_SEQ_EVENT_STOP:            // MIDI Real Time Stop message
+	case SND_SEQ_EVENT_SETPOS_TICK:     // Set tick queue position
+	case SND_SEQ_EVENT_SETPOS_TIME:     // Set real-time queue position
+	case SND_SEQ_EVENT_TEMPO:           // (SMF) Tempo event
+	case SND_SEQ_EVENT_CLOCK:           // MIDI Real Time Clock message
+	case SND_SEQ_EVENT_TICK:            // MIDI Real Time Tick message
+	case SND_SEQ_EVENT_QUEUE_SKEW:      // Queue timer skew
+	case SND_SEQ_EVENT_SYNC_POS:        // Sync position changed
+	case SND_SEQ_EVENT_TUNE_REQUEST:    // Tune request
+	case SND_SEQ_EVENT_RESET:           // Reset to power-on state
+	case SND_SEQ_EVENT_SENSING:         // Active sensing event
+
+#endif
 
     default:
         dodecode = true;
@@ -287,6 +326,10 @@ midi_alsa_handler (void * ptr)
             perror("   ");
             continue;
         }
+#if defined PLATFORM_DEBUG_TMI
+        else if (rc > 0)                                /* more events      */
+            printf("pending was %d; %d more bytes waiting\n", count, rc);
+#endif
 
         /*
          * This is a bit weird, but we now have to decode an ALSA MIDI
@@ -299,14 +342,12 @@ midi_alsa_handler (void * ptr)
         bool dodecode { decode_event(rtidata, mad_data, ev) };
         if (dodecode)
         {
+            ::snd_midi_event_t * mididev { mad_data->event_parser() };
             midi::byte * buff { mad_data->buffer() };
+            long buffsize { long(mad_data->buffer_size()) };
             long nbytes
             {
-                ::snd_midi_event_decode
-                (
-                    mad_data->event_parser(), buff,
-                    mad_data->buffer_size(), ev
-                )
+                ::snd_midi_event_decode(mididev, buff, buffsize, ev)
             };
             if (nbytes > 0)                 // see banner
             {
@@ -338,11 +379,7 @@ midi_alsa_handler (void * ptr)
                         mmsg.jack_stamp(time);
                 }
                 else
-                {
-#if defined PLATFORM_DEBUG
                     error_print("midi_alsa_handler()", "parse error");
-#endif
-                }
             }
         }
         ::snd_seq_free_event(ev);
@@ -356,7 +393,13 @@ midi_alsa_handler (void * ptr)
         }
         else
         {
-            if (! rtidata->queue().push(mmsg))
+            if (rtidata->queue().push(mmsg))
+            {
+#if defined PLATFORM_DEBUG
+                printf("push(midi::message)\n");
+#endif
+            }
+            else
                 error_print("midi_alsa_handler()", "input queue limit hit");
         }
     }

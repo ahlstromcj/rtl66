@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-11-23
+ * \updates       2025-11-30
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -152,7 +152,16 @@ masterbus::masterbus
  *
  *  Note that engine_activate() ultimately calls rt_api_ptr() ->
  *  engine_activate().
+ *
+ *  Also, during construction the masterbus's own clientinfo object
+ *  is set up, so let's use that.
  */
+
+bool
+masterbus::setup ()
+{
+    return setup(client_info());
+}
 
 bool
 masterbus::setup (clientinfo & cinfo)

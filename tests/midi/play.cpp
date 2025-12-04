@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-11-23
+ * \updates       2025-11-30
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -207,7 +207,7 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
     {
         bool ok { rapi != rtl::rtmidi::api::unspecified };
         if (ok)
-            ok = s_master_bus.setup(ci);
+            ok = s_master_bus.setup();      /* ci */
 
         if (ok)
             s_uninitialized = false;

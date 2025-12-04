@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-11-28
+ * \updates       2025-11-29
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -48,14 +48,15 @@
 
 #include "midi/calculations.hpp"        /* midi::is_power_of_2()            */
 #include "midi/clientinfo.hpp"          /* midi::clientinfo etc.            */
-#include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
-#include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
 #include "util/strfunctions.hpp"        /* util::bool_to_string()           */
 
-#undef USE_RTMIDI_GET_IO_INFO_FUNCTION
+#define USE_RTMIDI_GET_IO_INFO_FUNCTION
 
 #if defined USE_RTMIDI_GET_IO_INFO_FUNCTION
 #include "rtl/midi/rtmidi_io_info.hpp"  /* rtl::rtmidi_get_io_info()        */
+#else
+#include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
+#include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
 #endif
 
 namespace midi

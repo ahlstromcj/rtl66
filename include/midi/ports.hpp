@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05        (seq66::midi_port_info)
- * \updates       2025-11-28
+ * \updates       2025-11-29
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -138,10 +138,18 @@ public:
         midi::port::io iotype,
         midi::port::kind porttype,
         int portid,                         /* an index value from 0 on up  */
-        int queuenumber             = (-1),
-        const std::string & alias0  = "",   /* not always available         */
-        const std::string & alias1  = "",   /* not always available         */
-        const std::string & nick    = ""    /* if available, else construct */
+        int queuenumber             = (-1)
+    );
+    bool add                                /* useful for JACK aliases      */
+    (
+        const std::string & fullname,       /* "clientname:portname         */
+        const lib66::tokenization & aliases,
+        int bussnumber,                     /* example: "14" for MIDI thru  */
+        int portnumber,                     /* example: "0"                 */
+        midi::port::io iotype,
+        midi::port::kind porttype,
+        int portid,                         /* an index value from 0 on up  */
+        int queuenumber             = (-1)
     );
 
     /**

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2025-08-26
- * \updates       2025-11-14
+ * \updates       2025-11-30
  * \license       See above.
  *
  *      This application has elements of the play test application,
@@ -110,7 +110,7 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
     {
         bool ok { rapi != rtl::rtmidi::api::unspecified };
         if (ok)
-            ok = s_master_bus.setup(ci);
+            ok = s_master_bus.setup();      /* ci */
 
         if (ok)
             s_uninitialized = false;

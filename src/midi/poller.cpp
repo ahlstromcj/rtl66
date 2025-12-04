@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2025-11-08
- * \updates       2025-11-20
+ * \updates       2025-12-04
  * \license       GNU GPLv2 or above
  *
  */
@@ -54,9 +54,28 @@ namespace midi
  *      -   This structure is copied into a midi::clientinfo object.
  *      -   That object is used in constructing a midi::masterbus.
  *          After construction, midi::masterbus::setup() is called.
+ *
+ * \param mbus
+ *      The masterbus coordinating MIDI port access.
+ *
+ * \param portnumber
+ *      The ports to poll. The default value is RTL66_PORTS_ALL.
+ *
+ * \param inqueuesz
+ *      Indicates the size of the input queue. The default value is
+ *      -1, which indicates that the caller will provide the input thread,
+ *      polling, and getting the latest message. Otherwise the caller
+ *      should use poller's get_message() function.
  */
 
-poller::poller (midi::masterbus & mbus, int portnumber ) :
+poller::poller
+(
+    midi::masterbus & mbus,
+    int portnumber,
+    int inqueuesz
+) :
+    m_input_q_ptr           (),
+    m_use_input_q           (inqueuesz > 0),
     m_master_bus            (mbus),
     m_in_portnumber         (portnumber),       /* default is all in-ports  */
     m_condition_var         (*this)             /* private access via cv()  */
@@ -67,6 +86,13 @@ poller::poller (midi::masterbus & mbus, int portnumber ) :
     const midi::input_specs & mis { mbus.get_input_specs() };
     m_input_callback = mis.input_callback;
     m_input_using_callback = not_nullptr(m_input_callback);
+
+    if (m_use_input_q)
+    {
+        m_input_q_ptr.reset(new (std::nothrow) inqueue);
+        if (! m_input_q_ptr)
+            m_use_input_q = false;
+    }
 }
 
 /**
@@ -83,7 +109,7 @@ poller::~poller ()
 }
 
 /**
- *
+ *  Signal that we are running.
  */
 
 void
@@ -126,6 +152,7 @@ bool
 poller::setup_master_bus (clientinfo & ci)
 {
     bool result { false };
+    (void) ci;
 
     /*
      *  Find an available API.  Here, we rely on finding the fallback API,
@@ -143,9 +170,12 @@ poller::setup_master_bus (clientinfo & ci)
          *
          *  Also, at this point, do we have the actual complement of
          *  inputs and clocks, as opposed to what's in the rc file?
+         *
+         *  Lastly, we always want to use masterbus's own clientinfo
+         *  object, the one it was created and initialized with.
          */
 
-        result = master_bus().setup(ci);
+        result = master_bus().setup();      /* ci */
     }
     return result;
 }
@@ -321,44 +351,34 @@ poller::poll_cycle ()
              * By default, all ports are queried (RTL66_PORTS_ALL).
              */
 
-            midi::message incoming
+            if (use_input_q())
             {
-                master_bus().get_message(in_portnumber())
-            };
-            if (incoming.empty())
-            {
-                break;
+                midi::message incoming
+                {
+                    master_bus().get_message(in_portnumber())
+                };
+                if (incoming.empty())
+                {
+                    break;
+                }
+                else
+                {
+                    if (enqueue_messages())
+                    {
+                        bool ok = m_input_q_ptr->push(incoming);
+                        if (! ok)
+                            printf("Input queue full\n");
+                    }
+                    else
+                        handle_message(incoming);
+                }
             }
             else
             {
-                midi::event ev(incoming);
-#if defined PLATFORM_DEBUG_TMI
-                std::string estr { ev.to_string() };        /* incoming     */
-                util::status_message("MIDI event", estr);
-#endif
-                if (m_input_using_callback)
-                {
-                    /*
-                     * In this simple polling class we don't care about
-                     * maintaining delta-time, so it is set to zero.
-                     * Use incoming or ev.get_message()?
-                     */
-
-                    input_callback()(0.0, incoming, nullptr);
-                }
-                if (ev.is_below_sysex())                    /* below 0xF0   */
-                {
-#if defined USE_MASTER_BUS
-                    if (master_bus().is_dumping())         /* see banner   */
-                    {
-                        ev.set_timestamp(tick());
-                        if (m_filter_by_channel)
-                            master_bus().dump_midi_input(ev);
-                        else
-                            master_bus().get_track()->stream_event(ev);
-                    }
-#endif
-                }
+                /*
+                 * Don't do anything, let the caller work the
+                 * midi::message in its own "polling" thread.
+                 */
             }
             if (use_all_ports())
                 ok = master_bus().poll_for_midi() > 0;
@@ -372,6 +392,39 @@ poller::poll_cycle ()
          */
     }
     return result;
+}
+
+void
+poller::handle_message (const midi::message & incoming)
+{
+    midi::event ev(incoming);
+#if defined PLATFORM_DEBUG // _TMI
+    std::string estr { ev.to_string() };                    /* incoming     */
+    util::status_message("MIDI event to handle", estr);
+#endif
+    if (m_input_using_callback)
+    {
+        /*
+         * In this simple polling class we don't care about
+         * maintaining delta-time, so it is set to zero.
+         * Use incoming or ev.get_message()?
+         */
+        midi::message & ncmsg { const_cast<midi::message &>(incoming) };
+        input_callback()(0.0, ncmsg, nullptr);
+    }
+    if (ev.is_below_sysex())                                /* below 0xF0   */
+    {
+#if defined USE_MASTER_BUS
+        if (master_bus().is_dumping())                      /* see banner   */
+        {
+            ev.set_timestamp(tick());
+            if (m_filter_by_channel)
+                master_bus().dump_midi_input(ev);
+            else
+                master_bus().get_track()->stream_event(ev);
+        }
+#endif
+    }
 }
 
 /**

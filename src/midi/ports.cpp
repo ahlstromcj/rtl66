@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-11-28
+ * \updates       2025-11-29
  * \license       See above.
  *
  * Classes defined:
@@ -56,6 +56,7 @@
 #include "midi/midibus.hpp"             /* select portmidi/rtmidi headers   */
 #endif
 
+#include "midi/portnaming.hpp"          /* midi namespace functions         */
 #include "midi/ports.hpp"               /* midi::ports etc.                 */
 
 #if defined PLATFORM_DEBUG_TMI
@@ -75,17 +76,14 @@ namespace midi
  */
 
 /**
- *  Add a port to the container.
+ *  Add a port to the container. Use this version if full control over
+ *  the contents of the port object is desired.
  */
 
 bool
 ports::add (const port & p)
 {
     size_t count { m_port_container.size() };
-#if defined USE_THIS_CODE
-    std::string nick { extract_nickname(p.portname()) };
-    p.nick_name(nick);
-#endif
     m_port_container.push_back(p);
     m_port_count = int(m_port_container.size());
     return m_port_count == int(count + 1);
@@ -93,6 +91,8 @@ ports::add (const port & p)
 
 /**
  *  Adds a set of port information to the port container.
+ *  Note that this overload does not deal with aliases; use the
+ *  overload below.
  *
  * \param clientnumber
  *      Provides the client or buss number for the port.  This is a value like
@@ -116,37 +116,36 @@ ports::add (const port & p)
  *      port, such as a timer port or an ALSA announce port.  For all other
  *      ports, this value is note used.
  *
+ * \param portid
+ *      The index number of the port, starting at 0.
+ *
  * \param queuenumber
  *      Provides the optional queue number, if applicable.  For example, the
  *      rtl66 application grabs the client number (normally valued at 1)
  *      from the ALSA subsystem.
  *
- * \param alias0
- * \param alias1
- *      In some JACK configurations an alias is available.  This lets one see
- *      the device's model name without running the a2jmidid daemon.
+ * \return
+ *      Returns true if the addition succeeded.
  */
 
 bool
 ports::add
 (
-    int clientnumber,
-    const std::string & clientname,
+    int bussnumber,
+    const std::string & bussname,
     int portnumber,
     const std::string & portname,
     port::io iotype,
     port::kind porttype,
     int portid,
-    int queuenumber,
-    const std::string & alias0,
-    const std::string & alias1,
-    const std::string & nick
+    int queuenumber
 )
 {
+    std::string nick;
     port temp
     (
-        clientnumber, clientname, portnumber, portname,
-        iotype, porttype, portid, queuenumber, alias0, alias1, nick
+        bussnumber, bussname, portnumber, portname,
+        iotype, porttype, portid, queuenumber, nick
     );
 
 #if defined PLATFORM_DEBUG_TMI
@@ -168,6 +167,45 @@ ports::add
     (void) util::info_message(str);
 #endif
     return add(temp);
+}
+
+/**
+ *
+ */
+
+bool
+ports::add
+(
+    const std::string & fullname,
+    const lib66::tokenization & aliases,
+    int bussnumber,
+    int portnumber,
+    port::io iotype,
+    port::kind porttype,
+    int portid,
+    int queuenumber
+)
+{
+    std::string bussname;
+    std::string portname;
+    std::string nickname;
+    bool result
+    {
+        process_aliases(fullname, aliases, bussname, portname, nickname)
+    };
+    if (result)
+    {
+        std::string alias0 { aliases.size() > 0 ? aliases[0] : "" };
+        std::string alias1 { aliases.size() > 1 ? aliases[1] : "" };
+        port temp
+        (
+            bussnumber, bussname, portnumber, portname,
+            iotype, porttype, portid, queuenumber,
+            nickname, alias0, alias1
+        );
+        result = add(temp);
+    }
+    return result;
 }
 
 /**

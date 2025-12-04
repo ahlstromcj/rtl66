@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-12-01
- * \updates       2025-09-14
+ * \updates       2025-12-02
  * \license       See above.
  *
  *  Provides some basic types for the (heavily-factored) rtl66 library, very
@@ -88,6 +88,65 @@ midi_queue::deallocate ()
     }
 }
 
+#if defined USE_EXTRA_QUEUE_FUNCTIONS
+
+unsigned
+midi_queue::size (unsigned * back, unsigned * front)
+{
+    /*
+     * Access back/front members exactly once and make stack copies for
+     * size calculation.
+     */
+
+    unsigned currback { m_back };
+    unsigned currfront { m_front };
+    unsigned currsize
+    {
+        currback >= currfront ?
+            currback - currfront : m_ring_size - currfront + currback ;
+    };
+
+    /*
+     * Return copies of back/front so no new and unsynchronized accesses
+     * to member variables are needed.
+     */
+
+    if (back)
+        *back = currback;
+
+    if (front)
+        *front = currfront;
+
+    return currsize;
+}
+
+#endif  // defined USE_EXTRA_QUEUE_FUNCTIONS
+
+#if defined USE_EXTRA_QUEUE_FUNCTIONS
+
+/**
+ *  As long as we haven't reached our queue size limit, push the message.
+ *  Local stack copies of front/back. Get back/front indexes exactly
+ *  once and calculate current size.
+ */
+
+bool
+midi_queue::push (const midi::message & msg)
+{
+    unsigned currback;
+    unsigned currfront;
+    unsigned currsize { size(&currback, &currfront );
+    if (currsize < m_ring_size - 1)
+    {
+        m_ring[currback] = msg;
+        m_back = (m_back + 1) % m_ring_size;
+        return true;
+    }
+    return false;
+}
+
+#else
+
 /**
  *  As long as we haven't reached our queue size limit, push the message.
  */
@@ -98,7 +157,7 @@ midi_queue::push (const midi::message & mmsg)
     if (m_ring_size == 0)
         return true;                    /* fake it, app has no input        */
 
-    bool result = ! full();
+    bool result { ! full() };
     if (result)
     {
         m_ring[m_back++] = mmsg;
@@ -115,6 +174,36 @@ midi_queue::push (const midi::message & mmsg)
     }
     return result;
 }
+
+#endif  // defined USE_EXTRA_QUEUE_FUNCTIONS
+
+#if defined USE_EXTRA_QUEUE_FUNCTIONS
+
+/**
+ *  Set local stack copies of front/back.
+ *  Get back/front indexes exactly once and calculate current size.
+ *  Copy queued message to the vector pointer argument and then "pop" it.
+ */
+
+bool
+midi_queue::pop (std::vector<unsigned char> * msg, double * timestamp)
+{
+    unsigned currback;
+    unsigned currfront;
+    unsigned currsize { size(&currback, &currfront) } ;
+    if (currsize == 0)
+        return false;
+
+    msg->assign
+    (
+        m_ring[currfront].bytes.begin(), m_ring[currfront].bytes.end()
+    );
+    *timestamp = m_ring[currfront].jack_stamp;
+    m_front = (m_front + 1) % m_ring_size;      /* Update front */
+    return true;
+}
+
+#else
 
 /**
  *  Pops, so to speak, the front message out of the queue, effectively
@@ -136,6 +225,8 @@ midi_queue::pop ()
     if (m_front == m_ring_size)
         m_front = 0;
 }
+
+#endif  // defined USE_EXTRA_QUEUE_FUNCTIONS
 
 /**
  *  Pops a copy of the front message.   Could be a little inefficient, since a

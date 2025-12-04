@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-11-13
+ * \updates       2025-12-02
  * \license       GNU GPLv2 or above
  *
  *  A MIDI event (i.e. "track event") is encapsulated by the midi::event
@@ -1106,7 +1106,7 @@ event::to_string () const
     {
         (void) snprintf
         (
-            tmp, sizeof tmp, "Event 0x%02X Ch. 0x%02X d0=%d d1=%d\n",
+            tmp, sizeof tmp, "Event 0x%02X Ch. 0x%02X d0=%d d1=%d",
             unsigned(status_byte()), unsigned(m_channel),
             int(m_message[0]), int(m_message[1])
         );

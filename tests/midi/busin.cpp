@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-10-09
- * \updates       2025-11-28
+ * \updates       2025-12-04
  * \license       See above.
  *
  *      This application but merely opens one port and accepts messages,
@@ -184,7 +184,7 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
     {
         bool ok { rapi != rtl::rtmidi::api::unspecified };
         if (ok)
-            ok = s_master_bus.setup(ci);
+            ok = s_master_bus.setup();          /* ci */
 
         if (ok)
             s_uninitialized = false;
@@ -270,6 +270,16 @@ run_susceptible_test (rtl::rtmidi::api rapi, int portno)
 }
 
 #endif
+
+/**
+ *  This function works by creating a masterbus, and looking up the
+ *  bus_in object for the desired port number.
+ *
+ *  It requires that the poller not do anything but poll for a message.
+ *  The poller runs its own input thread, and if it calls
+ *  masterbus::get_message(), that means the thread in this test
+ *  never (or rarely) gets a chance to grab a message.
+ */
 
 bool
 poll_port (rtl::rtmidi::api rapi, int portno)
@@ -427,6 +437,96 @@ poll_all_ports (rtl::rtmidi::api rapi, int portcount)
     return result;
 }
 
+/**
+ *  Unlike the poll_port() test function above, this version relies
+ *  on poller grabbing the message and putting it in an input queue.
+ *  The poll below then tries to grab the message off the queue.
+ *  In this case, no bus_in object is needed.
+ *
+ *  This is simply another polling paradigm we are testing.
+ */
+
+bool
+poll_queue (rtl::rtmidi::api rapi, int portno, bool useq = true)
+{
+    midi::masterbus & master { master_bus(rapi, app_client_info()) };
+//  midi::bus & inbus { master.get_in_bus(portno) };
+//  bool result { inbus.initialize() };
+    bool result { master.is_setup() };
+    app_client_info().input_portnumber(portno);
+    std::cout << "Reading the queue for port #" << portno << std::endl;
+    if (result)
+    {
+        int qsize { 32 };
+        midi::poller p(master, portno, qsize);
+        if (! useq)
+            p.enqueue_messages(false);
+
+        result = p.launch(app_client_info());   /* global info is default   */
+        if (result)
+        {
+            p.start_polling();
+            try
+            {
+                if (rt_use_callback())
+                {
+                    std::cout
+                        << "Reading MIDI input ... press <Enter> to quit.\n"
+                        ;
+
+                    char input;
+                    std::cin.get(input);
+                }
+                else
+                {
+                    s_is_done = false;
+                    (void) signal(SIGINT, finish);
+                    std::cout
+                        << "Reading MIDI from port "
+                        << "queue"          // TODO: busin.port_name()
+                        << " ... quit with any key or <Ctrl-C>."
+                        << std::endl
+                        ;
+                    xpc::clear_kb_ex();
+                    while (! s_is_done)
+                    {
+                        midi::message msg { p.get_message() };
+                        if (msg.count() > 0)
+                        {
+                            if (msg.midi_buss() == portno)
+                            {
+                                std::string msgline { "Msg:" };
+                                msgline += msg.to_string();
+                                util::status_message(msgline);
+                            }
+                            else
+                            {
+                                std::string msgline
+                                {
+                                    "Msg from unselected port "
+                                };
+                                msgline += std::to_string(msg.midi_buss());
+                                util::warn_message(msgline);
+                            }
+                        }
+                        if (xpc::kbcheck_ex())
+                            break;
+
+                        rt_test_sleep(10);  /* sleep for 10 msec    */
+                    }
+                    p.stop_polling();
+                }
+            }
+            catch (const rtl::rterror & error)
+            {
+                std::cerr << "Caught rtl::rterror!" << std::endl;
+                result = false;
+            }
+        }
+    }
+    return result;
+}
+
 }           // namespace anonymous
 
 /**
@@ -483,7 +583,12 @@ main (int argc, char * argv [])
             else
             {
                 app_client_info().input_portnumber(portno);
-                success = poll_port(rapi, portno);
+                if (rt_test_name() == "queue")
+                    success = poll_queue(rapi, portno);         /* enqueue  */
+                else if (rt_test_name() == "noqueue")
+                    success = poll_queue(rapi, portno, false);  /* handle   */
+                else
+                    success = poll_port(rapi, portno);
             }
 
 #if defined USE_SUSCEPTIBLE_TEST
