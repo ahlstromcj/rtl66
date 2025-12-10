@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-12-01
+ * \updates       2025-12-10
  * \license       See above.
  *
  *  Should we add operator [] for setting as well?
@@ -142,6 +142,7 @@ private:
 public:
 
     message (double ts = 0.0);
+    message (midi::byte b);
     message (const midi::byte * mbs, std::size_t sz);
     message (const midi::bytes & mbs);
     message (const message & rhs) = default;

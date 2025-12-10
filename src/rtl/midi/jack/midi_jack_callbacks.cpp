@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-10
+ * \updates       2025-12-09
  * \license       See above.
  *
  *  The JACK callbacks have been moved into a separate file for better
@@ -345,23 +345,48 @@ jack_set_meta_data
 int
 jack_process_in (jack_nframes_t framect, void * arg)
 {
+    static bool s_first = false;
+    if (! s_first)
+    {
+        printf("jack_process_io(%p)\n", arg);
+        s_first = true;
+    }
     midi_jack_data * jackdata { midi_jack::static_data_cast(arg) };
-    rtmidi_in_data * rtdata { jackdata->rt_midi_in() };
-    if (is_nullptr(jackdata->jack_port()))      /* port not yet created?    */
-        return 0;
+    rtmidi_in_data & rtdata { jackdata->rt_midi_in() };
+    jack_port_t * jport { jackdata->jack_port() };
+    if (is_nullptr(jport))                      /* port not yet opened?     */
+    {
+        /*
+         * Way too much!
+         *
+         * error_print("jack_process_in", "no port");
+         */
 
-    void * buff { ::jack_port_get_buffer(jackdata->jack_port(), framect) };
-    bool allowsysex { rtdata->allow_sysex() };
-    bool moresysex { rtdata->continue_sysex() };
+        return 0;
+    }
+
+    void * buff { ::jack_port_get_buffer(jport, framect) };
+    bool allowsysex { rtdata.allow_sysex() };
+    bool moresysex { rtdata.continue_sysex() };
     int evcount { int(::jack_midi_get_event_count(buff)) };
+#if defined PLATFORM_DEBUG_TMI
+    if (evcount > 0)
+        printf("event count %d\n", evcount);
+#endif
     for (int j = 0; j < evcount; ++j)           /* MIDI events in buffer    */
     {
-        midi::message & msg { rtdata->midi_msg() };
-        if (msg.empty())
-            continue;
+        /*
+         * Not sure why RtMidi used this "latest message" stuff.
+         * In any case, the "continue" here is a mistake.
+         *
+         *      midi::message & msg { rtdata.midi_msg() };
+         *      if (msg.empty())
+         *          continue;
+         */
 
-        jack_midi_event_t event;
-        int rc { ::jack_midi_event_get(&event, buff, j) };
+        midi::message msg;
+        jack_midi_event_t jmevent;
+        int rc { ::jack_midi_event_get(&jmevent, buff, j) };
         if (rc == ENODATA)
         {
             util::async_safe_errprint("jack_process_in() no data");
@@ -373,11 +398,11 @@ jack_process_in (jack_nframes_t framect, void * arg)
             return 0;
         }
 
-        jack_time_t jtime { ::jack_get_time() };  /* compute the delta time */
-        jack_time_t delta_jtime;                  /* uint64_t time in usec  */
-        if (rtdata->first_message())
+        jack_time_t jtime { ::jack_get_time() };            /* jack time    */
+        jack_time_t delta_jtime;                            /* uint64_t us  */
+        if (rtdata.first_message())
         {
-            rtdata->first_message(false);
+            rtdata.first_message(false);
             delta_jtime = 0;
             msg.jack_stamp(0.0);
         }
@@ -394,7 +419,7 @@ jack_process_in (jack_nframes_t framect, void * arg)
 
         bool issysex
         {
-            (moresysex || midi::is_sysex_msg(event.buffer[0])) && allowsysex
+            (moresysex || midi::is_sysex_msg(jmevent.buffer[0])) && allowsysex
         };
         if (! issysex)
         {
@@ -404,16 +429,16 @@ jack_process_in (jack_nframes_t framect, void * arg)
              * struct.
              */
 
-            for (unsigned i = 0; i < event.size; ++i)
-                msg.push(event.buffer[i]);
+            for (unsigned i = 0; i < jmevent.size; ++i)
+                msg.push(jmevent.buffer[i]);
         }
-        midi::status ebs { midi::to_status(event.buffer[0]) };
+        midi::status ebs { midi::to_status(jmevent.buffer[0]) };
         switch (ebs)
         {
         case midi::status::sysex:         // 0xF0 Start of a SysEx message
 
-            moresysex = ! midi::is_sysex_end_msg(event.buffer[event.size-1]);
-            rtdata->continue_sysex(moresysex);
+            moresysex = ! midi::is_sysex_end_msg(jmevent.buffer[jmevent.size-1]);
+            rtdata.continue_sysex(moresysex);
             if (! allowsysex)
                 continue;
             break;
@@ -421,13 +446,13 @@ jack_process_in (jack_nframes_t framect, void * arg)
         case midi::status::quarter_frame: // 0xF1 MIDI Time Code
         case midi::status::clk_clock:     // 0xF8 Timing Clock message
 
-            if (! rtdata->allow_time_code())
+            if (! rtdata.allow_time_code())
                 continue;
             break;
 
         case midi::status::active_sense:  // 0xFE Active Sensing message
 
-            if (! rtdata->allow_active_sensing())
+            if (! rtdata.allow_active_sensing())
                 continue;
             break;
 
@@ -435,8 +460,11 @@ jack_process_in (jack_nframes_t framect, void * arg)
 
             if (moresysex)
             {
-                moresysex = ! midi::is_sysex_end_msg(event.buffer[event.size-1]);
-                rtdata->continue_sysex(moresysex);
+                moresysex = ! midi::is_sysex_end_msg
+                (
+                    jmevent.buffer[jmevent.size-1]
+                );
+                rtdata.continue_sysex(moresysex);
                 if (allowsysex)
                     continue;
             }
@@ -449,10 +477,10 @@ jack_process_in (jack_nframes_t framect, void * arg)
              * callback function or queue the message.
              */
 
-            if (rtdata->using_callback())
+            if (rtdata.using_callback())
             {
-                rtmidi_in_data::callback_t cb = rtdata->user_callback();
-                cb(msg.jack_stamp(), msg, rtdata->user_data());
+                rtmidi_in_data::callback_t cb = rtdata.user_callback();
+                cb(msg.jack_stamp(), msg, rtdata.user_data());
             }
             else
             {
@@ -462,7 +490,7 @@ jack_process_in (jack_nframes_t framect, void * arg)
                  * be faked and return true.
                  */
 
-                if (! rtdata->queue().push(msg))
+                if (! rtdata.queue().push(msg))
                 {
                     util::async_safe_errprint
                     (
@@ -644,7 +672,6 @@ jack_process_out (jack_nframes_t framect, void * arg)
         {
             transport::jack::transport::get_jack_parameters().position
         };
-
         if (midi_jack_data::recalculate_frame_factor(pos, framect))
             util::async_safe_errprint("JACK settings changed");
 
@@ -700,8 +727,14 @@ jack_process_out (jack_nframes_t framect, void * arg)
  */
 
 int
-jack_process_io (jack_nframes_t framect, void * /*arg*/)
+jack_process_io (jack_nframes_t framect, void * arg)
 {
+    static bool s_first = false;
+    if (! s_first)
+    {
+        printf("jack_process_io(%p)\n", arg);
+        s_first = true;
+    }
     if (framect > 0)
     {
 #if 0

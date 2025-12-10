@@ -59,6 +59,7 @@ midi_api::midi_api
     m_has_master    (true),
     m_queue_size    (mbus.queue_size())
 {
+    // no other code
 }
 
 midi_api::midi_api (midi::port::io iotype, unsigned qsize) :

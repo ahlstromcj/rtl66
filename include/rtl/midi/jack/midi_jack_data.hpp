@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2017-01-02
- * \updates       2025-12-04
+ * \updates       2025-12-10
  * \license       See above.
  *
  */
@@ -50,10 +50,14 @@
 #include "transport/jack/info.hpp"      /* transport::jack::info class      */
 #include "xpc/ring_buffer.hpp"          /* midi::ring_buffer<TYPE> template */
 
+namespace midi
+{
+    class masterbus;
+}
+
 namespace rtl
 {
-
-class rtmidi_in_data;
+    class rtmidi_in_data;
 
 /**
  *  Delimits the size of the JACK ringbuffer. Related to issue #100, when
@@ -120,7 +124,17 @@ class RTL66_DLL_PUBLIC midi_jack_data
     xpc::ring_buffer<midi::message> m_jack_buffer { c_jack_ringbuffer_size };
 
     /**
-     *  The last time-stamp obtained.  Use for calculating the delta time, I
+     *  Holds the optional pointer to the JACK ports masterbus, if
+     *  we're running under the masterbus paradigm. It gives the
+     *  JACK process I/O callbacks access to the midi::bus objects.
+     *  Note that we use the convention that a simple pointer is
+     *  an un-owned pointer.
+     */
+
+    midi::masterbus * m_master_bus_ptr { nullptr };
+
+    /**
+     *  The last time-stamp obtained. Use for calculating the delta time, I
      *  would imagine.
      */
 
@@ -161,16 +175,17 @@ class RTL66_DLL_PUBLIC midi_jack_data
      *  meant for input.
      */
 
-    rtmidi_in_data * m_jack_rtmidiin { nullptr };
+    rtmidi_in_data & m_jack_rtmidiin;   /* initialize in the constructor    */
 
 public:
 
-    midi_jack_data () = default;
+    midi_jack_data () = delete;
+    midi_jack_data (rtmidi_in_data &, std::size_t sz = 0);
     midi_jack_data (std::size_t sz);
     midi_jack_data (const midi_jack_data &) = delete;
-    midi_jack_data (midi_jack_data &&) = delete;
+    midi_jack_data (midi_jack_data &&) = default;
     midi_jack_data & operator = (const midi_jack_data &) = delete;
-    midi_jack_data & operator = (midi_jack_data &&) = delete;
+    midi_jack_data & operator = (midi_jack_data &&) = default;
     ~midi_jack_data () = default;
 
     /*
@@ -355,6 +370,16 @@ public:
         return m_jack_buffer;
     }
 
+    midi::masterbus * master_bus_ptr ()
+    {
+        return m_master_bus_ptr;
+    }
+
+    void master_bus_ptr (midi::masterbus * mb)
+    {
+        m_master_bus_ptr = mb;
+    }
+
     /*
      * This function is unused, and ring_buffer<>::operator =() is
      * deleted anyway.
@@ -378,18 +403,19 @@ public:
     /*
      *  Already accessible via midi_api::input_data(), but we don't
      *  have direct access to that here.
+     *
+     *   void rt_midi_in (rtmidi_in_data * rid)
+     *   {
+     *       m_jack_rtmidiin = rid;
+     *   }
      */
 
-     void rt_midi_in (rtmidi_in_data * rid)
-     {
-         m_jack_rtmidiin = rid;
-     }
-
-     rtmidi_in_data * rt_midi_in ()
+     rtmidi_in_data & rt_midi_in ()
      {
         return m_jack_rtmidiin;
      }
-     const rtmidi_in_data * rt_midi_in () const
+
+     const rtmidi_in_data & rt_midi_in () const
      {
         return m_jack_rtmidiin;
      }

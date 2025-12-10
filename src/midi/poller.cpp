@@ -86,6 +86,8 @@ poller::poller
     const midi::input_specs & mis { mbus.get_input_specs() };
     m_input_callback = mis.input_callback;
     m_input_using_callback = not_nullptr(m_input_callback);
+    if (m_input_using_callback)
+        m_use_input_q = false;                  /* callback has precedence  */
 
     if (m_use_input_q)
     {
@@ -377,8 +379,22 @@ poller::poll_cycle ()
             {
                 /*
                  * Don't do anything, let the caller work the
-                 * midi::message in its own "polling" thread.
+                 * midi::message in its own "polling" thread,
+                 * unless a callback is in use. Callback has precedence
+                 * over queueing.
                  */
+
+                if (input_using_callback())
+                {
+                    midi::message incoming
+                    {
+                        master_bus().get_message(in_portnumber())
+                    };
+                    if (incoming.empty())
+                        break;
+                    else
+                        handle_message(incoming);
+                }
             }
             if (use_all_ports())
                 ok = master_bus().poll_for_midi() > 0;
@@ -398,7 +414,7 @@ void
 poller::handle_message (const midi::message & incoming)
 {
     midi::event ev(incoming);
-#if defined PLATFORM_DEBUG // _TMI
+#if defined PLATFORM_DEBUG_TMI
     std::string estr { ev.to_string() };                    /* incoming     */
     util::status_message("MIDI event to handle", estr);
 #endif

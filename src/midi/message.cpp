@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-12-01
- * \updates       2025-12-01
+ * \updates       2025-12-10
  * \license       See above.
  *
  *  Provides a basic type for the (heavily-factored) rtl66 library, very
@@ -157,6 +157,15 @@ message::message (double ts) :
     m_time_stamp    (ts)
 {
     // Empty body
+}
+
+message::message (midi::byte b)
+#if defined PLATFORM_DEBUG_TMI
+ :
+    m_msg_number    (sm_msg_number++)
+#endif
+{
+    m_bytes.push_back(b);
 }
 
 /**

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-26
- * \updates       2025-11-25
+ * \updates       2025-12-09
  * \license       See above.
  *
  */
@@ -54,8 +54,9 @@ transport::jack::info midi_jack_data::m_transport_info;
  *  The other members are initialized "in-class".
  */
 
-midi_jack_data::midi_jack_data (std::size_t sz) :
-    m_jack_buffer   (sz)
+midi_jack_data::midi_jack_data (rtmidi_in_data & rid, std::size_t sz) :
+    m_jack_buffer   (sz == 0 ? c_jack_ringbuffer_size : sz),
+    m_jack_rtmidiin (rid)
 {
     // no other code
 }
@@ -152,7 +153,9 @@ midi_jack_data::semaphore_destroy ()
     }
     else
     {
+#if defined PLATFORM_DEBUG
         util::error_message("uninitialized semaphores");
+#endif
     }
 }
 

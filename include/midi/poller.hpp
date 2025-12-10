@@ -157,7 +157,9 @@ private:                            /* key, midi, and op container section  */
 
     /**
      *  Rather than a whole midi::input_specs structure, just the two
-     *  callback-related items.
+     *  callback-related items. If true, this option overrides
+     *  m_use_input_q == true, as we need to handle the message using
+     *  the callback, not the queue.
      */
 
     bool m_input_using_callback { false };

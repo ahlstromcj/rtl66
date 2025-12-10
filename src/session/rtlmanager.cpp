@@ -173,8 +173,6 @@ rtlmanager::settings (int argc, char * argv [])
         cfg::set_client_name("rtl66cli");
         // rc().set_config_files("rtl66cli");
     }
-//  else
-//      cfg::set_app_name(RTL66_APP_NAME);   /* "qrtl66" by default          */
 
     cfg::set_arg_0(argv[0]);                 /* how it got started           */
 

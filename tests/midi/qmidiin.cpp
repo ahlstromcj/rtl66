@@ -79,13 +79,14 @@ read_port (rtl::rtmidi::api rapi, int port)
              * We pass false as the last parameter so that the internal
              * MIDI API input thread is *not* used. We do our own polling.
              * We also pass a 0 queue-size which means the default size is
-             * used.
+             * used, or 8 for easier debugging.
              *
              * Too tricky!
              */
 
+            const int queuesize { 8 };                      /* use 0 or 8   */
             std::string name { midi::global_client_info().client_name() };
-            rtl::rtmidi_in midiin(rapi, name, 0, false);
+            rtl::rtmidi_in midiin(rapi, name, queuesize, false);
 
             /*
              * Check available ports vs. specified.

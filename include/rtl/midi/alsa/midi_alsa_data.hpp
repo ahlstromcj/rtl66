@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2025-09-21
+ * \updates       2025-12-09
  * \license       See above.
  *
  */
@@ -42,10 +42,12 @@
 
 #include "c_macros.h"                   /* not_nullptr() and friends        */
 #include "midi/midibytes.hpp"           /* midi::byte, other aliases        */
-#include "midi/ports.hpp"               /* midi::port::io type              */
+#include "midi/port.hpp"                /* midi::port::io type              */
 
 namespace rtl
 {
+
+class rtmidi_in_data;
 
 const size_t c_event_size_max { 12 };   /* from Seq66                       */
 
@@ -98,12 +100,25 @@ private:
     int m_queue_id { -1 };       /* input queue to get timestamped events   */
     int m_trigger_fds[2];
 
+    /**
+     *  Holds special data peculiar to the client and its MIDI input
+     *  processing. This data consists of the midi_queue message queue and a
+     *  few boolean flags.
+     *
+     *  Whoops! Already defined as a true member in midi_api, accessed via
+     *  midi_api::input_data(). A small waste of space if the port is not
+     *  meant for input.
+     */
+
+    rtmidi_in_data & m_alsa_rtmidiin;   /* initialize in the constructor    */
+
 public:
 
-    midi_alsa_data ();
-    midi_alsa_data (const midi_alsa_data &) = default;
+    midi_alsa_data () = delete;
+    midi_alsa_data (rtmidi_in_data &);
+    midi_alsa_data (const midi_alsa_data &) = delete;
     midi_alsa_data (midi_alsa_data &&) = default;
-    midi_alsa_data & operator = (const midi_alsa_data &) = default;
+    midi_alsa_data & operator = (const midi_alsa_data &) = delete;
     midi_alsa_data & operator = (midi_alsa_data &&) = default;
     ~midi_alsa_data ();
 
@@ -126,6 +141,26 @@ public:
     {
         m_is_initialized = flag;
     }
+
+    /*
+     *  Already accessible via midi_api::input_data(), but we don't
+     *  have direct access to that here.
+     *
+     *   void rt_midi_in (rtmidi_in_data * rid)
+     *   {
+     *       m_alsa_rtmidiin = rid;
+     *   }
+     */
+
+     rtmidi_in_data & rt_midi_in ()
+     {
+        return m_alsa_rtmidiin;
+     }
+
+     const rtmidi_in_data & rt_midi_in () const
+     {
+        return m_alsa_rtmidiin;
+     }
 
     snd_seq_t * alsa_client ()
     {

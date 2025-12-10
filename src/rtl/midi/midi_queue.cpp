@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-12-01
- * \updates       2025-12-02
+ * \updates       2025-12-06
  * \license       See above.
  *
  *  Provides some basic types for the (heavily-factored) rtl66 library, very
@@ -65,11 +65,14 @@ midi_queue::~midi_queue ()
 void
 midi_queue::allocate (unsigned queuesize)
 {
-    deallocate();
-    if (queuesize > 0 && is_nullptr(m_ring))
+    if (queuesize > 0)
     {
-        m_ring = new (std::nothrow) midi::message[queuesize];
-        m_ring_size = not_nullptr(m_ring) ? queuesize : 0 ;
+        deallocate();
+        if (is_nullptr(m_ring))
+        {
+            m_ring = new (std::nothrow) midi::message [queuesize];
+            m_ring_size = not_nullptr(m_ring) ? queuesize : 0 ;
+        }
     }
 }
 
@@ -214,16 +217,20 @@ midi_queue::pop (std::vector<unsigned char> * msg, double * timestamp)
     queue.pop();
 \endverbatim
  *
- *  An alternative is to use the pop_front() function instead.
+ *  An alternative is to use the pop_front() or pop_front_message()
+ *  functions instead.
  */
 
 void
 midi_queue::pop ()
 {
-    --m_size;
-    ++m_front;
-    if (m_front == m_ring_size)
-        m_front = 0;
+    if (m_size > 0)
+    {
+        --m_size;
+        ++m_front;
+        if (m_front == m_ring_size)
+            m_front = 0;
+    }
 }
 
 #endif  // defined USE_EXTRA_QUEUE_FUNCTIONS
@@ -250,6 +257,44 @@ midi_queue::pop_front ()
         pop();
     }
     return result;
+}
+
+/**
+ *  Since the queue is allocated with a bunch of empty messages,
+ *  we need a better way to indicate "no messages".
+ */
+
+bool
+midi_queue::pop_front_message (midi::message & destination)
+{
+    bool result { ! empty() };
+    if (result)
+        destination = pop_front();
+
+   return result;
+}
+
+void
+midi_queue::show_values () const
+{
+    static unsigned s_front { 0 };
+    static unsigned s_back { 0 };
+    static unsigned s_size { 0 };
+    bool differs
+    {
+        s_front != m_front || s_back != m_back || s_size != m_size
+    };
+    if (differs)
+    {
+        printf
+        (
+            "ring size = %u; data size = %u front = %u back = %u\n",
+            m_ring_size, m_size, m_front, m_back
+        );
+        s_front = m_front;
+        s_back = m_back;
+        s_size = m_size;
+    }
 }
 
 }           // namespace rtl

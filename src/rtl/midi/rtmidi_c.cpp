@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-10
+ * \updates       2025-12-04
  * \license       See above.
  *
  */
@@ -194,12 +194,20 @@ rtmidi_get_detected_apis (RtMidiApi * apis, int apis_size)
     return num;
 }
 
+/**
+ *  Obviously not thread-safe, but this function is unlikely to be needed by
+ *  two threads at once.
+ *
+ *  We hope.
+ */
+
 const char *
 rtmidi_api_name (RtMidiApi rapi)
 {
-    rtl::rtmidi::api apicode { static_cast<rtl::rtmidi::api>(rapi) };
-    static const char * result { CSTR(rtl::rtmidi::api_name(apicode)) };
-    return result;
+    static std::string s_result;
+    rtl::rtmidi::api r { static_cast<rtl::rtmidi::api>(rapi) };
+    s_result = rtl::rtmidi::api_name(r);
+    return CSTR(s_result);
 }
 
 /**
@@ -213,8 +221,8 @@ rtmidi_api_name (RtMidiApi rapi)
 const char *
 rtmidi_api_display_name (RtMidiApi rapi)
 {
-    static std::string s_result { "null" };                     /* \tricky  */
-    rtl::rtmidi::api r = static_cast<rtl::rtmidi::api>(rapi);
+    static std::string s_result;
+    rtl::rtmidi::api r { static_cast<rtl::rtmidi::api>(rapi) };
     s_result = rtl::rtmidi::api_display_name(r);
     return CSTR(s_result);
 }

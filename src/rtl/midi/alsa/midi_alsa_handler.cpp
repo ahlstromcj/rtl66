@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-01
+ * \updates       2025-12-09
  * \license       See above.
  *
  *  This module is meant to be #include'd in midi_alsa.cpp. It's been
@@ -99,8 +99,8 @@ calculate_time
 static bool
 decode_event
 (
-    rtmidi_in_data * rtidata,
-    midi_alsa_data * mad_data,
+    rtmidi_in_data & rtidata,
+    midi_alsa_data & mad_data,
     ::snd_seq_event_t * ev
 )
 {
@@ -122,26 +122,26 @@ decode_event
     case SND_SEQ_EVENT_QFRAME:                  // MIDI time code
     case SND_SEQ_EVENT_TICK:                    // 0xF9 MIDI timing tick
     case SND_SEQ_EVENT_CLOCK:                   // 0xF8 MIDI clock tick
-        if (rtidata->allow_time_code())
+        if (rtidata.allow_time_code())
             dodecode = true;
         break;
 
     case SND_SEQ_EVENT_SENSING:                 // 0xFE Active sensing
-        if (rtidata->allow_active_sensing())
+        if (rtidata.allow_active_sensing())
             dodecode = true;
         break;
 
     case SND_SEQ_EVENT_SYSEX:                   // 0xF0 System Exclusive
-        if (rtidata->allow_sysex())
+        if (rtidata.allow_sysex())
             break;
 
-        if (ev->data.ext.len > mad_data->buffer_size())
+        if (ev->data.ext.len > mad_data.buffer_size())
         {
             size_t nbytes = ev->data.ext.len;
-            bool ok = mad_data->reallocate(nbytes);
+            bool ok = mad_data.reallocate(nbytes);
             if (ok)
             {
-                rtidata->do_input(false);
+                rtidata.do_input(false);
                 error_print
                 (
                     "midi_alsa_handler()", "error resizing buffer"
@@ -260,13 +260,14 @@ decode_event
 void *
 midi_alsa_handler (void * ptr)
 {
-    rtmidi_in_data * rtidata { midi_api::static_in_data_cast(ptr) };
-    midi_alsa_data * mad_data
-    {
-        midi_alsa::static_data_cast(rtidata->api_data())
-    };
+    if (is_nullptr(ptr))
+        return nullptr;
+
+    midi_alsa_data * mad_data { midi_alsa::static_data_cast(ptr) };
+    rtmidi_in_data & rtidata { mad_data->rt_midi_in() };
+
     ::snd_seq_t * client { mad_data->alsa_client() };
-    if (rtidata->queue().unallocated())
+    if (rtidata.queue().unallocated())
     {
         error_print("midi_alsa_handler()", "queue unallocated");
         return nullptr;
@@ -283,14 +284,14 @@ midi_alsa_handler (void * ptr)
     bool ok { mad_data->init_event_parser() };      /* see midi_alsa_data   */
     if (! ok)
     {
-        rtidata->do_input(false);
+        rtidata.do_input(false);
         error_print("midi_alsa_handler()", "new event parser failed");
         return nullptr;
     }
     ok = mad_data->reallocate();
     if (! ok)
     {
-        rtidata->do_input(false);
+        rtidata.do_input(false);
         return nullptr;
     }
 
@@ -300,7 +301,7 @@ midi_alsa_handler (void * ptr)
     if (! pwrap.set_trigger_fd(mad_data->trigger_fd(0)))
         return nullptr;
 
-    while (rtidata->do_input())
+    while (rtidata.do_input())
     {
         int count { ::snd_seq_event_input_pending(client, 1) };
         if (count == 0)                                 /* no data pending  */
@@ -339,7 +340,7 @@ midi_alsa_handler (void * ptr)
         if (! moresysex)
             mmsg.clear();
 
-        bool dodecode { decode_event(rtidata, mad_data, ev) };
+        bool dodecode { decode_event(rtidata, *mad_data, ev) };
         if (dodecode)
         {
             ::snd_midi_event_t * mididev { mad_data->event_parser() };
@@ -370,9 +371,9 @@ midi_alsa_handler (void * ptr)
                         ev->time.time, mad_data->last_time()
                     );
                     mad_data->last_time(ev->time.time);
-                    if (rtidata->first_message())
+                    if (rtidata.first_message())
                     {
-                        rtidata->first_message(false);
+                        rtidata.first_message(false);
                         mmsg.jack_stamp(0.0);
                     }
                     else
@@ -386,14 +387,14 @@ midi_alsa_handler (void * ptr)
         if (mmsg.empty() || moresysex)
             continue;
 
-        if (rtidata->using_callback())
+        if (rtidata.using_callback())
         {
-            rtmidi_in_data::callback_t cb = rtidata->user_callback();
-            cb(mmsg.jack_stamp(), mmsg, rtidata->user_data());
+            rtmidi_in_data::callback_t cb = rtidata.user_callback();
+            cb(mmsg.jack_stamp(), mmsg, rtidata.user_data());
         }
         else
         {
-            if (rtidata->queue().push(mmsg))
+            if (rtidata.queue().push(mmsg))
             {
 #if defined PLATFORM_DEBUG
                 printf("push(midi::message)\n");

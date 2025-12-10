@@ -91,9 +91,9 @@ midibytes_callback
  */
 
 bool
-read_port (rtl::rtmidi::api rapi, int port)
+read_port (rtl::rtmidi::api rapi, int portnumber)
 {
-    bool result { rt_test_port_valid(port) };
+    bool result { rt_test_port_valid(portnumber) };
     try
     {
         rtl::rtmidi_in midiin(rapi, "cbmidiin");
@@ -110,7 +110,7 @@ read_port (rtl::rtmidi::api rapi, int port)
          * Open the port.
          */
 
-        result = midiin.open_port(port);
+        result = midiin.open_port(portnumber);
         if (result)
         {
             std::cout << "Reading MIDI input ... press <Enter> to quit.\n";
@@ -119,7 +119,7 @@ read_port (rtl::rtmidi::api rapi, int port)
         else
         {
             std::cerr
-                << "Could not open port " << port
+                << "Could not open port " << portnumber
                 << " ... aborting" << std::endl
                 ;
         }

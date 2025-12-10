@@ -133,10 +133,14 @@ rtmidi_in::rtmidi_in (/* const */ midi::masterbus & mb) : rtmidi ()
              * call is already done in the midi_alsa, midi_jack, etc.
              * constructor. Odd: if the following is left out, then the test
              * "busout" won't play, yielding errors in drain_output().
+             *
+             * Should be done with any API since we're using the
+             * masterbus.
+             *
+             *      if (rapi == rtmidi::api::alsa)
              */
 
-            if (rapi == rtmidi::api::alsa)
-                (void) rt_api_ptr()->initialize(clientname);
+            (void) rt_api_ptr()->initialize(clientname);
         }
     }
     else

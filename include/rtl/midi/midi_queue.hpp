@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-09-14
+ * \updates       2025-12-06
  * \license       See above.
  *
  *  The lack of hiding of these types within a class is a little to be
@@ -101,8 +101,10 @@ public:
     bool push (const midi::message & mmsg);
     void pop ();
     midi::message pop_front ();
+    bool pop_front_message (midi::message & destination);
     void allocate (unsigned queuesize = c_default_queue_size);
     void deallocate ();
+    void show_values () const;
 
 };          // class midi_queue
 

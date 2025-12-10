@@ -73,7 +73,8 @@ main (int argc, char * argv [])
              * port.
              */
 
-            rtl::rtmidi_out midiout { rtl::rtmidi::desired_api() };
+            rtl::rtmidi::api rapi { rtl::rtmidi::desired_api() };
+            rtl::rtmidi_out midiout(rapi, "midiout");
             if (! rt_virtual_test_port())
             {
                 if (! rt_test_port_valid(rt_test_port()))

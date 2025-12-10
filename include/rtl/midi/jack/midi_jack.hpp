@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-25
+ * \updates       2025-12-10
  * \license       See above.
  *
  */
@@ -118,7 +118,13 @@ private:
      *  be allocated, just have it's pointer assigned.
      */
 
-    midi_jack_data m_jack_data { c_jack_ringbuffer_size };
+    midi_jack_data m_jack_data { input_data(), c_jack_ringbuffer_size };
+
+    /**
+     *  We want to make sure the JACK processing function is set only once.
+     */
+
+    bool m_jack_process_is_set { false };
 
 public:
 
@@ -274,6 +280,7 @@ public:
     virtual bool clock_continue (midi::pulse tick, midi::pulse beats) override;
     virtual int poll_for_midi () const override;
     virtual bool get_midi_event (midi::event * inev) override;
+    virtual midi::message get_message () override;
 
     /*
      * Strictly speaking, we could implement some of these functions directly

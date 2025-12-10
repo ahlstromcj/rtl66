@@ -140,7 +140,7 @@ midibytes_callback
     size_t nbytes = msg.size();
     if (nbytes > 0)
     {
-        std::string msgline { "Input:" };
+        std::string msgline { "Callback input:" };
         msgline += msg.to_string();
         util::status_message(msgline);
     }
@@ -450,8 +450,6 @@ bool
 poll_queue (rtl::rtmidi::api rapi, int portno, bool useq = true)
 {
     midi::masterbus & master { master_bus(rapi, app_client_info()) };
-//  midi::bus & inbus { master.get_in_bus(portno) };
-//  bool result { inbus.initialize() };
     bool result { master.is_setup() };
     app_client_info().input_portnumber(portno);
     std::cout << "Reading the queue for port #" << portno << std::endl;

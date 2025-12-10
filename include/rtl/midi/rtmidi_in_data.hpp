@@ -120,9 +120,11 @@ private:
     /**
      *  This is used to hold the latest MIDI message.
      *  In RtMidi, this is the MidiMessage class.
+     *
+     *  Not sure how this is useful.
+     *
+     *      midi::message m_message { };
      */
-
-    midi::message m_message { };
 
     /**
      *  A one-time flag that starts out true and is falsified when the first
@@ -251,6 +253,8 @@ public:
         return m_queue;
     }
 
+#if 0
+
     const midi::message & midi_msg () const
     {
         return m_message;
@@ -260,6 +264,8 @@ public:
     {
         return m_message;
     }
+
+#endif
 
     bool first_message () const
     {

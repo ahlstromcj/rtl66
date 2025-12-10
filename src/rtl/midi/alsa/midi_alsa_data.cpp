@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2024-12-01
+ * \updates       2024-12-09
  * \license       See above.
  *
  */
@@ -43,7 +43,10 @@ namespace rtl
  * usage, as the order of setup calls can vary.
  */
 
-midi_alsa_data::midi_alsa_data () : m_trigger_fds ()    /* 2-element array  */
+midi_alsa_data::midi_alsa_data (rtmidi_in_data & rid)
+ :
+    m_trigger_fds   (),                 /* 2-element array  */
+    m_alsa_rtmidiin (rid)
 {
     if (buffer_size() == 0)
         buffer_size(c_event_size_max);

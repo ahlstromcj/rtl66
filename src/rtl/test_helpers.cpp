@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-11-16
+ * \updates       2025-12-09
  * \license       See above.
  *
  *  We have a lot of functions for selecting ports !
@@ -122,12 +122,26 @@ bool rt_open_all_ports ()
     return s_open_all_ports;
 }
 
+/**
+ *  This function gets the portname, and then the alias(es) of the
+ *  port (a feature only of JACK). Here is an example of JACK port names
+ *  and their aliases:
+ *
+ *    input port #0: system:midi_capture_1
+ *        [alsa_pcm:Midi-Through/midi_playback_1 or Midi-Through:midi/playback_1]
+ *
+ *    input port #1: system:midi_capture_2
+ *        [alsa_pcm:nanoKEY2/midi_playback_1 or nanoKEY2:midi/playback_1]
+ *
+ *    input port #2: system:midi_capture_3
+ *        [alsa_pcm:Q25/midi_playback_1 or Q25:midi/playback_1]*
+ */
+
 static int
 rt_choose_port (bool isoutput, int & portcount)
 {
     int result { -1 };
     std::string direction { isoutput ? _("output") : _("input") };
-    std::string portname;
     std::unique_ptr<rtl::rtmidi> rt;
     try
     {
@@ -163,15 +177,51 @@ rt_choose_port (bool isoutput, int & portcount)
             }
             else
             {
+                /*
+                 *  For the best clarity in the prompt, if there are aliases
+                 *  then show them first (in JACK, the second one is
+                 *  simplest).
+                 */
+
                 int p;
                 for (p = 0; p < portcount; ++p)
                 {
-                    portname = rt->get_port_name(p);
-                    std::cout
-                        << "  " << direction << " " << _("port") << " #"
-                        << p << ": " << portname
-                        << std::endl
-                        ;
+                    std::string portname = rt->get_port_name(p);
+                    std::string alias0 = rt->get_port_alias(portname, 0);
+                    std::string alias1 = rt->get_port_alias(portname, 1);
+                    bool noalias { alias0.empty() };
+
+                    if (noalias)
+                    {
+                        std::cout
+                            << "  " << direction << " " << _("port") << " #"
+                            << p << ": " << portname << std::endl
+                            ;
+                    }
+                    else
+                    {
+                        if (! alias1.empty())
+                        {
+                            std::cout
+                                << "  " << direction << " " << _("port") << " #"
+                                << p << ": " << alias1
+                                << std::endl
+                                << "    [" << alias0
+                                << " & " << portname << "]"
+                                << std::endl
+                                ;
+                        }
+                        else if (! alias0.empty())
+                        {
+                            std::cout
+                                << "  " << direction << " " << _("port") << " #"
+                                << p << ": " << alias0
+                                << std::endl
+                                << "    [" << portname << "]"
+                                << std::endl
+                                ;
+                        }
+                    }
                 }
                 std::cout
                     << "  " << direction << " " << _("port") << " #"
@@ -372,7 +422,7 @@ static const char * s_help_text_fmt
 "back to the next API if the first is not detected.  For example, in Linux\n"
 "JACK will be tried first.  If not detected, then ALSA will be tried.  One\n"
 "issue is that, on newer systems, jackdbus can fool JACK detection into\n"
-"finding JACK, while using JACK will fail. Also, use the --quiet option to\n"
+"finding JACK, while using JACK will fail. Use the --quiet-jack option to\n"
 "hide the voluminous JACK console log output.\n"
 "\n"
 #if defined PLATFORM_LINUX
@@ -384,7 +434,6 @@ static const char * s_help_text_fmt
 "  --quiet-jack     Hide JACK console output. Send it to the bit bucket.\n"
 "  --start-jack     Start the JACK server if not running. NOT READY.\n"
 #endif
-"  --quiet          Send console output to the bit bucket.\n"
 #if defined RTL66_BUILD_ALSA
 "  --alsa           Instead of the JACK/ALSA fallback, try ALSA, and fail if it\n"
 "                   cannot be initialized.\n"

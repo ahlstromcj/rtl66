@@ -114,13 +114,16 @@ private:
     /**
      *  Data for usage by input ports.  Among the items it contains are a
      *  midi_queue, midi::message, a void pointer to an API-specific data
-     *  structure, and buffer information.
+     *  structure (such as midi_alsa_data and midi_jack_data), and buffer
+     *  information.
      *
      *  It also contains flags for first-message, continue-sysex, ignoring
      *  certain events, allowing input, and using a callback function (with a
      *  pointer to user data).
      *
      *  It's mutable so that we can call the pop const function.
+     *
+     *  The size if the default structure is under 100 bytes.
      */
 
     mutable rtmidi_in_data m_input_data { };

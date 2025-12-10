@@ -1,9 +1,24 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-12-04
+2019-04-13 to 2025-12-09
 
-Hot:
+For version 0.3:
 
+    -   Get one of the Windows APIs to work.
+    -   Add a test app to record one track, write it to a
+        file, read the file, and play it.
+
+Fixes:
+
+    -   Why is the note off always at time 0?
+
+        [cbmidiin] Msg:  3 bytes @ 3285302:  0x90 0x41 0x43 buss/index 255
+        [cbmidiin] Msg:  3 bytes @ 0:  0x80 0x41 0x40 buss/index 255
+
+    -   Track down the "uninitialized semaphores" in JACK.
+    -   Why does JACK detection when JACK is not running take
+        so long?
+    -   The midiprobeex does not fall back to ALSA, it just fails.
     -   Fix busin functionality and get_message(). DONE.
         -   The event type includes codes for note on/off and other
             specific events; we should take advantage of this.
@@ -17,12 +32,13 @@ Hot:
     -   Make sure trackdata::parse() sets track number correctly.
     -   Update rterror to print the client-tag in error messages.
     -   Investigate differences between behavior of cbmidiin and qmidiin.
-    -   In cfg, how about a convention where, instead of
+    -   In cfg, how about a convention where, instead of just
 
             --callback      -c
 
-        we have
+        we have stuff like
 
+            --&callback     which provides -c
             --call&back     which provides -b
             --&call&back    which provides -cb
 

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-20
+ * \updates       2025-12-09
  * \license       See above.
  *
  */
@@ -94,7 +94,7 @@ private:
      *  Moved the ALSA data to this class.
      */
 
-    midi_alsa_data m_alsa_data { };
+    midi_alsa_data m_alsa_data { input_data() };
 
 public:
 
@@ -312,7 +312,7 @@ protected:
         snd_seq_addr_t & receiver
     );
     bool remove_subscription ();
-    bool start_input_thread (rtmidi_in_data & indata);
+    bool start_input_thread (midi_alsa_data & maddata);
     bool join_input_thread ();
 
 };          // class midi_alsa

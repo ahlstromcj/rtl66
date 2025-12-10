@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-06-25
- * \updates       2025-10-06
+ * \updates       2025-12-04
  * \license       See above.
  *
  *  Simple program to test MIDI clock sync.  Run midiclock_in in one
@@ -83,11 +83,14 @@ midi_clock_callback
         {
             if (++*clock_count == 24)               /* yikes! */
             {
-                double bpminute = 60.0 / 24.0 / deltatime;
-                std::cout << "One beat, estimated BPM = "
-                    << bpminute <<std::endl
-                    ;
-                *clock_count = 0;
+                if (deltatime > 0.0)
+                {
+                    double bpminute = 60.0 / 24.0 / deltatime;
+                    std::cout << "One beat, estimated BPM = "
+                        << bpminute <<std::endl
+                        ;
+                    *clock_count = 0;
+                }
             }
         }
         else

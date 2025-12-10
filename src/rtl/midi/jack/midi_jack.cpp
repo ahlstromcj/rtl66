@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-29
+ * \updates       2025-12-10
  * \license       See above.
  *
  *  Written primarily by Alexander Svetalkin, with updates for delta time by
@@ -415,10 +415,10 @@ show_jack_port_status
     printf
     (
         "%s Port: %s (%s) is %s\n"
-        "%s Type: %s, %s\n"
+        "   type %s, %s\n"
         ,
         V(title), V(shortname), V(longname), V(whose),
-        V(title), V(porttype), V(portflags)
+        V(porttype), V(portflags)
     );
 }
 
@@ -495,7 +495,7 @@ midi_jack::midi_jack
      *      m_jack_data.set_initialized(true);
      */
 
-    m_jack_data.rt_midi_in(&(this->input_data()));
+    m_jack_data.master_bus_ptr(&mbus);
 }
 
 midi_jack::midi_jack
@@ -510,8 +510,7 @@ midi_jack::midi_jack
     if (clientname.empty())
         client_name("rtl-jack");
 
-    if (initialize(client_name()))
-        m_jack_data.rt_midi_in(&(this->input_data()));
+    (void) initialize(client_name());
 }
 
 /**
@@ -520,20 +519,24 @@ midi_jack::midi_jack
 
 midi_jack::~midi_jack ()
 {
-    if (is_engine())
+    bool canclose { is_engine() || ! has_master() };
+    if (canclose)
     {
-        delete_port();                  /* must come before client close    */
-    }
-    else
-    {
-#if RTL66_HAVE_SEMAPHORE_H
-        if (is_output())
+        if (is_engine())
         {
-            midi_jack_data & data { jack_data() };
-            data.semaphore_destroy();
+            delete_port();              /* must come before client close    */
         }
+        else
+        {
+#if RTL66_HAVE_SEMAPHORE_H
+            if (is_output())
+            {
+                midi_jack_data & data { jack_data() };
+                data.semaphore_destroy();
+            }
 #endif
-        delete_port();
+            delete_port();
+        }
     }
 }
 
@@ -568,7 +571,7 @@ midi_jack::engine_connect ()
         result = client_handle();       /* grabs masterbus's client handle  */
         if (not_nullptr(result))
         {
-#if defined PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG // _TMI
             printf("masterbus client handle = %p\n", (void *)(client_handle()));
 #endif
         }
@@ -598,16 +601,39 @@ midi_jack::engine_connect ()
             if (not_nullptr(c))
             {
                 void * apidata { reinterpret_cast<void *>(&data) };
-                JackProcessCallback cb { jack_process_io };
-                if (is_output())
+                JackProcessCallback cb { nullptr };
+                if (is_duplex())                        /* both in & out    */
+                {
+                    cb = jack_process_io;
+                }
+                else if (is_output())
+                {
                     cb = jack_process_out;
+                }
                 else if (is_input())
+                {
                     cb = jack_process_in;
+                }
+                else                                    /* is_engine()      */
+                {
+                    cb = jack_process_io;
+                }
 
-                bool ok { jack_set_process_cb(c, cb, apidata) };
+                bool ok { not_nullptr(cb) && ! m_jack_process_is_set };
+                if (ok)
+                    ok = jack_set_process_cb(c, cb, apidata);
+
                 if (ok)
                 {
+                    m_jack_process_is_set = true;
                     result = c;
+#if defined PLATFORM_DEBUG
+                    printf
+                    (
+                        "jack_client_t = %p, apidata = %p\n",
+                        (void *)(c), apidata
+                    );
+#endif
 #if defined USE_JACK_RINGBUFFER_POINTER
                     if (is_output())
                         (void) create_ringbuffer(c_jack_ringbuffer_size);
@@ -690,7 +716,9 @@ midi_jack::engine_activate ()
     {
         int rc { ::jack_activate(data.jack_client()) };
         result = rc == 0;
-        if (! result)
+        if (result)
+            debug_print("jack_activate()", "succeeded");
+        else
             error_print("jack_activate()", "failed");
     }
     return result;
@@ -886,8 +914,6 @@ midi_jack::initialize (const std::string & clientname)
     {
         api_data(&data);
         result = connect();
-        if (is_input())
-            data.rt_midi_in(&input_data());
     }
     if (! result)
     {
@@ -953,6 +979,13 @@ midi_jack::show_connection_status
 /**
  *  This function implements registering a port with the JACK client
  *  [data.jack_client()], getting the port name, then calling ::jack_connect().
+ *
+ * Weird:
+ *
+ *      In RtMidi, the constructor calls connect() [by way of initialize()].
+ *      And openPort() calls connect().
+ *
+ *      Let's add that below.
  */
 
 bool
@@ -964,7 +997,7 @@ midi_jack::open_port (int portnumber, const std::string & portname)
         return true;
     }
 
-    bool result { portnumber >= 0 };                /* -1 == uninit'ed      */
+    bool result { portnumber >= 0  && connect()};   /* -1 == uninit'ed      */
     if (result)
     {
         midi_jack_data & data { jack_data() };
@@ -1027,6 +1060,8 @@ midi_jack::open_port (int portnumber, const std::string & portname)
                         }
                     }
                 }
+                else
+                    error_print("null JACK source pointer", pn);
             }
         }
         is_connected(result);
@@ -1108,7 +1143,6 @@ midi_jack::delete_port ()
             );
             (void) util::warn_message("ring-buffer", tmp);
         }
-//      delete data.jack_buffer();
     }
     if (! has_master())
         engine_disconnect();
@@ -1416,11 +1450,11 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
                 (
                     fullname,
                     aliases,
-                    clientnumber,               /* buss number */
-                    count,                      /* port number */
+                    clientnumber,               /* buss number  */
+                    count,                      /* port number  */
                     iotype,
                     midi::port::kind::normal,
-                    count,                      /* port ID */
+                    count,                      /* port ID      */
                     0                           /* queue number */
                 );
                 ++count;
@@ -1620,8 +1654,7 @@ midi_jack::BPM (midi::bpm bp)
 bool
 midi_jack::send_byte (midi::byte evbyte) const
 {
-    midi::message message;
-    message.push(evbyte);
+    midi::message message(evbyte);
     bool result { send_message(message) };
     if (! result)
     {
@@ -1731,15 +1764,43 @@ midi_jack::clock_continue (midi::pulse tick, midi::pulse /*beats*/)
 int
 midi_jack::poll_for_midi () const
 {
-#if defined USE_OLD_CODE
-    const rtmidi_in_data * rtindata { jack_data().rt_midi_in() };
-    (void) xpc::microsleep(xpc::std_sleep_us());            /* 10 us IIRC   */
-    return not_nullptr(rtindata) ? rtindata->queue().count() : 0 ;
-#else
     (void) xpc::microsleep(xpc::std_sleep_us());            /* 10 us IIRC   */
     return input_data().queue().count();
-#endif
 }
+
+#if defined PLATFORM_DEBUG
+
+/**
+ *
+ */
+
+static void
+show_realtime_msg (midi::byte st)
+{
+    static int s_count { 0 };
+    midi::status eventstat { midi::to_status(st) };
+    char c;
+    switch (eventstat)
+    {
+    case midi::status::clk_clock:      c = 'C';    break;
+    case midi::status::active_sense:   c = 'S';    break;
+    case midi::status::reset:          c = 'R';    break;
+    case midi::status::clk_start:      c = '>';    break;
+    case midi::status::clk_continue:   c = '|';    break;
+    case midi::status::clk_stop:       c = '<';    break;
+    case midi::status::sysex:          c = 'X';    break;
+    default:                           c = '.';    break;
+    }
+    (void) putchar(c);
+    if (++s_count == 80)
+    {
+        s_count = 0;
+        (void) putchar('\n');
+    }
+    fflush(stdout);
+}
+
+#endif
 
 /**
  *  Gets a MIDI event.  This implementation gets a midi::message off the front
@@ -1768,7 +1829,7 @@ bool
 midi_jack::get_midi_event (midi::event * inev)           // input
 {
 #if defined USE_OLD_CODE
-    rtmidi_in_data * rtindata { jack_data().rt_midi_in() };
+    rtmidi_in_data & rtindata { jack_data().rt_midi_in() };
     bool result { not_nullptr(rtindata) && ! rtindata->queue().empty() };
 #else
     bool result { ! input_data().queue().empty() };
@@ -1793,29 +1854,7 @@ midi_jack::get_midi_event (midi::event * inev)           // input
             midi::byte st { mm[0] };
 #if defined PLATFORM_DEBUG
             if (midi::is_realtime_msg(st))
-            {
-                static int s_count { 0 };
-                midi::status eventstat { midi::to_status(st) };
-                char c;
-                switch (eventstat)
-                {
-                case midi::status::clk_clock:      c = 'C';    break;
-                case midi::status::active_sense:   c = 'S';    break;
-                case midi::status::reset:          c = 'R';    break;
-                case midi::status::clk_start:      c = '>';    break;
-                case midi::status::clk_continue:   c = '|';    break;
-                case midi::status::clk_stop:       c = '<';    break;
-                case midi::status::sysex:          c = 'X';    break;
-                default:                           c = '.';    break;
-                }
-                (void) putchar(c);
-                if (++s_count == 80)
-                {
-                    s_count = 0;
-                    (void) putchar('\n');
-                }
-                fflush(stdout);
-            }
+                show_realtime_msg(st);
 #endif
             if (midi::is_sense_or_reset_msg(st))
                 result = false;
@@ -1824,6 +1863,68 @@ midi_jack::get_midi_event (midi::event * inev)           // input
              * Issue #55 (ignoring the channel).  The status is already set,
              * with channel nybble, above, no need to set it here.
              */
+        }
+    }
+    return result;
+}
+
+/**
+ *  This override simply gets the most recent midi::message off of the
+ *  input queue.
+ *
+ *  See the get_midi_event() banner above.
+ */
+
+midi::message
+midi_jack::get_message ()
+{
+    midi::message result;
+    midi_queue & mq { input_data().queue() };
+#if defined PLATFORM_DEBUG_TMI
+    mq.show_values();
+#endif
+
+    bool gotmsg { mq.pop_front_message(result) };
+
+#if defined PLATFORM_DEBUG_TMI
+    mq.show_values();
+#endif
+
+    if (gotmsg)
+    {
+#if defined THIS_CODE_IS_READY
+        /*
+         * How to get the port ID from ints or port names?????
+         */
+
+        int b { int(midi::null_buss()) };
+        if (has_master())
+        {
+            b = master_bus()->get_port_id
+            (
+                midi::port::io::input,
+                int(ev->source.client), int(ev->source.port)
+            );
+        }
+        msg.midi_buss(b);
+        msg.midi_event_type(ev->type);
+#endif
+
+        midi::byte st { result[0] };
+#if defined PLATFORM_DEBUG
+        if (midi::is_realtime_msg(st))
+            show_realtime_msg(st);
+#endif
+        if (midi::is_sense_or_reset_msg(st))
+        {
+            result.clear();                 /* we will return an empty message  */
+        }
+        else
+        {
+#if defined PLATFORM_DEBUG // _TMI
+            if (result.empty())
+                printf("empty JACK message\n");
+#endif
         }
     }
     return result;

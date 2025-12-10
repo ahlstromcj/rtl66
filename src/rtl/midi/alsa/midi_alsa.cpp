@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-01
+ * \updates       2025-12-09
  * \license       See above.
  *
  */
@@ -481,7 +481,7 @@ midi_alsa::midi_alsa
     /*
      *  (void) initialize(client_name());
      *
-     * m_alsa_data.set_initialized(true);
+     *  m_alsa_data.set_initialized(true);
      */
 }
 
@@ -927,7 +927,7 @@ bool
 midi_alsa::setup_input_port ()
 {
     bool result { true };
-    midi_alsa_data & data { alsa_data() };
+    midi_alsa_data & mad_data { alsa_data() };
     if (! input_data().do_input())
     {
 #if ! defined RTL66_ALSA_AVOID_TIMESTAMPING
@@ -936,7 +936,7 @@ midi_alsa::setup_input_port ()
          * Start the input queue. This function is a macro.
          */
 
-        snd_seq_start_queue(data.alsa_client(), data.queue_id(), NULL);
+        snd_seq_start_queue(mad_data.alsa_client(), mad_data.queue_id(), NULL);
         result = drain_output();
 #endif
         bool startthread { use_internal_thread() };
@@ -944,7 +944,7 @@ midi_alsa::setup_input_port ()
             startthread = master_bus()->use_input_thread();
 
         if (startthread)
-            result = start_input_thread(input_data());
+            result = start_input_thread(alsa_data());
 
         if (result)
         {
@@ -981,7 +981,7 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
     bool result { portnumber >= 0 };                    /* -1 == uninit'ed  */
     if (result)
     {
-        midi_alsa_data & data { alsa_data() };
+        midi_alsa_data & mad_data { alsa_data() };
         int nsrc { get_port_count() };
         ::snd_seq_port_info_t * src_pinfo { nullptr };  /* input only       */
         ::snd_seq_port_info_t * dest_pinfo { nullptr }; /* output only      */
@@ -997,7 +997,7 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
         (
             "open_port() %s #%d client handle = %p\n",
             V(port_io_string()), portnumber,
-            (void *)(data.alsa_client())
+            (void *)(mad_data.alsa_client())
         );
 #endif
         if (result)             /* compare get_port_info() to portInfo()    */
@@ -1008,7 +1008,8 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                 snd_seq_port_info_alloca(&dest_pinfo);  /* a macro          */
                 pcount = get_port_info
                 (
-                    data.alsa_client(), dest_pinfo, sm_output_caps, portnumber
+                    mad_data.alsa_client(), dest_pinfo,
+                    sm_output_caps, portnumber
                 );
             }
             else
@@ -1016,7 +1017,8 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                 snd_seq_port_info_alloca(&src_pinfo);   /* a macro          */
                 pcount = get_port_info
                 (
-                    data.alsa_client(), src_pinfo, sm_input_caps, portnumber
+                    mad_data.alsa_client(), src_pinfo,
+                    sm_input_caps, portnumber
                 );
             }
             result = pcount > 0;
@@ -1029,8 +1031,8 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
             {
                 receiver.client = ::snd_seq_port_info_get_client(dest_pinfo);
                 receiver.port = ::snd_seq_port_info_get_port(dest_pinfo);
-                sender.client = ::snd_seq_client_id(data.alsa_client());
-                if (data.vport() < 0)
+                sender.client = ::snd_seq_client_id(mad_data.alsa_client());
+                if (mad_data.vport() < 0)
                 {
                     /*
                      * Seems odd to be setting input (READ) capability here.
@@ -1040,18 +1042,18 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                     {
                         ::snd_seq_create_simple_port
                         (
-                            data.alsa_client(), CSTR(portname),
+                            mad_data.alsa_client(), CSTR(portname),
                             sm_input_caps, sm_generic_caps
                         )
                     };
                     if (portnum >= 0)
-                        data.vport(portnum);
+                        mad_data.vport(portnum);
                     else
                         result = false;
                 }
                 if (result)
                 {
-                    sender.port = data.vport();
+                    sender.port = mad_data.vport();
 
 #if defined PLATFORM_DEBUG_TMI
                     printf
@@ -1073,11 +1075,11 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
             {
                 sender.client = ::snd_seq_port_info_get_client(src_pinfo);
                 sender.port = ::snd_seq_port_info_get_port(src_pinfo);
-                receiver.client = ::snd_seq_client_id(data.alsa_client());
+                receiver.client = ::snd_seq_client_id(mad_data.alsa_client());
 
                 ::snd_seq_port_info_t * pinfo;
                 snd_seq_port_info_alloca(&pinfo);               /* a macro  */
-                if (data.vport() < 0)
+                if (mad_data.vport() < 0)
                 {
                     /*
                      * Seems odd to be setting output capability here.
@@ -1095,13 +1097,16 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                     ::snd_seq_port_info_set_timestamp_real(pinfo, 1);
                     ::snd_seq_port_info_set_timestamp_queue
                     (
-                        pinfo, data.queue_id()
+                        pinfo, mad_data.queue_id()
                     );
 #endif
                     ::snd_seq_port_info_set_name(pinfo, CSTR(portname));
 
-                    int vp = ::snd_seq_create_port(data.alsa_client(), pinfo);
-                    data.vport(vp);
+                    int vp = ::snd_seq_create_port
+                    (
+                        mad_data.alsa_client(), pinfo
+                    );
+                    mad_data.vport(vp);
                     if (vp < 0)
                     {
                         error_print("open_port(input)", snd_strerror(vp));
@@ -1109,8 +1114,8 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                     }
                     else
                     {
-                        data.vport(::snd_seq_port_info_get_port(pinfo));
-                        receiver.port = data.vport();
+                        mad_data.vport(::snd_seq_port_info_get_port(pinfo));
+                        receiver.port = mad_data.vport();
                     }
                     if (result)
                     {
@@ -1164,11 +1169,11 @@ midi_alsa::setup_input_virtual_port ()
     bool result { ! input_data().do_input() };
     if (result)
     {
-        midi_alsa_data & data { alsa_data() };
+        midi_alsa_data & mad_data { alsa_data() };
         (void) join_input_thread();
 
 #if ! defined RTL66_ALSA_AVOID_TIMESTAMPING
-        snd_seq_start_queue(data.alsa_client(), data.queue_id(), NULL);
+        snd_seq_start_queue(mad_data.alsa_client(), mad_data.queue_id(), NULL);
         result = drain_output();
 #endif
         bool startthread { true };
@@ -1176,7 +1181,7 @@ midi_alsa::setup_input_virtual_port ()
             startthread = master_bus()->use_input_thread();
 
         if (startthread)
-            result = start_input_thread(input_data());
+            result = start_input_thread(alsa_data());
 
         if (result)
         {
@@ -1204,26 +1209,26 @@ bool
 midi_alsa::open_virtual_port (const std::string & portname)
 {
     bool result { true };
-    midi_alsa_data & data { alsa_data() };
+    midi_alsa_data & mad_data { alsa_data() };
     if (is_output())
     {
-        if (data.vport() < 0)
+        if (mad_data.vport() < 0)
         {
             int rc
             {
                 ::snd_seq_create_simple_port
                 (
-                    data.alsa_client(), CSTR(portname),
+                    mad_data.alsa_client(), CSTR(portname),
                     sm_input_caps, sm_generic_caps
                 )
             };
-            data.vport(rc);
+            mad_data.vport(rc);
             result = rc == 0;
         }
     }
     else
     {
-        if (data.vport() < 0)
+        if (mad_data.vport() < 0)
         {
             ::snd_seq_port_info_t * pinfo;
             snd_seq_port_info_alloca(&pinfo);                   /* a macro  */
@@ -1234,15 +1239,21 @@ midi_alsa::open_virtual_port (const std::string & portname)
 #if ! defined RTL66_ALSA_AVOID_TIMESTAMPING
             ::snd_seq_port_info_set_timestamping(pinfo, 1);
             ::snd_seq_port_info_set_timestamp_real(pinfo, 1);
-            ::snd_seq_port_info_set_timestamp_queue(pinfo, data.queue_id());
+            ::snd_seq_port_info_set_timestamp_queue
+            (
+                pinfo, mad_data.queue_id()
+            );
 #endif
 
             ::snd_seq_port_info_set_name(pinfo, CSTR(portname));
-            data.vport(::snd_seq_create_port(data.alsa_client(), pinfo));
-            result = data.vport() == 0;
+            mad_data.vport
+            (
+                ::snd_seq_create_port(mad_data.alsa_client(), pinfo)
+            );
+            result = mad_data.vport() == 0;
             if (result)
             {
-                data.vport(::snd_seq_port_info_get_port(pinfo));
+                mad_data.vport(::snd_seq_port_info_get_port(pinfo));
                 result = setup_input_virtual_port();
             }
         }
@@ -1266,8 +1277,8 @@ midi_alsa::subscription
     ::snd_seq_addr_t & receiver
 )
 {
-    midi_alsa_data & data { alsa_data() };
-    ::snd_seq_port_subscribe_t * subscrib { data.subscription() };
+    midi_alsa_data & mad_data { alsa_data() };
+    ::snd_seq_port_subscribe_t * subscrib { mad_data.subscription() };
     bool result { is_nullptr(subscrib) };
     if (result)
     {
@@ -1289,15 +1300,15 @@ midi_alsa::subscription
              * A virtual port issue?
              */
 
-            rc = ::snd_seq_subscribe_port(data.alsa_client(), subscrib);
+            rc = ::snd_seq_subscribe_port(mad_data.alsa_client(), subscrib);
             if (rc == 0)
             {
-                data.subscription(subscrib);
+                mad_data.subscription(subscrib);
             }
             else
             {
-                ::snd_seq_port_subscribe_free(data.subscription());
-                data.subscription(nullptr);
+                ::snd_seq_port_subscribe_free(mad_data.subscription());
+                mad_data.subscription(nullptr);
                 error_print("subscription()", snd_strerror(rc));
                 result = false;
             }
@@ -1314,13 +1325,19 @@ midi_alsa::subscription
 bool
 midi_alsa::remove_subscription ()
 {
-    midi_alsa_data & data { alsa_data() };
-    bool result = not_nullptr_2(data.alsa_client(), data.subscription());
+    midi_alsa_data & mad_data { alsa_data() };
+    bool result = not_nullptr_2
+    (
+        mad_data.alsa_client(), mad_data.subscription()
+    );
     if (result)
     {
-        ::snd_seq_unsubscribe_port(data.alsa_client(), data.subscription());
-        ::snd_seq_port_subscribe_free(data.subscription());
-        data.subscription(nullptr);
+        ::snd_seq_unsubscribe_port
+        (
+            mad_data.alsa_client(), mad_data.subscription()
+        );
+        ::snd_seq_port_subscribe_free(mad_data.subscription());
+        mad_data.subscription(nullptr);
     }
     return result;
 }
@@ -1330,12 +1347,12 @@ midi_alsa::remove_subscription ()
  */
 
 bool
-midi_alsa::start_input_thread (rtmidi_in_data & indata)
+midi_alsa::start_input_thread (midi_alsa_data & maddata)
 {
     bool result { true };
     if (is_input())
     {
-        midi_alsa_data & data { alsa_data() };
+        rtmidi_in_data & indata { maddata.rt_midi_in() };
         pthread_attr_t attr;
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
@@ -1346,7 +1363,7 @@ midi_alsa::start_input_thread (rtmidi_in_data & indata)
         {
             pthread_create
             (
-                data.thread_address(), &attr, midi_alsa_handler, &indata
+                maddata.thread_address(), &attr, midi_alsa_handler, &maddata
             )
         };
         pthread_attr_destroy(&attr);
@@ -1361,10 +1378,17 @@ midi_alsa::join_input_thread ()
     bool result { true };
     if (is_input())
     {
-        midi_alsa_data & data { alsa_data() };
+        midi_alsa_data & mad_data { alsa_data() };
         input_data().do_input(false);
-        if (! pthread_equal(data.thread_handle(), data.dummy_thread_id()))
-            pthread_join(data.thread_handle(), NULL);
+        bool match
+        {
+            pthread_equal
+            (
+                mad_data.thread_handle(), mad_data.dummy_thread_id()
+            ) != 0
+        };
+        if (! match)
+            pthread_join(mad_data.thread_handle(), NULL);
     }
     return result;
 }
@@ -1378,13 +1402,13 @@ int
 midi_alsa::get_port_count ()
 {
     int result { 0 };
-    midi_alsa_data & data { alsa_data() };
-    if (not_nullptr(data.alsa_client()))
+    midi_alsa_data & mad_data { alsa_data() };
+    if (not_nullptr(mad_data.alsa_client()))
     {
         unsigned caps { is_output() ? sm_output_caps : sm_input_caps };
         ::snd_seq_port_info_t * pinfo;
         snd_seq_port_info_alloca(&pinfo);
-        result = get_port_info(data.alsa_client(), pinfo, caps, -1);
+        result = get_port_info(mad_data.alsa_client(), pinfo, caps, -1);
     }
     return result;
 }
@@ -1397,8 +1421,8 @@ std::string
 midi_alsa::get_port_name (int portnumber)
 {
     std::string result;
-    midi_alsa_data & data { alsa_data() };
-    if (not_nullptr(data.alsa_client()) && portnumber >= 0)
+    midi_alsa_data & mad_data { alsa_data() };
+    if (not_nullptr(mad_data.alsa_client()) && portnumber >= 0)
     {
         ::snd_seq_client_info_t * cinfo;
         ::snd_seq_port_info_t * pinfo;
@@ -1408,12 +1432,12 @@ midi_alsa::get_port_name (int portnumber)
 
         int pcount
         {
-            get_port_info(data.alsa_client(), pinfo, caps, portnumber)
+            get_port_info(mad_data.alsa_client(), pinfo, caps, portnumber)
         };
         if (pcount > 0)
         {
             int cnum { ::snd_seq_port_info_get_client(pinfo) };
-            ::snd_seq_get_any_client_info(data.alsa_client(), cnum, cinfo);
+            ::snd_seq_get_any_client_info(mad_data.alsa_client(), cnum, cinfo);
 
             /*
              * These lines added to make sure devices are listed with full
@@ -1452,17 +1476,19 @@ midi_alsa::close_port ()
         result = remove_subscription();
         if (result)
         {
+#if ! defined RTL66_ALSA_AVOID_TIMESTAMPING     /* stop the input queue     */
             if (is_input())
             {
-                midi_alsa_data & data { alsa_data() };
-
-#if ! defined RTL66_ALSA_AVOID_TIMESTAMPING     /* stop the input queue     */
-                ::snd_seq_stop_queue(data.alsa_client(), data.queue_id(), NULL);
+                midi_alsa_data & mad_data { alsa_data() };
+                ::snd_seq_stop_queue
+                (
+                    mad_data.alsa_client(), mad_data.queue_id(), NULL
+                );
                 result = drain_output();
                 if (result)
                     close_input_triggers();
-#endif
             }
+#endif
         }
     }
     is_connected(false);
@@ -1472,8 +1498,8 @@ midi_alsa::close_port ()
 bool
 midi_alsa::set_client_name (const std::string & clientname)
 {
-    midi_alsa_data & data { alsa_data() };
-    return set_seq_client_name(data.alsa_client(), clientname);
+    midi_alsa_data & mad_data { alsa_data() };
+    return set_seq_client_name(mad_data.alsa_client(), clientname);
 }
 
 bool
@@ -1507,15 +1533,21 @@ midi_alsa::set_seq_client_name
 bool
 midi_alsa::set_port_name (const std::string & portname)
 {
-    midi_alsa_data & data { alsa_data() };
-    bool result = not_nullptr(data.alsa_client());
+    midi_alsa_data & mad_data { alsa_data() };
+    bool result = not_nullptr(mad_data.alsa_client());
     if (result)
     {
         ::snd_seq_port_info_t * pinfo;
         snd_seq_port_info_alloca(&pinfo);
-        ::snd_seq_get_port_info(data.alsa_client(), data.vport(), pinfo);
+        ::snd_seq_get_port_info
+        (
+            mad_data.alsa_client(), mad_data.vport(), pinfo
+        );
         ::snd_seq_port_info_set_name(pinfo, CSTR(portname));
-        ::snd_seq_set_port_info(data.alsa_client(), data.vport(), pinfo);
+        ::snd_seq_set_port_info
+        (
+            mad_data.alsa_client(), mad_data.vport(), pinfo
+        );
 
         /*
          * No deallocation of port info???
@@ -1548,10 +1580,10 @@ bool
 midi_alsa::send_message (const midi::byte * msg, size_t sz) const
 {
     size_t nbytes { sz };
-    midi_alsa_data & data { const_cast<midi_alsa_data &>(alsa_data()) };
-    if (nbytes > data.buffer_size())
+    midi_alsa_data & mad_data { const_cast<midi_alsa_data &>(alsa_data()) };
+    if (nbytes > mad_data.buffer_size())
     {
-        bool ok { data.resize_event_parser(nbytes) };
+        bool ok { mad_data.resize_event_parser(nbytes) };
         if (! ok)
         {
             error                       /* error() throws an rtl::rterror   */
@@ -1562,7 +1594,7 @@ midi_alsa::send_message (const midi::byte * msg, size_t sz) const
         }
     }
 
-    midi::byte * b { data.buffer() };
+    midi::byte * b { mad_data.buffer() };
     if (not_nullptr(b))
     {
         for (size_t i = 0; i < nbytes; ++i)
@@ -1571,17 +1603,17 @@ midi_alsa::send_message (const midi::byte * msg, size_t sz) const
     else
         error(rterror::kind::driver_error, "send_message(): null buffer");
 
-    bool ok = data.new_event_parser();
+    bool ok = mad_data.new_event_parser();
     if (! ok)
         error(rterror::kind::driver_error, "send_message(): out of memory");
 
-    ::snd_midi_event_t * parser { data.event_parser() };
+    ::snd_midi_event_t * parser { mad_data.event_parser() };
     size_t offset { 0 };
     while (offset < nbytes)
     {
         ::snd_seq_event_t ev;
         :: snd_seq_ev_clear(&ev);
-        snd_seq_ev_set_source(&ev, data.vport());   /* macro? */
+        snd_seq_ev_set_source(&ev, mad_data.vport());   /* macro? */
         snd_seq_ev_set_subs(&ev);
         snd_seq_ev_set_direct(&ev);
 
@@ -1604,7 +1636,7 @@ midi_alsa::send_message (const midi::byte * msg, size_t sz) const
         }
         offset += rc;
 
-        int ec { ::snd_seq_event_output(data.alsa_client(), &ev) };
+        int ec { ::snd_seq_event_output(mad_data.alsa_client(), &ev) };
         if (ec < 0)
         {
             warning("send_message(): output error");
@@ -1612,7 +1644,7 @@ midi_alsa::send_message (const midi::byte * msg, size_t sz) const
         }
     }
     (void) drain_output();
-    (void) data.free_event_parser();
+    (void) mad_data.free_event_parser();
     return true;
 }
 
@@ -1650,8 +1682,8 @@ int
 midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
 {
     int result { 0 };
-    midi_alsa_data & data { alsa_data() };
-    ::snd_seq_t * seq { data.alsa_client() };
+    midi_alsa_data & mad_data { alsa_data() };
+    ::snd_seq_t * seq { mad_data.alsa_client() };
     if (preclear)
         ioports.clear();
 
@@ -1805,16 +1837,19 @@ midi_alsa::PPQN (midi::ppqn ppq)
     bool result { is_output() || is_engine() };
     if (result)
     {
-        midi_alsa_data & data { alsa_data() };
-        int q { midi_tempo_queue() };               /* data.queue_id()      */
+        midi_alsa_data & mad_data { alsa_data() };
+        int q { midi_tempo_queue() };               /* mad_data.queue_id()      */
         ::snd_seq_queue_tempo_t * qtempo;
         snd_seq_queue_tempo_alloca(&qtempo);
 
-        int rc { ::snd_seq_get_queue_tempo(data.alsa_client(), q, qtempo) };
+        int rc
+        {
+            ::snd_seq_get_queue_tempo(mad_data.alsa_client(), q, qtempo)
+        };
         if (rc == 0)
         {
             ::snd_seq_queue_tempo_set_ppq(qtempo, ppq);
-            ::snd_seq_set_queue_tempo(data.alsa_client(), q, qtempo);
+            ::snd_seq_set_queue_tempo(mad_data.alsa_client(), q, qtempo);
         }
         else
             result = false;
@@ -1848,17 +1883,20 @@ midi_alsa::BPM (midi::bpm bp)
     bool result = is_output() || is_engine();
     if (result)
     {
-        midi_alsa_data & data { alsa_data() };
-        int q { midi_tempo_queue() };                   /* data.queue_id()  */
+        midi_alsa_data & mad_data { alsa_data() };
+        int q { midi_tempo_queue() };               /* mad_data.queue_id()  */
         unsigned tempo_us { unsigned(midi::tempo_us_from_bpm(bp)) };
         ::snd_seq_queue_tempo_t * qtempo;
-        snd_seq_queue_tempo_alloca(&qtempo);            /* make tempo struc */
+        snd_seq_queue_tempo_alloca(&qtempo);        /* make tempo struc     */
 
-        int rc { ::snd_seq_get_queue_tempo(data.alsa_client(), q, qtempo) };
+        int rc
+        {
+            ::snd_seq_get_queue_tempo(mad_data.alsa_client(), q, qtempo)
+        };
         if (rc == 0)
         {
             ::snd_seq_queue_tempo_set_tempo(qtempo, tempo_us);
-            rc = ::snd_seq_set_queue_tempo(data.alsa_client(), q, qtempo);
+            rc = ::snd_seq_set_queue_tempo(mad_data.alsa_client(), q, qtempo);
             if (rc < 0)
                 result = false;
         }
@@ -1878,8 +1916,8 @@ midi_alsa::close_midi_tempo_queue ()
     int mtq { midi_tempo_queue() };
     if (mtq >= 0)
     {
-        midi_alsa_data & data { alsa_data() };
-        ::snd_seq_t * seq { data.alsa_client() };
+        midi_alsa_data & mad_data { alsa_data() };
+        ::snd_seq_t * seq { mad_data.alsa_client() };
         if (not_nullptr(seq))
         {
             ::snd_seq_event_t ev;
@@ -1899,16 +1937,16 @@ midi_alsa::close_midi_tempo_queue ()
 bool
 midi_alsa::clock_start ()
 {
-    midi_alsa_data & data { alsa_data() };
+    midi_alsa_data & mad_data { alsa_data() };
     ::snd_seq_event_t ev;
     snd_seq_ev_clear(&ev);                              /* memsets it to 0  */
     ev.type = SND_SEQ_EVENT_START;
     snd_seq_ev_set_fixed(&ev);
     snd_seq_ev_set_priority(&ev, 1);
-    snd_seq_ev_set_source(&ev, data.vport());           /* set the source   */
+    snd_seq_ev_set_source(&ev, mad_data.vport());       /* set the source   */
     snd_seq_ev_set_subs(&ev);
     snd_seq_ev_set_direct(&ev);                         /* it's immediate   */
-    snd_seq_event_output(data.alsa_client(), &ev);      /* pump into queue  */
+    snd_seq_event_output(mad_data.alsa_client(), &ev);  /* pump into queue  */
     return true;
 }
 
@@ -1925,17 +1963,17 @@ midi_alsa::clock_start ()
 bool
 midi_alsa::clock_send (midi::pulse /*tick*/)
 {
-    midi_alsa_data & data { alsa_data() };
+    midi_alsa_data & mad_data { alsa_data() };
     ::snd_seq_event_t ev;
     snd_seq_ev_clear(&ev);                              /* clear event      */
     ev.type = SND_SEQ_EVENT_CLOCK;
     ev.tag = 127;
     snd_seq_ev_set_fixed(&ev);
     snd_seq_ev_set_priority(&ev, 1);
-    snd_seq_ev_set_source(&ev, data.vport());           /* set source       */
+    snd_seq_ev_set_source(&ev, mad_data.vport());       /* set source       */
     snd_seq_ev_set_subs(&ev);
     snd_seq_ev_set_direct(&ev);                         /* it's immediate   */
-    snd_seq_event_output(data.alsa_client(), &ev);      /* pump into queue  */
+    snd_seq_event_output(mad_data.alsa_client(), &ev);  /* pump into queue  */
     return true;
 }
 
@@ -1946,16 +1984,16 @@ midi_alsa::clock_send (midi::pulse /*tick*/)
 bool
 midi_alsa::clock_stop ()
 {
-    midi_alsa_data & data { alsa_data() };
+    midi_alsa_data & mad_data { alsa_data() };
     ::snd_seq_event_t ev;
     snd_seq_ev_clear(&ev);                              /* memsets it to 0  */
     ev.type = SND_SEQ_EVENT_STOP;
     snd_seq_ev_set_fixed(&ev);
     snd_seq_ev_set_priority(&ev, 1);
-    snd_seq_ev_set_source(&ev, data.vport());           /* set the source   */
+    snd_seq_ev_set_source(&ev, mad_data.vport());       /* set the source   */
     snd_seq_ev_set_subs(&ev);
     snd_seq_ev_set_direct(&ev);                         /* it's immediate   */
-    snd_seq_event_output(data.alsa_client(), &ev);      /* pump into queue  */
+    snd_seq_event_output(mad_data.alsa_client(), &ev);  /* pump into queue  */
     return true;
 }
 
@@ -1974,7 +2012,7 @@ midi_alsa::clock_stop ()
 bool
 midi_alsa::clock_continue (midi::pulse /* tick */, midi::pulse beats)
 {
-    midi_alsa_data & data { alsa_data() };
+    midi_alsa_data & mad_data { alsa_data() };
     ::snd_seq_event_t ev;
     snd_seq_ev_clear(&ev);                                  /* clear event  */
     ev.type = SND_SEQ_EVENT_CONTINUE;
@@ -1987,15 +2025,15 @@ midi_alsa::clock_continue (midi::pulse /* tick */, midi::pulse beats)
     snd_seq_ev_set_fixed(&evc);
     snd_seq_ev_set_priority(&ev, 1);
     snd_seq_ev_set_priority(&evc, 1);
-    snd_seq_ev_set_source(&evc, data.vport());
+    snd_seq_ev_set_source(&evc, mad_data.vport());
     snd_seq_ev_set_subs(&evc);
-    snd_seq_ev_set_source(&ev, data.vport());
+    snd_seq_ev_set_source(&ev, mad_data.vport());
     snd_seq_ev_set_subs(&ev);
     snd_seq_ev_set_direct(&ev);                             /* immediate    */
     snd_seq_ev_set_direct(&evc);
-    snd_seq_event_output(data.alsa_client(), &evc);         /* Song Pos.    */
-    snd_seq_drain_output(data.alsa_client());               /* flush output */
-    snd_seq_event_output(data.alsa_client(), &ev);          /* Continue     */
+    snd_seq_event_output(mad_data.alsa_client(), &evc);     /* Song Pos.    */
+    snd_seq_drain_output(mad_data.alsa_client());           /* flush output */
+    snd_seq_event_output(mad_data.alsa_client(), &ev);      /* Continue     */
     return true;
 }
 
@@ -2016,9 +2054,10 @@ midi_alsa::poll_for_midi () const
     }
     else
     {
-        const rtmidi_in_data & rtidata { input_data() };
-        const midi_queue & mq { rtidata.queue() };
-        return mq.count();
+//      const rtmidi_in_data & rtidata { input_data() };
+//      const midi_queue & mq { rtidata.queue() };
+//      return mq.count();
+        return input_data().queue().count();
     }
 }
 
@@ -2322,7 +2361,7 @@ midi_alsa::get_message ()
         else
             error_print("get_midi_event()", "input error");
 
-        return false;
+        return result;
     }
 #if defined PLATFORM_DEBUG_TMI
     else if (remcount > 0)                      /* more events waiting      */
@@ -2493,7 +2532,7 @@ midi_alsa::remove_queued_on_events (int tag)
 {
     if (is_output())
     {
-        midi_alsa_data & data { alsa_data() };
+        midi_alsa_data & mad_data { alsa_data() };
         ::snd_seq_remove_events_t * remove_events;
         snd_seq_remove_events_malloc(&remove_events);
         ::snd_seq_remove_events_set_condition
@@ -2502,7 +2541,7 @@ midi_alsa::remove_queued_on_events (int tag)
                 SND_SEQ_REMOVE_IGNORE_OFF
         );
         ::snd_seq_remove_events_set_tag(remove_events, tag);
-        ::snd_seq_remove_events(data.alsa_client(), remove_events);
+        ::snd_seq_remove_events(mad_data.alsa_client(), remove_events);
         ::snd_seq_remove_events_free(remove_events);
     }
 }
