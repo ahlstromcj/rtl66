@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2025-12-09
+ * \updates       2025-12-12
  * \license       See above.
  *
  */
@@ -63,9 +63,34 @@ class RTL66_DLL_PUBLIC midi_alsa_data
 private:
 
     bool m_is_initialized { false };
+
+    /**
+     *  Provides a copy of the client pointer that is used by this
+     *  port. It is passed to the midi_alsa_handler() input callback.
+     */
+
     snd_seq_t * m_alsa_client { nullptr };
+
+    /**
+     *  This value is the index of the port in the list of ports.
+     *  It starts at 0 and ends at one less than the number of
+     *  ports discovered.
+     *
+     *  It is portnumber that the application can present to the user
+     *  to select a port to operate on.
+     *
+     *  Do not confuse it with the vport value described next.
+     */
+
     int m_portnum { -1 };
+
+    /**
+     *  This value is the port ID of a port_info() container, and
+     *  is obtained by the snd_seq_port_info_get_port() function.
+     */
+
     int m_vport { -1 };
+
     snd_seq_port_subscribe_t * m_subscription { nullptr };
 
     /**

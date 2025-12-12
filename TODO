@@ -1,6 +1,6 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-12-09
+2019-04-13 to 2025-12-11
 
 For version 0.3:
 
@@ -10,6 +10,12 @@ For version 0.3:
 
 Fixes:
 
+    -   In the bus hierarchy, sort out the engine midi-API vs. the
+        bus-specific midi-API.
+        -   Polling.
+            -   Poll for all ports via the masterbus.
+            -   Poll for each port using its own midi_api port and
+                jack-process.
     -   Why is the note off always at time 0?
 
         [cbmidiin] Msg:  3 bytes @ 3285302:  0x90 0x41 0x43 buss/index 255

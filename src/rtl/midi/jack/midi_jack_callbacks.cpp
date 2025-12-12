@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-09
+ * \updates       2025-12-12
  * \license       See above.
  *
  *  The JACK callbacks have been moved into a separate file for better
@@ -44,6 +44,7 @@
 #include "rtl66-config.h"               /* RTL66_HAVE_JACK_PORT_RENAME      */
 #include "midi/eventcodes.hpp"          /* midi::status enum, functions...  */
 #include "midi/calculations.hpp"        /* midi::extract_port_names()       */
+#include "midi/masterbus.hpp"           /* midi::masterbus class for I/O    */
 #include "midi/ports.hpp"               /* ::midi:ports class               */
 #include "rtl/midi/rtmidi_in_data.hpp"  /* rtl::rtmidi_in_data class        */
 #include "util/msgfunctions.hpp"        /* util::async_safe_strprint() etc. */
@@ -63,11 +64,9 @@ const char * JACK_METADATA_ICON_NAME
     "http://jackaudio.org/metadata/icon-name"
 };
 
-/*
- ----------------------------------------------------------------------------
-  Static items
- ----------------------------------------------------------------------------
- */
+/*--------------------------------------------------------------------------
+ * Static items
+ *--------------------------------------------------------------------------*/
 
 /**
  *  The buffer size for basic MIDI messages.  Probably excludes SysEx
@@ -86,9 +85,9 @@ valid_frame_offset (jack_nframes_t offset)
     return offset != UINT32_MAX;
 }
 
-/*------------------------------------------------------------------------
+/*--------------------------------------------------------------------------
  * JACK callback setup functions (used in midi_jack)
- *------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------*/
 
 bool
 jack_set_process_cb
@@ -342,30 +341,17 @@ jack_set_meta_data
  *  have to be retrieved in each callback for proper functionning.
  */
 
-int
-jack_process_in (jack_nframes_t framect, void * arg)
+static int
+jack_process_in_impl (jack_nframes_t framect, midi_jack_data & jackdata)
 {
-    static bool s_first = false;
-    if (! s_first)
-    {
-        printf("jack_process_io(%p)\n", arg);
-        s_first = true;
-    }
-    midi_jack_data * jackdata { midi_jack::static_data_cast(arg) };
-    rtmidi_in_data & rtdata { jackdata->rt_midi_in() };
-    jack_port_t * jport { jackdata->jack_port() };
-    if (is_nullptr(jport))                      /* port not yet opened?     */
-    {
-        /*
-         * Way too much!
-         *
-         * error_print("jack_process_in", "no port");
-         */
-
+    int result { 0 };
+    jack_client_t * jackclient { jackdata.jack_client() };
+    jack_port_t * jackport { jackdata.jack_port() };
+    if (is_nullptr_2(jackclient, jackport))
         return 0;
-    }
 
-    void * buff { ::jack_port_get_buffer(jport, framect) };
+    rtmidi_in_data & rtdata { jackdata.rt_midi_in() };
+    void * buff { ::jack_port_get_buffer(jackport, framect) };
     bool allowsysex { rtdata.allow_sysex() };
     bool moresysex { rtdata.continue_sysex() };
     int evcount { int(::jack_midi_get_event_count(buff)) };
@@ -408,12 +394,11 @@ jack_process_in (jack_nframes_t framect, void * arg)
         }
         else
         {
-            jtime -= jackdata->jack_lasttime();
+            jtime -= jackdata.jack_lasttime();
             delta_jtime = jack_time_t(jtime * 0.000001);    /* microsecs!!! */
             msg.jack_stamp(delta_jtime);                    /* Seq66 #100   */
         }
-
-        jackdata->jack_lasttime(jtime);
+        jackdata.jack_lasttime(jtime);
         if (! moresysex)
             msg.clear();
 
@@ -500,7 +485,18 @@ jack_process_in (jack_nframes_t framect, void * arg)
             }
         }
     }
-    return 0;
+    return result;
+}
+
+int
+jack_process_in (jack_nframes_t framect, void * arg)
+{
+    int result { 0 };
+    midi_jack_data * jackdata { midi_jack::static_data_cast(arg) };
+    if (not_nullptr(jackdata))
+        result = jack_process_in_impl(framect, *jackdata);
+
+    return result;
 }
 
 /**
@@ -648,73 +644,85 @@ jack_get_event_data
  *    Returns 0.
  */
 
+static int
+jack_process_out_impl (jack_nframes_t framect, midi_jack_data & jackdata)
+{
+    int result { 0 };
+    jack_client_t * jackclient { jackdata.jack_client() };
+    jack_port_t * jackport { jackdata.jack_port() };
+    if (is_nullptr_2(jackclient, jackport))
+        return 0;
+
+    char mbuffer[s_message_buffer_size];
+    char * mbuf { &mbuffer[0] };
+    const jack_nframes_t cycle_start { ::jack_last_frame_time(jackclient) };
+
+    /*
+     * Seq66's version might need to be FIXED!
+     */
+
+    jack_nframes_t lastvalue { 0 };
+    void * buff { ::jack_port_get_buffer(jackport, framect) };
+    jack_position_t pos
+    {
+        transport::jack::transport::get_jack_parameters().position
+    };
+    if (midi_jack_data::recalculate_frame_factor(pos, framect))
+        util::async_safe_errprint("JACK settings changed");
+
+    ::jack_midi_clear_buffer(buff);
+    for (;;)
+    {
+        size_t destsz { s_message_buffer_size };
+        jack_nframes_t offset
+        {
+            jack_get_event_data
+            (
+                &jackdata, framect, cycle_start, lastvalue, mbuf, destsz
+            )
+        };
+        if (destsz > 0 && valid_frame_offset(offset))
+        {
+            const jack_midi_data_t * data
+            {
+                reinterpret_cast<const jack_midi_data_t *>(mbuf)
+            };
+            int rc { ::jack_midi_event_write(buff, offset, data, destsz) };
+            if (rc != 0)
+            {
+                util::async_safe_errprint("JACK MIDI write error");
+                break;
+            }
+            lastvalue = offset;            /* tricky code */
+        }
+        else
+            break;
+    }
+#if RTL66_HAVE_SEMAPHORE_H
+    (void) jackdata.semaphore_wait_and_post();
+#endif
+    return result;
+}
+
 int
 jack_process_out (jack_nframes_t framect, void * arg)
 {
+    int result { 0 };
     midi_jack_data * jackdata { midi_jack::static_data_cast(arg) };
-    jack_port_t * jackport { jackdata->jack_port() };
-    if (not_nullptr(jackport))
-    {
-        char mbuffer[s_message_buffer_size];
-        char * mbuf { &mbuffer[0] };
-        const jack_nframes_t cycle_start
-        {
-            ::jack_last_frame_time(jackdata->jack_client())
-        };
+    if (not_nullptr(jackdata))
+        result = jack_process_out_impl(framect, *jackdata);
 
-        /*
-         * Seq66's version might need to be FIXED!
-         */
-
-        jack_nframes_t lastvalue { 0 };
-        void * buff { ::jack_port_get_buffer(jackdata->jack_port(), framect) };
-        jack_position_t pos
-        {
-            transport::jack::transport::get_jack_parameters().position
-        };
-        if (midi_jack_data::recalculate_frame_factor(pos, framect))
-            util::async_safe_errprint("JACK settings changed");
-
-        ::jack_midi_clear_buffer(buff);
-        for (;;)
-        {
-            size_t destsz { s_message_buffer_size };
-            jack_nframes_t offset
-            {
-                jack_get_event_data
-                (
-                    jackdata, framect, cycle_start, lastvalue, mbuf, destsz
-                )
-            };
-            if (destsz > 0 && valid_frame_offset(offset))
-            {
-                const jack_midi_data_t * data
-                {
-                    reinterpret_cast<const jack_midi_data_t *>(mbuf)
-                };
-                int rc { ::jack_midi_event_write(buff, offset, data, destsz) };
-                if (rc != 0)
-                {
-                    util::async_safe_errprint("JACK MIDI write error");
-                    break;
-                }
-                lastvalue = offset;            /* tricky code */
-            }
-            else
-                break;
-        }
-#if RTL66_HAVE_SEMAPHORE_H
-        (void) jackdata->semaphore_wait_and_post();
-#endif
-    }
-    return 0;
+    return result;
 }
 
 /**
  *  Provides a JACK callback function that uses the callbacks defined in the
  *  midi_jack module.  This function calls both the input callback and
  *  the output callback, depending on the port type.  This may lead to
- *  delays, depending on the size of the JACK MIDI buffer.
+ *  delays, depending on the size of the JACK MIDI buffer. Possible methods:
+ *
+ *      -   Check all inputs, then check all outputs.
+ *      -   Alternate between input and output.
  *
  * \param framect
  *      The frame number from the JACK API.
@@ -735,9 +743,20 @@ jack_process_io (jack_nframes_t framect, void * arg)
         printf("jack_process_io(%p)\n", arg);
         s_first = true;
     }
-    if (framect > 0)
+
+    midi_jack_data * jackdata { midi_jack::static_data_cast(arg) };
+    rtmidi_in_data & rtdata { jackdata->rt_midi_in() };
+    midi::masterbus * mbusptr { jackdata->master_bus_ptr() };
+    if (framect > 0 && not_nullptr(mbusptr))
     {
 #if 0
+
+        midi::busarray & inbusses { mbusptr->inbus_array () };
+        midi::busarray & outbusses { mbusptr->outbus_array () };
+
+        HOW TO get the midi_jack_data from the bus_in and bus_out????
+
+
         transport::jack::info * self
         {
             reinterpret_cast<transport::jack::info *>(arg)

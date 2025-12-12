@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-10
+ * \updates       2025-12-11
  * \license       See above.
  *
  *  Written primarily by Alexander Svetalkin, with updates for delta time by
@@ -496,6 +496,7 @@ midi_jack::midi_jack
      */
 
     m_jack_data.master_bus_ptr(&mbus);
+    api_data(&m_jack_data);
 }
 
 midi_jack::midi_jack
@@ -510,6 +511,7 @@ midi_jack::midi_jack
     if (clientname.empty())
         client_name("rtl-jack");
 
+    api_data(&m_jack_data);
     (void) initialize(client_name());
 }
 
@@ -530,10 +532,7 @@ midi_jack::~midi_jack ()
         {
 #if RTL66_HAVE_SEMAPHORE_H
             if (is_output())
-            {
-                midi_jack_data & data { jack_data() };
-                data.semaphore_destroy();
-            }
+                jack_data().semaphore_destroy();
 #endif
             delete_port();
         }
@@ -871,7 +870,6 @@ midi_jack::connect ()
     if (result)
     {
         data.jack_client(c);
-        api_data(&data);
         result = engine_activate();
     }
     return result;
@@ -893,7 +891,6 @@ midi_jack::initialize (const std::string & clientname)
 {
     bool result;
     midi_jack_data & data { jack_data() };
-    api_data(&data);
 
     /*
      * There is no need to nullify these items. In the masterbus
@@ -912,7 +909,6 @@ midi_jack::initialize (const std::string & clientname)
 #endif
     if (! reuse_connection())
     {
-        api_data(&data);
         result = connect();
     }
     if (! result)
@@ -1598,7 +1594,6 @@ midi_jack::reuse_connection ()
         {
             midi_jack_data & data { jack_data() };
             data.jack_client(jc);
-            api_data(&data);
         }
     }
     return result;
@@ -1672,8 +1667,7 @@ midi_jack::send_byte (midi::byte evbyte) const
 bool
 midi_jack::clock_start ()
 {
-    midi_jack_data * jkdata { reinterpret_cast<midi_jack_data *>(api_data()) };
-    ::jack_transport_start(jkdata->jack_client());
+    ::jack_transport_start(jack_data().jack_client());
     return send_status(midi::status::clk_start);
 }
 
@@ -1702,10 +1696,7 @@ midi_jack::clock_send (midi::pulse tick)
 bool
 midi_jack::clock_stop ()
 {
-    // Could use jack_data() as well.  Double-check.
-
-    midi_jack_data * jkdata { reinterpret_cast<midi_jack_data *>(api_data()) };
-    ::jack_transport_stop(jkdata->jack_client());
+    ::jack_transport_stop(jack_data().jack_client());
     return send_status(midi::status::clk_stop);
 }
 
@@ -1723,17 +1714,19 @@ midi_jack::clock_stop ()
 bool
 midi_jack::clock_continue (midi::pulse tick, midi::pulse /*beats*/)
 {
-    midi_jack_data * jkdata { reinterpret_cast<midi_jack_data *>(api_data()) };
     int beat_width { 4 };                                 // no m_beat_width !!!
     int ticks_per_beat { midi_api::PPQN() * 10 };
     midi::bpm beats_per_minute { midi_api::BPM() };
     uint64_t tick_rate
     {
-        uint64_t(::jack_get_sample_rate(jkdata->jack_client()) * tick * 60.0)
+        uint64_t
+        (
+            ::jack_get_sample_rate(jack_data().jack_client()) * tick * 60.0
+        )
     };
     long tpb_bpm { long(ticks_per_beat * beats_per_minute * 4.0 / beat_width) };
     uint64_t jack_frame { tick_rate / tpb_bpm };
-    if (::jack_transport_locate(jkdata->jack_client(), jack_frame) == 0)
+    if (::jack_transport_locate(jack_data().jack_client(), jack_frame) == 0)
     {
         /*
          * New code to work like the ALSA version, needs testing.  Related to
@@ -2099,7 +2092,7 @@ midi_jack::send_message (const midi::byte * msg, size_t sz) const
 #if 0
         while
         (
-            ::jack_ringbuffer_write_space(jkdata->buffer()) <
+            ::jack_ringbuffer_write_space(jack_data().buffer()) <
                 sizeof(nbytes) + sz
         )
         {

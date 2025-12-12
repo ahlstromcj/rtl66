@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-11-20
+ * \updates       2025-12-11
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -767,6 +767,18 @@ public:
         return false;
     }
 
+#if 0
+    void * api_data ()
+    {
+        return rt_api_ptr()->api_data();
+    }
+
+    const void * api_data () const
+    {
+        return rt_api_ptr()->api_data();
+    }
+#endif
+
     void print ();
 
 protected:
@@ -778,6 +790,11 @@ protected:
 
     rtl::midi_api * midi_api_ptr ();
     const rtl::midi_api * midi_api_ptr () const;
+
+#if 0
+    virtual rtl::midi_api * rt_api_ptr () = 0;
+    virtual const rtl::midi_api * rt_api_ptr () const = 0;
+#endif
 
 };          // class bus
 

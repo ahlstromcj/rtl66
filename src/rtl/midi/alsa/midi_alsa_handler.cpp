@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-09
+ * \updates       2025-12-12
  * \license       See above.
  *
  *  This module is meant to be #include'd in midi_alsa.cpp. It's been
@@ -265,8 +265,8 @@ midi_alsa_handler (void * ptr)
 
     midi_alsa_data * mad_data { midi_alsa::static_data_cast(ptr) };
     rtmidi_in_data & rtidata { mad_data->rt_midi_in() };
-
     ::snd_seq_t * client { mad_data->alsa_client() };
+    int bussindex { mad_data->port_number() };
     if (rtidata.queue().unallocated())
     {
         error_print("midi_alsa_handler()", "queue unallocated");
@@ -360,6 +360,8 @@ midi_alsa_handler (void * ptr)
                 moresysex = (ev->type == SND_SEQ_EVENT_SYSEX) &&
                     ! midi::is_sysex_end_msg(mmsg.back());     // 0xF7
 
+                mmsg.midi_buss(bussindex);
+                mmsg.midi_event_type(ev->type);
                 if (! moresysex)
                 {
                     /*

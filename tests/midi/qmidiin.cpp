@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-07-01
- * \updates       2025-11-24
+ * \updates       2025-12-12
  * \license       See above.
  *
  *      Simple program to test MIDI input and retrieval from the queue.
@@ -181,6 +181,16 @@ read_all_ports (rtl::rtmidi::api rapi, int portcount)
     bool result { portcount > 0 };
     if (result)
     {
+        /*
+         * We pass false as the last parameter so that the internal
+         * MIDI API input thread is *not* used. We do our own polling.
+         * We also pass a 0 queue-size which means the default size is
+         * used, or 8 for easier debugging.
+         *
+         * Too tricky!
+         */
+
+        const int queuesize { 8 };                          /* use 0 or 8   */
         try
         {
             using port_ptr = std::unique_ptr<rtl::rtmidi_in>;
@@ -194,7 +204,8 @@ read_all_ports (rtl::rtmidi::api rapi, int portcount)
 
                 port_ptr inptr
                 {
-                    new (std::nothrow) rtl::rtmidi_in(rapi, name)
+                    new (std::nothrow)
+                        rtl::rtmidi_in(rapi, name, queuesize, false)
                 };
                 if (inptr)
                 {

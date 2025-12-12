@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-09
+ * \updates       2025-12-12
  * \license       See above.
  *
  */
@@ -967,6 +967,18 @@ midi_alsa::setup_input_port ()
 
 /**
  *  This function implements registering a port with the ALSA client.
+ *
+ * \param portnumber
+ *      This is the index of the selected port. That is, it is the number,
+ *      starting at 0, of the port in the order of port discovery.
+ *
+ * \param portname
+ *      This is ALSA's name for the port or an empty string. If the
+ *      ALSA name was not obtain, this will be a made-up name such
+ *      as "rtl66 midi in 1".
+ *
+ * \return
+ *      Returns true if the port was opened.
  */
 
 bool
@@ -986,7 +998,11 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
         ::snd_seq_port_info_t * src_pinfo { nullptr };  /* input only       */
         ::snd_seq_port_info_t * dest_pinfo { nullptr }; /* output only      */
         result = nsrc > 0;
-        if (! result)
+        if (result)
+        {
+            mad_data.port_number(portnumber);           /* port index       */
+        }
+        else
         {
             error_print("open_port()", "no MIDI ports");
             return false;
@@ -2383,6 +2399,8 @@ midi_alsa::get_message ()
                 int(ev->source.client), int(ev->source.port)
             );
         }
+        else
+            b = alsa_data().port_number();
 
         bool sysex { msg.is_sysex() };
         msg.midi_buss(b);
