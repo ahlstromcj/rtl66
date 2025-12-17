@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2022-12-18
- * \updates       2025-11-29
+ * \updates       2025-12-17
  * \license       GNU GPLv2 or above
  *
  *  Here is a summary of formats supported; note that the index numbers
@@ -237,8 +237,8 @@ detect_short_name (const std::string & portname)
         "output",
         ""                              /* empty string is a terminator     */
     };
-    bool result { portname.empty() };
-    if (! result)
+    bool result { ! portname.empty() };
+    if (result)
     {
         for (int i = 0; /* forever */; ++i)
         {
@@ -295,6 +295,8 @@ count_colons (const std::string & name)
 \verbatim
         "[3] 36:0 Launchpad Mini MIDI 1"
         a2j:Midi Through [14] (playback): Midi Through Port-0
+
+        JACK aliases when they exist.
 \endverbatim
  *
  */
@@ -353,8 +355,12 @@ extract_nickname (const std::string & name)
         std::string clientname, portname;
         bool extracted { extract_port_names(name, clientname, portname) };
         if (extracted)
-            result = clientname + ":" + portname;
-
+        {
+            if (! clientname.empty())
+                result = clientname + ":" + portname;
+            else
+                result = portname;
+        }
         if (result == name)
             result = util::simplify(result);
     }
@@ -477,45 +483,41 @@ process_aliases
         result = extract_port_names(fullname, cname, pname);
         if (result)
         {
-            if (cname == "system")
+            if (cname == "system")              /* mayhaps unnecessary      */
             {
                 if (aliases.size() > 0)
                 {
                     std::string leftname;
                     std::string rightname;
-                    bool ok
-                    {
-                        extract_port_names(fullname, leftname, rightname)
-                    };
+                    std::string aliasname;
+                    bool ok = aliases.size() > 1;
                     if (ok)
                     {
-                        if (leftname == "alsa_pcm")
-                        {
-                            ok = aliases.size() > 1;
-                            if (ok)
-                            {
-                                ok = extract_port_names
-                                (
-                                    fullname, leftname, rightname
-                                );
-                                if (ok)
-                                {
-                                    cname = leftname;
-                                    pname = rightname;
-                                }
-                            }
-                            else
-                            {
-                                cname = leftname;
-                                pname.clear();  /* further parsing instead? */
-                            }
-                        }
+                        aliasname = aliases[1];
+                        ok = extract_port_names
+                        (
+                            aliasname, leftname, rightname
+                        );
+                        if (ok)
+                            nickname = leftname;
+                    }
+                    else
+                    {
+                        aliasname = aliases[0];
+                        ok = extract_port_names
+                        (
+                            aliasname, leftname, rightname
+                        );
+                        if (ok)
+                            nickname = leftname;
                     }
                 }
             }
+            else
+                nickname = extract_nickname(pname); /* what to do here???   */
+
             clientname = cname;
             portname = pname;
-            nickname = extract_nickname(pname); /* what to do here???       */
         }
     }
     return result;

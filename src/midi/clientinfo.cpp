@@ -201,8 +201,8 @@ std::string
 clientinfo::to_string (const std::string & tagmsg) const
 {
     std::ostringstream os;
-    std::string ports_in { io_ports(port::io::input).to_string("Inputs") };
-    std::string ports_out { io_ports(port::io::output).to_string("Outputs") };
+    std::string ports_in { io_ports(port::io::input).to_string() };
+    std::string ports_out { io_ports(port::io::output).to_string() };
     os
         << tagmsg << ":\n"
         << "API:           " << api_version()  << "\n"

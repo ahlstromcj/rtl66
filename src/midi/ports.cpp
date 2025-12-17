@@ -289,12 +289,15 @@ ports::portref (int index) const
 std::string
 ports::to_string (const std::string & tagmsg) const
 {
-    std::string result { tagmsg };
-    result += ":\n";
-    for (const auto & information : m_port_container)
+    std::string result;
+    if (! tagmsg.empty())
     {
-        result += information.to_string();
+        result = tagmsg;
+        result += ":\n";
     }
+    for (const auto & information : m_port_container)
+        result += information.to_string();
+
     return result;
 }
 

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-12
+ * \updates       2025-12-13
  * \license       See above.
  *
  *  The JACK callbacks have been moved into a separate file for better
@@ -355,7 +355,7 @@ jack_process_in_impl (jack_nframes_t framect, midi_jack_data & jackdata)
     bool allowsysex { rtdata.allow_sysex() };
     bool moresysex { rtdata.continue_sysex() };
     int evcount { int(::jack_midi_get_event_count(buff)) };
-#if defined PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG  // _TMI
     if (evcount > 0)
         printf("event count %d\n", evcount);
 #endif
@@ -460,8 +460,14 @@ jack_process_in_impl (jack_nframes_t framect, midi_jack_data & jackdata)
             /*
              * If not a continuation of a SysEx message, invoke the user
              * callback function or queue the message.
+             *
+             * Can't do this easily yet:
+             *
+             *      msg.midi_event_type(ev->type);
              */
 
+            int bussindex { jackdata.port_number() };
+            msg.midi_buss(bussindex);
             if (rtdata.using_callback())
             {
                 rtmidi_in_data::callback_t cb = rtdata.user_callback();

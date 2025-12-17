@@ -270,7 +270,7 @@ masterbus::engine_query ()
     bool result { client_info().get_all_port_info(selected_api()) };
     if (result)
     {
-#if defined PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG // _TMI
         std::string msg { client_info().to_string("engine_query()") };
         infoprint(CSTR(msg));
 #endif

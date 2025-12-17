@@ -190,10 +190,7 @@ private:
      *  that can be connected manually (e.g. by aconnect).
      */
 
-    kind m_port_type
-    {
-        kind::undetermined
-    };
+    kind m_port_type { kind::undetermined };
 
     /**
      *  Non-empty in some JACK setups. For example, here is a list of
@@ -274,7 +271,7 @@ public:
         const std::string & portname,
         io iotype,
         kind porttype,
-        int portid,                     // NEW
+        int portid,
         int queuenumber                 = (-1),
         const std::string & nick        = "",
         const std::string & alias0      = "",

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-12
+ * \updates       2025-12-14
  * \license       See above.
  *
  */
@@ -989,6 +989,16 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
         error_print("open_port()", "connection already exists");
         return true;
     }
+    else if (portnumber == RTL66_PORTS_ALL)
+    {
+        status_print("open_port()", "ignoring 'ports-all' value");
+        return false;
+    }
+    else if (portnumber == RTL66_PORT_NULL)
+    {
+        error_print("open_port()", "cannot open null port");
+        return false;
+    }
 
     bool result { portnumber >= 0 };                    /* -1 == uninit'ed  */
     if (result)
@@ -1162,7 +1172,7 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
         }
         else
         {
-            warning("open_port(): no sources");
+            warning("open_port(): no such source port");
             result = false;
         }
     }
@@ -2321,6 +2331,7 @@ midi_alsa::get_message ()
      * The following call will do actual work only once for this port.
      */
 
+    int bussindex { alsa_data().port_number() };
     bool inited { alsa_data().initialize(ncclient, midi::port::io::input) };
     if (! inited)
     {
@@ -2390,6 +2401,7 @@ midi_alsa::get_message ()
         midi::message msg(buff, bytecount);
         msg.jack_stamp(double(ev->time.tick));
 
+#if defined USE_GET_PORT_ID
         int b { int(midi::null_buss()) };
         if (has_master())
         {
@@ -2401,6 +2413,9 @@ midi_alsa::get_message ()
         }
         else
             b = alsa_data().port_number();
+#else
+        int b = alsa_data().port_number();
+#endif
 
         bool sysex { msg.is_sysex() };
         msg.midi_buss(b);

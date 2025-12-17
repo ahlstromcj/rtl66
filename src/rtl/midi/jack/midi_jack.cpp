@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-11
+ * \updates       2025-12-15
  * \license       See above.
  *
  *  Written primarily by Alexander Svetalkin, with updates for delta time by
@@ -993,7 +993,7 @@ midi_jack::open_port (int portnumber, const std::string & portname)
         return true;
     }
 
-    bool result { portnumber >= 0  && connect()};   /* -1 == uninit'ed      */
+    bool result { portnumber >= 0 && connect()};    /* -1 == uninit'ed      */
     if (result)
     {
         midi_jack_data & data { jack_data() };
@@ -1003,6 +1003,7 @@ midi_jack::open_port (int portnumber, const std::string & portname)
         {
             jack_client_t * jclient { data.jack_client() };
             const char * pn { CSTR(portname) };
+            data.port_number(portnumber);
 #if defined PLATFORM_DEBUG_TMI
             printf("open_port(%d, \"%s\")\n", portnumber, pn);
 #endif
@@ -1536,25 +1537,6 @@ midi_jack::get_port_aliases (const std::string & name)
                 int rc { ::jack_port_get_aliases(p, aliases) };
                 if (rc > 1)
                 {
-#if 0
-                    std::string nick { std::string(aliases[1]) }; /* brittle  */
-                    auto colonpos { nick.find_first_of(":") };    /* brittle  */
-                    if (colonpos != std::string::npos)
-                        result = nick.substr(0, colonpos);
-
-                    /*
-                     * Another bit of brittleness:  the name generated via the
-                     * a2jmidid program uses spaces, but the system alias returned
-                     * by JACK uses a hyphen.  Convert them to spaces.
-                     */
-
-                    auto hyphenpos { result.find_first_of("-") }; /* brittle  */
-                    while (hyphenpos != std::string::npos)
-                    {
-                        result[hyphenpos] = ' ';
-                        hyphenpos = result.find_first_of("-", hyphenpos);
-                    }
-#endif
                     for (int a = 0; a < rc; ++a)
                         result.push_back(std::string(aliases[a]));
                 }

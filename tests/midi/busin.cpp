@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-10-09
- * \updates       2025-12-04
+ * \updates       2025-12-15
  * \license       See above.
  *
  *      This application but merely opens one port and accepts messages,
@@ -370,7 +370,7 @@ poll_port (rtl::rtmidi::api rapi, int portno)
 bool
 poll_all_ports (rtl::rtmidi::api rapi, int portcount)
 {
-    (void) portcount;       // ???????????????????
+    (void) portcount;
 
     bool result { true };
     int portno { RTL66_PORTS_ALL };
@@ -525,6 +525,18 @@ poll_queue (rtl::rtmidi::api rapi, int portno, bool useq = true)
     return result;
 }
 
+void
+show_app_specific_help ()
+{
+    std::cout <<
+"  --test queue     Poll the input queue; input messages are queued in a FIFO\n"
+"                   of midi::message objects. See poll_queue() in this program.\n"
+"  --test noqueue   The handle_message() function processes incoming messages.\n"
+"                   See poll_queue() in this program. Otherwise, the masterbus\n"
+"                   paradigm is used to look up the desired bus_in object.\n"
+    ;
+}
+
 }           // namespace anonymous
 
 /**
@@ -536,6 +548,14 @@ main (int argc, char * argv [])
 {
     bool can_run { rt_simple_cli("busin", argc, argv) };
     bool success { true };
+    if (rt_show_help())
+    {
+        /*
+         * Show additional help specific to this test program.
+         */
+
+        show_app_specific_help();
+    }
     if (can_run)
     {
         cfg::set_app_name(app_client_info().app_name());
@@ -593,6 +613,7 @@ main (int argc, char * argv [])
             bool ok { run_susceptible_test(portno) };
             if (ok)
                 ok = poll_port(portno);
+
             bool ok { poll_port(portno) };
 
             if (! ok)

@@ -38,6 +38,17 @@ namespace midi
 {
 
 /**
+ *  The default constructor is useful in creating a dummy buss, where
+ *  a midi_api-derived object is *not* created.
+ */
+
+bus_in::bus_in () :
+    m_rtmidi_in (rtl::rtmidi::api::none)
+{
+    // no code
+}
+
+/**
  *  Creates a normal MIDI input port. See the banner for the bus_out
  *  constructor for information about the "masterbus paradigm".
  *

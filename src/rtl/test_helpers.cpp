@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-12-09
+ * \updates       2025-12-17
  * \license       See above.
  *
  *  We have a lot of functions for selecting ports !
@@ -141,7 +141,7 @@ static int
 rt_choose_port (bool isoutput, int & portcount)
 {
     int result { -1 };
-    std::string direction { isoutput ? _("output") : _("input") };
+    std::string direction { isoutput ? _("Output") : _("Input") };
     std::unique_ptr<rtl::rtmidi> rt;
     try
     {
@@ -186,15 +186,14 @@ rt_choose_port (bool isoutput, int & portcount)
                 int p;
                 for (p = 0; p < portcount; ++p)
                 {
-                    std::string portname = rt->get_port_name(p);
-                    std::string alias0 = rt->get_port_alias(portname, 0);
-                    std::string alias1 = rt->get_port_alias(portname, 1);
+                    std::string portname { rt->get_port_name(p) };
+                    std::string alias0 { rt->get_port_alias(portname, 0) };
+                    std::string alias1 { rt->get_port_alias(portname, 1) };
                     bool noalias { alias0.empty() };
-
                     if (noalias)
                     {
                         std::cout
-                            << "  " << direction << " " << _("port") << " #"
+                            << "  " << direction << " #"
                             << p << ": " << portname << std::endl
                             ;
                     }
@@ -203,7 +202,7 @@ rt_choose_port (bool isoutput, int & portcount)
                         if (! alias1.empty())
                         {
                             std::cout
-                                << "  " << direction << " " << _("port") << " #"
+                                << "  " << direction << " #"
                                 << p << ": " << alias1
                                 << std::endl
                                 << "    [" << alias0
@@ -214,7 +213,7 @@ rt_choose_port (bool isoutput, int & portcount)
                         else if (! alias0.empty())
                         {
                             std::cout
-                                << "  " << direction << " " << _("port") << " #"
+                                << "  " << direction << " #"
                                 << p << ": " << alias0
                                 << std::endl
                                 << "    [" << portname << "]"
@@ -224,7 +223,7 @@ rt_choose_port (bool isoutput, int & portcount)
                     }
                 }
                 std::cout
-                    << "  " << direction << " " << _("port") << " #"
+                    << "  " << direction << " #"
                     << portcount << ": All ports"
                     << std::endl
                     ;
@@ -413,7 +412,7 @@ rt_select_input_ports (int & portcount)
  *  TO DO: Mark this for translation.
  */
 
-static const char * s_help_text_fmt
+static const std::string s_help_text_fmt
 {
 "Usage: %s [ options ]\n\n"
 "Runs basic tests for some APIs of Rtl66 library, v. %s.\n"
@@ -847,7 +846,7 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
     {
         printf
         (
-            s_help_text_fmt,
+            s_help_text_fmt.c_str(),
             V(appname),
             V(rtl::get_rtl_midi_version()),
             V(rtl::get_rtmidi_patch_version())

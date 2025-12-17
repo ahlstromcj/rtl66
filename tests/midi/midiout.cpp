@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-06-25
- * \updates       2025-09-26
+ * \updates       2025-12-13
  * \license       See above.
  *
  *      Tests that the C API for rtl (RtMidi refactored) is working.
@@ -86,6 +86,14 @@ main (int argc, char * argv [])
                      */
 
                     can_run = rt_choose_output_port(midiout);
+                    if (rt_open_all_ports())
+                    {
+                        std::cerr
+                            << "The midiout test does not support the "
+                               "all-ports option."
+                            << std::endl
+                            ;
+                    }
                 }
                 else
                 {

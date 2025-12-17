@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-07-01
- * \updates       2025-12-12
+ * \updates       2025-12-13
  * \license       See above.
  *
  *      Simple program to test MIDI input and retrieval from the queue.
@@ -46,8 +46,7 @@
 #include "midi/event.hpp"               /* midi::event class                */
 #endif
 
-#include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
-#include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
+#include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in, rtmidi classes   */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
 #include "util/msgfunctions.hpp"        /* util::status_message()           */
 #include "xpc/kbhit.hpp"                /* xpc::kbhit_ex()                  */
@@ -108,6 +107,10 @@ read_port (rtl::rtmidi::api rapi, int port)
                  * Don't ignore sysex, timing, or active sensing
                  * messages. Install an interrupt handler function.
                  * Periodically check input queue.
+                 *
+                 * Note: We use the best_port_name() function instead
+                 * of get_port_name() because the former can be more
+                 * human-readable in some cases.
                  */
 
                 midiin.ignore_midi_types(false, false, false);
@@ -118,7 +121,7 @@ read_port (rtl::rtmidi::api rapi, int port)
                     (void) signal(SIGINT, finish);
                     std::cout
                         << "Reading MIDI from port "
-                        << midiin.get_port_name(port)
+                        << midiin.best_port_name(port)
                         << " ... quit with any key or <Ctrl-C>."
                         << std::endl
                         ;

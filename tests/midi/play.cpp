@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2024-05-26
- * \updates       2025-11-30
+ * \updates       2025-12-13
  * \license       See above.
  *
  *      Provides a play test for reading and playing a short MIDI file.
@@ -293,9 +293,20 @@ main (int argc, char * argv [])
                  */
 
                 out_port = rt_choose_port_number();     /* output port #    */
+                if (rt_open_all_ports())
+                {
+                    std::cerr
+                        << "The play test does not support the "
+                           "all-ports option."
+                        << std::endl
+                        ;
+                    can_run = false;
+                }
             }
         }
-        can_run = rt_test_port_valid(out_port);
+        if (can_run)
+            can_run = rt_test_port_valid(out_port);
+
         if (can_run)
         {
             set_rt_test_port(out_port);                 /* port of interest */

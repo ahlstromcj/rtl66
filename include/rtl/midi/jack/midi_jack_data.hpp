@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2017-01-02
- * \updates       2025-12-10
+ * \updates       2025-12-13
  * \license       See above.
  *
  */
@@ -114,6 +114,19 @@ class RTL66_DLL_PUBLIC midi_jack_data
      */
 
     jack_port_t * m_jack_port { nullptr };
+
+    /**
+     *  This value is the index of the port in the list of ports.
+     *  It starts at 0 and ends at one less than the number of
+     *  ports discovered.
+     *
+     *  It is portnumber that the application can present to the user
+     *  to select a port to operate on.
+     *
+     *  Do not confuse it with the vport value described next.
+     */
+
+    int m_portnum { -1 };
 
     /**
      *  Holds the data for communicating between the client output ring-buffer
@@ -400,6 +413,11 @@ public:
         return m_jack_port;
     }
 
+    int port_number () const
+    {
+        return m_portnum;
+    }
+
     /*
      *  Already accessible via midi_api::input_data(), but we don't
      *  have direct access to that here.
@@ -444,6 +462,11 @@ public:
     void jack_port (jack_port_t * p)
     {
         m_jack_port = p;
+    }
+
+    void port_number (int p)
+    {
+        m_portnum = p;
     }
 
     void jack_lasttime (jack_time_t lt)

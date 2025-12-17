@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-27
+ * \updates       2025-12-13
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -795,6 +795,38 @@ rtmidi::get_port_name (int portnumber)
     if (not_nullptr(rt_api_ptr()))
         result = rt_api_ptr()->get_port_name(portnumber);
 
+    return result;
+}
+
+/**
+ *  If there are no port aliases (as with the ALSA API and with
+ *  software synths running in JACK), then this function is just liek
+ *  get_port_name() defined above.
+ *
+ *  Otherwise, it finds a better name, which is usually given, in
+ *  JACK, by the second alias.
+ */
+
+std::string
+rtmidi::best_port_name (int portnumber)
+{
+    std::string result;
+    if (not_nullptr(rt_api_ptr()))
+    {
+        result = rt_api_ptr()->get_port_name(portnumber);
+
+        std::string alias1 { rt_api_ptr()->get_port_alias(result, 1) };
+        if (! alias1.empty())
+        {
+            result = alias1;            /* this seems to be the best one    */
+        }
+        else
+        {
+            std::string alias0 { rt_api_ptr()->get_port_alias(result, 0) };
+            if (! alias0.empty())
+                result = alias0;        /* might be the engine (alsa_pcm)   */
+        }
+    }
     return result;
 }
 

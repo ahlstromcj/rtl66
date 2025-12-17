@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24
- * \updates       2025-11-27
+ * \updates       2025-12-17
  * \license       See above.
  *
  *  midi::port. A class holding data about a port.  This class is meant to
@@ -87,30 +87,24 @@ std::string
 port::to_string () const
 {
     std::ostringstream os;
+    os << io_to_string(io_type()) << " #" << port_index();
+    if (port_type() != kind::normal)
+        os << "(" << kind_to_string(port_type()) << ")";
+
     os
-        << "Port '" << buss_name() << "': "
-        << buss_number() << ":" << port_number()
-        << " '" << port_name() << "' "
-        << io_to_string(io_type()) << "/" << kind_to_string(port_type())
+        << ": " << buss_number() << ":" << port_number() << " "
+        << buss_name() << ":" << port_name()
         ;
-
-    /*
-     * Too much for now. Maybe later.
-     *
-     *  if (! m_port_alias.empty())
-     *      os << " (alias '" << m_port_alias << "') ";
-     */
-
     if (! port_nickname().empty())
-        os << " (nick '" << m_port_nickname << "')" << std::endl;
+        os << " (" << m_port_nickname << ")" << std::endl;
     else
         os << std::endl;
 
     if (! port_aliases().empty())
     {
-        os << "    Alias: '" << port_alias(0) << "'\n";
+        os << "              " << port_alias(0) << "\n";
         if (port_aliases().size() > 1)
-            os << "    Alias: '" << port_alias(1) << "'" << std::endl;
+            os << "              " << port_alias(1) << std::endl;
     }
     else
         os << std::endl;
@@ -127,15 +121,15 @@ io_to_string (port::io iotype)
 {
     std::string result;
     if (iotype == port::io::input)
-        result = std::string("input");
+        result = std::string("Input");
     else if (iotype == port::io::output)
-        result = std::string("output");
+        result = std::string("Output");
     else if (iotype == port::io::duplex)
-        result = std::string("duplex");
+        result = std::string("Duplex");
     else if (iotype == port::io::engine)
-        result = std::string("engine");
+        result = std::string("Engine");
     else if (iotype == port::io::dummy)
-        result = std::string("dummy");
+        result = std::string("Dummy");
 
     return result;
 }
@@ -145,11 +139,11 @@ kind_to_string (port::kind ptype)
 {
     std::string result;
     if (ptype == port::kind::normal)
-        result = std::string("normal");
+        result = std::string("Normal");
     else if (ptype == port::kind::manual)
-        result = std::string("virtual");
+        result = std::string("Virtual");
     else if (ptype == port::kind::system)
-        result = std::string("system");
+        result = std::string("System");
 
     return result;
 }

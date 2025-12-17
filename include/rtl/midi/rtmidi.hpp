@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-11
+ * \updates       2025-12-13
  * \license       See above.
  *
  *      Also contains some additional capabilities.
@@ -273,6 +273,7 @@ public:
     bool is_port_open () const;
     int get_port_count ();
     std::string get_port_name (int portnumber = 0);
+    std::string best_port_name (int portnumber = 0);
 
     /*--------------------------------------------------------------------
      * Extensions

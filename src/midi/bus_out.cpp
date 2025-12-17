@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-09-29
+ * \updates       2025-12-14
  * \license       GNU GPLv2 or above
  *
  */
@@ -36,6 +36,17 @@
 
 namespace midi
 {
+
+/**
+ *  The default constructor is useful in creating a dummy buss, where
+ *  a midi_api-derived object is *not* created.
+ */
+
+bus_out::bus_out () :
+    m_rtmidi_out (rtl::rtmidi::api::none)
+{
+    // no code
+}
 
 /**
  *  Creates a normal MIDI input port. However, rtl::rtmidi::api::none

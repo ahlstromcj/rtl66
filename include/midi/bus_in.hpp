@@ -70,7 +70,7 @@ private:
 
 public:
 
-    bus_in () = default;
+    bus_in ();
     bus_in
     (
         midi::masterbus & master,
