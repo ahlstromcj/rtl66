@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-13
+ * \updates       2025-12-20
  * \license       See above.
  *
  *      Also contains some additional capabilities.
@@ -353,6 +353,8 @@ public:
         return m_rt_api_ptr.get();
     }
 
+    void * api_data ();
+    const void * api_data () const;
     bool set_master_bus_ptr (midi::masterbus * mb);
 
 protected:

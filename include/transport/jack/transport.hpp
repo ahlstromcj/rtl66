@@ -333,7 +333,7 @@ public:
     );
     transport (const transport &) = default;
     transport (transport &&) = delete;
-    transport & operator = (const transport &) = default;
+    transport & operator = (const transport &) = delete;    // default;
     transport & operator = (transport &&) = delete;
 
     /**

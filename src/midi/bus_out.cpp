@@ -98,6 +98,8 @@ bus_out::~bus_out ()
 
 /**
  *  Gets port information into the class members.
+ *
+ *  WHY DO THIS? ci already has the port information !!!!
  */
 
 int

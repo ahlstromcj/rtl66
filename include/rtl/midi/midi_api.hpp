@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-27
+ * \updates       2025-12-21
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -252,6 +252,16 @@ public:
     bool is_engine () const
     {
         return m_port_io_type == midi::port::io::engine;
+    }
+
+    bool is_dummy () const
+    {
+        return m_port_io_type == midi::port::io::dummy;
+    }
+
+    bool is_finder () const
+    {
+        return m_port_io_type == midi::port::io::finder;
     }
 
     int port_number () const

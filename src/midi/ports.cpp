@@ -38,9 +38,9 @@
  *
  * Port Refresh Idea:
  *
- *  -#  When midi :: ports :: get_io_port_info() is called, copy midi :: ports
+ *  -#  When midi::ports::get_io_port_info() is called, copy midi :: ports
  *      :: input_ports() and output_ports() midi :: ports :: m_previous_input
- *      and midi :: ports :: m_previous_output.
+ *      and midi::ports::m_previous_output.
  *  -#  Detect when a MIDI port registers or unregisters.
  *  -#  Compare the old set of ports to the new set found by
  *      get_io_port_info() to find new ports or missing ports.

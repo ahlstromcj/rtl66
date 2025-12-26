@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-11-28
- * \updates       2025-11-29
+ * \updates       2025-12-24
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -70,9 +70,9 @@ namespace rtl
 bool
 rtmidi_get_io_info
 (
+    rtl::rtmidi::api rapi,
     midi::port::io & iotype,
-    midi::ports & ioports,
-    rtl::rtmidi::api rapi
+    midi::ports & ioports
 )
 {
     bool result { rapi != rtl::rtmidi::api::unspecified};
@@ -114,6 +114,58 @@ rtmidi_get_io_info
     }
     return result;
 }
+
+#if defined THIS_CODE_IS_READY
+
+bool
+rtmidi_get_io_info
+(
+    rtl::rtmidi::api rapi,
+    midi::ports & inports,
+    midi::ports & outports
+)
+{
+    bool result { rapi != rtl::rtmidi::api::unspecified};
+    if (result)
+    {
+        bool doduplex { iotype == midi::port::io::duplex };
+        bool doinput { iotype == midi::port::io::input || doduplex };
+        bool dooutput { iotype == midi::port::io::output || doduplex };
+        ioports.clear();
+        try
+        {
+            int incount { 0 };
+            int outcount { 0 };
+            if (doinput)
+            {
+                rtl::rtmidi_in midiin(rapi);
+                incount = midiin.get_io_port_info(ioports, false);
+                if (incount > 0)
+                {
+                    // anything to do with the output port info?
+                }
+            }
+
+            if (dooutput)
+            {
+                rtl::rtmidi_out midiout(rapi);
+                outcount = midiout.get_io_port_info(ioports, false);
+                if (outcount > 0)
+                {
+                    // anything to do with the output port info?
+                }
+            }
+            result = incount > 0 || outcount > 0;
+        }
+        catch (rtl::rterror & error)
+        {
+            result = false;
+        }
+    }
+    return result;
+}
+
+#endif      // defined THIS_CODE_IS_READY
 
 }           // namespace rtl
 

@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-11-20
+ * \updates       2025-12-25
  * \license       GNU GPLv2 or above
  *
  *  The busarray module defines the busarray and busarray classes so that we
@@ -85,8 +85,8 @@ private:
 public:
 
     busarray ();
-    busarray (const busarray &) = default;
-    busarray & operator = (const busarray &) = default;
+    busarray (const busarray &) = delete;   // default;
+    busarray & operator = (const busarray &) = delete;  // default;
     busarray (busarray &&) = delete;
     busarray & operator = (busarray &&) = delete;
     ~busarray ();
@@ -99,7 +99,7 @@ public:
     midi::bus & buss (midi::bussbyte b);
     midi::bus_in & buss_in (midi::bussbyte b);
     midi::bus_out & buss_out (midi::bussbyte b);
-    int client_id (midi::bussbyte b);;
+    int client_id (midi::bussbyte b);
     bool port_active (midi::bussbyte b);
 
     /*

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-11-29
+ * \updates       2025-12-25
  * \license       See above.
  *
  *  This class helps collect a whole bunch of system MIDI information
@@ -48,16 +48,8 @@
 
 #include "midi/calculations.hpp"        /* midi::is_power_of_2()            */
 #include "midi/clientinfo.hpp"          /* midi::clientinfo etc.            */
-#include "util/strfunctions.hpp"        /* util::bool_to_string()           */
-
-#define USE_RTMIDI_GET_IO_INFO_FUNCTION
-
-#if defined USE_RTMIDI_GET_IO_INFO_FUNCTION
 #include "rtl/midi/rtmidi_io_info.hpp"  /* rtl::rtmidi_get_io_info()        */
-#else
-#include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
-#include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out class            */
-#endif
+#include "util/strfunctions.hpp"        /* util::bool_to_string()           */
 
 namespace midi
 {
@@ -336,8 +328,6 @@ get_global_client_info (clientinfo & ci)
  *      TODO
  */
 
-#if defined USE_RTMIDI_GET_IO_INFO_FUNCTION
-
 bool
 get_all_port_info (midi::clientinfo & cinfo, rtl::rtmidi::api rapi)
 {
@@ -346,57 +336,19 @@ get_all_port_info (midi::clientinfo & cinfo, rtl::rtmidi::api rapi)
     {
         midi::port::io iotype { midi::port::io::input };
         ports & in { cinfo.io_ports(iotype) };
-        result = rtl::rtmidi_get_io_info(iotype, in, rapi);
+        result = rtl::rtmidi_get_io_info(rapi, iotype, in);
 
         int incount { in.port_count() };
         iotype = midi::port::io::output;
 
         ports & out { cinfo.io_ports(iotype) };
-        result = rtl::rtmidi_get_io_info(iotype, out, rapi);
+        result = rtl::rtmidi_get_io_info(rapi, iotype, out);
         int outcount { in.port_count() };
         result = incount > 0 || outcount > 0;
         cinfo.ports_queried(true);
     }
     return result;
 }
-
-#else   // defined USE_RTMIDI_GET_IO_INFO_FUNCTION
-
-bool
-get_all_port_info (midi::clientinfo & cinfo, rtl::rtmidi::api rapi)
-{
-    bool result { cinfo.ports_queried() };
-    if (! result)
-    {
-        try
-        {
-            rtl::rtmidi_in midiin(rapi);
-            ports & in { cinfo.io_ports(port::io::input) };
-            int incount { midiin.get_io_port_info(in, false) };
-            if (incount > 0)
-            {
-                // anything to do with the output port info?
-            }
-
-            rtl::rtmidi_out midiout(rapi);
-            ports & out { cinfo.io_ports(port::io::output) };
-            int outcount { midiout.get_io_port_info(out, false) };
-            if (outcount > 0)
-            {
-                // anything to do with the output port info?
-            }
-            result = incount > 0 || outcount > 0;
-            cinfo.ports_queried(true);
-        }
-        catch (rtl::rterror & error)
-        {
-            result = false;
-        }
-    }
-    return result;
-}
-
-#endif  // defined USE_RTMIDI_GET_IO_INFO_FUNCTION
 
 void
 clientinfo::set_input_callback

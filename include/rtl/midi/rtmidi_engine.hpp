@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-12-15
- * \updates       2025-11-03
+ * \updates       2025-12-25
  * \license       See above.
  *
  */
@@ -38,6 +38,12 @@
 #include "c_macros.h"                   /* not_nullptr and other macros     */
 #include "rtl/rtl_build_macros.h"       /* RTL66_DLL_PUBLIC, etc.           */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi::rtmidi base class   */
+
+/*
+ * EXPERIMENTAL
+ */
+
+#undef USE_REFACTORED_MASTERBUS
 
 namespace midi
 {
@@ -76,8 +82,8 @@ public:
     );
     rtmidi_engine (rtmidi_engine & other) = delete;
     rtmidi_engine & operator = (rtmidi_engine & other) = delete;
-    rtmidi_engine (rtmidi_engine && other) = default;
-    rtmidi_engine & operator = (rtmidi_engine && other) = default;
+    rtmidi_engine (rtmidi_engine && other) = delete;    // default;
+    rtmidi_engine & operator = (rtmidi_engine && other) = delete;   // default;
 
     virtual ~rtmidi_engine () = default;
 

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-10-10
- * \updates       2025-10-27
+ * \updates       2025-12-25
  *
  * \license       GNU GPLv2 or above
  *
@@ -1550,8 +1550,8 @@ trackdata::parse_track
     size_t offset, size_t trklength
 )
 {
-    int evcount { 0 };                      /* for sanity checking          */
-
+    // int evcount { 0 };                   /* for sanity checking          */
+    //
     //  TODO
     //  bool timesig_set = false;           /* first time-sig wins          */
     //  bool error_reported = false;        /* for handling message         */
@@ -1674,7 +1674,7 @@ trackdata::parse_track
             if (append_event(e))                        /* does not sort    */
             {
                 tentative_channel = channel;            /* log MIDI channel */
-                ++evcount;
+//              ++evcount;
 //              if (is_smf0)
 //                  m_smf0_splitter.increment(channel); /* count chan.  */
             }
@@ -1688,7 +1688,7 @@ trackdata::parse_track
             if (append_event(e))                        /* does not sort    */
             {
                 tentative_channel = channel;            /* log MIDI channel */
-                ++evcount;
+//              ++evcount;
 //              if (is_smf0)
 //                  m_smf0_splitter.increment(channel); /* count chan.      */
             }

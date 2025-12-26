@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-10-09
- * \updates       2025-12-15
+ * \updates       2025-12-23
  * \license       See above.
  *
  *      This application but merely opens one port and accepts messages,
@@ -183,93 +183,16 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
     if (s_uninitialized)
     {
         bool ok { rapi != rtl::rtmidi::api::unspecified };
+#if ! defined USE_REFACTORED_MASTERBUS
         if (ok)
             ok = s_master_bus.setup();          /* ci */
+#endif
 
         if (ok)
             s_uninitialized = false;
     }
     return s_master_bus;
 }
-
-#if defined USE_SUSCEPTIBLE_TEST
-
-/**
- *  A usage that breaks (can cause segfaults) in ALSA because the RtMidi-based
- *  implementation uses a polling thread, but ALSA is not thread-safe, and thus
- *  cannot be used with a single ALSA client and multiple ports.
- */
-
-bool
-run_susceptible_test (rtl::rtmidi::api rapi, int portno)
-{
-    midi::masterbus & master { master_bus(rapi, app_client_info()) };
-    midi::bus_in & busin { master.get_in_bus(portno) };
-    bool result { busin.initialize() };
-    if (result)
-    {
-        try
-        {
-            /*
-             * Don't ignore sysex, timing, or active sensing
-             * messages. Install an interrupt handler function.
-             * Periodically check input queue.
-             *
-             * busin.ignore_midi_types(false, false, false);
-             */
-
-            if (rt_use_callback())
-            {
-                /*
-                 * Disabled, occurs too late in the process.
-                 *
-                 * busin.set_input_callback(&midibytes_callback);
-                 */
-
-                std::cout
-                    << "Reading MIDI input ... press <Enter> to quit.\n"
-                    ;
-
-                char input;
-                std::cin.get(input);
-            }
-            else
-            {
-                s_is_done = false;
-                (void) signal(SIGINT, finish);
-                std::cout
-                    << "Reading MIDI from port "
-                    << busin.port_name()
-                    << " ... quit with any key or <Ctrl-C>."
-                    << std::endl
-                    ;
-                xpc::clear_kb_ex();
-                while (! s_is_done)
-                {
-                    midi::message msg { busin.get_message() };
-                    if (msg.count() > 0)
-                    {
-                        std::string msgline { "Msg:" };
-                        msgline += msg.to_string();
-                        util::status_message(msgline);
-                    }
-                    if (xpc::kbcheck_ex())
-                        break;
-
-                    rt_test_sleep(10);  /* sleep for 10 msec    */
-                }
-            }
-        }
-        catch (const rtl::rterror & error)
-        {
-            std::cerr << "Caught rtl::rterror!" << std::endl;
-            result = false;
-        }
-    }
-    return result;
-}
-
-#endif
 
 /**
  *  This function works by creating a masterbus, and looking up the
@@ -561,6 +484,9 @@ main (int argc, char * argv [])
         cfg::set_app_name(app_client_info().app_name());
         cfg::set_client_name(app_client_info().client_name());
         int portcount { 0 };
+
+#if defined USE_REGULAR_RT_SELECT_PORTS
+
         try
         {
             if (! rt_virtual_test_port())
@@ -590,9 +516,19 @@ main (int argc, char * argv [])
             std::cerr << "Caught rtl::rterror!" << std::endl;
             can_run = success = false;
         }
+#else
+
+        rtl::rtmidi::api srapi { rtl::rtmidi::selected_api() };
+        midi::masterbus & master { master_bus(srapi, app_client_info()) };
+        int p { master.choose_port(true, portcount) };
+        can_run = ! midi::is_null_buss(p);
+
+#endif  // defined USE_REGULAR_RT_SELECT_PORTS
+
         if (can_run)
         {
             rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
+            set_rt_test_port(p);                    /* klunky */
             int portno { rt_test_port() };
             if (rt_open_all_ports())
             {
@@ -608,17 +544,6 @@ main (int argc, char * argv [])
                 else
                     success = poll_port(rapi, portno);
             }
-
-#if defined USE_SUSCEPTIBLE_TEST
-            bool ok { run_susceptible_test(portno) };
-            if (ok)
-                ok = poll_port(portno);
-
-            bool ok { poll_port(portno) };
-
-            if (! ok)
-                success = false;
-#endif
         }
         else
         {

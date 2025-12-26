@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-12-17
+ * \updates       2025-12-18
  * \license       See above.
  *
  *  We have a lot of functions for selecting ports !
@@ -117,9 +117,16 @@ rt_test_sleep (int ms)
 
 static bool s_open_all_ports { false };
 
-bool rt_open_all_ports ()
+bool
+rt_open_all_ports ()
 {
     return s_open_all_ports;
+}
+
+void
+set_rt_open_all_ports ()
+{
+    s_open_all_ports = true;
 }
 
 /**
@@ -158,8 +165,7 @@ rt_choose_port (bool isoutput, int & portcount)
         if (portcount == 0)
         {
             std::cout
-                << _("no") << " " << direction << " "
-                << _("ports available")
+                << _("no") << " " << direction << " " << _("ports available")
                 << std::endl
                 ;
         }
@@ -238,7 +244,7 @@ rt_choose_port (bool isoutput, int & portcount)
                     {
                         /*
                          * Entering a letter yields p == 0, but causes
-                         * a seqgfault. Entering 0? No problem. So we catch.
+                         * a seqfault. Entering 0? No problem. So we catch.
                          * DOESN'T HELP.
                          */
                     }
@@ -853,6 +859,37 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
         );
     }
     return can_run;
+}
+
+bool
+rt_get_extra_option
+(
+    int argc, char * argv [],
+    const std::string & longopt, char shortopt,
+    std::string * parameter
+)
+{
+    bool result { false };
+    std::string targetstr { "--" };
+    std::string charstr { "-" };
+    targetstr += longopt;
+    charstr += shortopt;
+    for (int i = 1; i < argc; ++i)
+    {
+        std::string arg { argv[i] };
+        if (arg == targetstr || arg == charstr)
+        {
+            result = true;
+            if (not_nullptr(parameter))
+            {
+                ++i;
+                if (i < argc)
+                    *parameter = argv[i];
+            }
+            break;
+        }
+    }
+    return result;
 }
 
 /*

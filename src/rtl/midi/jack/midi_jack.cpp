@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-15
+ * \updates       2025-12-25
  * \license       See above.
  *
  *  Written primarily by Alexander Svetalkin, with updates for delta time by
@@ -475,6 +475,12 @@ silence_jack_messages (bool silent)
  *------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------
+ * midi_jack static member
+ *------------------------------------------------------------------------*/
+
+bool midi_jack::sm_jack_process_is_set = false;
+
+/*------------------------------------------------------------------------
  * midi_jack constructors
  *------------------------------------------------------------------------*/
 
@@ -570,7 +576,7 @@ midi_jack::engine_connect ()
         result = client_handle();       /* grabs masterbus's client handle  */
         if (not_nullptr(result))
         {
-#if defined PLATFORM_DEBUG // _TMI
+#if defined PLATFORM_DEBUG_TMI
             printf("masterbus client handle = %p\n", (void *)(client_handle()));
 #endif
         }
@@ -599,46 +605,69 @@ midi_jack::engine_connect ()
             jack_client_t * c { ::jack_client_open(cname, jopts, ps) };
             if (not_nullptr(c))
             {
-                void * apidata { reinterpret_cast<void *>(&data) };
-                JackProcessCallback cb { nullptr };
-                if (is_duplex())                        /* both in & out    */
+                if (is_finder())
                 {
-                    cb = jack_process_io;
-                }
-                else if (is_output())
-                {
-                    cb = jack_process_out;
-                }
-                else if (is_input())
-                {
-                    cb = jack_process_in;
-                }
-                else                                    /* is_engine()      */
-                {
-                    cb = jack_process_io;
-                }
+                    /*
+                     * Nothing to do. We're just looking for a MIDI API,
+                     * and don't need to set up callbacks. We do need
+                     * to set the client pointer result in order to proceed.
+                     */
 
-                bool ok { not_nullptr(cb) && ! m_jack_process_is_set };
-                if (ok)
-                    ok = jack_set_process_cb(c, cb, apidata);
-
-                if (ok)
-                {
-                    m_jack_process_is_set = true;
                     result = c;
-#if defined PLATFORM_DEBUG
-                    printf
-                    (
-                        "jack_client_t = %p, apidata = %p\n",
-                        (void *)(c), apidata
-                    );
+                }
+                else
+                {
+                    result = c;
+                    if (sm_jack_process_is_set)
+                    {
+#if defined PLATFORM_DEBUG  // _TMI
+                        printf("JACK process already set\n");
+#endif
+                    }
+                    else
+                    {
+                        JackProcessCallback cb { nullptr };
+                        if (is_duplex())                        /* both in & out    */
+                        {
+                            cb = jack_process_io;
+                        }
+                        else if (is_output())
+                        {
+                            cb = jack_process_out;
+                        }
+                        else if (is_input())
+                        {
+                            cb = jack_process_in;
+                        }
+                        else if (is_engine())
+                        {
+                            cb = jack_process_io;
+                        }
+
+                        bool ok { not_nullptr(cb) && ! sm_jack_process_is_set };
+                        if (ok)
+                        {
+                            void * apidata { reinterpret_cast<void *>(&data) };
+                            ok = jack_set_process_cb(c, cb, apidata);
+                            if (ok)
+                            {
+                                sm_jack_process_is_set = true;
+                                result = c;
+#if defined PLATFORM_DEBUG_TMI
+                                printf
+                                (
+                                    "jack_client_t = %p, apidata = %p\n",
+                                    (void *)(c), apidata
+                                );
 #endif
 #if defined USE_JACK_RINGBUFFER_POINTER
-                    if (is_output())
-                        (void) create_ringbuffer(c_jack_ringbuffer_size);
+                                if (is_output())
+                                    (void) create_ringbuffer(c_jack_ringbuffer_size);
 #endif
-
-                    (void) set_auxiliary_callbacks(c);
+                                (void) set_auxiliary_callbacks(c);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -869,8 +898,11 @@ midi_jack::connect ()
     bool result { not_nullptr(c) };
     if (result)
     {
+        if (! is_finder())
+        {
         data.jack_client(c);
         result = engine_activate();
+    }
     }
     return result;
 }
@@ -889,8 +921,7 @@ midi_jack::connect ()
 bool
 midi_jack::initialize (const std::string & clientname)
 {
-    bool result;
-    midi_jack_data & data { jack_data() };
+    bool result { true };
 
     /*
      * There is no need to nullify these items. In the masterbus
@@ -904,13 +935,13 @@ midi_jack::initialize (const std::string & clientname)
 #if RTL66_HAVE_SEMAPHORE_H
     if (is_output())
     {
+        midi_jack_data & data { jack_data() };
         result = data.semaphore_init(); // in busout, already init'ed; where?
     }
 #endif
     if (! reuse_connection())
-    {
         result = connect();
-    }
+
     if (! result)
     {
         error
@@ -1280,7 +1311,11 @@ midi_jack::set_port_name (const std::string & portname)
         if (rc == 0)
             result = true;
 #else
-#error Deprecated function jack_port_set_name() not allowed
+        /*
+         * #error Deprecated function jack_port_set_name() not allowed
+         */
+
+        (void) portname;
 #endif
 #endif
     }
@@ -1458,6 +1493,77 @@ midi_jack::get_io_port_info (midi::ports & ioports, bool preclear)
             }
             ::jack_free(ports);
             result += count;
+        }
+    }
+    return result;
+}
+
+/**
+ *  An overload to get both sets of I/O ports at once.
+ *  EXPERIMENTAL.
+ */
+
+int
+midi_jack::get_io_port_info
+(
+    midi::ports & inports,
+    midi::ports & outports
+)
+{
+    int result { 0 };
+    bool iswriteable { false };
+    midi_jack_data & data { jack_data() };
+    if (not_nullptr(data.jack_client()))
+    {
+        for (int i = 0; i < 2; ++i)
+        {
+            midi::port::io iotype
+            {
+                iswriteable ? midi::port::io::output : midi::port::io::input
+            };
+            midi::ports & ioports { iswriteable ? outports : inports };
+            unsigned long flag
+            {
+                iswriteable ? JackPortIsInput : JackPortIsOutput
+            };
+            const char ** ports = ::jack_get_ports
+            (
+                data.jack_client(), NULL, RTL66_JACK_MIDI_TYPE, flag
+            );
+            if (is_nullptr(ports))
+            {
+                std::string msg { "found no " };
+                msg += iswriteable ? "writeable" : "readable" ;
+                msg += " ports";
+                error_print("jack_get_ports()", msg);
+            }
+            else
+            {
+                int clientnumber { 0 };             /* JACK: doesn't apply  */
+                int count { 0 };
+                while (not_nullptr(ports[count]))
+                {
+                    std::string fullname { ports[count] };
+                    std::string clientname;
+                    std::string portname;
+                    lib66::tokenization aliases { get_port_aliases(fullname) };
+                    ioports.add
+                    (
+                        fullname,
+                        aliases,
+                        clientnumber,                       /* buss number  */
+                        count,                              /* port number  */
+                        iotype,
+                        midi::port::kind::normal,
+                        count,                              /* port ID      */
+                        0                                   /* queue number */
+                    );
+                    ++count;
+                }
+                ::jack_free(ports);
+                result += count;
+            }
+            iswriteable = ! iswriteable;
         }
     }
     return result;
@@ -1896,7 +2002,7 @@ midi_jack::get_message ()
         }
         else
         {
-#if defined PLATFORM_DEBUG // _TMI
+#if defined PLATFORM_DEBUG_TMI
             if (result.empty())
                 printf("empty JACK message\n");
 #endif

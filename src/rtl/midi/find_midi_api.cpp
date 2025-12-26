@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-11-11
+ * \updates       2025-12-23
  * \license       See above.
  *
  */
@@ -54,9 +54,14 @@ namespace rtl
  *--------------------------------------------------------------------------*/
 
 /**
+ *  \deprecated ?
+ *
  *  This function probes for an existing MIDI API engine.  It tries to
  *  test an output port.  Either input or output would work. Once detected,
  *  the port is deleted; we just want to find an API.
+ *
+ *  However, this would set up a JACK process prematurely, so let's just
+ *  use the functions detect_alsa(), detect_jack(), etc.
  *
  *  \param desiredapi
  *      Provides the desired API.  The value rtmidi::api::unspecified means that
@@ -76,7 +81,15 @@ find_midi_api (rtmidi::api desiredapi, std::string cname)
     if (desiredapi == rtmidi::api::unspecified)
         desiredapi = rtmidi::fallback_api();
 
-    m = try_open_midi_api(desiredapi, midi::port::io::output, cname);
+    /*
+     * When looking for a usable MIDI API, we don't need to set up
+     * callbacks, just a temporary client handle. We use the dummy I/O value.
+     * Perhaps for clarity we should make a "find" value? Yes.
+     *
+     * m = try_open_midi_api(desiredapi, midi::port::io::output, cname);
+     */
+
+    m = try_open_midi_api(desiredapi, midi::port::io::finder, cname);
     if (not_nullptr(m))
     {
         delete m;
@@ -89,6 +102,92 @@ static bool
 try_match (rtmidi::api current, rtmidi::api target)
 {
     return current == rtmidi::api::unspecified || current == target;
+}
+
+/**
+ *  Similar to try_open_midi_api(), but does not create a midi_api-derived
+ *  object. This is one way to avoid setting up a JACK process
+ *  prematurely, for example.
+ */
+
+rtmidi::api
+detect_midi_api (rtmidi::api rapi)
+{
+    rtmidi::api result { rtmidi::api::unspecified };
+    if (rapi != rtmidi::api::max)
+    {
+#if defined RTL66_BUILD_PIPEWIRE
+        if (try_match(rapi, rtmidi::api::pipewire))
+        {
+            if (detect_pipewire(true))
+                result = rtmidi::api::pipewire;
+        }
+#endif
+#if defined RTL66_BUILD_JACK
+        if (result == rtmidi::api::unspecified)
+        {
+            if (try_match(rapi, rtmidi::api::jack))
+            {
+                if (detect_jack(true))
+                    result = rtmidi::api::jack;
+            }
+        }
+#endif
+#if defined RTL66_BUILD_ALSA
+        if (result == rtmidi::api::unspecified)
+        {
+            if (try_match(rapi, rtmidi::api::alsa))
+            {
+                if (detect_alsa(true))
+                    result = rtmidi::api::alsa;
+            }
+        }
+#endif
+#if defined RTL66_BUILD_MACOSX_CORE
+        if (result == rtmidi::api::unspecified)
+        {
+            if (try_match(rapi, rtmidi::api::macosx_core))
+            {
+                if (detect_macosx_core(true))
+                    result = rtmidi::api::macosx_core;
+            }
+        }
+#endif
+#if defined RTL66_BUILD_WIN_MM
+        if (result == rtmidi::api::unspecified)
+        {
+            if (try_match(rapi, rtmidi::api::windows_mm))
+            {
+                if (detect_win_mm(true))
+                    result = rtmidi::api::windows_mm;
+            }
+        }
+#endif
+#if defined RTL66_BUILD_WEB_MIDI
+        if (result == rtmidi::api::unspecified)
+        {
+            if (try_match(rapi, rtmidi::api::web_midi))
+            {
+                if (detect_web_midi(true))
+                    result = rtmidi::api::web_midi;
+            }
+        }
+#endif
+#if defined RTL66_BUILD_DUMMY
+        if (result == rtmidi::api::unspecified)
+        {
+            result = rtmidi::api::dummy;
+        }
+#endif
+
+        /*
+         * To do:  Add RTL66_BUILD_WIN_UWP and RTL66_BUILD_ANDROID.
+         */
+
+        if (result == rtmidi::api::unspecified)
+            error_print("find_midi_api", "no support for API");
+    }
+    return result;
 }
 
 /**

@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-10-30
+ * \updates       2025-12-20
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -209,13 +209,8 @@ bus::~bus ()
 }
 
 /**
- *  Note that the bus_in object can get this pointer from its
- *  rtmidi_in object.
- *
- *  And Note that the bus_out object can get this pointer from its
- *  rtmidi_out object.
- *
- *  WRONG WRONG WRONG and UNNECESSARY.
+ *  Not sure if each bus needs access to the master_bus's rtl::midi_api
+ *  object.
  */
 
 rtl::midi_api *

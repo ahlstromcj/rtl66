@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-11-03
+ * \updates       2025-12-23
  * \license       See above.
  *
  */
@@ -48,6 +48,10 @@ extern rtmidi::api find_midi_api
 (
     rtmidi::api desiredapi  = rtmidi::api::unspecified,
     std::string clientname  = ""
+);
+extern rtmidi::api detect_midi_api
+(
+    rtmidi::api rapi = rtmidi::api::unspecified
 );
 extern midi_api * try_open_midi_api
 (

@@ -1,6 +1,6 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-12-16
+2019-04-13 to 2025-12-20
 
 For version 0.3:
 
@@ -10,8 +10,10 @@ For version 0.3:
 
 Fixes:
 
+    -   Investigate how RtMidi uses the "reuse connection" concept.
     -   In busin, showing to_string() for masterbus says the main port
         is capture, but the aliases are playback, and vice versa!
+    -   Why is not ALSA showing a nickname?
     -   In the bus hierarchy, sort out the engine midi-API vs. the
         bus-specific midi-API.
         -   Polling.

@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-12-15
- * \updates       2025-10-30
+ * \updates       2025-12-23
  * \license       See above.
  *
  */
@@ -61,10 +61,14 @@ rtmidi_engine::rtmidi_engine
     rtmidi          (),
     m_master_bus    (mbus)              /* accessor master_bus()            */
 {
+#if defined USE_REFACTORED_MASTERBUS
+    (void) rapi;
+#else
     const std::string & cname { mbus.client_info().client_name() };
     rapi = ctor_common_setup(rapi, cname);
     if (open_midi_api(rapi, cname, master_bus().queue_size()))
         rtmidi::selected_api(rapi);
+#endif
 }
 
 /**

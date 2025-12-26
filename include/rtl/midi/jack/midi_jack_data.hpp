@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2017-01-02
- * \updates       2025-12-13
+ * \updates       2025-12-25
  * \license       See above.
  *
  */
@@ -196,9 +196,9 @@ public:
     midi_jack_data (rtmidi_in_data &, std::size_t sz = 0);
     midi_jack_data (std::size_t sz);
     midi_jack_data (const midi_jack_data &) = delete;
-    midi_jack_data (midi_jack_data &&) = default;
+    midi_jack_data (midi_jack_data &&) = delete;    // default;
     midi_jack_data & operator = (const midi_jack_data &) = delete;
-    midi_jack_data & operator = (midi_jack_data &&) = default;
+    midi_jack_data & operator = (midi_jack_data &&) = delete;   // default;
     ~midi_jack_data () = default;
 
     /*

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-14
+ * \updates       2025-12-25
  * \license       See above.
  *
  */
@@ -2329,9 +2329,10 @@ midi_alsa::get_message ()
     /*
      * Make sure the ALSA MIDI event parser is initialized.
      * The following call will do actual work only once for this port.
+     *
+     * int bussindex { alsa_data().port_number() };
      */
 
-    int bussindex { alsa_data().port_number() };
     bool inited { alsa_data().initialize(ncclient, midi::port::io::input) };
     if (! inited)
     {

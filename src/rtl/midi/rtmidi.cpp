@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-13
+ * \updates       2025-12-20
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -131,6 +131,18 @@ rtmidi::delete_rt_api_ptr ()
 {
     if (m_rt_api_ptr)
         m_rt_api_ptr.reset();
+}
+
+void *
+rtmidi::api_data ()
+{
+    return m_rt_api_ptr->api_data();
+}
+
+const void *
+rtmidi::api_data () const
+{
+    return m_rt_api_ptr->api_data();
 }
 
 /**

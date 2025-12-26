@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-17
- * \updates       2025-12-12
+ * \updates       2025-12-25
  * \license       See above.
  *
  */
@@ -144,7 +144,7 @@ public:
     midi_alsa_data (const midi_alsa_data &) = delete;
     midi_alsa_data (midi_alsa_data &&) = default;
     midi_alsa_data & operator = (const midi_alsa_data &) = delete;
-    midi_alsa_data & operator = (midi_alsa_data &&) = default;
+    midi_alsa_data & operator = (midi_alsa_data &&) = delete;   // default;
     ~midi_alsa_data ();
 
     void clear ();

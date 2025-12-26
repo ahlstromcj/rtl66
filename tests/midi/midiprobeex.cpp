@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-11-14
+ * \updates       2025-12-17
  * \license       See above.
  *
  */
@@ -114,7 +114,7 @@ main (int argc, char * argv [])
         if (mb.engine_initialize())
         {
             mb.engine_activate();
-            std::string portlist = mb.port_listing();
+            std::string portlist = mb.port_io_listing();
             std::cout << portlist;
         }
         else

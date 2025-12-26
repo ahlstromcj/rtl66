@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-12-11
+ * \updates       2025-12-25
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -170,7 +170,7 @@ private:
      *  the output list.  Otherwise, it is currently -1.
      */
 
-    const int m_bus_index { -1 };
+    int m_bus_index { -1 };
 
     /**
      *  The client ID of the Seq66 application as determined by the MIDI
@@ -297,9 +297,9 @@ public:
         port::io io_type
     );
     bus (const bus &) = delete;
-    bus (bus &&) = default;
+    bus (bus &&) = delete;  // default;
     bus & operator = (const bus &) = delete;
-    bus & operator = (bus &&) = default;
+    bus & operator = (bus &&) = delete; // default;
     virtual ~bus ();
 
 #if defined RTL66_SHOW_BUS_VALUES
@@ -767,7 +767,16 @@ public:
         return false;
     }
 
-#if 0
+    virtual rtl::midi_api * rt_api_ptr ()
+    {
+        return nullptr;                 /* must override this function  */
+    }
+
+    virtual const rtl::midi_api * rt_api_ptr () const
+    {
+        return nullptr;                 /* must override this function  */
+    }
+
     void * api_data ()
     {
         return rt_api_ptr()->api_data();
@@ -777,7 +786,6 @@ public:
     {
         return rt_api_ptr()->api_data();
     }
-#endif
 
     void print ();
 
@@ -791,10 +799,6 @@ protected:
     rtl::midi_api * midi_api_ptr ();
     const rtl::midi_api * midi_api_ptr () const;
 
-#if 0
-    virtual rtl::midi_api * rt_api_ptr () = 0;
-    virtual const rtl::midi_api * rt_api_ptr () const = 0;
-#endif
 
 };          // class bus
 

@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24
- * \updates       2025-12-17
+ * \updates       2025-12-19
  * \license       See above.
  *
  *  midi::port. A class holding data about a port.  This class is meant to
@@ -91,24 +91,17 @@ port::to_string () const
     if (port_type() != kind::normal)
         os << "(" << kind_to_string(port_type()) << ")";
 
-    os
-        << ": " << buss_number() << ":" << port_number() << " "
-        << buss_name() << ":" << port_name()
-        ;
+    os << ": " << buss_number() << ":" << port_number() << " ";
     if (! port_nickname().empty())
-        os << " (" << m_port_nickname << ")" << std::endl;
-    else
-        os << std::endl;
+        os << m_port_nickname << ": ";
 
+    os << buss_name() << ":" << port_name() << std::endl;
     if (! port_aliases().empty())
     {
-        os << "              " << port_alias(0) << "\n";
+        os << "               " << port_alias(0) << "\n";
         if (port_aliases().size() > 1)
-            os << "              " << port_alias(1) << std::endl;
+            os << "               " << port_alias(1) << std::endl;
     }
-    else
-        os << std::endl;
-
     return os.str();
 }
 

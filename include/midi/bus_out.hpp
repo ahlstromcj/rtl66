@@ -101,7 +101,6 @@ public:
     virtual bool clock_send (midi::pulse tick) override;
     virtual bool clock_continue (midi::pulse tick) override;
 
-#if 0
     virtual rtl::midi_api * rt_api_ptr () override
     {
         return midi_out().rt_api_ptr();
@@ -111,7 +110,6 @@ public:
     {
         return midi_out().rt_api_ptr();
     }
-#endif
 
 private:
 

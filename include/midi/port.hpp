@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24        (seq66::midi_port_info)
- * \updates       2025-11-27
+ * \updates       2025-12-21
  * \license       See above.
  *
  *  Contains information about a single MIDI port, as determined by
@@ -86,7 +86,7 @@ public:
 
     /**
      *  Constants for selecting input versus output ports in a more obvious
-     *  way. Tested by the midi_api::is_input/output/duplex/engine()
+     *  way. Tested by the midi_api::is_input/output/duplex/engine/...()
      *  functions.
      *
      *  Currently, the io::engine value is used for supporting the use of a
@@ -100,7 +100,8 @@ public:
         output,         /**< The port is an output MIDI port.               */
         duplex,         /**< Input or output port.                          */
         engine,         /**< The port is purely for use by midi::masterbus. */
-        dummy           /**< Use by midi_dummy or for undetermined ports.   */
+        dummy,          /**< Use by midi_dummy or for undetermined ports.   */
+        finder          /**< Used by the find_midi_api() function,          */
     };
 
     /**

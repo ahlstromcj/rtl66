@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-11-30
+ * \updates       2025-12-25
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -216,9 +216,9 @@ private:
 
     /**
      *  The maximum number of busses (ports) supported.
+     *
+     * int m_max_busses { c_busscount_max };
      */
-
-    int m_max_busses { c_busscount_max };
 
     /**
      *  This is a midi::clientinfo object. No longer a pointer.
@@ -345,7 +345,7 @@ public:
     void clear ();
     bool client_info_reset ();
     bool client_info_reset (clientinfo & cinfo);
-    std::string port_listing () const;
+    std::string port_io_listing () const;
     void print () const;                    // redundant?
 
     /**
@@ -502,6 +502,8 @@ public:     // public because used in test applications
     bool engine_query ();
     bool engine_activate ();
     bool engine_deactivate ();
+    std::string port_list (bool isoutput) const;
+    int choose_port (bool isinput, int & portcount) /* const */;
 
 private:    // API pass-alongs
 

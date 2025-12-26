@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-11-30
+ * \updates       2025-12-23
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -94,6 +94,8 @@
  *      -   make_virtual_bus(), make_normal_bus()
  */
 
+#include <iostream>                     /* std::cin, std::cout              */
+
 #include "midi/bus_in.hpp"              /* midi::bus_in                     */
 #include "midi/bus_out.hpp"             /* midi::bus_out                    */
 #include "midi/event.hpp"               /* midi::event class                */
@@ -101,6 +103,7 @@
 #include "midi/track.hpp"               /* midi::track class                */
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in port              */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out port             */
+#include "rtl/test_helpers.hpp"         /* rtl::set_rt_open_all_ports()     */
 #include "xpc/automutex.hpp"            /* xpc::automutex                   */
 #include "xpc/timing.hpp"               /* xpc::microsleep()                */
 
@@ -141,7 +144,9 @@ masterbus::masterbus
     m_client_info   (ci),
     m_engine        (*this, rapi)           /* "mbus", keep client name     */
 {
-    // no code
+#if defined USE_REFACTORED_MASTERBUS
+    (void) setup();
+#endif
 }
 
 /**
@@ -270,7 +275,7 @@ masterbus::engine_query ()
     bool result { client_info().get_all_port_info(selected_api()) };
     if (result)
     {
-#if defined PLATFORM_DEBUG // _TMI
+#if defined PLATFORM_DEBUG_TMI
         std::string msg { client_info().to_string("engine_query()") };
         infoprint(CSTR(msg));
 #endif
@@ -278,6 +283,62 @@ masterbus::engine_query ()
     else
         errprint("get_all_port_info() failed");
 
+    return result;
+}
+
+std::string
+masterbus::port_list (bool isoutput) const
+{
+    std::string result;
+    if (client_info().ports_queried())
+    {
+        const midi::ports & iop
+        {
+            isoutput ?
+                client_info().io_ports(port::io::output) :
+                client_info().io_ports(port::io::input)
+        };
+        if (iop.port_count() > 0)
+            result = iop.to_string();
+
+    }
+    return result;
+}
+
+int
+masterbus::choose_port (bool isoutput, int & portcount)
+{
+    int result { null_buss() };
+    std::string prompt { port_list(isoutput) };
+    if (! prompt.empty())
+    {
+        int pcount { 0 };
+        std::cout << prompt << "Choose a port: ";
+        do
+        {
+            try
+            {
+                std::cin >> result;
+            }
+            catch (...)
+            {
+                /*
+                 * Entering a letter yields p == 0, but causes
+                 * a seqfault. Entering 0? No problem. So we catch.
+                 * DOESN'T HELP.
+                 */
+            }
+
+            pcount = m_engine.get_port_count();
+            if (result == pcount)
+            {
+                result = midi::c_ports_all;
+                set_rt_open_all_ports();
+                break;
+            }
+        } while (result < 0 || result >= pcount);
+        portcount = pcount;
+    }
     return result;
 }
 
@@ -930,7 +991,7 @@ masterbus::dump_midi_input (event /*& ev*/)
  */
 
 std::string
-masterbus::port_listing () const
+masterbus::port_io_listing () const
 {
     std::string result;
     if (client_info().empty())

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-13
+ * \updates       2025-12-25
  * \license       See above.
  *
  *  The JACK callbacks have been moved into a separate file for better
@@ -42,6 +42,8 @@
 #include <jack/uuid.h>                  /* JACK_UUID_EMPTY_INITIALIZER etc. */
 
 #include "rtl66-config.h"               /* RTL66_HAVE_JACK_PORT_RENAME      */
+#include "midi/bus_in.hpp"              /* midi::bus_in class               */
+#include "midi/bus_out.hpp"             /* midi::bus_out class              */
 #include "midi/eventcodes.hpp"          /* midi::status enum, functions...  */
 #include "midi/calculations.hpp"        /* midi::extract_port_names()       */
 #include "midi/masterbus.hpp"           /* midi::masterbus class for I/O    */
@@ -743,60 +745,79 @@ jack_process_out (jack_nframes_t framect, void * arg)
 int
 jack_process_io (jack_nframes_t framect, void * arg)
 {
+#if defined PLATFORM_DEBUG_TMI
     static bool s_first = false;
     if (! s_first)
     {
         printf("jack_process_io(%p)\n", arg);
         s_first = true;
     }
+#endif
+
+    /*
+     * Note: the arg here is the api_data() of the midi_api of
+     * the masterbus. We actually want to get the data pointer
+     * for each bus to pass along to the input or output callback.
+     *
+     * IDEA: can we make the arg a pointer to the masterbus?
+     * IDEA: use both in and out processes. Write up the scenario.
+     */
 
     midi_jack_data * jackdata { midi_jack::static_data_cast(arg) };
-    rtmidi_in_data & rtdata { jackdata->rt_midi_in() };
     midi::masterbus * mbusptr { jackdata->master_bus_ptr() };
     if (framect > 0 && not_nullptr(mbusptr))
     {
-#if 0
-
         midi::busarray & inbusses { mbusptr->inbus_array () };
+        int innum { 0 };    //  incount { inbusses.count() };
+
         midi::busarray & outbusses { mbusptr->outbus_array () };
+        int outnum { 0 };   //  outcount { outbusses.count() };
 
-        HOW TO get the midi_jack_data from the bus_in and bus_out????
-
-
-        transport::jack::info * self
+        bool active { true };
+        while (active)
         {
-            reinterpret_cast<transport::jack::info *>(arg)
-        };
-        if (not_nullptr(self))
-        {
-            /*
-             * Go through the I/O ports and route the data appropriately.
-             */
-
-            for (auto mj : self->jack_ports())  /* midi_jack pointers       */
+            bool okin { true };
+            midi::bus_in & inbus
             {
-                if (mj->enabled())
+                inbusses.buss_in(midi::bussbyte(innum))
+            };
+            void * mjp { inbus.api_data() };
+            if (not_nullptr(mjp))
+            {
+                int rc { jack_process_in(framect, mjp) };
+                if (rc != 0)
                 {
-#if defined PLATFORM_DEBUG_TMI                  /* printf() asynch unsafe   */
-                    if (mj->is_input_port())
-                        printf("Enabled: %s\n", CSTR(mj->port_name()));
-#endif
-                    midi_jack_data * mjp { &mj->jack_data() };
-                    if (mj->parent_bus().is_input_port())
-                        (void) jack_process_in(framect, mjp);
-                    else
-                        (void) jack_process_out(framect, mjp);
+                    printf("INPUT ERROR\n");
+                    break;
                 }
-#if defined PLATFORM_DEBUG_TMI                  /* printf() asynch unsafe   */
                 else
-                {
-                    if (mj->is_input_port())
-                        printf("Disabled: %s\n", CSTR(mj->port_name()));
-                }
-#endif
+                    ++innum;
             }
+            else
+                okin = false;
+
+            bool okout { true };
+            midi::bus_out & outbus
+            {
+                outbusses.buss_out(midi::bussbyte(outnum))
+            };
+            mjp = outbus.api_data();
+            if (not_nullptr(mjp))
+            {
+                int rc { jack_process_out(framect, mjp) };
+                if (rc != 0)
+                {
+                    printf("INPUT ERROR\n");
+                    break;
+                }
+                else
+                    ++outnum;
+            }
+            else
+                okout = false;
+
+            active = okin || okout;
         }
-#endif
     }
     return 0;
 }

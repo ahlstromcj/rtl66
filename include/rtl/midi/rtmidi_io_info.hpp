@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2025-11-28
- * \updates       2025-11-29
+ * \updates       2025-12-24
  * \license       See above.
  *
  */
@@ -44,9 +44,15 @@ namespace rtl
 
 extern bool rtmidi_get_io_info
 (
+    rtl::rtmidi::api rapi,
     midi::port::io & iotype,
-    midi::ports & ioports,
-    rtl::rtmidi::api rapi
+    midi::ports & ioports
+);
+extern bool rtmidi_get_io_info
+(
+    rtl::rtmidi::api rapi,
+    midi::ports & inports,
+    midi::ports & outports
 );
 
 }           // namespace rtl

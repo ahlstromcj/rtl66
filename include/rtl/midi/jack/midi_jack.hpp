@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-10
+ * \updates       2025-12-25
  * \license       See above.
  *
  */
@@ -121,10 +121,12 @@ private:
     midi_jack_data m_jack_data { input_data(), c_jack_ringbuffer_size };
 
     /**
-     *  We want to make sure the JACK processing function is set only once.
+     *  We want to make sure the JACK processing function is set only once,
+     *  globally. In-class initialization is not allowed for non constant
+     *  static members.
      */
 
-    bool m_jack_process_is_set { false };
+    static bool sm_jack_process_is_set;
 
 public:
 
@@ -264,6 +266,11 @@ public:
     (
         midi::ports & inputports, bool preclear = true
     ) override;
+    virtual int get_io_port_info
+    (
+        midi::ports & inports,
+        midi::ports & outports
+    );
     virtual std::string get_port_alias
     (
         const std::string & name, int aliasno = 0

@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-07
-# \updates     2025-10-05
+# \updates     2025-12-26
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the rtl66 library.
@@ -140,7 +140,7 @@ endif
 rtl66_pkg_description = 'Refactoring/extension of the RtMidi library for Seq66v2.'
 rtl66_pkg_version = meson.project_version()
 rtl66_api_version = '0.1'
-rtl66_info_date = '2025-01-31'
+rtl66_info_date = '2025-12-26'
 rtl66_info_build_type = get_option('buildtype')
 rtl66_info_build_root = meson.project_build_root()
 rtl66_info_lib_type = get_option('default_library')
@@ -258,13 +258,13 @@ endif
 
 cc = meson.get_compiler('cpp')
 cdata = configuration_data()
-cdata.set('fcntl_h', cc.has_header('fcntl.h'))
-cdata.set('limits_h', cc.has_header('limits.h'))
-cdata.set('semaphore_h', cc.has_header('semaphore.h'))
-cdata.set('jack_metadata_h', cc.has_header('jack/metadata.h'))
-cdata.set('jack_port_rename',
+cdata.set10('fcntl_h', cc.has_header('fcntl.h'))
+cdata.set10('limits_h', cc.has_header('limits.h'))
+cdata.set10('semaphore_h', cc.has_header('semaphore.h'))
+cdata.set10('jack_metadata_h', cc.has_header('jack/metadata.h'))
+cdata.set10('jack_port_rename',
    cc.has_header_symbol('jack/jack.h', 'jack_port_rename'))
-cdata.set('jack_get_version_string',
+cdata.set10('jack_get_version_string',
    cc.has_header_symbol('jack/jack.h', 'jack_get_version_string'))
 
 #-----------------------------------------------------------------------------
