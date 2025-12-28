@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-12-23
+ * \updates       2025-12-27
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -101,6 +101,7 @@
 #include "midi/event.hpp"               /* midi::event class                */
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
 #include "midi/track.hpp"               /* midi::track class                */
+#include "rtl/midi/find_midi_api.hpp"   /* rtl::detect_midi_api()           */
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in port              */
 #include "rtl/midi/rtmidi_out.hpp"      /* rtl::rtmidi_out port             */
 #include "rtl/test_helpers.hpp"         /* rtl::set_rt_open_all_ports()     */
@@ -140,13 +141,15 @@ masterbus::masterbus
     rtl::rtmidi::api rapi,
     const midi::clientinfo & ci
 ) :
-    m_selected_api  (rapi),                 /* rtmidi::api::unspecified)    */
+    m_selected_api
+    (
+        rapi == rtl::rtmidi::api::unspecified ?
+            rtl::detect_midi_api(rapi) : rapi
+    ),
     m_client_info   (ci),
     m_engine        (*this, rapi)           /* "mbus", keep client name     */
 {
-#if defined USE_REFACTORED_MASTERBUS
     (void) setup();
-#endif
 }
 
 /**
@@ -308,16 +311,16 @@ masterbus::port_list (bool isoutput) const
 int
 masterbus::choose_port (bool isoutput, int & portcount)
 {
-    int result { null_buss() };
+    int result { midi::null_buss() };
     std::string prompt { port_list(isoutput) };
     if (! prompt.empty())
     {
         int pcount { 0 };
-        std::cout << prompt << "Choose a port: ";
         do
         {
             try
             {
+                std::cout << prompt << "Choose a port: ";
                 std::cin >> result;
             }
             catch (...)
@@ -330,10 +333,19 @@ masterbus::choose_port (bool isoutput, int & portcount)
             }
 
             pcount = m_engine.get_port_count();
-            if (result == pcount)
+            if (pcount > 0)
             {
-                result = midi::c_ports_all;
-                set_rt_open_all_ports();
+                if (result == pcount)
+                {
+                    result = midi::c_ports_all;
+                    set_rt_open_all_ports();
+                    break;
+                }
+            }
+            else
+            {
+                std::cerr << "Port count error" << std::endl;
+                result = midi::null_buss();
                 break;
             }
         } while (result < 0 || result >= pcount);

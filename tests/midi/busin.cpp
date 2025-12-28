@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-10-09
- * \updates       2025-12-23
+ * \updates       2025-12-27
  * \license       See above.
  *
  *      This application but merely opens one port and accepts messages,
@@ -42,7 +42,6 @@
 #include "midi/masterbus.hpp"           /* midi::masterbus class            */
 #include "midi/message.hpp"             /* midi::message class              */
 #include "midi/poller.hpp"              /* midi::poller class               */
-#include "rtl/midi/find_midi_api.hpp"   /* rtl::find_midi_api() module      */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi class, etc.          */
 #include "rtl/midi/rtmidi_in.hpp"       /* rtl::rtmidi_in class             */
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
@@ -165,8 +164,14 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
     static bool s_uninitialized { true };
     if (s_uninitialized)
     {
-        if (rapi == rtl::rtmidi::api::unspecified)
-            rapi = rtl::find_midi_api();
+        /*
+         *  Now done in the masterbus constructor.
+         *
+         *  rapi = rtl::find_midi_api();
+         *
+         *  if (rapi == rtl::rtmidi::api::unspecified)
+         *      rapi = rtl::detect_midi_api();
+         */
 
         /*
          * Not so sure about this. We have a relatively new input_active
@@ -183,11 +188,6 @@ master_bus (rtl::rtmidi::api rapi, midi::clientinfo & ci)
     if (s_uninitialized)
     {
         bool ok { rapi != rtl::rtmidi::api::unspecified };
-#if ! defined USE_REFACTORED_MASTERBUS
-        if (ok)
-            ok = s_master_bus.setup();          /* ci */
-#endif
-
         if (ok)
             s_uninitialized = false;
     }

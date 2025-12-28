@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-12-25
+ * \updates       2025-12-28
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -779,12 +779,12 @@ public:
 
     void * api_data ()
     {
-        return rt_api_ptr()->api_data();
+        return not_nullptr(rt_api_ptr()) ? rt_api_ptr()->api_data() : nullptr ;
     }
 
     const void * api_data () const
     {
-        return rt_api_ptr()->api_data();
+        return not_nullptr(rt_api_ptr()) ? rt_api_ptr()->api_data() : nullptr ;
     }
 
     void print ();

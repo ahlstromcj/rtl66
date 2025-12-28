@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-11-20
- * \updates       2025-12-10
+ * \updates       2025-12-28
  * \license       See above.
  *
  *  Should we add operator [] for setting as well?
@@ -67,7 +67,7 @@ public:
 
 private:
 
-#if defined PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG
 
     /**
      *  Provide a static counter to keep track of events. Currently needed
@@ -231,7 +231,7 @@ public:
         return int(size());
     }
 
-#if defined PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG
 
     unsigned msg_number () const
     {

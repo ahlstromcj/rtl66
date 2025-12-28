@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-12-15
- * \updates       2025-12-25
+ * \updates       2025-12-27
  * \license       See above.
  *
  */
@@ -38,12 +38,6 @@
 #include "c_macros.h"                   /* not_nullptr and other macros     */
 #include "rtl/rtl_build_macros.h"       /* RTL66_DLL_PUBLIC, etc.           */
 #include "rtl/midi/rtmidi.hpp"          /* rtl::rtmidi::rtmidi base class   */
-
-/*
- * EXPERIMENTAL
- */
-
-#undef USE_REFACTORED_MASTERBUS
 
 namespace midi
 {

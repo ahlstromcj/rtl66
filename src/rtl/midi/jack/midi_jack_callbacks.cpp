@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-25
+ * \updates       2025-12-28
  * \license       See above.
  *
  *  The JACK callbacks have been moved into a separate file for better
@@ -357,7 +357,7 @@ jack_process_in_impl (jack_nframes_t framect, midi_jack_data & jackdata)
     bool allowsysex { rtdata.allow_sysex() };
     bool moresysex { rtdata.continue_sysex() };
     int evcount { int(::jack_midi_get_event_count(buff)) };
-#if defined PLATFORM_DEBUG  // _TMI
+#if defined PLATFORM_DEBUG_TMI
     if (evcount > 0)
         printf("event count %d\n", evcount);
 #endif
@@ -581,7 +581,7 @@ jack_get_event_data
         else
             result = 0;
 
-        if (process)                /* belaying not enabled at this time    */
+        if (process)                    /* belaying disenabled at this time */
         {
             size_t datasz { size_t(msg.event_byte_count()) };
             if (datasz <= destsz)
@@ -593,9 +593,9 @@ jack_get_event_data
         }
         else
         {
-#if defined PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG // _TMI
             char value[util::c_async_safe_utoa_size];
-            char text[util::c_async_safe_utoa_size + 32];
+            char text[util::c_async_safe_utoa_size+32];
             std::strcpy(text, "Event ");
             util::async_safe_utoa(value, msg.msg_number());
             std::strcat(text, value);
@@ -732,6 +732,27 @@ jack_process_out (jack_nframes_t framect, void * arg)
  *      -   Check all inputs, then check all outputs.
  *      -   Alternate between input and output.
  *
+ * Note:
+ *
+ *      The \a arg parameter here is the api_data() of the midi_api of
+ *      the masterbus. We actually want to get the data pointer
+ *      for each bus to pass along to the input or output callback.
+ *
+ * IDEA: can we make the arg a pointer to the masterbus?
+ * IDEA: use both in and out processes. Write up the scenario.
+ *
+ * Important:
+ *
+ *      This function is set up during the initialization of the
+ *      masterbus and the midi_jack object that supports it.
+ *      At that point, the I/O busarrays have *not* been filled,
+ *      as this happens during masterbus::setup().
+ *
+ *      Therefore, we have to check the size of the two busarrays
+ *      before using them.
+ *
+ *      IS THERE A RACE CONDITION?
+ *
  * \param framect
  *      The frame number from the JACK API.
  *
@@ -749,18 +770,13 @@ jack_process_io (jack_nframes_t framect, void * arg)
     static bool s_first = false;
     if (! s_first)
     {
-        printf("jack_process_io(%p)\n", arg);
+        printf("jack_process_io(0x%p)\n", arg);
         s_first = true;
     }
 #endif
 
     /*
-     * Note: the arg here is the api_data() of the midi_api of
-     * the masterbus. We actually want to get the data pointer
-     * for each bus to pass along to the input or output callback.
-     *
-     * IDEA: can we make the arg a pointer to the masterbus?
-     * IDEA: use both in and out processes. Write up the scenario.
+     *  
      */
 
     midi_jack_data * jackdata { midi_jack::static_data_cast(arg) };
@@ -768,54 +784,60 @@ jack_process_io (jack_nframes_t framect, void * arg)
     if (framect > 0 && not_nullptr(mbusptr))
     {
         midi::busarray & inbusses { mbusptr->inbus_array () };
-        int innum { 0 };    //  incount { inbusses.count() };
+        int innum { 0 };
+        int incount { inbusses.count() };
 
         midi::busarray & outbusses { mbusptr->outbus_array () };
-        int outnum { 0 };   //  outcount { outbusses.count() };
-
-        bool active { true };
+        int outnum { 0 };
+        int outcount { outbusses.count() };
+        bool active { incount > 0 && outcount > 0 };
         while (active)
         {
-            bool okin { true };
+            bool okin { incount > 0 };
+            if (okin)
+            {
             midi::bus_in & inbus
             {
                 inbusses.buss_in(midi::bussbyte(innum))
             };
-            void * mjp { inbus.api_data() };
-            if (not_nullptr(mjp))
-            {
-                int rc { jack_process_in(framect, mjp) };
-                if (rc != 0)
+                void * mjp { inbus.api_data() };
+                if (not_nullptr(mjp))
                 {
-                    printf("INPUT ERROR\n");
-                    break;
+                    int rc { jack_process_in(framect, mjp) };
+                    if (rc != 0)
+                    {
+                        printf("INPUT ERROR\n");
+                        break;
+                    }
+                    else
+                        ++innum;
                 }
                 else
-                    ++innum;
+                    okin = false;
             }
-            else
-                okin = false;
 
-            bool okout { true };
-            midi::bus_out & outbus
+            bool okout { outcount > 0 };
+            if (okout)
             {
-                outbusses.buss_out(midi::bussbyte(outnum))
-            };
-            mjp = outbus.api_data();
-            if (not_nullptr(mjp))
-            {
-                int rc { jack_process_out(framect, mjp) };
-                if (rc != 0)
+                midi::bus_out & outbus
                 {
-                    printf("INPUT ERROR\n");
-                    break;
+                    outbusses.buss_out(midi::bussbyte(outnum))
+                };
+                void * mjp { outbus.api_data() };
+                if (not_nullptr(mjp))
+                {
+                    int rc { jack_process_out(framect, mjp) };
+                    if (rc != 0)
+                    {
+                        printf("INPUT ERROR\n");
+                        break;
+                    }
+                    else
+                        ++outnum;
                 }
                 else
-                    ++outnum;
+                    okout = false;
             }
-            else
-                okout = false;
-
             active = okin || okout;
         }
     }

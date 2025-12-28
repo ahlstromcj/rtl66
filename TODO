@@ -1,6 +1,6 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-12-20
+2019-04-13 to 2025-12-28
 
 For version 0.3:
 
@@ -10,6 +10,12 @@ For version 0.3:
 
 Fixes:
 
+    -   Error in ALSA with play and busout:
+       [3] Skip in ALSA buss FLUID Synth (3654322) #0 Caps: W SubW
+        play: seq.c:4019: snd_seq_get_queue_tempo: Assertion
+        seq && tempo failed.
+    -   Need a way to indicate that a MIDI API object *is* for
+        the master, and not just *has* a master.
     -   Investigate how RtMidi uses the "reuse connection" concept.
     -   In busin, showing to_string() for masterbus says the main port
         is capture, but the aliases are playback, and vice versa!

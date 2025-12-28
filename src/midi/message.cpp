@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2016-12-01
- * \updates       2025-12-10
+ * \updates       2025-12-28
  * \license       See above.
  *
  *  Provides a basic type for the (heavily-factored) rtl66 library, very
@@ -137,8 +137,10 @@ namespace midi
  * class message
  */
 
-#if defined PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG
+
 unsigned message::sm_msg_number { 0 };
+
 #endif
 
 /**
@@ -151,7 +153,7 @@ unsigned message::sm_msg_number { 0 };
  */
 
 message::message (double ts) :
-#if defined PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG
     m_msg_number    (sm_msg_number++),
 #endif
     m_time_stamp    (ts)
@@ -160,7 +162,7 @@ message::message (double ts) :
 }
 
 message::message (midi::byte b)
-#if defined PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG
  :
     m_msg_number    (sm_msg_number++)
 #endif
@@ -184,7 +186,7 @@ message::message (midi::byte b)
 
 message::message (const midi::byte * mbs, std::size_t sz) :
 
-#if defined PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG
     m_msg_number    (sm_msg_number++),
 #endif
     m_time_stamp    (0),                    /* TODO */
@@ -208,7 +210,7 @@ message::message (const midi::byte * mbs, std::size_t sz) :
 
 message::message (const midi::bytes & mbs) :
 
-#if defined PLATFORM_DEBUG_TMI
+#if defined PLATFORM_DEBUG
     m_msg_number    (sm_msg_number++),
 #endif
     m_time_stamp    (0),

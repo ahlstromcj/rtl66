@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-25
+ * \updates       2025-12-28
  * \license       See above.
  *
  */
@@ -122,8 +122,8 @@ private:
 
     /**
      *  We want to make sure the JACK processing function is set only once,
-     *  globally. In-class initialization is not allowed for non constant
-     *  static members.
+     *  globally, when using the masterbus. In-class initialization is not
+     *  allowed for non constant static members.
      */
 
     static bool sm_jack_process_is_set;
