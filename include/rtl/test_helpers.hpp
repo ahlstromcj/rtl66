@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-12-18
+ * \updates       2026-01-02
  * \license       See above.
  *
  *  Note that these functions are not in a namespace so that most of them
@@ -38,18 +38,26 @@
 
 #include <string>                       /* std::string class                */
 
+#include <midi/port.hpp>                /* midi::port::io enumeration       */
+
 namespace rtl
 {
     class rtmidi_in;
     class rtmidi_out;
 }
 
+extern int rt_choose_port
+(
+    midi::port::io iotype,
+    int & portcount,
+    bool showalloption = true
+);
 extern bool rt_choose_input_port (rtl::rtmidi_in & rtin);
 extern bool rt_choose_output_port (rtl::rtmidi_out & rtout);
 extern int rt_choose_input_ports (int & portcount);
 extern int rt_choose_output_ports (int & portcount);
 extern bool rt_select_input_ports (int & portcount);
-extern int rt_choose_port_number (bool isoutput = true);
+extern int rt_choose_port_number (midi::port::io iotype);
 extern bool rt_simple_cli
 (
     const std::string & appname,
@@ -62,6 +70,8 @@ extern bool rt_get_extra_option
     std::string * parameter = nullptr
 );
 extern bool rt_test_port_valid (int portno);
+extern void set_rt_allow_open_all_ports (bool flag);
+extern bool rt_allow_open_all_ports ();
 extern bool rt_open_all_ports ();
 extern void set_rt_open_all_ports ();
 extern bool rt_virtual_test_port ();

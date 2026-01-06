@@ -276,6 +276,8 @@ poller::finish ()
  *  the logged busses.
  *
  *  Also see poller::setup_master_bus().
+ *
+ *  Is this still needed; does masterbus::setup()???
  */
 
 bool

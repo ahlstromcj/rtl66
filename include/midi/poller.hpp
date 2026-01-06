@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-11-08
- * \updates       2025-12-04
+ * \updates       2026-01-05
  * \license       GNU GPLv2 or above
  *
  *  The poller class is a severely cut-down version of midi::poller with
@@ -46,6 +46,11 @@
 #include "transport/clock/info.hpp"         /* transport::clock::info       */
 #include "xpc/fifo.hpp"                     /* xpc::filo template class     */
 
+#if defined RTL66_BUILD_JACK_DISABLED
+#include "transport/jack/scratchpad.hpp"    /* transport::jack::scratchpad  */
+#include "transport/jack/transport.hpp"     /* transport::jack::transport   */
+#endif
+
 namespace midi
 {
 
@@ -55,9 +60,8 @@ namespace midi
 
 class poller
 {
+
 #if defined RTL66_BUILD_JACK_DISABLED
-#include "transport/jack/scratchpad.hpp"    /* transport::jack::scratchpad  */
-#include "transport/jack/transport.hpp"     /* transport::jack::transport   */
 
     friend class transport::jack::transport;
     friend int jack_sync_callback

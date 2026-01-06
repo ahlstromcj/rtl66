@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-28
+ * \updates       2025-12-31
  * \license       See above.
  *
  *  Written primarily by Alexander Svetalkin, with updates for delta time by
@@ -506,9 +506,10 @@ bool midi_jack::sm_jack_process_is_set { false };
 midi_jack::midi_jack
 (
     midi::masterbus & mbus,
-    midi::port::io iotype
+    midi::port::io iotype,
+    bool formastersetup
 ) :
-    midi_api        (mbus, iotype),
+    midi_api        (mbus, iotype, formastersetup),
     m_client_name   (mbus.client_name())
 {
     m_jack_data.master_bus_ptr(&mbus);
@@ -1877,10 +1878,6 @@ midi_jack::poll_for_midi () const
 }
 
 #if defined PLATFORM_DEBUG
-
-/**
- *
- */
 
 static void
 show_realtime_msg (midi::byte st)

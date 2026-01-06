@@ -1,0 +1,84 @@
+%-------------------------------------------------------------------------------
+% rtl66
+%-------------------------------------------------------------------------------
+%
+% \file        summary.tex
+% \library     Documents
+% \author      Chris Ahlstrom
+% \date        2026-01-06
+% \update      2026-01-06
+% \version     $Revision$
+% \license     $XPC_GPL_LICENSE$
+%
+%     This document provides LaTeX documentation for the Rtl66 library.
+%
+%-------------------------------------------------------------------------------
+
+\section{Summary}
+\label{sec:summary}
+
+   Now let's take a quick overview of the two paradigms: the original paradigm
+   and the masterbus paradigm.
+   Here is a UML-like diagram of the main classes.
+
+\begin{figure}[H]
+   \centering 
+   \includegraphics[scale=0.5]{masterbus.png}
+   \caption*{Rtl66 Overview}
+\end{figure}
+
+   In this diagram, the classes in the \texttt{rtl} namespace mostly
+   support the original RtMidi paradigm.
+
+   The classes in the \texttt{midi} namespace add a master-buss with
+   a single API client handle that supports multiple busses (i.e. ports).
+
+   Take a little time to work through the diagram before moving
+   on to the next sections.
+
+\subsection{Summary / RtMidi API}
+\label{subsec:summary_rtmidi_api}
+
+   The basic operation of an "rtmidi" application is to create an
+   \texttt{rtl::rtmidi\_in} or
+   \texttt{rtl::rtmidi\_out} object.
+   These have access to common MIDI API and I/O functions from the
+   \texttt{rtl::rtmidi} base class.
+   They also create the appropriate MIDI API object, such as a
+   \texttt{rtl::midi\_alsa} object, and then open the associated
+   port.
+
+   The \texttt{rtl::rtmidi} functions forward operations to the
+   \texttt{rtl::midi\_api} object accessed via a pointer.
+   (This linkage is not shown in that diagram.)
+
+   The one exception to the RtMidi paradigm here is the
+   \texttt{rtl::rtmidi\_engine} class.
+   It sets up the MIDI client handle and a port to
+   handle the paradigm described in the next section.
+   
+\subsection{Summary / Masterbus API}
+\label{subsec:summary_masterbus_api}
+
+   The basic operation of a "masterbus" application is to create a
+   \texttt{midi::masterbus}.
+   It uses an \texttt{rtl::rtmidi\_engine} object to do the work.
+   The \texttt{rtl::rtmidi\_engine} object to do the work.
+   It opens the MIDI API, sets up the appropriate I/O callback, if
+   applicable.
+
+   The "master" then takes care of enumerating the ports that
+   exist in the system, creating
+   \texttt{midi::bus\_in} and
+   \texttt{midi::bus\_out} objects for each port.
+
+   These "busses" are entered into an input or an output
+   \texttt{midi::busarray}, where they can be polled or
+   handle sending MIDI events.
+
+
+
+
+%-------------------------------------------------------------------------------
+% vim: ts=3 sw=3 et ft=tex
+%-------------------------------------------------------------------------------

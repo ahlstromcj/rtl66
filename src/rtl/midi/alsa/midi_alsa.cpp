@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-25
+ * \updates       2025-12-30
  * \license       See above.
  *
  */
@@ -466,6 +466,8 @@ show_basic_port_info (snd_seq_t * client, bool isoutput, int portnumber)
  *  Some members are initialized "in-class".
  */
 
+#if USE_OLD_CODE
+
 midi_alsa::midi_alsa
 (
     midi::masterbus & mbus,
@@ -484,6 +486,34 @@ midi_alsa::midi_alsa
      *  m_alsa_data.set_initialized(true);
      */
 }
+
+#else
+
+midi_alsa::midi_alsa
+(
+    midi::masterbus & mbus,
+    midi::port::io iotype,
+    bool formastersetup
+) :
+    midi_api        (mbus, iotype, formastersetup),
+    m_client_name   (mbus.client_name()),
+    m_poll_wrapper  ()
+//  (
+//      reinterpret_cast<snd_seq_t *>(mbus.void_client_handle())
+//  )
+{
+    bool ok { initialize(client_name()) };
+    if (ok)
+    {
+        m_alsa_data.set_initialized(true);
+        (void) m_poll_wrapper.initialize
+        (
+            reinterpret_cast<snd_seq_t *>(mbus.void_client_handle())
+        );
+    }
+}
+
+#endif
 
 /**
  *  This constructor preserves (mostly) the RtMidi stand-alone port
@@ -509,29 +539,38 @@ midi_alsa::midi_alsa
 }
 
 /**
- *  MIDI ALSA destructor.
+ *  MIDI ALSA destructor. As per RtMidi, it needs to:
+ *
+ *      -   Call close_port().
+ *      -   If doing input
+ *          -   Write to trigger 1.
+ *          -   If using the input thread, join it.
+ *          -   Close the triggers.
+ *      -   Delete the port.
+ *      -   If output
+ *          -   Free the event parser.
+ *          -   Free the output buffer.
+ *      -   If ALSA time-stamping, free the queue.
+ *      -   If the engine or a non-slave port, close the client handle.
+ *
+ *  engine_disconnect() closes the client and frees the global "config".
  */
 
 midi_alsa::~midi_alsa ()
 {
-    bool canclose { is_engine() || ! has_master() };
-    if (canclose)
+    if (is_engine())
     {
-        midi_alsa_data & data { alsa_data() };
         close_midi_tempo_queue();
-
-        ::snd_seq_t * s { data.alsa_client() };
-        if (not_nullptr(s))
+        (void) close_port();
+        engine_disconnect();
+    }
+    else
+    {
+        if (! has_master())
         {
-            int rc { ::snd_seq_close(s) };              /* close client     */
-            if (rc == 0)
-                data.alsa_client(nullptr);
-            else
-                printf("~midi_alsa() client-close error\n");
+            (void) close_port();
+            engine_disconnect();
         }
-        int rc { ::snd_config_update_free_global() };   /* more cleanup     */
-        if (rc != 0)
-            printf("~midi_alsa() config-free error\n");
     }
 }
 
@@ -551,6 +590,24 @@ midi_alsa::~midi_alsa ()
  *  midi_alsa_data structure held by this class instance? In the
  *  connect() function. No, better to use the masterbus's client
  *  handle if set.
+ *
+ * Scheduling queue:
+ *
+ *  An event can be delivered either via scheduled or direct dispatch mode.
+ *  Scheduling mode: an event is once stored on the priority queue and
+ *  delivered later/immediately) to the destination. Direct dispatch mode: an
+ *  event is passed to the destination without any queue.
+ *
+ *  Scheduled delivery requires a queue to process the event.  A client
+ *  creates its own queue by snd_seq_alloc_queue() function.  Or a queue may
+ *  be shared among several clients. For scheduling an event on the specified
+ *  queue, a client needs to fill queue field with the preferred queue id.
+ *
+ *  Meanwhile, for dispatching an event directly, just use
+ *  SND_SEQ_QUEUE_DIRECT as the target queue id. A macro
+ *  snd_seq_ev_set_direct() is provided for ease and compatibility.  Although
+ *  direct-dispatch needs less memory, it means the event cannot be resent if
+ *  the destination is unable to receive it momentarily.
  */
 
 void *
@@ -593,23 +650,26 @@ midi_alsa::engine_connect ()
                 result = seq;           /* reinterpret_cast<void *>(seq)    */
                 if (is_engine())
                 {
+                    ///////
+                    // HMMMMM, not done in RtMidi.cpp
+                    //
                     rc = ::snd_seq_alloc_queue(seq);    /* tempo queue id   */
                     if (rc >= 0)
                         midi_tempo_queue(rc);
                 }
                 if (is_output())
                 {
-                    (void) alsa_data().initialize
+                    alsa_data().initialize
                     (
-                        seq, midi::port::io::output /*, buffsize*/
+                        seq, midi::port::io::output /*, buffsize        */
                     );
                 }
                 if (is_input())
                 {
-                    (void) m_poll_wrapper.initialize(seq);  // NEW
+                    (void) m_poll_wrapper.initialize(seq);
                     (void) alsa_data().initialize
                     (
-                        seq, midi::port::io::input /*, buffsize*/
+                        seq, midi::port::io::input      /*, buffsize        */
                     );
                 }
             }
@@ -632,15 +692,18 @@ void
 midi_alsa::engine_disconnect ()
 {
     midi_alsa_data & data { alsa_data() };
-    ::snd_seq_t * c { data.alsa_client() };
-    if (not_nullptr(c))
+    ::snd_seq_t * s { data.alsa_client() };
+    if (not_nullptr(s))
     {
-        close_midi_tempo_queue();                   // new ca 2025-09-19
-        int rc { ::snd_seq_close(c) };
-        (void) ::snd_config_update_free_global();   /* new: more cleanup    */
-        data.alsa_client(nullptr);
+        int rc { ::snd_seq_close(s) };
         if (rc != 0)
             error_print("snd_seq_close()", "failed");
+
+        rc = ::snd_config_update_free_global();             /* more cleanup */
+        if (rc != 0)
+            printf("~midi_alsa() config-free error\n");
+
+        data.alsa_client(nullptr);
     }
 }
 
@@ -688,8 +751,8 @@ midi_alsa::delete_port ()
             ::snd_seq_free_queue(data.alsa_client(), data.queue_id());
 #endif
     }
-    if (! has_master())
-        engine_disconnect();
+//  if (is_engine() || ! has_master())
+//      engine_disconnect();
 }
 
 void
@@ -1487,10 +1550,16 @@ midi_alsa::get_port_name (int portnumber)
 }
 
 /**
- *  Output version just unsubscribes.
+ *  As per RtMidi, closing the port does:
  *
- *  The input version stops the input queue.  Then stops the thread to avoid
- *  triggering the callback, since the port is intended to be closed.
+ *      -   Unsubscribe the port and free the subscription.
+ *      -   If input
+ *          -   If ALSA time-stamping, stop the queue and drain the output.
+ *          -   If doing input:
+ *              -   Write trigger 1.
+ *              -   If using the input thread, join the thread, which stops
+ *                  the thread to avoid triggering the callback, since the
+ *                  port is intended to be closed.
  */
 
 bool
@@ -1817,9 +1886,11 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                 {
                     /*
                      * When VMPK is running, we get this message for a
-                     * client-name of 'VMPK Output'.
+                     * client-name of 'VMPK Output'. Also, if not writeable,
+                     * then fluidsynth is shown here.
                      */
 
+#if defined PLATFORM_DEBUG
                     std::string s { alsa_port_capabilities(caps) };
                     printf
                     (
@@ -1828,6 +1899,7 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                         index, ( iswriteable ? "out" : "in" ),
                         V(clientname), portnumber, V(s)
                     );
+#endif
                 }
             }
             ++index;
@@ -1851,6 +1923,8 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
  *      void send_sysex (const event * ev)
  */
 
+// #if defined USE_SEPARATE_PPQN_BPM_FUNCTIONS
+
 /**
  * Currently, this code is implemented in the midi_alsa_info module, since
  * it is a midi::masterbus function.  Note the implementation here, though.
@@ -1860,25 +1934,30 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
 bool
 midi_alsa::PPQN (midi::ppqn ppq)
 {
-    bool result { is_output() || is_engine() };
+    bool result { is_input() || is_engine() };
     if (result)
     {
         midi_alsa_data & mad_data { alsa_data() };
         int q { midi_tempo_queue() };               /* mad_data.queue_id()      */
-        ::snd_seq_queue_tempo_t * qtempo;
-        snd_seq_queue_tempo_alloca(&qtempo);
+        if (q >= 0)
+        {
+            ::snd_seq_queue_tempo_t * qtempo;
+            snd_seq_queue_tempo_alloca(&qtempo);
 
-        int rc
-        {
-            ::snd_seq_get_queue_tempo(mad_data.alsa_client(), q, qtempo)
-        };
-        if (rc == 0)
-        {
-            ::snd_seq_queue_tempo_set_ppq(qtempo, ppq);
-            ::snd_seq_set_queue_tempo(mad_data.alsa_client(), q, qtempo);
+            int rc
+            {
+                ::snd_seq_get_queue_tempo(mad_data.alsa_client(), q, qtempo)
+            };
+            if (rc == 0)
+            {
+                ::snd_seq_queue_tempo_set_ppq(qtempo, ppq);
+                ::snd_seq_set_queue_tempo(mad_data.alsa_client(), q, qtempo);
+            }
+            else
+                result = false;
         }
         else
-            result = false;
+            error_print("PPQN()", "no tempo queue");
     }
     return result;
 }
@@ -1911,29 +1990,37 @@ midi_alsa::BPM (midi::bpm bp)
     {
         midi_alsa_data & mad_data { alsa_data() };
         int q { midi_tempo_queue() };               /* mad_data.queue_id()  */
-        unsigned tempo_us { unsigned(midi::tempo_us_from_bpm(bp)) };
-        ::snd_seq_queue_tempo_t * qtempo;
-        snd_seq_queue_tempo_alloca(&qtempo);        /* make tempo struc     */
+        if (q >= 0)
+        {
+            unsigned tempo_us { unsigned(midi::tempo_us_from_bpm(bp)) };
+            ::snd_seq_queue_tempo_t * qtempo;
+            snd_seq_queue_tempo_alloca(&qtempo);        /* make tempo struc     */
 
-        int rc
-        {
-            ::snd_seq_get_queue_tempo(mad_data.alsa_client(), q, qtempo)
-        };
-        if (rc == 0)
-        {
-            ::snd_seq_queue_tempo_set_tempo(qtempo, tempo_us);
-            rc = ::snd_seq_set_queue_tempo(mad_data.alsa_client(), q, qtempo);
-            if (rc < 0)
+            int rc
+            {
+                ::snd_seq_get_queue_tempo(mad_data.alsa_client(), q, qtempo)
+            };
+            if (rc == 0)
+            {
+                ::snd_seq_queue_tempo_set_tempo(qtempo, tempo_us);
+                rc = ::snd_seq_set_queue_tempo(mad_data.alsa_client(), q, qtempo);
+                if (rc < 0)
+                    result = false;
+            }
+            else
                 result = false;
         }
         else
-            result = false;
+            error_print("BPM()", "no tempo queue");
     }
     return result;
 }
 
+// #endif  // defined USE_SEPARATE_PPQN_BPM_FUNCTIONS
+
 /**
- *  If the ALSA MIDI tempo queue is valid, close it.
+ *  If the ALSA MIDI tempo queue is valid, close it. Generally needed only
+ *  if RTL66_ALSA_AVOID_TIMESTAMPING is not defined.
  */
 
 void

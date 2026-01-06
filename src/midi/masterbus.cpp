@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-12-27
+ * \updates       2026-01-01
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -181,6 +181,11 @@ masterbus::setup (clientinfo & cinfo)
         if (result)
             result = engine_initialize(cinfo);
 
+#if defined PLATFORM_DEBUG_TMI
+        if (result)
+            print();
+#endif
+
         if (result)
             result = engine_activate();
 
@@ -290,29 +295,23 @@ masterbus::engine_query ()
 }
 
 std::string
-masterbus::port_list (bool isoutput) const
+masterbus::port_list (midi::port::io iotype) const
 {
     std::string result;
     if (client_info().ports_queried())
     {
-        const midi::ports & iop
-        {
-            isoutput ?
-                client_info().io_ports(port::io::output) :
-                client_info().io_ports(port::io::input)
-        };
+        const midi::ports & iop { client_info().io_ports(iotype) };
         if (iop.port_count() > 0)
             result = iop.to_string();
-
     }
     return result;
 }
 
 int
-masterbus::choose_port (bool isoutput, int & portcount)
+masterbus::choose_port (midi::port::io iotype, int & portcount)
 {
     int result { midi::null_buss() };
-    std::string prompt { port_list(isoutput) };
+    std::string prompt { port_list(iotype) };
     if (! prompt.empty())
     {
         int pcount { 0 };
@@ -1080,8 +1079,9 @@ masterbus::engine_initialize ()
 {
     bool result { client_info_reset() };
     if (result)
+    {
         result = engine_initialize(m_client_info);
-
+    }
     return result;
 }
 
@@ -1124,11 +1124,8 @@ masterbus::engine_initialize (const clientinfo & ci)
                 {
                     selected_api(rtl::rtmidi::selected_api());
 
-                    bool swap_io
-                    {
-                        selected_api() == rtl::rtmidi::api::jack
-                    };
-                    bool isinput { ! swap_io };
+                    bool swapio { selected_api() == rtl::rtmidi::api::jack };
+                    bool isinput { ! swapio };
                     midi::port::io iotype
                     {
                         isinput ?

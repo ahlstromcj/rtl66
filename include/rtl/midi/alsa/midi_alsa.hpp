@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-09
+ * \updates       2025-12-30
  * \license       See above.
  *
  */
@@ -88,7 +88,7 @@ private:
      * Experimental
      */
 
-    pollwrapper m_poll_wrapper;
+    pollwrapper m_poll_wrapper { };
 
     /**
      *  Moved the ALSA data to this class.
@@ -98,7 +98,12 @@ private:
 
 public:
 
-    midi_alsa (midi::masterbus & mbus, midi::port::io iotype);
+    midi_alsa
+    (
+        midi::masterbus & mbus,
+        midi::port::io iotype,
+        bool formastersetup = false
+    );
     midi_alsa
     (
         midi::port::io iotype,

@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2025-12-20
+ * \updates       2026-01-01
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -436,12 +436,15 @@ bus::is_port_connectable () const
 
 /**
  *  Prints m_name.
+ *
+ *      printf("%s:%s", V(bus_name()), V(port_name()));
  */
 
 void
 bus::print ()
 {
-    printf("%s:%s", V(bus_name()), V(port_name()));
+    std::string text { to_string() };
+    printf("%s", text.c_str());
 }
 
 midi::ppqn

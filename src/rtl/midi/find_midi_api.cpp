@@ -310,7 +310,7 @@ try_open_midi_api
  */
 
 midi_api *
-try_open_midi_api (/* const */ midi::masterbus & mb, midi::port::io iotype)
+try_open_midi_api (midi::masterbus & mb, midi::port::io iotype)
 {
     midi_api * result { nullptr };
     rtmidi::api rapi { mb.selected_api() };
@@ -328,14 +328,14 @@ try_open_midi_api (/* const */ midi::masterbus & mb, midi::port::io iotype)
             if (is_nullptr(result))
             {
                 if (try_match(rapi, rtmidi::api::jack))
-                    result = new midi_jack(mb, iotype);
+                    result = new midi_jack(mb, iotype, true); // formaster
             }
 #endif
 #if defined RTL66_BUILD_ALSA
             if (is_nullptr(result))
             {
                 if (try_match(rapi, rtmidi::api::alsa))
-                    result = new midi_alsa(mb, iotype);
+                    result = new midi_alsa(mb, iotype, true); // formaster
             }
 #endif
 #if defined RTL66_BUILD_MACOSX_CORE

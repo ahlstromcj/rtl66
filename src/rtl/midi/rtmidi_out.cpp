@@ -70,7 +70,7 @@ rtmidi_out::rtmidi_out (rtmidi::api rapi, const std::string & clientname) :
     }
 }
 
-rtmidi_out::rtmidi_out (/* const */ midi::masterbus & mb) : rtmidi ()
+rtmidi_out::rtmidi_out (midi::masterbus & mb) : rtmidi ()
 {
     rtmidi::api rapi { mb.selected_api() };
     const std::string & clientname { mb.client_name() };

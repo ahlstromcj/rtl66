@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2022-06-25
- * \updates       2025-12-04
+ * \updates       2026-01-02
  * \license       See above.
  *
  *  Simple program to test MIDI clock sync.  Run midiclock_in in one
@@ -121,6 +121,7 @@ clock_in ()
             "\n"
             ;
 
+        set_rt_allow_open_all_ports(false);
         if (rt_choose_input_port(midiin))
         {
             /*
@@ -171,7 +172,8 @@ clock_out ()
         rtl::rtmidi_out midiout(rtl::rtmidi::desired_api());
         std::cout <<
             "\n"
-            "Make sure the target device or application appears in\n"
+            "Make sure that midiclock_in is already running. Then\n"
+            "make sure the target device or application appears in\n"
             "this list. (The midiclock_in program will appear as\n"
             "\"rtl66 midi in N\", where 'N' is the port number selected\n"
             "in that program. Verify that clock events are sent in this\n"
@@ -181,6 +183,7 @@ clock_out ()
             "\n"
             ;
 
+        set_rt_allow_open_all_ports(false);
         if (rt_choose_output_port(midiout))
         {
             int sleep_ms = 25;

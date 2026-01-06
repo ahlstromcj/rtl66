@@ -103,7 +103,7 @@ rtmidi_in::rtmidi_in
     }
 }
 
-rtmidi_in::rtmidi_in (/* const */ midi::masterbus & mb) : rtmidi ()
+rtmidi_in::rtmidi_in (midi::masterbus & mb) : rtmidi ()
 {
     rtmidi::api rapi { mb.selected_api() };
     const std::string & clientname { mb.client_name() };

@@ -6,7 +6,7 @@
 % \library     Documents
 % \author      Chris Ahlstrom
 % \date        2022-07-12
-% \update      2025-08-15
+% \update      2026-01-03
 % \version     $Revision$
 % \license     $XPC_GPL_LICENSE$
 %
@@ -74,7 +74,7 @@
 \label{sec:introduction}
 
    This document describes "Rtl66", a MIDI library based on the
-   \textsl{RtMidi} (\cite{rtmidi})library, but with many changes and extensions.
+   \textsl{RtMidi} \cite{rtmidi} library, but with many changes and extensions.
    The following project supports \textsl{Rtl66} (and documentation):
 
    \begin{itemize}
@@ -88,8 +88,9 @@
 \label{subsec:what_is_rtl66}
 
    The \textsl{Rtl66} library is meant to support a potential
-   \textsl{Seq66v2} application.
-   It is based on the \textsl{RtMidi} (\cite{rtmidi})library, but with the
+   \textsl{Seq66v2} application, as well as other audio/MIDI
+   applications.
+   It is based on the \textsl{RtMidi} \cite{rtmidi} library, but with the
    following changes and additions:
 
    \begin{itemize}
@@ -110,12 +111,18 @@
          port information, JACK transport, auto-connect,and more.
          This code can be adapted more easily
          for use by other developers.
+      \item Support for a "master bus".
+         \textsl{RtMidi} supports each MIDI port having a separate client.
+         The \textsl{Rtl66} master bus concept uses the same client for all
+         ports.
+         This has important implications for processing.
    \end{itemize}
 
    The original (but refactored) \textsl{RtMidi} code resides in the
    \texttt{include/rtl} and \texttt{src/rtl} directories.
    The "C" interface has been preserved to a large extent, but the
    "C++" uses namespaces and modified names.
+   It also provides a few additional paradigms.
 
    The Seq66-based additions to the library are in the
    \texttt{include/midi} and \texttt{src/midi} directories.
@@ -125,16 +132,16 @@
 
    There is also a \texttt{transport} directory, currently containing only
    a JACK transport class.  Perhaps we can add \textsl{Ableton Link}
-   (\cite{link}) transport later.
+   \cite{link} transport later.
 
    At some point we might add rudimentary audio support, for playing
-   short clips.
+   short clips in MIDI files.
 
 \subsection{History}
 \label{subsec:history}
 
    \index{history}
-   Well into the development of \textsl{Sequencer64} (\cite{seq64}),
+   Well into the development of \textsl{Sequencer64} \cite{seq64},
    we decided to add support for JACK MIDI.  After a quick look around,
    \textsl{RtMidi} seemed to be the best basis for JACK MIDI.  However, after
    getting well into development, it was found that the \textsl{RtMidi} model
@@ -143,20 +150,18 @@
    The result was a butchery of the \textsl{RtMidi} library, much added
    complexity to the application libraries, and a difficult-to-extend
    application.  Furthermore, the Mac/Windows support was dropped, and
-   instead the existing \textsl{PortMidi} (\cite{portmidi}) support was
+   instead the existing \textsl{PortMidi} \cite{portmidi} support was
    used for those operating systems.
 
    With a big laundry list of potential upgrades, and a desire to
    simplify \textsl{Seq66}, it was decided to adapt \textsl{Seq66} code
-   to \textsl{RtMidi}.
+   to \textsl{RtMidi} as well.
 
-% acknowledgments
+\input{tex/high-level}
 
-\section{Summary}
-\label{sec:summary}
+% summary
 
-   The rest of this document will be a walk-through of the library and
-   directory structure.
+\input{tex/summary}
 
 % walk-through
 

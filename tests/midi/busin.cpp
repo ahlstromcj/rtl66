@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2025-10-09
- * \updates       2025-12-27
+ * \updates       2025-12-31
  * \license       See above.
  *
  *      This application but merely opens one port and accepts messages,
@@ -47,7 +47,7 @@
 #include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
 #include "xpc/kbhit.hpp"                /* xpc::kbhit_ex()                  */
 
-namespace
+namespace   // anonymous
 {
 
 /**
@@ -516,11 +516,12 @@ main (int argc, char * argv [])
             std::cerr << "Caught rtl::rterror!" << std::endl;
             can_run = success = false;
         }
+
 #else
 
         rtl::rtmidi::api srapi { rtl::rtmidi::selected_api() };
         midi::masterbus & master { master_bus(srapi, app_client_info()) };
-        int p { master.choose_port(true, portcount) };
+        int p { master.choose_port(midi::port::io::input, portcount) };
         can_run = ! midi::is_null_buss(p);
 
 #endif  // defined USE_REGULAR_RT_SELECT_PORTS
@@ -528,7 +529,8 @@ main (int argc, char * argv [])
         if (can_run)
         {
             rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
-            set_rt_test_port(p);                    /* klunky */
+            set_rt_test_port(p);                                /* klunky   */
+
             int portno { rt_test_port() };
             if (rt_open_all_ports())
             {

@@ -51,6 +51,8 @@ namespace midi
 class busarray::container
 {
 
+    friend busarray;
+
 private:
 
     /**
@@ -76,6 +78,8 @@ public:
     {
         // no code
     }
+
+private:
 
     int count () const
     {

@@ -593,7 +593,7 @@ jack_get_event_data
         }
         else
         {
-#if defined PLATFORM_DEBUG // _TMI
+#if defined PLATFORM_DEBUG_TMI
             char value[util::c_async_safe_utoa_size];
             char text[util::c_async_safe_utoa_size+32];
             std::strcpy(text, "Event ");
@@ -774,10 +774,6 @@ jack_process_io (jack_nframes_t framect, void * arg)
         s_first = true;
     }
 #endif
-
-    /*
-     *  
-     */
 
     midi_jack_data * jackdata { midi_jack::static_data_cast(arg) };
     midi::masterbus * mbusptr { jackdata->master_bus_ptr() };

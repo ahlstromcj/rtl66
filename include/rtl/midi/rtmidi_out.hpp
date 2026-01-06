@@ -78,7 +78,7 @@ public:
         api rapi                        = api::unspecified,
         const std::string & clientname  = ""
     );
-    rtmidi_out (/* const */ midi::masterbus & mb);
+    rtmidi_out (midi::masterbus & mb);
     rtmidi_out (const rtmidi_out & other) = delete;
     rtmidi_out & operator = (rtmidi_out & other) = delete;
     rtmidi_out (rtmidi_out && other) = default;

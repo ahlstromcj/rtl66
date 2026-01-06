@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-11-10
+ * \updates       2025-12-30
  * \license       See above.
  *
  */
@@ -47,16 +47,36 @@ namespace rtl
  *  These constructors use "in-class" member initialization.
  */
 
+/**
+ *  Provides a constructor for creating a client handle for the masterbus
+ *  and for using it with additional ports that use that client handle.
+ *
+ * \param mbus
+ *      Provides the masterbus.
+ *
+ * \param iotype
+ *      For setting up a masterbus, use midi::port::io::engine, which
+ *      indicates that this port is the "engine" for all other ports.
+ *      Otherwise pass the input or output port::io values.
+ *
+ * \param formastersetup
+ *      If false (the default value), then this object is meant for
+ *      a "slave" port of the masterbus. If true, we are setting up
+ *      the masterbus, which means the port does not have a master bus...
+ *      it *is* the master bus
+ */
+
 midi_api::midi_api
 (
     midi::masterbus & mbus,
-    midi::port::io iotype
+    midi::port::io iotype,
+    bool formastersetup
 ) :
     api_base        (),
     m_port_io_type  (iotype),
     m_input_data    (mbus.queue_size()),        /* input data structure     */
     m_master_bus    (&mbus),
-    m_has_master    (true),
+    m_has_master    (! formastersetup),
     m_queue_size    (mbus.queue_size())
 {
     // no other code

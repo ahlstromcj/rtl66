@@ -102,11 +102,17 @@ rtmidi_engine::open_midi_api
             )
         );
 #else
+        (void) clientname;                  /* obtainable from masterbus    */
         rt_api_ptr(try_open_midi_api(master_bus(), midi::port::io::engine));
 #endif
         result = not_nullptr(rt_api_ptr());
         if (result)
+        {
+            // TODO initialize the pointer to get the client handle and other
+            // items. OR do it in the midi_alsa constructor???
+
             result = set_master_bus(&master_bus());
+        }
     }
     return result;
 }

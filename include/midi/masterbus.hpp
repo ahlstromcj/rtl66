@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-12-25
+ * \updates       2025-12-31
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -502,8 +502,8 @@ public:     // public because used in test applications
     bool engine_query ();
     bool engine_activate ();
     bool engine_deactivate ();
-    std::string port_list (bool isoutput) const;
-    int choose_port (bool isinput, int & portcount) /* const */;
+    std::string port_list (midi::port::io iotype) const;
+    int choose_port (midi::port::io iotype, int & portcount) /* const */;
 
 private:    // API pass-alongs
 

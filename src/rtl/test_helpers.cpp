@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2025-12-18
+ * \updates       2026-01-02
  * \license       See above.
  *
  *  We have a lot of functions for selecting ports !
@@ -76,7 +76,7 @@ rt_test_sleep (int ms)
 /**
  * Functions to choose ports:
  *
- *  -   rt_choose_port(bool, int &) [static]
+ *  -   rt_choose_port(midi::port::io, int &) [static]
  *
  *      -   Creates an rtmidi_out or rtmidi_in object.
  *      -   Gets the port count; it is copied to the integer output
@@ -87,7 +87,7 @@ rt_test_sleep (int ms)
  *          "all" option.
  *      -   Note: No port-opening is done.
  *
- *  -   rt_choose_port_number(bool).
+ *  -   rt_choose_port_number(midi::port::io).
  *
  *      -   Calls the rt_choose_port() function described above.
  *      -   Ignores the port count.
@@ -103,8 +103,8 @@ rt_test_sleep (int ms)
  *
  *  -   rt_choose_input_port() calls choose_midi_port<rtl::rtmidi_in>(false);
  *  -   rt_choose_output_port() calls choose_midi_port<rtl::rtmidi_out>(false);
- *  -   rt_choose_input_ports() calls rt_choose_port(false, portcount);
- *  -   rt_choose_output_ports() calls rt_choose_port(true, portcount);
+ *  -   rt_choose_input_ports() calls rt_choose_port(io::input, portcount);
+ *  -   rt_choose_output_ports() calls rt_choose_port(io::output, portcount);
  */
 
 /**
@@ -115,7 +115,20 @@ rt_test_sleep (int ms)
  *      port number official.
  */
 
+static bool s_allow_open_all_ports { true };
 static bool s_open_all_ports { false };
+
+bool
+rt_allow_open_all_ports ()
+{
+    return s_allow_open_all_ports;
+}
+
+void
+set_rt_allow_open_all_ports (bool flag)
+{
+    s_allow_open_all_ports = flag;
+}
 
 bool
 rt_open_all_ports ()
@@ -144,10 +157,11 @@ set_rt_open_all_ports ()
  *        [alsa_pcm:Q25/midi_playback_1 or Q25:midi/playback_1]*
  */
 
-static int
-rt_choose_port (bool isoutput, int & portcount)
+int
+rt_choose_port (midi::port::io iotype, int & portcount, bool showalloption)
 {
     int result { -1 };
+    bool isoutput { iotype == midi::port::io::output };
     std::string direction { isoutput ? _("Output") : _("Input") };
     std::unique_ptr<rtl::rtmidi> rt;
     try
@@ -228,11 +242,15 @@ rt_choose_port (bool isoutput, int & portcount)
                         }
                     }
                 }
-                std::cout
-                    << "  " << direction << " #"
-                    << portcount << ": All ports"
-                    << std::endl
-                    ;
+
+                if (showalloption)
+                {
+                    std::cout
+                        << "  " << direction << " #"
+                        << portcount << ": All ports"
+                        << std::endl
+                        ;
+                }
                 do
                 {
                     std::cout << _("Choose a port number") << ": ";
@@ -248,7 +266,7 @@ rt_choose_port (bool isoutput, int & portcount)
                          * DOESN'T HELP.
                          */
                     }
-                    if (p == portcount)
+                    if (p == portcount && showalloption)
                     {
                         p = midi::c_ports_all;
                         s_open_all_ports = true;
@@ -284,10 +302,13 @@ rt_choose_port (bool isoutput, int & portcount)
 }
 
 int
-rt_choose_port_number (bool isoutput)
+rt_choose_port_number (midi::port::io iotype)
 {
     int portcount { 0 };
-    int result { rt_choose_port(isoutput, portcount) };
+    int result
+    {
+        rt_choose_port(iotype, portcount, rt_allow_open_all_ports())
+    };
     if (rt_test_port_valid(result))
     {
         set_rt_test_port(result);
@@ -312,7 +333,7 @@ rt_choose_port_number (bool isoutput)
 
 template<typename RTMIDI_TYPE>
 bool
-choose_midi_port (RTMIDI_TYPE & rt, bool isoutput)
+choose_midi_port (RTMIDI_TYPE & rt, midi::port::io iotype)
 {
     bool result { true };
     if (rt_virtual_test_port())
@@ -321,12 +342,12 @@ choose_midi_port (RTMIDI_TYPE & rt, bool isoutput)
     }
     else
     {
-        int portno { rt_choose_port_number(isoutput) };
+        int portno { rt_choose_port_number(iotype) };
         result = portno >= 0;
         if (result)
         {
             set_rt_test_port(portno);       /* just in case; app decides    */
-            if (isoutput)
+            if (iotype == midi::port::io::output)
                 set_rt_test_port_out(portno);
             else
                 set_rt_test_port_in(portno);
@@ -344,7 +365,7 @@ choose_midi_port (RTMIDI_TYPE & rt, bool isoutput)
 bool
 rt_choose_input_port (rtl::rtmidi_in & rtin)
 {
-    return choose_midi_port<rtl::rtmidi_in>(rtin, false);  /* input        */
+    return choose_midi_port<rtl::rtmidi_in>(rtin, midi::port::io::input);
 }
 
 /**
@@ -354,7 +375,7 @@ rt_choose_input_port (rtl::rtmidi_in & rtin)
 bool
 rt_choose_output_port (rtl::rtmidi_out & rtout)
 {
-    return choose_midi_port<rtl::rtmidi_out>(rtout, true);  /* output       */
+    return choose_midi_port<rtl::rtmidi_out>(rtout, midi::port::io::output);
 }
 
 /**
@@ -365,13 +386,19 @@ rt_choose_output_port (rtl::rtmidi_out & rtout)
 int
 rt_choose_input_ports (int & portcount)
 {
-    return rt_choose_port(false, portcount);
+    return rt_choose_port
+    (
+        midi::port::io::input, portcount, rt_allow_open_all_ports()
+    );
 }
 
 int
 rt_choose_output_ports (int & portcount)
 {
-    return rt_choose_port(true, portcount);
+    return rt_choose_port
+    (
+        midi::port::io::output, portcount, rt_allow_open_all_ports()
+    );
 }
 
 /**

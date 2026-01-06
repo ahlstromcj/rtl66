@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Jean Pierre Cimalando; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-05
+ * \updates       2026-01-03
  * \license       See above.
  *
  *      apinames.cpp
@@ -40,12 +40,16 @@
 #include "rtl/rt_types.hpp"             /* rtl::rtmidi::api_list            */
 #include "rtl/midi/rtmidi_c.h"          /* for testing the C interfaces     */
 #include "rtl/midi/rtmidi.hpp"          /* the rtl::rtmidi C++ interface    */
+#include "rtl/test_helpers.hpp"         /* rt_simple_cli(), etc.            */
 
 #if RTL66_HAVE_DUMMY_H                  /* the proper way to test the macro */
 #error You big dummy!
 #endif
 
-static int
+namespace   // anonymous
+{
+
+bool
 test_cpp ()
 {
     rtl::rtmidi::api_list compiled_apis;
@@ -61,6 +65,9 @@ test_cpp ()
      */
 
     const rtl::rtmidi::api_list & apis { compiled_apis };
+    if (apis.size() == 0)
+        return false;
+
     std::cout << "API names by identifier (C++):" << std::endl;
     for (size_t i = 0; i < apis.size(); ++i)
     {
@@ -68,7 +75,7 @@ test_cpp ()
         if (name.empty())
         {
             std::cout << "Invalid name for API " << int(apis[i]) << std::endl;
-            exit(EXIT_FAILURE);
+            return false;
         }
         const std::string dispname { rtl::rtmidi::api_display_name(apis[i]) };
         if (dispname.empty())
@@ -76,7 +83,7 @@ test_cpp ()
             std::cout << "Invalid display name for API "
                 << int(apis[i]) << std::endl
                 ;
-            exit(EXIT_FAILURE);
+            return false;
         }
         std::cout
             << "-  " << int(apis[i]) << " '" << name << "': '"
@@ -93,13 +100,13 @@ test_cpp ()
     if (! name.empty())
     {
         std::cout << "Bad string for invalid API '" << name << "'" << std::endl;
-        exit(EXIT_FAILURE);
+        return false;
     }
     const std::string dispname { rtl::rtmidi::api_display_name(bogus) };
     if (! dispname.empty())
     {
         std::cout << "Invalid API code" << std::endl;
-        exit(EXIT_FAILURE);
+        return false;
     }
 
     /*
@@ -113,7 +120,7 @@ test_cpp ()
         if (rtl::rtmidi::api_by_name(name) != a)
         {
             std::cout << "Bad identifier for API '" << name << "'" << std::endl;
-            exit(EXIT_FAILURE);
+            return false;
         }
         std::cout << "-  '" << name << "': " << int(a) << std::endl;
         for (size_t j = 0; j < name.size(); ++j)
@@ -125,7 +132,7 @@ test_cpp ()
             std::cout << "Identifier " << int(rapi)
                 << " for invalid API '" << name << "'" << std::endl
                 ;
-            exit(EXIT_FAILURE);
+            return false;
         }
     }
 
@@ -137,9 +144,9 @@ test_cpp ()
     if (rapi != rtl::rtmidi::api::unspecified)
     {
         std::cout << "Bad identifier for unknown API name\n";
-        exit(EXIT_FAILURE);
+        return false;
     }
-    return 0;
+    return true;
 }
 
 
@@ -147,10 +154,13 @@ test_cpp ()
 * Now test the C inteface.
 */
 
-static int
+bool
 test_c ()
 {
     unsigned api_count = { unsigned(rtmidi_get_compiled_apis(nullptr, 0)) };
+    if (api_count == 0)
+        return false;
+
     std::vector<RtMidiApi> apis(api_count);
     rtmidi_get_compiled_apis(apis.data(), api_count);
 
@@ -202,7 +212,7 @@ test_c ()
             ;
     }
     if (! ok)
-        exit(EXIT_FAILURE);
+        return false;
 
     /*
      * Ensure unknown APIs return the empty string.
@@ -215,13 +225,13 @@ test_c ()
     if (! name.empty())
     {
         std::cout << "Bad string for invalid API '" << name << "'" << std::endl;
-        exit(EXIT_FAILURE);
+        return false;
     }
     const std::string dispname { rtl::rtmidi::api_display_name(bogus) };
     if (! dispname.empty())
     {
         std::cout << "Invalid API code" << std::endl;
-        exit(EXIT_FAILURE);
+        return false;
     }
 
     /*
@@ -236,7 +246,7 @@ test_c ()
         if (rtmidi_api_by_name(name.c_str()) != apis[i])
         {
             std::cout << "Bad identifier for API '" << name << "'" << std::endl;
-            exit(EXIT_FAILURE);
+            return false;
         }
         std::cout << "-  '" << name << "': " << int(apis[i]) << std::endl;
         for (size_t j = 0; j < name.size(); ++j)
@@ -248,7 +258,7 @@ test_c ()
             std::cout << "Identifier " << int(midiapi)
                 << " for invalid API '" << name << "'" << std::endl
                 ;
-            exit(EXIT_FAILURE);
+            return false;
         }
     }
 
@@ -260,26 +270,52 @@ test_c ()
     if (midiapi != RTMIDI_API_UNSPECIFIED)
     {
         std::cout << "Bad identifier for unknown API name\n";
-        exit(EXIT_FAILURE);
+        return false;
     }
-    return 0;
+    return true;
 }
+
+}           // namespace anonymous
 
 int
 main (int argc, char * argv [])
 {
-    if (argc > 1)
+    bool can_run { rt_simple_cli("api_names", argc, argv) };
+    if (rt_show_help())
     {
         std::cout
-            << argv[0]
-            << " needs no options. It merely shows the APIs compiled in.\n"
-            << " Continuing..."
-            << std::endl
+            << "Note that these options are generic and this test\n"
+               "application does not support them. Run it again\n"
+               "with no options.\n"
             ;
     }
-    test_cpp();
-    test_c();
-    std::cout << "All tests in 'api_names' passed." << std::endl;
+    else
+    {
+        if (argc > 1)
+        {
+            std::cout
+                << argv[0]
+                << " needs no options.\n"
+                   "It merely shows the APIs compiled in.\n"
+                   "Exiting..."
+                << std::endl
+                ;
+            can_run = false;
+        }
+        if (can_run)
+        {
+            can_run = test_cpp();
+            if (can_run)
+            {
+                can_run = test_c();
+                if (can_run)
+                    std::cout << "All tests in 'api_names' passed." << std::endl;
+            }
+        }
+        if (! can_run)
+            std::cerr << "This test could not be run successfully." << std::endl;
+    }
+    return can_run ? EXIT_SUCCESS : EXIT_FAILURE ;
 }
 
 /*

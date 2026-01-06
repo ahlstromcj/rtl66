@@ -6,7 +6,7 @@
 % \library     Documents
 % \author      Chris Ahlstrom
 % \date        2022-07-12
-% \update      2022-07-12
+% \update      2026-01-02
 % \version     $Revision$
 % \license     $XPC_GPL_LICENSE$
 %
@@ -14,11 +14,79 @@
 %
 %-------------------------------------------------------------------------------
 
-\section{Walk-through}
-\label{sec:walkthrough}
+\section{Walk-throughs}
+\label{sec:walkthroughs}
 
    \index{ALSA}
-   Let's start by walking through one of the test applications,
+   Let's walk through the main test applications. There are two categories of
+   tests: tests of the basic RtMidi-like API, and tests of the masterbus
+   paradigm.
+
+   The RtMidi API:
+
+   \begin{itemize}
+      \item apinames
+      \item qmidiin
+      \item cbmidiin
+      \item midiclock
+      \item midiout
+      \item midiprobe
+      \item sysextest
+      \item test\_c\_api
+   \end{itemize}
+
+   The masterbus API:
+
+   \begin{itemize}
+      \item busin
+      \item busout
+      \item midiprobeex
+      \item play
+      \item smoke
+   \end{itemize}
+
+\subsection{Walk-throughs / RtMidi API}
+\label{subsec:walkthroughs_rtmidi_api}
+
+   The RtMidi API is encapsulated in the
+   \texttt{rtl::rtmidi} namespace.
+
+\subsubsection{Walk-throughs / RtMidi API / apinames}
+\label{sec:walkthroughs_rtmidi_api_apinames}
+
+   This test gets the compiled APIs (e.g. in Linux ALSA and JACK are compiled
+   in) and the detected APIs (ALSA will generally always be found, but
+   JACK requires the user to start it).
+
+   The lists are \texttt{rtl::rtmidi::api\_list} items.
+   \texttt{rtl::rtmidi::get\_compiled\_apis()} and
+   \texttt{rtl::rtmidi::get\_detected\_apis()} fill the lists.
+   \texttt{rtl::rtmidi::show\_apis()} shows the lists.
+
+   Note that there are two names for the API: a short internal name and
+   a better name for display. For example
+   \texttt{web\_midi} and \texttt{Web MIDI API}.
+   The functions are
+   \texttt{rtl::rtmidi::api\_name()} and
+   \texttt{rtl::rtmidi::api\_display\_name()}.
+   Also tested is \texttt{rtl::rtmidi::api\_by\_name()} to
+   look up the API via its short name.
+
+   The C interface prepends "rtmidi\_" to those functions,
+   and of course there is no namespace scope.
+
+\subsubsection{Walk-throughs / RtMidi API / qmidiin}
+\label{sec:walkthroughs_rtmidi_api_qmidiin}
+
+   \texttt{tests/qmidiin} supports querying devices and then getting MIDI
+   events via a
+   \texttt{midi::message} or a
+   \texttt{midi::event}, based on defining a macro in the source
+   code.
+   In addition, there is an option to read input from one MIDI source,
+   or all MIDI sources.
+
+
    \texttt{tests/qmidiin}.  We run our debugger, set a breakpoint
    where the input object is created, and run using ALSA.
 
@@ -27,14 +95,18 @@
       (gdb) r --alsa
    \end{verbatim}
 
+   If JACK is not running, the option \texttt{-\-alsa} is not needed,
+   as the library will fall back to ALSA (on Linux).
    Here is what happens:
 
    \begin{enumerate}
       \item \textbf{Select ALSA as the API}.
          \begin{itemize}
-            \item Use the command-line to set the \texttt{--alsa} option.
+            \item Use the command-line to set the \texttt{-\-alsa} option.
             \item \texttt{rt\_simple\_cli()} sets the API to
                \texttt{rtl::rtmidi::api::alsa}.
+            \item The \texttt{rt\_select\_input\_ports()} function
+               presents a list of input ports.
             \item Retrieved the API with \texttt{rtl::rtmidi::desired\_api()}.
          \end{itemize}
       \item\textbf{Create the MIDI input proxy}.
@@ -114,13 +186,90 @@
    If ALSA were not specified, then
    \texttt{rtl::rtmidi::fallback\_api()} would be
    called to try JACK first, then ALSA.
-   (Later, PipeWire will be the first choice).
+   (Later, PipeWire might be the first choice).
 
-   Also note that of the \texttt{midi\_api} functions call
-   an "impl" function as a helper, to reduce code duplication.
+%  Also note that of the \texttt{midi\_api} functions call
+%  an "impl" function as a helper, to reduce code duplication.
+
+\subsubsection{Walk-throughs / RtMidi API / cbmidiin}
+\label{sec:walkthroughs_rtmidi_api_cbmidiin}
+
+   \texttt{tests/cbmidiin} is like
+   \texttt{tests/qmidiin}, except that it passes the
+   \texttt{midi::message} to a short callback function that
+   simply prints the message.
+   The callback is called in
+   \texttt{midi\_alsa\_handler()} and
+   \texttt{jack\_process\_in()} (other APIs not ready).
+
+\subsubsection{Walk-throughs / RtMidi API / midiclock}
+\label{sec:walkthroughs_rtmidi_api_midiclock}
+
+   \texttt{tests/midiclock} tests the emitting and reception of MIDI clock
+   events. The build of this test creates two versions of the same
+   application:
+   \texttt{tests/midiclock\_in} and
+   \texttt{tests/midiclock\_out}.
+   Run \texttt{tests/midiclock\_in} first, read the instructions, pick a
+   port (any port, 0 is fine), and then run
+   \texttt{tests/midiclock\_out}.
+   Pick the port named \textsl{rtl-xxxx:rtl66 midi in 0}, where "xxxx" is
+   "alsa" or "jack",
+   and observe that both console windows reflect clock activity.
+
+\subsubsection{Walk-throughs / RtMidi API / midiout}
+\label{sec:walkthroughs_rtmidi_api_midiout}
+
+   \texttt{tests/midiout} tests sending a single tone.
+   Once the desired output MIDI port is found, an
+   \texttt{rtl::rtmidi\_out} object is created.
+   Then a series of \texttt{midi::message} items are created and
+   sent by \texttt{rtl::rtmidi\_out::send\_message()}.
+   The messages sent are a program change, a quarter frame, a control
+   change, and a note on, followed by a 500 ms sleep, a note off,
+   etc.  The result should be one short note played.
+
+\subsubsection{Walk-throughs / RtMidi API / midiprobe}
+\label{sec:walkthroughs_rtmidi_api_midiprobe}
+
+   \texttt{tests/midiprobe}
+   simply lists the APIs supported and active,
+   and the ports.
+   The former uses the rtmidi classes, and
+   the latter uses the masterbus class.
+
+\subsubsection{Walk-throughs / RtMidi API / sysextest}
+\label{sec:walkthroughs_rtmidi_api_sysextest}
+
+   \texttt{tests/sysextest} ... TODO
+
+\subsubsection{Walk-throughs / RtMidi API / test\_c\_api}
+\label{sec:walkthroughs_rtmidi_api_test_c_api}
+
+   \texttt{tests/test\_c\_api} does a very basic test of the
+   "C" API.
+   The input and output
+   \texttt{RtMidiWrapper} objects are created internally and
+   accessed by static pointers.
+   Currently the only tests get the port count from each pointer,
+   close the input and output ports, and then frees the
+   allocated wrappers.
+
+   TODO
+
+\subsection{Walk-throughs / Master Bus API}
+\label{subsec:walkthroughs_master_bus_api}
+
+\subsubsection{Walk-throughs / Master Bus API / midiprobeex}
+\label{sec:walkthroughs_rtmidi_api_midiprobeex}
+
+   \texttt{tests/midiprobeex} lists the APIs supported and active,
+   and the ports, and uses the masterbus paradigm.
+
+MORE TO COME
 
 
-\subsection{Supported APIs}
+\subsection{Supported MIDI APIs}
 \label{subsec:supported_apis}
 
    \textsl{Rtl66} supports the following MIDI APIs:
@@ -135,8 +284,7 @@
       \item Dummy.
    \end{itemize}
 
-\subsection{xxxx}
-\label{subsec:xxxx}
+   Audio APIs (derived from RtAudio) are planned.
 
 %-------------------------------------------------------------------------------
 % vim: ts=3 sw=3 et ft=tex

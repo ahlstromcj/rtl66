@@ -1,4 +1,4 @@
-# README for Library Rtl66 0.2.0 2025-12-04
+# README for Library Rtl66 0.2.0 2026-01-02
 
 __Rtl66__ is a Audio/MIDI API loosely adapted from the __RtAudio__
 and __RtMidi__ projects (https://www.music.mcgill.ca/~gary/rtaudio & rtmidi).
@@ -10,6 +10,7 @@ THIS PROJECT IS NOT COMPLETE. CURRENTLY FOR TESTING/REFERENCE ONLY.
 
 Also, version 0.2.0 has undergone quite a bit of refactoring and a tremendous
 amount of churn, as we get a Seq66-like master-bus setup working.
+The documentation is not complete either.
 
 It uses the Cfg66 and Xpc66 projects, and the optional Potext project,
 via Meson wraps.

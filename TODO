@@ -1,6 +1,6 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2025-12-28
+2019-04-13 to 2026-01-04
 
 For version 0.3:
 
@@ -10,6 +10,20 @@ For version 0.3:
 
 Fixes:
 
+    -   Reconsider deriving bus_in/out from rtmidi_in/out instead
+        of membership.
+    -   The midiprobe app misleading shows only ALSA as "Compiled APIs".
+    -   Fix: midiclock cannot handle "all ports" option.
+    -   Fix:
+        If JACK is running, the --alsa option leads to the API
+        being unspecified.
+    -   Need an option in masterbus::choose_port() to show the "All Ports"
+        options.
+    -   In busout, the port count adds the midi::bus ports, which have
+        the app client-name as the clientname part of the port-name.
+        Get the I/O port-count before makebus() is called.
+    -   Add in/out boolean to rtmidi::get_port_count(), and
+        also to an overload that ignoressss
     -   Error in ALSA with play and busout:
        [3] Skip in ALSA buss FLUID Synth (3654322) #0 Caps: W SubW
         play: seq.c:4019: snd_seq_get_queue_tempo: Assertion

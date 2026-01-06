@@ -6,7 +6,7 @@
 % \library     Documents
 % \author      Chris Ahlstrom
 % \date        2024-05-13
-% \update      2024-05-13
+% \update      2026-01-03
 % \version     $Revision$
 % \license     $XPC_GPL_LICENSE$
 %
@@ -631,7 +631,7 @@
             gg gg gg hh hh hh ii ii ii jj F7}.
          \begin{itemize}
             \item ss = Sample number (LSB first)
-            \item ee = Sample format (# of significant bits from 8-28)
+            \item ee = Sample format (\# of significant bits from 8-28)
             \item ff = Sample period (1/sample rate) in nanoseconds (LSB first)
             \item gg = Sample length in words (LSB first)
             \item hh = Sustain loop start point word number (LSB first)
@@ -727,7 +727,7 @@
       F7 7F deviceid 02 commandformat command data F7      (MSC)
    \end{verbatim}
 
-   See \cite{msc}.
+%  See \cite{msc}.
    Some simple controls can be included in the 'ctrl' file's set of macros.
 
 \paragraph{Rtl66 SysEx Handling}
@@ -765,9 +765,8 @@
    size of the data we are requesting.
    Some devices will include a "checksum" for data integrity.
    All SysEx messages end with an F7 byte.
-   But see \sectionref{subsubsec:midi_meta_sysex_event}.
 
-
+%  But see \sectionref{subsubsec:midi_meta_sysex_event}.
 
 %-------------------------------------------------------------------------------
 % vim: ts=3 sw=3 et ft=tex

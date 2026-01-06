@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-21
+ * \updates       2025-12-30
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -80,7 +80,7 @@ namespace rtl
 class RTL66_DLL_PUBLIC midi_api : public api_base
 {
     /*
-     * Concepts added to the rtl library.
+     * Concepts added to the rtl66 library.
      */
 
     friend class midi::bus;
@@ -182,7 +182,12 @@ public:
      */
 
     midi_api () = default;
-    midi_api (midi::masterbus & mbus, midi::port::io iotype);
+    midi_api
+    (
+        midi::masterbus & mbus,
+        midi::port::io iotype,
+        bool formastersetup = false
+    );
     midi_api (midi::port::io iotype, unsigned queuesize = 0);
     midi_api (const midi_api &) = delete;
     midi_api (midi_api &&) = delete;
@@ -479,8 +484,17 @@ protected:
         return send_byte(midi::to_byte(evstatus));
     }
 
-    virtual bool PPQN (midi::ppqn ppq) = 0;
-    virtual bool BPM (midi::bpm bp) = 0;
+    virtual bool PPQN (midi::ppqn ppq)
+    {
+        (void) ppq;
+        return false;
+    }
+
+    virtual bool BPM (midi::bpm bp)
+    {
+        (void) bp;
+        return false;
+    }
 
     virtual bool send_byte (midi::byte evbyte) const = 0;
     virtual bool send_event
