@@ -63,18 +63,25 @@
 
 % changes the paragraph style to remove indenting and put a line between each
 % paragraph.  this could be moved up into the preamble, but then would
-% affect the spacing of the toc and lof, lot noted above.
+% affect the spacing of the TOC and LOF, LOT noted above.
+%
+% \setlength{\parindent}{2em}
+% \setlength{\parskip}{1ex plus 0.5ex minus 0.2ex}
 
-\setlength{\parindent}{2em}
-\setlength{\parskip}{1ex plus 0.5ex minus 0.2ex}
+\parindent 0pt
+\parskip 9pt
 
 \rhead{\rightmark}         % shows section number and section name
 
 \section{Introduction}
 \label{sec:introduction}
 
-   This document describes "Rtl66", a MIDI library based on the
-   \textsl{RtMidi} \cite{rtmidi} library, but with many changes and extensions.
+   This document describes "Rtl66", an audio and MIDI library based on the
+   \textsl{RtAudio} \cite{rtaudio} and
+   \textsl{RtMidi} \cite{rtmidi} libraries, with changes and extensions.
+   The Audio library is not at all ready for prime time.
+   The MIDI library is complete in its design, but only JACK and
+   ALSA are basically complete at this time.
    The following project supports \textsl{Rtl66} (and documentation):
 
    \begin{itemize}
@@ -90,8 +97,9 @@
    The \textsl{Rtl66} library is meant to support a potential
    \textsl{Seq66v2} application, as well as other audio/MIDI
    applications.
-   It is based on the \textsl{RtMidi} \cite{rtmidi} library, but with the
-   following changes and additions:
+   It is based on the \textsl{RtMidi} \cite{rtmidi} and
+   \textsl{RtAudio} \cite{rtaudio} libraries,
+   but with the following changes and additions:
 
    \begin{itemize}
       \item New naming conventions.  Not a big fan of camel cases, so
@@ -102,27 +110,27 @@
          files so that it is easier to zero in on a particular class or
          API.
       \item Additional support functions.  For example, a simple command-line
-         parser has been added to support the test applications in a uniform
-         way.
-      \item Pipewire.  In progress, this API will be added and will be
+         parser and various test function have
+         been added to support the test applications in a uniform way.
+      \item Pipewire. In progress, this API will be added and will be
          supported in \textsl{Linux}.
       \item Library code based on \textsl{Seq66}.
          This includes simplied versions of MIDI busses, calculations,
          port information, JACK transport, auto-connect,and more.
          This code can be adapted more easily
          for use by other developers.
+         There are more such modules to be completed in the future.
       \item Support for a "master bus".
          \textsl{RtMidi} supports each MIDI port having a separate client.
          The \textsl{Rtl66} master bus concept uses the same client for all
-         ports.
-         This has important implications for processing.
+         ports, which has important implications for processing.
    \end{itemize}
 
    The original (but refactored) \textsl{RtMidi} code resides in the
    \texttt{include/rtl} and \texttt{src/rtl} directories.
    The "C" interface has been preserved to a large extent, but the
    "C++" uses namespaces and modified names.
-   It also provides a few additional paradigms.
+   It also provides additional paradigms.
 
    The Seq66-based additions to the library are in the
    \texttt{include/midi} and \texttt{src/midi} directories.
@@ -154,8 +162,8 @@
    used for those operating systems.
 
    With a big laundry list of potential upgrades, and a desire to
-   simplify \textsl{Seq66}, it was decided to adapt \textsl{Seq66} code
-   to \textsl{RtMidi} as well.
+   simplify \textsl{Seq66}, it was decided to fold \textsl{Seq66} code
+   into our refactored version of \textsl{RtMidi} as well.
 
 \input{tex/high-level}
 

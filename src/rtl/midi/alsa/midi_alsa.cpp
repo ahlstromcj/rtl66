@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-30
+ * \updates       2026-01-06
  * \license       See above.
  *
  */
@@ -1890,7 +1890,7 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                      * then fluidsynth is shown here.
                      */
 
-#if defined PLATFORM_DEBUG
+#if defined PLATFORM_DEBUG_TMI
                     std::string s { alsa_port_capabilities(caps) };
                     printf
                     (

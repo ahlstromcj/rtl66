@@ -6,7 +6,7 @@
 % \library     Documents
 % \author      Chris Ahlstrom
 % \date        2024-06-04
-% \update      2026-01-06
+% \update      2026-01-07
 % \version     $Revision$
 % \license     $XPC_GPL_LICENSE$
 %
@@ -26,7 +26,9 @@
    been created.
 
    Some of these items are directly copied from the \textsl{Seq66}
-   project, with minor modifications or additions.
+   project, with minor modifications (coding conventions,
+   repartitioning) or additions such as \texttt{detect\_jack()}
+   or \texttt{find\_midi\_api()}..
 
 \subsection{Rtl Extras}
 \label{subsec:rtl_extras}
@@ -34,11 +36,17 @@
    The "extras" are modules in the top-level directories
    \texttt{include/rtl} and \texttt{src/rtl}.
    They provide functionality common to MIDI and audio support.
+   Additions to RtMidi are support for I/O threads and a
+   test-helpers module.
+
    MIDI support resides in
    \texttt{include/rtl/midi} and \texttt{src/rtl/midi},
    and audio support resides in
    \texttt{include/rtl/audio} and \texttt{src/rtl/audio}.
    They both reside in the \texttt{rtl} namespace.
+   In the subdirectory \texttt{rtl/midi} are subdirectories for
+   ALSA, JACK, Windows MM, Pipewire, and more.
+   Only ALSA and JACK are fully developed at this time.
 
    In addition, MIDI support adapted from \textsl{Seq66} resides in
    \texttt{include/midi} and \texttt{src/midi}.
@@ -114,8 +122,8 @@
    the extensions are mostly in the \texttt{midi} namespace and
    subdirectory.
 
-\subsubsection{Rtl MIDI Core}
-\label{subsubsec:rtl_midi_core}
+\subsubsection{Rtl MIDI Base}
+\label{subsubsec:rtl_midi_base}
 
    This section describes the classes and modules derived from the
    \textsl{RtMidi} library.
@@ -127,7 +135,7 @@
    currently only the ALSA and JACK APIs have been refactored
    and tested.
 
-\paragraph{Rtl MIDI Core midi\_api}
+\paragraph{Rtl MIDI Base midi\_api}
 \label{paragraph:rtl_midi_midi_api}
 
    \index{ABC}
@@ -170,11 +178,11 @@
                Instead, the only task is to find a useable MIDI API.
          \end{itemize}
       \item \textsl{MIDI input data}.
-         The \texttt{rtl::rtmidi\_in\_data()} class provides data such as an
+         The \texttt{rtl::rtmidi\_in\_data} class provides data such as an
          input queue, an arbitrary API data buffer, input callback support, an
          input buffer, and some boolean flags.
          These handles are void pointers to API data or user data.
-         It should be obvious that the functions handling these pointers
+         The functions handling these pointers
          must assume the correct data type.
          Callers can optionally provide a callback function to handle
          MIDI input.
@@ -185,13 +193,16 @@
          library.
       \item \textsl{Engine connection/disconnection}.
          If a \texttt{masterbus} was created, a connection is stored as
-         a void pointer, as each port will use it's client handle
+         a void pointer, as each port will use the master's client handle
          and other data.
+         Compare the RtMidi style in the test applications
+         "midiout", "cbmidiin", and "qmidiin" with the master-bus style
+         test applications "busout" and "busin".
       \item \textsl{Port enumeration}.
          Virtual functions are provided to find all existing MIDI ports, count
          them, and get their names.
          For JACK, one or two port aliases can also be obtained that
-         a human readable.
+         are human readable.
       \item \textsl{Client activation/port-opening/closing}.
          For the individual port under the original "RtMidi" scheme,
          an API client (what we term "the engine") is made and activated
@@ -208,7 +219,7 @@
          Unnecessary to describe them here.
    \end{itemize}
 
-\paragraph{Rtl MIDI Core rtmidi}
+\paragraph{Rtl MIDI Base rtmidi}
 \label{paragraph:rtl_midi_rtmidi}
 
    The \texttt{rtmidi} class is an abstract base class with non-virtual access
@@ -241,41 +252,45 @@
    run of an application.
 
    Note that \texttt{rtmidi} does not support the \textsl{Seq66/Rtl66}
-   concept of a "master bus".
+   concept of a "master bus", though it is used in that paradigm.
 
-\paragraph{Rtl MIDI Core rtmidi\_in}
+\paragraph{Rtl MIDI Base rtmidi\_in}
 \label{paragraph:rtl_midi_rtmidi_in}
 
    The \texttt{rtmidi\_in} class extends \texttt{rtmidi} to
    add functions for setting the input buffer size, setting or canceling
    the input callback function, ignoring MIDI data such as SysEx,
    and a function to get \texttt{midi::message} data.
-
    It relies on the base-class functions for some of the work.
 
    It also overrides \texttt{open\_midi\_api()} to try to open
    one of the MIDI APIs for input.
 
-   An rtmidi\_in is provided as a member of \texttt{midi::bus\_in}
+   An \texttt{rtmidi\_in} is provided as a member of \texttt{midi::bus\_in}
    and using in pass-along functions to get port information, poll for MIDI
    events, get \texttt{midi::messages}, and access the pointer to the
    MIDI API object.
 
-\paragraph{Rtl MIDI Core rtmidi\_out}
+   Should we reconsider and derive from, rather than contain,
+   \texttt{rtmidi\_in}?
+
+\paragraph{Rtl MIDI Base rtmidi\_out}
 \label{paragraph:rtl_midi_rtmidi_out}
 
    It also overrides \texttt{open\_midi\_api()} to try to open
    one of the MIDI APIs for output.
-
    It relies on the base-class functions for some of the work.
 
-   An rtmidi\_out is provided as a member of \texttt{midi::bus\_out}
+   An \texttt{rtmidi\_out} is provided as a member of \texttt{midi::bus\_out}
    and using in pass-along functions to get port information, send bytes,
    send \texttt{midi::events},
    send` \texttt{midi::messages}, and access the pointer to the
-   MIDI API object.  Should we reconsider and derived from rtmidi\_in?
+   MIDI API object.
 
-\paragraph{Rtl MIDI Core rtmidi\_engine}
+   Should we reconsider and derive from, rather than contain,
+   \texttt{rtmidi\_out}?
+
+\paragraph{Rtl MIDI Base rtmidi\_engine}
 \label{paragraph:rtl_midi_rtmidi_engine}
 
    The \texttt{rtmidi\_in} class extends \texttt{rtmidi} to
@@ -285,9 +300,8 @@
    one of the MIDI APIs as an "engine" (neither input nor output).
    If successful, then the \texttt{midi::masterbus} pointer is
    passed to the currently-selected MIDI API object.
-   Should we reconsider and derived from rtmidi\_out?
 
-\paragraph{Rtl MIDI Core Miscellaneous}
+\paragraph{Rtl MIDI Base Miscellaneous}
 \label{paragraph:rtl_midi_miscellaneous}
 
    This section briefly describes some additional modules.
@@ -337,7 +351,7 @@
    They reside in the \texttt{midi} namespace.
    Let's get the tricky "buss" stuff out of the way first.
 
-\paragraph{Rtl MIDI Ex Bus}
+\paragraph{Rtl MIDI Ext. Bus}
 \label{paragraph:rtl_midi_extensions_bus}
 
    The \texttt{midi::bus} class is base/mixin class for providing
@@ -362,11 +376,12 @@
          The display name is assembled by the \texttt{set\_name()} function.
       \item \textsl{Bus ID and Bus Name}.
          The buss number determined by the MIDI engine, if available.
-         In ALSA, these two are the client:bus (e.g. 14:0) numbers.
+         In ALSA, these two are the "client:bus" (e.g. "14:0") numbers.
          The bus name is obtained by \texttt{ports::get\_bus\_name()}.
+         (Note: sometimes our documentation confuses port versus buss.)
       \item \textsl{Port Number, Port Name, and Port Alias}.
          The name is accessed by \texttt{get\_port\_name()} and the
-         alias is accessed by \texttt{get\_port\_alias()} (available
+         alias is accessed by \texttt{get\_port\_alias()} (useful
          only with JACK).
       \item \textsl{Port Type, Port Kind}.
          The type indicates if the bus is for input or output.
@@ -375,7 +390,7 @@
          Indicates both the port status (unavailable, disabled) and the
          sending of MIDI Clock and Start.
       \item \textsl{Mutex}.
-         A recursive locking mutex can be used in processing.
+         A recursive locking mutex that can be used in processing.
       \item \textsl{MIDI Processing Functions}.
          Provides function to activate/deactivate, start, send system exclusive,
          controlling MIDI Clock.
@@ -390,7 +405,7 @@
 %  another bunch of boilerplate code to call the corresponding rtmidi\_in
 %  and rtmidi\_out functions.
 
-\paragraph{Rtl MIDI Ex Bus-In}
+\paragraph{Rtl MIDI Ext. Bus-In}
 \label{paragraph:rtl_midi_extensions_bus_in}
 
    This class is derived from \texttt{midi::bus} and
@@ -399,7 +414,7 @@
 
    See \sectionref{paragraph:rtl_midi_rtmidi_in}.
 
-\paragraph{Rtl MIDI Ex Bus-Out}
+\paragraph{Rtl MIDI Ext. Bus-Out}
 \label{paragraph:rtl_midi_extensions_bus_out}
 
    This class is derived from \texttt{midi::bus} and
@@ -408,11 +423,12 @@
 
    See \sectionref{paragraph:rtl_midi_rtmidi_out}.
 
-\paragraph{Rtl MIDI Ex Bus Array}
+\paragraph{Rtl MIDI Ext. Bus Array}
 \label{paragraph:rtl_midi_extensions_bus_array}
 
    The \texttt{midi::busarray} contains and manages an array of
-   \texttt{midi::bus} objects.  Two of these objects are used,
+   \texttt{midi::bus} objects.  Two of these objects are used by
+   the master bus,
    one for input, and one for output.
 
    It is implemented by an internal \texttt{midi::busarray::container}
@@ -426,7 +442,7 @@
    \texttt{midi::busarray::container} to do the work.
    Pimpl was used because of an issue with the dependence on the bus class.
 
-\paragraph{Rtl MIDI Ex Calculations Module}
+\paragraph{Rtl MIDI Ext. Calculations Module}
 \label{paragraph:rtl_midi_extensions_calculations}
 
    The \texttt{calculations} module provides enumerations and functions to
@@ -439,21 +455,21 @@
    PPQN, grid measurements, time-scaling, pitch and tempo calculations,
    and much more.
 
-\paragraph{Rtl MIDI Ex Client Info}
+\paragraph{Rtl MIDI Ext. Client Info}
 \label{paragraph:rtl_midi_extensions_clientinfo}
 
    This module contains two big items: a client defaults structure and
-   the clientinfo class. It also defines a small
+   a client-info class. It also defines a small
    input-specification structure.
 
    The \texttt{midi::client\_defaults} structure contains members to specify
    client and application name, API version, preferred MIDI API, thread and port
    usage, and more.  The application should make an instance of this structure and
-   initialize it.
+   initialize it. See the "busin" test application, for example.
 
    The \texttt{midi::input\_specs} specifies if the input is active, uses
    SysEx, time code, active sensing, an optional user callback and optional
-   data.
+   data. See the "busin" test application, for example.
 
    The \texttt{midi::clientinfo} class contains both of those structures with
    constructors that can get those structures. The class adds
@@ -464,9 +480,9 @@
    Some of the items loaded into this object can potentially saved to a
    configuration file.
 
-   For one example, see the file \texttt{tests/midi/busin.cpp}.
+%  For one example, see the file \texttt{tests/midi/busin.cpp}.
 
-\paragraph{Rtl MIDI Ex Clocking}
+\paragraph{Rtl MIDI Ext. Clocking}
 \label{paragraph:rtl_midi_extensions_clocking}
 
    The \texttt{clocking} module contains \textsl{Seq66} concepts for
@@ -474,12 +490,12 @@
    clock, the clocking and input/output status of a MIDI port, and some functions
    to check the clocking values.
 
-\paragraph{Rtl MIDI Ex Event Codes}
+\paragraph{Rtl MIDI Ext. Event Codes}
 \label{paragraph:rtl_midi_extensions_event_codes}
 
    The \texttt{eventcodes} module somewhat duplicates the "EVENT\_xxx"
-   macros in the \texttt{seq66::event} class, but instead uses enumerations and
-   functions to deal with them.
+   macros in the \texttt{seq66::event} class, but instead uses enumerations
+   in the \texttt{midi} namespace, and functions to deal with them.
 
    The \texttt{midi::status} enumeration class defines note off, note on,
    and other statuses.
@@ -488,13 +504,13 @@
    track number, time/key signatures, text events, and more.
 
    The \texttt{midi::ctrl} enumeration class defines the MIDI control
-   events such as volumen and balance.
+   events such as volume and balance.
 
-   Many conversion function are provided to convert between the enumeration
+   Many conversion functions are provided to convert between the enumeration
    values and simple data types; to determine what a byte actually means;
    to get the human-readable name for the event, RPN conversions, and more.
 
-\paragraph{Rtl MIDI Ex Events}
+\paragraph{Rtl MIDI Ext. Events}
 \label{paragraph:rtl_midi_extensions_events}
 
    The \texttt{midi::event} class is much like \texttt{seq66::event},
@@ -503,9 +519,10 @@
    Instead of a byte array, it holds a \texttt{midi::message}.
    See \sectionref{paragraph:rtl_midi_extensions_message}.
 
-   It is still \textsl{not} broken into a class hierarchy of events.
+   It is still \textsl{not} broken into a class hierarchy of events,
+   something that we worry about.
 
-\paragraph{Rtl MIDI Ex Event List}
+\paragraph{Rtl MIDI Ext. Event List}
 \label{paragraph:rtl_midi_extensions_eventlist}
 
    The \texttt{midi::eventlist} class is much like \texttt{seq66::eventlist}.
@@ -514,7 +531,7 @@
    getting the events, iterating through events, and all of the other modifications
    supported by \textsl{Seq66}.
 
-\paragraph{Rtl MIDI Ex File}
+\paragraph{Rtl MIDI Ext. File}
 \label{paragraph:rtl_midi_extensions_file}
 
    The \texttt{midi::file} class recreates the basic part of
@@ -522,7 +539,7 @@
    It deals with \texttt{midi::tracks} instead of "sequence" objects,
    but not sequencer-specific events.
 
-\paragraph{Rtl MIDI Ex Master Bus}
+\paragraph{Rtl MIDI Ext. Master Bus}
 \label{paragraph:rtl_midi_extensions_master_bus}
 
    The \texttt{midi::masterbus} class is similar to that concept in
@@ -551,13 +568,13 @@
    In the future, we will experiment with processing such as round-robin port
    selection, to improve latency.
 
-\paragraph{Rtl MIDI Ex Measures}
+\paragraph{Rtl MIDI Ext. Measures}
 \label{paragraph:rtl_midi_extensions_measures}
 
    The \texttt{midi::measures} class is a small class to manage
    beats, bars, and divisions (data type \texttt{midi::pulse}).
 
-\paragraph{Rtl MIDI Ex Message}
+\paragraph{Rtl MIDI Ext. Message}
 \label{paragraph:rtl_midi_extensions_message}
 
    The \texttt{midi::message} class contains a static counter for debugging,
@@ -568,7 +585,7 @@
    It holds all of the bytes for a message, so saving the event or writing it
    is very simple (unless applying a channel)... just dump the bytes.
 
-\paragraph{Rtl MIDI Ex Midibytes}
+\paragraph{Rtl MIDI Ext. Midibytes}
 \label{paragraph:rtl_midi_extensions_bytes}
 
    The \texttt{midibytes} modules is basically the same module
@@ -577,7 +594,7 @@
    \texttt{midi::bytes}. It defines functions to test bytes, convert to
    a pointer, clamp values to byte-size, and more.
 
-\paragraph{Rtl MIDI Ex Player}
+\paragraph{Rtl MIDI Ext. Player}
 \label{paragraph:rtl_midi_extensions_player}
 
    The \texttt{midi::player} class can read a simple MIDI file and play it.
@@ -589,38 +606,39 @@
    It uses an output thread function.
    See the "play" test app.
 
-\paragraph{Rtl MIDI Ex Poller}
+\paragraph{Rtl MIDI Ext. Poller}
 \label{paragraph:rtl_midi_extensions_poller}
 
    The \texttt{midi::poller} class, like \texttt{midi::player},
    is a provisional class for testing and experimentation, except
    that it polls for data rather than sending MIDI events.
 
-   It includes an \texttt{xpc::fifo<midi::message>} and
+   It includes an \texttt{xpc::fifo<midi::message>}
+   (from the \textsl{xpc66} library project) and
    \texttt{std::unique\_ptr<inqueue>} to store the incoming data.
    It includes a nested "synch" class for managing a condition variable 
    to control input.
    It uses an input thread function.
    See the "busin" test app.
 
-\paragraph{Rtl MIDI Ex Port}
+\paragraph{Rtl MIDI Ext. Port}
 \label{paragraph:rtl_midi_extensions_port}
 
    The \texttt{midi::port} class is a data class that describes information about
    a port, including the system numbers and names of the port, the index of the
    port in the application, alias names (if applicable) for the port,
-   The client number, whether retrieved from the system or made up, is
+   the client number, whether retrieved from the system or made up, is
    the "buss" number.
 
    Also defined are the \texttt{midi::port::io} and
    \texttt{midi::port::kind} enumerations.
-   The former indicate what the port is meant for; see
+   The former indicates what the port is meant for; see
    \sectionref{paragraph:rtl_midi_midi_api}.
    The latter indicates if the port is to be a normal, manual (i.e. virtual),
    or system port.
    Also see \sectionref{paragraph:rtl_midi_extensions_clientinfo}.
 
-\paragraph{Rtl MIDI Ex Port Naming}
+\paragraph{Rtl MIDI Ext. Port Naming}
 \label{paragraph:rtl_midi_extensions_port_naming}
 
    The \texttt{midi::portnaming} module
@@ -631,9 +649,10 @@
    Functions are provided to extract the client/buss name, the port
    name, names created by the \texttt{a2jmidid} daemon,
    JACK alias names, and short names called "nicknames" which are cleaner
-   full port names.
+   than full port names and can be useful in port-mapping (as in
+   \textsl{Seq66}.
 
-\paragraph{Rtl MIDI Ex Ports}
+\paragraph{Rtl MIDI Ext. Ports}
 \label{paragraph:rtl_midi_extensions_ports}
 
    The \texttt{midi::ports} class provides a container of
@@ -645,7 +664,7 @@
    simply look up the \texttt{midi::port} object and retrieve
    port data members.
 
-\paragraph{Rtl MIDI Ex Scales}
+\paragraph{Rtl MIDI Ext. Scales}
 \label{paragraph:rtl_midi_extensions_scales}
 
    The \texttt{midi::scales} module provides enumeration classes
@@ -657,7 +676,7 @@
    These functions are useful for selecting a key, a scale,
    and a chord from a GUI element.
 
-\paragraph{Rtl MIDI Ex Splitter}
+\paragraph{Rtl MIDI Ext. Splitter}
 \label{paragraph:rtl_midi_extensions_splitter}
 
    The \texttt{midi::splitter} class provides a way to split
@@ -666,7 +685,7 @@
    The resulting tracks are installed into a
    \texttt{midi::player} object.
 
-\paragraph{Rtl MIDI Ex Timing}
+\paragraph{Rtl MIDI Ext. Timing}
 \label{paragraph:rtl_midi_extensions_timing}
 
    The \texttt{midi::timing} module and class holds
@@ -679,7 +698,7 @@
 
    Also see \sectionref{paragraph:rtl_midi_extensions_track_info}.
 
-\paragraph{Rtl MIDI Ex Track}
+\paragraph{Rtl MIDI Ext. Track}
 \label{paragraph:rtl_midi_extensions_track}
 
    The \texttt{midi::track} class is a cut-down version of
@@ -692,7 +711,7 @@
    \texttt{midi::masterbus},
    and a number of attributes describing the tracks.
 
-\paragraph{Rtl MIDI Ex Track Data}
+\paragraph{Rtl MIDI Ext. Track Data}
 \label{paragraph:rtl_midi_extensions_track_data}
 
    The \texttt{midi::trackdata} class holds a partial set of data for
@@ -711,14 +730,14 @@
    plus a number of "extract" functions to extract MIDI
    events from the current location in track data.
 
-\paragraph{Rtl MIDI Ex Track Data Ex}
+\paragraph{Rtl MIDI Ext. Track Data Ex}
 \label{paragraph:rtl_midi_extensions_track_data_ex}
 
    The \texttt{midi::trackdataex} class is smaller than
    \texttt{midi::trackdata}, and works with "triggers".
    However, it is not compiled into the build, and is a work in progress.
 
-\paragraph{Rtl MIDI Ex Track Info}
+\paragraph{Rtl MIDI Ext. Track Info}
 \label{paragraph:rtl_midi_extensions_track_info}
 
    The \texttt{midi::trackinfo} module provides supplemental classes
@@ -741,12 +760,12 @@
          The members specify the name of the key-signature, the sharp/flat
          count, and a flag for a minor scale.
       \item \texttt{trackinfo}.
-         Defines the track name, its length, the three class above in this
+         Defines the track name, its length, the three classes above in this
          list, an optional channel override, an a flag for being
          exportable (to be explained elsewhere).
    \end{itemize}
 
-\paragraph{Rtl MIDI Ex Track List}
+\paragraph{Rtl MIDI Ext. Track List}
 \label{paragraph:rtl_midi_extensions_track_list}
 
    The \texttt{midi::tracklist} class provides a vector of

@@ -1,6 +1,6 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2026-01-04
+2019-04-13 to 2026-01-06
 
 For version 0.3:
 
@@ -10,6 +10,9 @@ For version 0.3:
 
 Fixes:
 
+    -   Under JACK:
+        -   The nanoKey2 inputs might be spurious.
+        -   Playback can yield "jack_process_in() message overflow".
     -   Reconsider deriving bus_in/out from rtmidi_in/out instead
         of membership.
     -   The midiprobe app misleading shows only ALSA as "Compiled APIs".
