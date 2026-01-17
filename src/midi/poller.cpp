@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2025-11-08
- * \updates       2025-12-04
+ * \updates       2026-01-13
  * \license       GNU GPLv2 or above
  *
  */
@@ -59,7 +59,7 @@ namespace midi
  *      The masterbus coordinating MIDI port access.
  *
  * \param portnumber
- *      The ports to poll. The default value is RTL66_PORTS_ALL.
+ *      The ports to poll. The default value is RTL66_PORTS_ALL (0xFE)..
  *
  * \param inqueuesz
  *      Indicates the size of the input queue. The default value is
@@ -80,8 +80,11 @@ poller::poller
     m_in_portnumber         (portnumber),       /* default is all in-ports  */
     m_condition_var         (*this)             /* private access via cv()  */
 {
-    const midi::clientinfo & ci { mbus.client_info() };
-    m_in_portnumber = ci.input_portnumber();
+    if (is_null_buss(portnumber))               /* RTL66_PORT_NULL, 0xFF    */
+    {
+        const midi::clientinfo & ci { mbus.client_info() };
+        m_in_portnumber = ci.input_portnumber();
+    }
 
     const midi::input_specs & mis { mbus.get_input_specs() };
     m_input_callback = mis.input_callback;
@@ -206,7 +209,7 @@ poller::launch (clientinfo & ci)
         result = activate();
         if (result)
         {
-            if (m_in_portnumber >= 0)
+            if (is_good_buss(m_in_portnumber))
                 launch_input_thread();
         }
     }
@@ -325,9 +328,6 @@ poller::input_func ()
 bool
 poller::poll_cycle ()
 {
-#if defined PLATFORM_DEBUG_TMI
-    printf("poll cycle\n");
-#endif
     bool ok { false };
     bool result { ! done() };
     if (result)
@@ -343,9 +343,6 @@ poller::poll_cycle ()
         {
             if (done())
             {
-#if defined PLATFORM_DEBUG_TMI
-                printf("done!\n");
-#endif
                 result = false;
                 break;                              /* spurious exit events */
             }

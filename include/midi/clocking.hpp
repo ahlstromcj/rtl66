@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-08-15
+ * \updates       2026-01-08
  * \license       GNU GPLv2 or above
  *
  *  Defines some midibus constants and the clocking enumeration.
@@ -191,7 +191,7 @@ port_is_unavailable (clocking c)
 inline bool
 port_is_disabled (clocking c)
 {
-    return c == clocking::disabled;
+    return c == clocking::disabled || c == clocking::unavailable ;
 }
 
 /*

@@ -1230,7 +1230,7 @@ setmapper::select_and_mute_group (mutegroup::number group)
     mute_group_tracks();
 }
 
-#if 0           // unused
+#if defined USE_FUTURE_CODE
 
 /**
  *  Clears all the group-mute items, whether they came from the "rc" file

@@ -1630,7 +1630,6 @@ trackdata::parse_track
                 runningstatus = last_runningstatus;
                 bstatus = runningstatus;
             }
-//          e.set_status_keep_channel(bstatus);  /* set status, channel  */
         }
         runningtime += delta;                           /* add the time     */
         currenttime = runningtime;
@@ -1674,9 +1673,6 @@ trackdata::parse_track
             if (append_event(e))                        /* does not sort    */
             {
                 tentative_channel = channel;            /* log MIDI channel */
-//              ++evcount;
-//              if (is_smf0)
-//                  m_smf0_splitter.increment(channel); /* count chan.  */
             }
             break;
 
@@ -1688,9 +1684,6 @@ trackdata::parse_track
             if (append_event(e))                        /* does not sort    */
             {
                 tentative_channel = channel;            /* log MIDI channel */
-//              ++evcount;
-//              if (is_smf0)
-//                  m_smf0_splitter.increment(channel); /* count chan.      */
             }
             break;
 

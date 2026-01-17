@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2025-12-28
+ * \updates       2026-01-08
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -523,7 +523,7 @@ public:
 
     bool port_enabled () const                      /* replaces get_input() */
     {
-        return ! midi_port().port_disabled();
+        return midi_port().port_enabled();
     }
 
     bool port_disabled () const                     /* replaces get_input() */

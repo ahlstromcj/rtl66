@@ -253,20 +253,6 @@ public:
         return m_queue;
     }
 
-#if 0
-
-    const midi::message & midi_msg () const
-    {
-        return m_message;
-    }
-
-    midi::message & midi_msg ()
-    {
-        return m_message;
-    }
-
-#endif
-
     bool first_message () const
     {
         return m_first_message;

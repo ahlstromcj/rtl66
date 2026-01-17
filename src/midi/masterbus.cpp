@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2026-01-01
+ * \updates       2026-01-08
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -308,7 +308,12 @@ masterbus::port_list (midi::port::io iotype) const
 }
 
 int
-masterbus::choose_port (midi::port::io iotype, int & portcount)
+masterbus::choose_port
+(
+    midi::port::io iotype,
+    int & portcount,
+    bool showalloption
+)
 {
     int result { midi::null_buss() };
     std::string prompt { port_list(iotype) };
@@ -317,23 +322,29 @@ masterbus::choose_port (midi::port::io iotype, int & portcount)
         int pcount { 0 };
         do
         {
-            try
-            {
-                std::cout << prompt << "Choose a port: ";
-                std::cin >> result;
-            }
-            catch (...)
-            {
-                /*
-                 * Entering a letter yields p == 0, but causes
-                 * a seqfault. Entering 0? No problem. So we catch.
-                 * DOESN'T HELP.
-                 */
-            }
+            /*
+             * This call gets all ports including the bus ports created
+             * by masterbus.
+             *
+             * pcount = m_engine.get_port_count();
+             */
 
-            pcount = m_engine.get_port_count();
+            bool isoutput { iotype == midi::port::io::output };
+            pcount = isoutput ? get_num_out_buses() : get_num_in_buses() ;
             if (pcount > 0)
             {
+                std::cout << prompt;
+                if (showalloption)
+                {
+                    std::string direction { isoutput ? "Output" : "Input" };
+                    std::cout
+                        << direction << " #"
+                        << pcount << ": All ports"
+                        << std::endl
+                        ;
+                }
+                std::cout << "Choose a port: ";
+                std::cin >> result;
                 if (result == pcount)
                 {
                     result = midi::c_ports_all;

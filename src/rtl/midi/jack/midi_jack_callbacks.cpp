@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-28
+ * \updates       2026-01-17
  * \license       See above.
  *
  *  The JACK callbacks have been moved into a separate file for better
@@ -71,11 +71,12 @@ const char * JACK_METADATA_ICON_NAME
  *--------------------------------------------------------------------------*/
 
 /**
- *  The buffer size for basic MIDI messages.  Probably excludes SysEx
- *  messages.
+ *  The output buffer size for basic MIDI messages.  Probably excludes SysEx
+ *  messages. Also a sanity-check value for input sizes.
  */
 
-static const size_t s_message_buffer_size { RTL66_DEFAULT_JACK_BUFSIZE };
+const size_t s_message_outbuffer_size { RTL66_DEFAULT_JACK_BUFSIZE };
+const size_t s_message_in_sanity_size { 0x100000 };
 
 /**
  *  Checks a frame offset for validity.
@@ -91,6 +92,21 @@ valid_frame_offset (jack_nframes_t offset)
  * JACK callback setup functions (used in midi_jack)
  *--------------------------------------------------------------------------*/
 
+/**
+ *  jack_set_process_callback(c, cb, apidata) tells the JACK server to call
+ *  cb whenever there is work be done, passing apidata as the second
+ *  argument.
+ *
+ *  The code in the supplied function must be suitable for real-time
+ *  execution. That means that it cannot call functions that might block for
+ *  a long time: includes all I/O functions (disk, TTY, network), malloc(),
+ *  free(), printf(), pthread_mutex_lock(), sleep(), wait(), poll(),
+ *  select(), pthread_join(), pthread_cond_wait(), etc, etc.
+ *
+ *  It returns 0 on success, otherwise a non-zero error code, causing JACK
+ *  to remove that client from the process() graph.
+ */
+
 bool
 jack_set_process_cb
 (
@@ -101,7 +117,19 @@ jack_set_process_cb
 {
     int rc { ::jack_set_process_callback(c, cb, apidata) };
     bool result { rc == 0 };
-    if (! result)
+    if (result)
+    {
+#if defined PLATFORM_DEBUG
+        printf
+        (
+            "JACK client 0x%p\n"
+            "  Callback 0x%p\n"
+            "  API data 0x%p\n",
+            (void *) c, (void *) cb, (void *) apidata
+        );
+#endif
+    }
+    else
     {
         error_print("jack_set_process_callback", "failed");
     }
@@ -117,18 +145,10 @@ jack_set_shutdown_cb
 )
 {
     bool result { not_nullptr_2(c, cb) };
-    (void) ::jack_on_shutdown(c, cb, self);
-    return result;
+    if (result)
+        ::jack_on_shutdown(c, cb, self);
 
-#if 0
-    int rc { ::jack_on_shutdown(c, cb, self) };
-    if (rc != 0)
-    {
-        error_print("jack_set_shutdown_callback", "failed");
-        result = false;
-    }
     return result;
-#endif
 }
 
 bool
@@ -334,10 +354,11 @@ jack_set_meta_data
  * Jack input process callback.
  *
  *  The jack_port_get_buffer() function returns a pointer to the memory area
- *  associated with the specified port. For an output port, it will be a memory
- *  area that can be written to; for an input port, it will be an area containing
- *  the data from the port's connection(s), or zero-filled. if there are multiple
- *  inbound connections, the data will be mixed appropriately.
+ *  associated with the specified port. For an output port, it will be a
+ *  memory area that can be written to; for an input port, it will be an area
+ *  containing the data from the port's connection(s), or zero-filled. if
+ *  there are multiple inbound connections, the data will be mixed
+ *  appropriately.
  *
  *  Do not cache the returned address across process() callbacks. Port buffers
  *  have to be retrieved in each callback for proper functionning.
@@ -357,10 +378,6 @@ jack_process_in_impl (jack_nframes_t framect, midi_jack_data & jackdata)
     bool allowsysex { rtdata.allow_sysex() };
     bool moresysex { rtdata.continue_sysex() };
     int evcount { int(::jack_midi_get_event_count(buff)) };
-#if defined PLATFORM_DEBUG_TMI
-    if (evcount > 0)
-        printf("event count %d\n", evcount);
-#endif
     for (int j = 0; j < evcount; ++j)           /* MIDI events in buffer    */
     {
         /*
@@ -375,15 +392,23 @@ jack_process_in_impl (jack_nframes_t framect, midi_jack_data & jackdata)
         midi::message msg;
         jack_midi_event_t jmevent;
         int rc { ::jack_midi_event_get(&jmevent, buff, j) };
-        if (rc == ENODATA)
+        if (rc != 0)
         {
-            util::async_safe_errprint("jack_process_in() no data");
-            return 0;
-        }
-        else if (rc == ENOBUFS)
-        {
-            util::async_safe_errprint("jack_process_in() no buffers");
-            return 0;
+            if (rc == -ENODATA)
+            {
+                util::async_safe_errprint("jack_process_in() no data");
+                return 0;
+            }
+            else if (rc == -ENOBUFS)
+            {
+                util::async_safe_errprint("jack_process_in() no buffers");
+                return 0;
+            }
+            else
+            {
+                util::async_safe_errprint("jack_process_in() other error");
+                return 0;
+            }
         }
 
         jack_time_t jtime { ::jack_get_time() };            /* jack time    */
@@ -483,7 +508,17 @@ jack_process_in_impl (jack_nframes_t framect, midi_jack_data & jackdata)
                  * be faked and return true.
                  */
 
-                if (! rtdata.queue().push(msg))
+                if (rtdata.queue().push(msg))
+                {
+#if defined PLATFORM_DEBUG
+                    printf
+                    (
+                        "event pushed, queue 0x%p buss %d\n",
+                        (void *) &rtdata.queue(), bussindex
+                    );
+#endif
+                }
+                else
                 {
                     util::async_safe_errprint
                     (
@@ -661,7 +696,7 @@ jack_process_out_impl (jack_nframes_t framect, midi_jack_data & jackdata)
     if (is_nullptr_2(jackclient, jackport))
         return 0;
 
-    char mbuffer[s_message_buffer_size];
+    char mbuffer[s_message_outbuffer_size];
     char * mbuf { &mbuffer[0] };
     const jack_nframes_t cycle_start { ::jack_last_frame_time(jackclient) };
 
@@ -681,7 +716,7 @@ jack_process_out_impl (jack_nframes_t framect, midi_jack_data & jackdata)
     ::jack_midi_clear_buffer(buff);
     for (;;)
     {
-        size_t destsz { s_message_buffer_size };
+        size_t destsz { s_message_outbuffer_size };
         jack_nframes_t offset
         {
             jack_get_event_data
@@ -779,6 +814,9 @@ jack_process_io (jack_nframes_t framect, void * arg)
     midi::masterbus * mbusptr { jackdata->master_bus_ptr() };
     if (framect > 0 && not_nullptr(mbusptr))
     {
+        // WHY do we even need to check counts here, especially on
+        // input?
+
         midi::busarray & inbusses { mbusptr->inbus_array () };
         int innum { 0 };
         int incount { inbusses.count() };
@@ -792,10 +830,19 @@ jack_process_io (jack_nframes_t framect, void * arg)
             bool okin { incount > 0 };
             if (okin)
             {
-            midi::bus_in & inbus
-            {
-                inbusses.buss_in(midi::bussbyte(innum))
-            };
+                midi::bus_in & inbus
+                {
+                    inbusses.buss_in(midi::bussbyte(innum))
+                };
+
+                /*
+                 * This is not correct. All ports must use the masterbus's
+                 * queue. However, this causes segfaults outside the debugger.
+                 *
+                 *      void * mjp { inbus.api_data() };
+                 *      void * mjp { mbusptr->api_data() };
+                 */
+
                 void * mjp { inbus.api_data() };
                 if (not_nullptr(mjp))
                 {

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-31
+ * \updates       2026-01-12
  * \license       See above.
  *
  *  Written primarily by Alexander Svetalkin, with updates for delta time by
@@ -209,7 +209,7 @@
  *      -   get_port_name() calls connect()
  */
 
-#include "rtl/midi/jack/midi_jack.hpp"  /* rtl::midi_jack class             */
+#include "rtl/midi/jack/midi_jack.hpp"  /* rtl::midi_jack, RTL66_BUILD_JACK */
 
 #if defined RTL66_BUILD_JACK
 
@@ -544,6 +544,9 @@ midi_jack::~midi_jack ()
 {
     bool canclose { is_engine() || ! has_master() };
     if (canclose)
+        canclose = is_connected();
+
+    if (canclose)
     {
         if (is_engine())
         {
@@ -562,6 +565,25 @@ midi_jack::~midi_jack ()
         }
     }
 }
+
+#if defined USE_VIRTUAL_MASTER_BUS_SETTER
+
+void
+midi_jack::master_bus (midi::masterbus * mb)
+{
+    midi_api::master_bus(mb);
+    if (not_nullptr(mb))
+    {
+        midi_jack * master_self
+        {
+            reinterpret_cast<midi_jack *>(mb->engine().rt_api_ptr())
+        };
+        midi_jack_data & data = master_self->jack_data();
+        m_jack_master_data_ptr = &data;
+    }
+}
+
+#endif
 
 /*------------------------------------------------------------------------
  * midi_jack engine-related functions
@@ -636,32 +658,29 @@ midi_jack::engine_connect ()
                 else
                 {
                     result = c;
-                    if (sm_jack_process_is_set)
-                    {
-                        // printf("JACK process already set\n");
-                    }
-                    else
-                    {
-                        void * apidata { reinterpret_cast<void *>(&data) };
-                        JackProcessCallback cb { nullptr };
+
+                    void * apidata { reinterpret_cast<void *>(&data) };
+                    JackProcessCallback cb { nullptr };
 #if defined PLATFORM_DEBUG_TMI
-                        printf
-                        (
-                            "jack_client_t = %p, apidata = %p\n",
-                            (void *)(c), apidata
-                        );
+                    printf
+                    (
+                        "jack_client_t = %p, apidata = %p\n",
+                        (void *)(c), apidata
+                    );
 #endif
-                        if (is_engine())
+                    if (is_engine())
+                    {
+                        cb = jack_process_io;
+                        ok = jack_set_process_cb(c, cb, apidata);
+                        if (ok)
                         {
-                            cb = jack_process_io;
-                            ok = jack_set_process_cb(c, cb, apidata);
-                            if (ok)
-                            {
-                                (void) set_auxiliary_callbacks(c);
-                                sm_jack_process_is_set = true;
-                            }
+                            (void) set_auxiliary_callbacks(c);
+                            sm_jack_process_is_set = true;
                         }
-                        else if (is_output())
+                    }
+                    else if (is_output())
+                    {
+                        if (! sm_jack_process_is_set)
                         {
                             cb = jack_process_out;
                             ok = jack_set_process_cb(c, cb, apidata);
@@ -676,23 +695,26 @@ midi_jack::engine_connect ()
 #endif
                             }
                         }
-                        else if (is_input())
+                    }
+                    else if (is_input())
+                    {
+                        if (! sm_jack_process_is_set)
                         {
                             cb = jack_process_in;
                             ok = jack_set_process_cb(c, cb, apidata);
                             if (ok)
                                 (void) set_auxiliary_callbacks(c);
                         }
-                        else                    /* assume duplex for now    */
-                        {
-                            cb = jack_process_io;
-                            ok = jack_set_process_cb(c, cb, apidata);
-                            if (ok)
-                                (void) set_auxiliary_callbacks(c);
-                        }
-                        if (ok)
-                            result = c;
                     }
+                    else                    /* assume duplex for now    */
+                    {
+                        cb = jack_process_io;
+                        ok = jack_set_process_cb(c, cb, apidata);
+                        if (ok)
+                            (void) set_auxiliary_callbacks(c);
+                    }
+                    if (ok)
+                        result = c;
                 }
             }
         }
@@ -1039,6 +1061,13 @@ midi_jack::show_connection_status
  *      Let's add that below.
  */
 
+#if defined FUTURE
+
+The midi_jack_data structure can come from each port created or from
+the masterbus.
+
+#endif
+
 bool
 midi_jack::open_port (int portnumber, const std::string & portname)
 {
@@ -1058,14 +1087,8 @@ midi_jack::open_port (int portnumber, const std::string & portname)
         {
             jack_client_t * jclient { data.jack_client() };
             const char * pn { CSTR(portname) };
+            port_number(portnumber);
             data.port_number(portnumber);
-#if defined PLATFORM_DEBUG_TMI
-            printf
-            (
-                "open_port(%d, \"%s\") client 0x%p\n",
-                portnumber, pn, (void *) jclient
-            );
-#endif
             jack_port_t * srcptr
             {
                 ::jack_port_register
@@ -1074,6 +1097,13 @@ midi_jack::open_port (int portnumber, const std::string & portname)
                     is_output() ? JackPortIsOutput : JackPortIsInput, 0
                 )
             };
+#if defined PLATFORM_DEBUG_TMI
+            printf
+            (
+                "open_port(%d, \"%s\") client 0x%p, new port 0x%p\n",
+                portnumber, pn, (void *) jclient, (void *) srcptr
+            );
+#endif
             if (is_nullptr(srcptr))
             {
                 result = false;
@@ -1280,7 +1310,8 @@ midi_jack::close_port ()
 {
     bool result { false };
     midi_jack_data & data { jack_data() };
-    if (not_nullptr_2(data.jack_client(), data.jack_port()))
+    jack_client_t * jclient { data.jack_client() };
+    if (not_nullptr(jclient))
     {
 #if RTL66_HAVE_SEMAPHORE_H
         if (is_output())
@@ -1288,15 +1319,31 @@ midi_jack::close_port ()
             (void) data.semaphore_post_and_wait();
         }
 #endif
-        int rc { ::jack_port_unregister(data.jack_client(), data.jack_port()) };
-        if (rc == 0)
-            result = true;
+        jack_port_t * pptr { data.jack_port() };
+#if defined PLATFORM_DEBUG_TMI
+        printf
+        (
+            "close_port(...) client 0x%p, port 0x%p\n",
+            (void *) jclient, (void *) pptr
+        );
+#endif
+        if (not_nullptr(pptr))
+        {
+            int rc
+            {
+                ::jack_port_unregister(jclient, pptr)
+            };
+            if (rc == 0)
+                result = true;
+            else
+                error_print("jack_port_unregister()", "failed");
+
+            data.jack_port(nullptr);
+        }
         else
-            error_print("jack_port_unregister", "failed");
+            error_print("jack_port_unregister()", "null port");
 
-        data.jack_port(nullptr);
-
-        // connected(false);
+        is_connected(false);
     }
     return result;
 }
@@ -1874,7 +1921,18 @@ int
 midi_jack::poll_for_midi () const
 {
     (void) xpc::microsleep(xpc::std_sleep_us());            /* 10 us IIRC   */
-    return input_data().queue().count();
+    int result { input_data().queue().count() };
+    if (result > 0)
+    {
+#if defined PLATFORM_DEBUG_TMI
+        static int count { 0 };
+        if ((count % 64) == 0)
+            printf("in port #%d count: %d\n", port_number(), result);
+
+        ++count;
+#endif
+    }
+    return result;
 }
 
 #if defined PLATFORM_DEBUG
@@ -1941,11 +1999,7 @@ midi_jack::get_midi_event (midi::event * inev)           // input
 #endif
     if (result)
     {
-#if defined USE_OLD_CODE
-        midi::message mm { rtindata->queue().pop_front() };
-#else
         midi::message mm { input_data().queue().pop_front() };
-#endif
         result = inev->set_midi_event(mm);
         if (result)
         {
@@ -1985,16 +2039,15 @@ midi_jack::get_message ()
 {
     midi::message result;
     midi_queue & mq { input_data().queue() };
-#if defined PLATFORM_DEBUG_TMI
-    mq.show_values();
+    bool gotmsg { mq.count() > 0 };
+    if (gotmsg)
+    {
+        gotmsg = mq.pop_front_message(result);
+#if defined PLATFORM_DEBUG
+        if (gotmsg)
+            mq.show_values();
 #endif
-
-    bool gotmsg { mq.pop_front_message(result) };
-
-#if defined PLATFORM_DEBUG_TMI
-    mq.show_values();
-#endif
-
+    }
     if (gotmsg)
     {
 #if defined THIS_CODE_IS_READY
@@ -2023,13 +2076,6 @@ midi_jack::get_message ()
         if (midi::is_sense_or_reset_msg(st))
         {
             result.clear();                 /* we will return an empty message  */
-        }
-        else
-        {
-#if defined PLATFORM_DEBUG_TMI
-            if (result.empty())
-                printf("empty JACK message\n");
-#endif
         }
     }
     return result;
@@ -2201,7 +2247,7 @@ midi_jack::send_message (const midi::byte * msg, size_t sz) const
         result = send_message(msg);
     }
     return result;
-#if 0
+#if defined USE_FUTURE_CODE
         while
         (
             ::jack_ringbuffer_write_space(jack_data().buffer()) <
@@ -2251,4 +2297,3 @@ midi_jack::send_message (const midi::message & msg) const
  *
  * vim: sw=4 ts=4 wm=4 et ft=cpp
  */
-

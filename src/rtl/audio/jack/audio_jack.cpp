@@ -361,8 +361,6 @@ audio_jack::engine_connect ()
             void * apidata { reinterpret_cast<void *>(&data) };
             data.jack_client(c);
             api_data(&data);
-//          if (have_master_bus())
-//              master_bus()->client_handle(c);
 
             JackProcessCallback cb { jack_process_io };
             if (is_output())
@@ -642,9 +640,6 @@ audio_jack::initialize (const std::string & clientname)
     if (! reuse_connection())
     {
         audio_jack_data & data { jack_data() };
-//      if (have_master_bus())
-//          master_bus()->client_handle(data.jack_client());
-
         api_data(&data);
         result = connect();
         if (is_input())
@@ -1083,10 +1078,7 @@ audio_jack::get_io_port_info (::audio::ports & ioports, bool preclear)
                 std::string fullname { ports[count] };
                 std::string clientname;
                 std::string portname;
-//              lib66::tokenization aliases { get_port_aliases(fullname) };
                 lib66::tokenization & aliases { get_port_aliases(fullname) };
-//              if (alias == fullname)
-//                  alias.clear();
 
                 /*
                  * TODO:  somehow get the 32-bit ID of the port and add it as
@@ -1423,7 +1415,6 @@ int
 audio_jack::poll_for_audio ()         // input
 {
     rtaudio_in_data * rtindata { jack_data().rt_audio_in() };
-//     int result = rtindata->queue().count();
     (void) xpc::microsleep(xpc::std_sleep_us());            /* 10 us IIRC   */
     return rtindata->queue().count();
 }
@@ -1669,7 +1660,7 @@ audio_jack::send_message (const ::audio::byte * message, size_t sz)
         result = send_message(msg);
     }
     return result;
-#if 0
+#if defined USE_FUTURE_CODE
         while
         (
             ::jack_ringbuffer_write_space(jkdata->buffer()) <

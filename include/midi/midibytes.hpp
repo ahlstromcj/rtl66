@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2025-11-14
+ * \updates       2026-01-10
  * \license       GNU GPLv2 or above
  *
  *  These aliases are intended to remove ambiguity seen between signed and
@@ -223,9 +223,10 @@ const byte c_note_max   { 127 };
  */
 
 const byte c_byte_max           { byte(0xFFu) };
-const bussbyte c_bussbyte_max   { bussbyte(0xFFu) };
-const int c_ports_all           { RTL66_PORTS_ALL };        /* 0xFE */
-const int c_port_null           { RTL66_PORT_NULL };        /* 0xFF */
+const bussbyte c_bussbyte_max   { bussbyte(RTL66_PORT_NULL) };      /* 0xFF */
+const bussbyte c_ports_all      { RTL66_PORTS_ALL };                /* 0xFE */
+const int c_port_null           { int(RTL66_PORT_NULL) };           /* 0xFF */
+const bussbyte c_port_limit     { bussbyte(RTL66_PORT_MAX) };       /* 0xFF */
 const ushort c_ushort_max       { ushort(0xFFFF) };
 const ulong c_ulong_max         { ulong(0xFFFFFFFF) };
 
@@ -234,7 +235,7 @@ const ulong c_ulong_max         { ulong(0xFFFFFFFF) };
  *  have increased this value from 32 to 48. See rtl_build_macros.h.
  */
 
-const int c_busscount_max       { RTL66_PORT_NUMBER_LIMIT };
+const int c_busscount_max       { RTL66_PORT_MAX };
 
 /**
  *  Indicates the maximum number of MIDI channels, counted internally from 0
@@ -278,9 +279,9 @@ is_null_pulse (pulse p)
  */
 
 inline bool
-is_null_buss (bussbyte b)
+is_null_buss (int b)
 {
-    return b == c_bussbyte_max;
+    return b == c_port_null;            /* same as c_bussbyte_max           */
 }
 
 inline bussbyte
@@ -290,15 +291,31 @@ null_buss ()
 }
 
 inline bool
+is_all_busses (bussbyte b)
+{
+    return b == c_ports_all;
+}
+
+inline bussbyte
+all_busses ()
+{
+    return c_ports_all;
+}
+
+/*
+ * return b < bussbyte(c_busscount_max);
+ */
+
+inline bool
 is_good_buss (bussbyte b)
 {
-    return b < bussbyte(c_busscount_max);
+    return b <= c_port_limit || is_all_busses(b);
 }
 
 inline bool
 is_valid_buss (bussbyte b)
 {
-    return is_good_buss(b) || is_null_buss(b);
+    return is_good_buss(b) || is_null_buss(b) || is_all_busses(b);
 }
 
 inline bool

@@ -514,7 +514,7 @@ rtaudio::set_stream_time (double t)
  * rtaudio virtual base-class functions
  *------------------------------------------------------------------------*/
 
-#if 0
+#if defined USE_FUTURE_CODE
 
 /**
  *  Simply provides some common code for the rtaudio-derived constructors.

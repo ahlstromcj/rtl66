@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2025-12-31
+ * \updates       2026-01-15
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -453,6 +453,16 @@ public:
         return engine().rt_api_ptr();
     }
 
+    void * api_data ()
+    {
+        return engine().api_data();
+    }
+
+    const void * api_data () const
+    {
+        return engine().api_data();
+    }
+
 public:
 
     void selected_api (rtl::rtmidi::api rapi)
@@ -503,7 +513,12 @@ public:     // public because used in test applications
     bool engine_activate ();
     bool engine_deactivate ();
     std::string port_list (midi::port::io iotype) const;
-    int choose_port (midi::port::io iotype, int & portcount) /* const */;
+    int choose_port                     /* similar to rt_choose_port()      */
+    (
+        midi::port::io iotype,
+        int & portcount,
+        bool showalloption = true
+    );
 
 private:    // API pass-alongs
 

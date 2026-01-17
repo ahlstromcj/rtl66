@@ -984,6 +984,8 @@ player::set_tick (midi::pulse t, bool dontreset)
  *  this setting is a modification.  If the left tick is later than the right
  *  tick, the right tick is move to one measure past the left tick.
  *
+ *  MOVE JACK STUFF INTO JACK_TRANSPORT_INFO
+ *
  * \todo
  *      The player::m_one_measure member is currently hardwired to PPQN*4.
  *
@@ -993,8 +995,6 @@ player::set_tick (midi::pulse t, bool dontreset)
  *      is moved forward by one "measure's length" (PPQN * 4) past the left
  *      tick.
  */
-
-// MOVE JACK STUFF INTO JACK_TRANSPORT_INFO
 
 void
 player::left_tick (midi::pulse tick)
@@ -1007,9 +1007,6 @@ player::left_tick (midi::pulse tick)
     }
     else if (! is_jack_running())
         transportinfo().tick(tick);
-
-//  if (m_left_tick >= m_right_tick)
-//      m_right_tick = m_left_tick + m_one_measure;
 }
 
 /**
@@ -1203,8 +1200,6 @@ player::set_track_name (track::ref t, const std::string & name)
     if (result)
     {
         t.track_name(name);
-//      track::number trkno = t.track_number();
-//      set_needs_update();             /* tell GUIs to refresh. FIXME  */
     }
     return result;
 }

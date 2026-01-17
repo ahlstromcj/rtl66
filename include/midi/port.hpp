@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24        (seq66::midi_port_info)
- * \updates       2025-12-21
+ * \updates       2026-01-08
  * \license       See above.
  *
  *  Contains information about a single MIDI port, as determined by
@@ -369,6 +369,11 @@ public:                                 /* getters                          */
     bool clock_enabled () const
     {
         return midi::clock_is_enabled(port_status());
+    }
+
+    bool port_enabled () const
+    {
+        return ! port_disabled();
     }
 
     bool port_disabled () const

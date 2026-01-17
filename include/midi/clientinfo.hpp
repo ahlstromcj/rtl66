@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2025-11-28
+ * \updates       2026-01-09
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -435,7 +435,7 @@ public:
 
     void input_portnumber (int p)
     {
-        if (p >= 0 && p <= RTL66_PORT_NUMBER_LIMIT)     /* i.e. 48  */
+        if (p >= 0 && p <= RTL66_PORT_MAX)          /* i.e. 48  */
             m_cd.cd_input_portnumber = p;
     }
 
@@ -446,7 +446,7 @@ public:
 
     void output_portnumber (int p)
     {
-        if (p >= 0 && p <= RTL66_PORT_NUMBER_LIMIT)     /* i.e. 48  */
+        if (p >= 0 && p <= RTL66_PORT_MAX)          /* i.e. 48  */
             m_cd.cd_output_portnumber = p;
     }
 
@@ -562,13 +562,11 @@ public:
         return m_cd.cd_port_type == port::io::output;
     }
 
-    // DEPRECATED
     bool is_input () const
     {
         return m_cd.cd_port_type == port::io::input;
     }
 
-    // DEPRECATED
     bool is_engine () const
     {
         return m_cd.cd_port_type == port::io::engine;

@@ -28,7 +28,7 @@
    Some of these items are directly copied from the \textsl{Seq66}
    project, with minor modifications (coding conventions,
    repartitioning) or additions such as \texttt{detect\_jack()}
-   or \texttt{find\_midi\_api()}..
+   or \texttt{find\_midi\_api()}.
 
 \subsection{Rtl Extras}
 \label{subsec:rtl_extras}
@@ -40,16 +40,21 @@
    test-helpers module.
 
    MIDI support resides in
-   \texttt{include/rtl/midi} and \texttt{src/rtl/midi},
-   and audio support resides in
+   \texttt{include/rtl/midi} and \texttt{src/rtl/midi}.
+
+   Audio support resides in
    \texttt{include/rtl/audio} and \texttt{src/rtl/audio}.
+
+   \index{namespace!midi}
+   \index{namespace!rtl}
    They both reside in the \texttt{rtl} namespace.
    In the subdirectory \texttt{rtl/midi} are subdirectories for
    ALSA, JACK, Windows MM, Pipewire, and more.
    Only ALSA and JACK are fully developed at this time.
 
    In addition, MIDI support adapted from \textsl{Seq66} resides in
-   \texttt{include/midi} and \texttt{src/midi}.
+   \texttt{include/midi} and \texttt{src/midi} and are in
+   the \texttt{midi} namespace.
 
 \subsubsection{Rtl Build Macros}
 \label{subsubsec:rtl_build_macros}
@@ -77,6 +82,7 @@
 
    The \texttt{api\_base} class currently provides only support for
    the handling of errors and warnings.
+   \index{callback!error}
    It provides the ability for a caller to set a callback function to
    handle errors, including a pointer to error-callback data.
    Free functions for printing messages are provided.
@@ -105,7 +111,8 @@
 \subsubsection{Rtl Test Helpers}
 \label{subsubsec:rtl_test_helpers}
 
-   Provides some free functions in the \texttt{rtl} namespace.
+   \index{namespace!global}
+   Provides some free functions in the globalnamespace.
    They provides some simple functions to choose test I/O port numbers,
    show basic help text, handle options, brief sleep times,
    and some other basic settings.
@@ -172,7 +179,7 @@
                for multi-threading.
             \item \texttt{midi::port::io::dummy}.
                A non-functional "port". Might be useful for testing,
-               or for flagging a lack of MIDI support..
+               or for flagging a lack of MIDI support.
             \item \texttt{midi::port::io::finder}.
                Finder means that no connections are to be made.
                Instead, the only task is to find a useable MIDI API.
@@ -184,6 +191,7 @@
          These handles are void pointers to API data or user data.
          The functions handling these pointers
          must assume the correct data type.
+         \index{callback!input}
          Callers can optionally provide a callback function to handle
          MIDI input.
       \item \textsl{Master buss}.
@@ -257,6 +265,7 @@
 \paragraph{Rtl MIDI Base rtmidi\_in}
 \label{paragraph:rtl_midi_rtmidi_in}
 
+   \index{callback!input}
    The \texttt{rtmidi\_in} class extends \texttt{rtmidi} to
    add functions for setting the input buffer size, setting or canceling
    the input callback function, ignoring MIDI data such as SysEx,
@@ -348,6 +357,7 @@
 \subsubsection{Rtl MIDI Extensions}
 \label{subsubsec:rtl_midi_extensions}
 
+   \index{namespace!midi}
    They reside in the \texttt{midi} namespace.
    Let's get the tricky "buss" stuff out of the way first.
 
@@ -463,10 +473,11 @@
    input-specification structure.
 
    The \texttt{midi::client\_defaults} structure contains members to specify
-   client and application name, API version, preferred MIDI API, thread and port
-   usage, and more.  The application should make an instance of this structure and
-   initialize it. See the "busin" test application, for example.
+   client and application name, API version, preferred MIDI API, thread and
+   port usage, and more.  The application should make an instance of this
+   structure and initialize it. See the "busin" test application, for example.
 
+   \index{callback!input}
    The \texttt{midi::input\_specs} specifies if the input is active, uses
    SysEx, time code, active sensing, an optional user callback and optional
    data. See the "busin" test application, for example.
@@ -476,8 +487,8 @@
    current and previous \texttt{midi::ports}, saves a pointer to the client
    (engine) handle, status flags, and an error string.
 
-   The client-info object is later filled with a list of the existing MIDI ports.
-   Some of the items loaded into this object can potentially saved to a
+   The client-info object is later filled with a list of the existing MIDI
+   ports.  Some of the items loaded into this object can potentially saved to a
    configuration file.
 
 %  For one example, see the file \texttt{tests/midi/busin.cpp}.
@@ -487,21 +498,21 @@
 
    The \texttt{clocking} module contains \textsl{Seq66} concepts for
    MIDI clocking. There are enumeration values for starting/stopping MIDI
-   clock, the clocking and input/output status of a MIDI port, and some functions
-   to check the clocking values.
+   clock, the clocking and input/output status of a MIDI port, and some
+   functions to check the clocking values.
 
 \paragraph{Rtl MIDI Ext. Event Codes}
 \label{paragraph:rtl_midi_extensions_event_codes}
 
    The \texttt{eventcodes} module somewhat duplicates the "EVENT\_xxx"
-   macros in the \texttt{seq66::event} class, but instead uses enumerations
-   in the \texttt{midi} namespace, and functions to deal with them.
+   macros in the \texttt{seq66::event} class, but instead uses enumerations in
+   the \texttt{midi} namespace, and functions to deal with them.
 
    The \texttt{midi::status} enumeration class defines note off, note on,
    and other statuses.
 
-   The \texttt{midi::meta} enumeration class defines the MIDI meta events such as
-   track number, time/key signatures, text events, and more.
+   The \texttt{midi::meta} enumeration class defines the MIDI meta events such
+   as track number, time/key signatures, text events, and more.
 
    The \texttt{midi::ctrl} enumeration class defines the MIDI control
    events such as volume and balance.

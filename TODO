@@ -1,6 +1,6 @@
 TO DO for Rtl66 0.2
 Chris Ahlstrom
-2019-04-13 to 2026-01-06
+2019-04-13 to 2026-01-19
 
 For version 0.3:
 
@@ -13,6 +13,11 @@ Fixes:
     -   Under JACK:
         -   The nanoKey2 inputs might be spurious.
         -   Playback can yield "jack_process_in() message overflow".
+        -   busin: All ports option does not work. It works for
+            cbmidiin and qmidiin.
+        -   Connecting two jack-keyboards aborts.
+    -   The busin all-ports test under ALSA: key not recognized
+        except after a MIDI key is struck after the key-press.
     -   Reconsider deriving bus_in/out from rtmidi_in/out instead
         of membership.
     -   The midiprobe app misleading shows only ALSA as "Compiled APIs".

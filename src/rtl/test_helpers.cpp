@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2026-01-02
+ * \updates       2026-01-09
  * \license       See above.
  *
  *  We have a lot of functions for selecting ports !
@@ -242,7 +242,6 @@ rt_choose_port (midi::port::io iotype, int & portcount, bool showalloption)
                         }
                     }
                 }
-
                 if (showalloption)
                 {
                     std::cout
@@ -580,7 +579,7 @@ rt_test_port_valid (int portnumber)
 {
     return
     (
-        (portnumber >= 0 && portnumber <= RTL66_PORT_NUMBER_LIMIT) ||
+        (portnumber >= 0 && portnumber <= RTL66_PORT_MAX) ||
         portnumber == RTL66_PORTS_ALL
     );
 }

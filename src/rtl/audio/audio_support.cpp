@@ -740,8 +740,6 @@ convert_info::sint32_from_float64
     return result;
 }
 
-//----------------------------------------------
-
 bool
 convert_info::sint24_from_sint8
 (
@@ -902,8 +900,6 @@ convert_info::sint24_from_float64
     }
     return result;
 }
-
-//----------------------------------------------
 
 bool
 convert_info::sint16_from_sint8
@@ -1069,8 +1065,6 @@ convert_info::sint16_from_float64
     }
     return result;
 }
-
-//----------------------------------------------
 
 /**
  *  This function is use for channel compensation and/or (de)interleaving only.
@@ -1407,7 +1401,7 @@ api_stream::add_channel_offsets (stream_mode mode, unsigned firstchan)
 
     cinfo.add_channel_offsets(mode, offset);
 
-#if 0
+#if defined USE_FUTURE_CODE
     if (deviceinterleaved(mode))
     {
         if (mode == stream_mode::output)

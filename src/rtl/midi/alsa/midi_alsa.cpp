@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2026-01-06
+ * \updates       2026-01-09
  * \license       See above.
  *
  */
@@ -163,6 +163,8 @@ static const unsigned sm_generic_caps                           /* 0x100002 */
  *
  */
 
+#if defined PLATFORM_DEBUG_TMI
+
 static std::string
 alsa_port_capabilities (unsigned bitmask)
 {
@@ -193,6 +195,8 @@ alsa_port_capabilities (unsigned bitmask)
 
     return result;
 }
+
+#endif
 
 /**
  *  Checks the port type for not being the "generic" types
@@ -498,9 +502,6 @@ midi_alsa::midi_alsa
     midi_api        (mbus, iotype, formastersetup),
     m_client_name   (mbus.client_name()),
     m_poll_wrapper  ()
-//  (
-//      reinterpret_cast<snd_seq_t *>(mbus.void_client_handle())
-//  )
 {
     bool ok { initialize(client_name()) };
     if (ok)
@@ -751,8 +752,6 @@ midi_alsa::delete_port ()
             ::snd_seq_free_queue(data.alsa_client(), data.queue_id());
 #endif
     }
-//  if (is_engine() || ! has_master())
-//      engine_disconnect();
 }
 
 void
@@ -982,8 +981,8 @@ midi_alsa::set_seq_tempo_ppqn
  *  In what situations does the input thread need to be used?
  *
  *      -   When using an input callback.
- *      -   When not using midi_alsa::get_message() or
- *          midi_alsa::get_midi_event().
+ *      -   When not using midi_alsa :: get_message() or
+ *          midi_alsa :: get_midi_event().
  */
 
 bool
@@ -1073,6 +1072,7 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
         result = nsrc > 0;
         if (result)
         {
+            port_number(portnumber);
             mad_data.port_number(portnumber);           /* port index       */
         }
         else
@@ -1143,7 +1143,6 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                 if (result)
                 {
                     sender.port = mad_data.vport();
-
 #if defined PLATFORM_DEBUG_TMI
                     printf
                     (
@@ -1152,7 +1151,6 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
                         receiver.client, receiver.port
                     );
 #endif
-
                     std::string errmsg;
                     result = midi_alsa::subscription
                     (
@@ -1229,7 +1227,6 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
         }
         if (result)
         {
-            port_number(portnumber);
             if (is_input())
                 result = setup_input_port();
         }
@@ -1802,7 +1799,6 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
         snd_seq_client_info_alloca(&cinfo);
         ::snd_seq_client_info_set_client(cinfo, -1);
 
-        int index { 0 };
         while (::snd_seq_query_next_client(seq, cinfo) >= 0)
         {
             int client { ::snd_seq_client_info_get_client(cinfo) };
@@ -1823,7 +1819,7 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                         SND_SEQ_CLIENT_SYSTEM, "system",
                         SND_SEQ_PORT_SYSTEM_ANNOUNCE, "announce",
                         midi::port::io::input, midi::port::kind::system,
-                        0 /*index*/  // TEMPORARY global_queue()
+                        result /*index*/  // TEMPORARY global_queue()
                     );
                     ++result;
                 }
@@ -1896,13 +1892,13 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
                     (
                         "[%d] Skip %s ALSA buss '%s' #%d "
                         "'%s'\n",
-                        index, ( iswriteable ? "out" : "in" ),
+                        result, ( iswriteable ? "out" : "in" ),
                         V(clientname), portnumber, V(s)
                     );
 #endif
                 }
             }
-            ++index;
+            // ++index;
         }
     }
     if (result == 0)
@@ -1922,8 +1918,6 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
  *
  *      void send_sysex (const event * ev)
  */
-
-// #if defined USE_SEPARATE_PPQN_BPM_FUNCTIONS
 
 /**
  * Currently, this code is implemented in the midi_alsa_info module, since
@@ -2015,8 +2009,6 @@ midi_alsa::BPM (midi::bpm bp)
     }
     return result;
 }
-
-// #endif  // defined USE_SEPARATE_PPQN_BPM_FUNCTIONS
 
 /**
  *  If the ALSA MIDI tempo queue is valid, close it. Generally needed only
@@ -2167,9 +2159,6 @@ midi_alsa::poll_for_midi () const
     }
     else
     {
-//      const rtmidi_in_data & rtidata { input_data() };
-//      const midi_queue & mq { rtidata.queue() };
-//      return mq.count();
         return input_data().queue().count();
     }
 }
@@ -2371,7 +2360,7 @@ midi_alsa::get_midi_event (midi::event * inev)
 
 /**
  *  A simpler version of get_midi_event() that merely puts the incoming event
- *  onto the input queue. Not true. It overrides midi_api::get_message()
+ *  onto the input queue. Not true. It overrides midi_api :: get_message()
  *  which either calss the input callback or gets a message from the front
  *  of the input queue.
  *
@@ -2401,6 +2390,21 @@ midi_alsa::get_midi_event (midi::event * inev)
  *      snd_seq_addr_t  addr
  *      snd_seq_connect_t  connect
  *      snd_seq_result_t  result
+ *
+ * A note on snd_seq_event_input_pending():
+ *
+ *      If events remain on the input buffer (user-space), it returns
+ *      the total byte size of events on it. If fetch_sequencer argument is
+ *      non-zero, this function checks the presence of events on sequencer
+ *      FIFO When events exist, they are transferred to the input buffer,
+ *      and the number of received events are returned. If fetch_sequencer
+ *      argument is zero and no events remain on the input buffer, function
+ *      simply returns zero.
+ *
+ *      int count { ::snd_seq_event_input_pending(ncclient, 0) };
+ *
+ *      If we use 1, we always get remcount == 1. If we use 0, no events
+ *      are detected. Wtf?
  *
  * \return
  *      Returns the retrieved message, or an empty message.  Note that this
@@ -2437,28 +2441,13 @@ midi_alsa::get_message ()
     }
 
     /*
-     * Now look for MIDI data. A note on snd_seq_event_input_pending():
-     *
-     *      If events remain on the input buffer (user-space), it returns
-     *      the total byte size of events on it. If fetch_sequencer argument is
-     *      non-zero, this function checks the presence of events on sequencer
-     *      FIFO When events exist, they are transferred to the input buffer,
-     *      and the number of received events are returned. If fetch_sequencer
-     *      argument is zero and no events remain on the input buffer, function
-     *      simply returns zero.
-     *
-     *  int count { ::snd_seq_event_input_pending(ncclient, 0) };
-     *
-     *  If we use 1, we always get remcount == 1. If we use 0, no events
-     *  are detected. Wtf?
+     * Now look for MIDI data. See the note on snd_seq_event_input_pending().
      */
 
     int count { ::snd_seq_event_input_pending(ncclient, 1) };
     if (count == 0)                             /* no data pending      */
     {
-        /*
-         * (void) m_poll_wrapper.poll_for_midi();
-         */
+        /* (void) m_poll_wrapper.poll_for_midi(); */
 
         return result;                          /* return empty message */
     }
@@ -2489,7 +2478,6 @@ midi_alsa::get_message ()
         midi::message msg(buff, bytecount);
         msg.jack_stamp(double(ev->time.tick));
 
-#if defined USE_GET_PORT_ID
         int b { int(midi::null_buss()) };
         if (has_master())
         {
@@ -2501,14 +2489,11 @@ midi_alsa::get_message ()
         }
         else
             b = alsa_data().port_number();
-#else
-        int b = alsa_data().port_number();
-#endif
 
         bool sysex { msg.is_sysex() };
         msg.midi_buss(b);
         msg.midi_event_type(ev->type);
-        while (sysex)           /* sysex might be more than one message */
+        while (sysex)               /* sysex might be more than one message */
         {
             remcount = ::snd_seq_event_input(ncclient, &ev);
             bytecount = ::snd_midi_event_decode

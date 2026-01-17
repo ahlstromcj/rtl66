@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-20
+ * \updates       2026-01-12
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in

@@ -177,19 +177,12 @@ rtlmanager::settings (int argc, char * argv [])
     cfg::set_arg_0(argv[0]);                 /* how it got started           */
 
     bool ishelp = rt_show_help();
-//  bool sessionmodified = false;
     if (ishelp)
     {
         is_help(true);
     }
     if (result)
     {
-        /*
-         */
-
-//      if (! sessionmodified)
-//          (void) cmdlineopts::parse_log_option(argc, argv);
-
         /*
          *  If parsing fails, report it and disable usage of the application and
          *  saving bad garbage out when exiting.  Still must launch, otherwise a
@@ -234,9 +227,6 @@ rtlmanager::parse_command_line
     errmessage = "parse_command_line() not implemented";
     (void) argc;
     (void) argv;
-//  if (result)
-//      result = config_ptr()->parse_command_line(argc, argv, errmessage);
-
     return result;
 }
 
@@ -306,7 +296,6 @@ rtlmanager::create_player ()
     bool result = bool(p);
     if (result)
     {
-//      (void) p->get_settings(rc(), usr());
         m_player_ptr = std::move(p);              /* change the ownership */
         result = player_ptr()->launch();
         if (! result)
@@ -429,10 +418,6 @@ rtlmanager::save_session (std::string & msg, bool ok)
                 }
                 else
                 {
-//                  bool is_wrk = util::file_extension_match(filename, ".wrk");
-//                  if (is_wrk)
-//                      filename = util::file_extension_set(filename, ".midi");
-
                     result = midi::write_midi_file(*player_ptr(), filename, msg);
                     if (result)
                         msg = result ? "Saved: " : "Not able to save: " ;
@@ -456,7 +441,7 @@ rtlmanager::save_session (std::string & msg, bool ok)
                     msg += errmessage;
                 }
             }
-#if defined MOVE_TO_DERIVED_CLASS
+#if defined USE_FUTURE_CODE
             if (rc().auto_ctrl_save())
             {
                 std::string mcfname = rc().midi_control_filespec();
@@ -466,17 +451,17 @@ rtlmanager::save_session (std::string & msg, bool ok)
             if (rc().auto_mutes_save())
             {
                 util::file_message("Save session", "Mutes");
-                result = player_ptr()->save_mutegroups();         // add msg return?
+                result = player_ptr()->save_mutegroups();     // add msg return?
             }
             if (rc().auto_playlist_save())
             {
                 util::file_message("Save session", "Playlist");
-                result = player_ptr()->save_playlist();           // add msg return?
+                result = player_ptr()->save_playlist();       // add msg return?
             }
             if (rc().auto_drums_save())
             {
                 util::file_message("Save session", "Notemapper");
-                result = player_ptr()->save_note_mapper();        // add msg return?
+                result = player_ptr()->save_note_mapper();    // add msg return?
             }
 #endif  // defined MOVE_TO_DERIVED_CLASS
         }
@@ -488,7 +473,6 @@ rtlmanager::save_session (std::string & msg, bool ok)
                 std::string errmessage;
                 if (not_nullptr(config_ptr()))
                 {
-//                  config_ptr()->config_filename("erroneous");
                     (void) write_option_file(errmessage);
                 }
                 if (error_active())
@@ -633,8 +617,6 @@ rtlmanager::create_manager (int argc, char * argv [])
              * TODO:  expose the error message to the user here
              */
         }
-//      if (! is_help())
-//          cmdlineopts::show_locale();
     }
     else
     {
@@ -698,7 +680,6 @@ rtlmanager::create_midi_configuration
                 if (result)
                 {
                     util::file_message("Ready", cfgfilepath);
-//                  rc().home_config_path(cfgfilepath);
                 }
             }
             if (result && ! midifilepath.empty())
@@ -707,7 +688,6 @@ rtlmanager::create_midi_configuration
                 if (result)
                     util::file_message("Ready", midifilepath);
             }
-//          rc().set_save_list(true);                   /* save all configs */
 #if defined USE+NSM
             if (usr().in_nsm_session())
             {
@@ -772,7 +752,6 @@ rtlmanager::read_midi_configuration
     else
     {
         // TODO: add full-path getters to configuration and rtlconfiguration.
-//      util::file_error(errmessage, rc().config_filespec());
     }
     return result;
 }

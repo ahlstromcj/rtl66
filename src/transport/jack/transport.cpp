@@ -996,7 +996,7 @@ transport::init ()
         if (result)
         {
             bool master_is_set { false };       /* flag to handle trickery  */
-#if 0
+#if defined USE_FUTURE_CODE
             if (rc().with_jack_master())        /* OR with 'cond' removed   */
 #endif
             {
@@ -1005,7 +1005,7 @@ transport::init ()
                  * master, i.e. it is a conditional attempt to be JACK master.
                  */
 
-#if 0
+#if defined USE_FUTURE_CODE
                 bool cond = rc().with_jack_master_cond();
 #endif
                 bool cond = false;
@@ -1138,7 +1138,7 @@ transport::start ()
         if (is_master())
             set_position(parent().tick());
     }
-#if 0
+#if defined USE_FUTURE_CODE
     else if (rc().with_jack())
         (void) util::error_message("Sync start: JACK not running");
 #endif
@@ -1154,7 +1154,7 @@ transport::stop ()
 {
     if (m_jack_running)
         ::jack_transport_stop(m_jack_client);
-#if 0
+#if defined USE_FUTURE_CODE
     else if (rc().with_jack())
         (void) util::error_message("Sync stop: JACK not running");
 #endif
@@ -1553,7 +1553,7 @@ transport::session_event (jack_session_event_t * ev)
     std::string cmd { seq_app_name() };                 /* e.g. "qrtl66"    */
     cmd += (" --jack-midi");
     cmd += (" --jack-");
-#if 0
+#if defined USE_FUTURE_CODE
     cmd += rc().with_jack_master() ? "master" : "slave" ;
 #endif
     cmd += "master";
@@ -1562,7 +1562,7 @@ transport::session_event (jack_session_event_t * ev)
     cmd += " --home ${SESSION_DIR}";
     ev->command_line = strdup(CSTR(cmd));
 
-#if 0
+#if defined USE_FUTURE_CODE
     std::string clientname = rc().app_client_name();    /* seq_client_id()  */
     clientname += ":";
     clientname += uuid;
@@ -1596,7 +1596,7 @@ transport::session_event (jack_session_event_t * ev)
          * no configuration files yet exist in the "home" location.
          */
     }
-#if 0
+#if defined USE_FUTURE_CODE
     if (rc().investigate_disabled())
 #endif
     {

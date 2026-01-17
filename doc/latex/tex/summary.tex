@@ -6,7 +6,7 @@
 % \library     Documents
 % \author      Chris Ahlstrom
 % \date        2026-01-06
-% \update      2026-01-06
+% \update      2026-01-08
 % \version     $Revision$
 % \license     $XPC_GPL_LICENSE$
 %
@@ -24,12 +24,16 @@
 \begin{figure}[H]
    \centering 
    \includegraphics[scale=0.5]{masterbus.png}
-   \caption*{Rtl66 Overview}
+   \caption{Rtl66 Overview}
+   \label{fig:masterbus}
 \end{figure}
 
+   \index{paradigm!RtMidi}
    In this diagram, the classes in the \texttt{rtl} namespace mostly
-   support the original RtMidi paradigm.
+   support just the original RtMidi paradigm.
 
+   \index{paradigm!masterbus}
+   In this diagram, the classes in the \texttt{rtl} namespace mostly
    The classes in the \texttt{midi} namespace add a master-buss with
    a single API client handle that supports multiple busses (i.e. ports).
 
@@ -54,11 +58,23 @@
 
    The one exception to the RtMidi paradigm here is the
    \texttt{rtl::rtmidi\_engine} class.
-   It sets up the MIDI client handle and a port to
+   It is used in the master-buss paradigm.
+   It is used by the master buss, which sets up the MIDI client
+   handle and a port to
    handle the paradigm described in the next section.
+
+   In any case, the result of the RtMidi paradigm is a number of
+   ports enumerated from the system, each with it's own independent
+   MIDI client handle. In ALSA, each port calls a MIDI-ALSA-handler
+   function, passing the client handle to it via an ALSA data
+   structure.
    
 \subsection{Summary / Masterbus API}
 \label{subsec:summary_masterbus_api}
+
+   The master-buss API is very similar to the API used by
+   \textsl{Seq66}. It has implications for both JACK and ALSA,
+   as noted below.
 
    The basic operation of a "masterbus" application is to create a
    \texttt{midi::masterbus}.
@@ -76,8 +92,18 @@
    \texttt{midi::busarray}, where they can be polled or
    handle sending MIDI events.
 
+   \index{issue!masterbus and ALSA}
+   For ALSA, as noted in the previous section,
+   each port calls the MIDI-ALSA-handler function.
+   However, the ALSA API is \textsl{not} thread-safe.
+   Therefore, the masterbus must either process the input
+   ports in some serial fashion, or use an input handler protected
+   by a mutex.  Currently, serial processing is used.
 
-
+   \index{issue!masterbus and JACK}
+   For JACK, one issue with the master-buss paradigm is that output is
+   ragged as the JACK frame size is increased. This issue is something
+   we will start testing and see how it can be solved.
 
 %-------------------------------------------------------------------------------
 % vim: ts=3 sw=3 et ft=tex

@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2025-08-26
- * \updates       2025-12-31
+ * \updates       2026-01-09
  * \license       See above.
  *
  *      This application has elements of the play test application,
@@ -187,8 +187,11 @@ main (int argc, char * argv [])
         rtl::rtmidi::api srapi { rtl::rtmidi::selected_api() };
         midi::masterbus & master { master_bus(srapi, app_client_info()) };
         int portcount { 0 };
-        int p { master.choose_port(midi::port::io::output, portcount) };
-        can_run = ! midi::is_null_buss(p);
+        int p                               /* show w/out all-ports option  */
+        {
+            master.choose_port(midi::port::io::output, portcount, false)
+        };
+        can_run = midi::is_good_buss(p);    /* ! midi::is_null_buss(p);     */
 
 #endif  // defined USE_REGULAR_RT_SELECT_PORTS
 
@@ -198,11 +201,6 @@ main (int argc, char * argv [])
 
             int portnumber { rt_test_port() };
             app_client_info().output_portnumber(portnumber);
-
-#if 0
-            rtl::rtmidi::api rapi { rtl::rtmidi::selected_api() };
-            midi::masterbus & master { master_bus(rapi, app_client_info()) };
-#endif
 
             midi::bus & outbus { master.get_out_bus(portnumber) };
             can_run = outbus.initialize();

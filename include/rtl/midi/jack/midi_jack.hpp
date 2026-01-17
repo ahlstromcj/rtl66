@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-30
+ * \updates       2026-01-12
  * \license       See above.
  *
  */
@@ -121,6 +121,15 @@ private:
     midi_jack_data m_jack_data { input_data(), c_jack_ringbuffer_size };
 
     /**
+     *  If this port has a masterbus, this pointer is to the data
+     *  for the masterbus.
+     */
+
+#if defined USE_VIRTUAL_MASTER_BUS_SETTER
+    midi_jack_data * m_jack_master_data_ptr { nullptr };
+#endif
+
+    /**
      *  We want to make sure the JACK processing function is set only once,
      *  globally, when using the masterbus. In-class initialization is not
      *  allowed for non constant static members.
@@ -153,6 +162,10 @@ public:
         return rtmidi::api::jack;
     }
 
+#if defined USE_VIRTUAL_MASTER_BUS_SETTER
+    virtual void master_bus (midi::masterbus * mb) override;
+#endif
+
     const std::string & client_name () const
     {
         return m_client_name;
@@ -160,7 +173,12 @@ public:
 
     midi_jack_data & jack_data ()
     {
+#if defined USE_VIRTUAL_MASTER_BUS_SETTER
+        bool usemaster { has_master() && ! is_engine() };
+        return usemaster ? *m_jack_master_data_ptr : m_jack_data ;
+#else
         return m_jack_data;
+#endif
     }
 
     const midi_jack_data & jack_data () const

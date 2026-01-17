@@ -138,7 +138,7 @@ bus_in::init_input (bool inputing)
     return result;
 }
 
-#if defined USE_MIDI_API_PTR
+#if defined USE_MIDI_API_PTR        // undefined
 
 /**
  *  Does checking for port_enabled() take too much time?
