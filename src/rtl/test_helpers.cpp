@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2026-01-09
+ * \updates       2026-01-21
  * \license       See above.
  *
  *  We have a lot of functions for selecting ports !
@@ -456,9 +456,11 @@ static const std::string s_help_text_fmt
 "finding JACK, while using JACK will fail. Use the --quiet-jack option to\n"
 "hide the voluminous JACK console log output.\n"
 "\n"
+
 #if defined PLATFORM_LINUX
 "Linux options:\n"
 "\n"
+
 #if defined RTL66_BUILD_JACK
 "  --jack           Instead of the JACK/ALSA fallback, try JACK, and fail if it\n"
 "                   cannot be initialized.\n"
@@ -469,7 +471,31 @@ static const std::string s_help_text_fmt
 "  --alsa           Instead of the JACK/ALSA fallback, try ALSA, and fail if it\n"
 "                   cannot be initialized.\n"
 #endif
+#if defined RTL66_BUILD_PIPEWIRE
+"  --pipewire       Use PipeWire, and fail if it cannot be initialized.\n"
+#endif
+
+#else               // non-Linux APIs follow
+
+#if defined RTL66_BUILD_MACOSX_CORE
+"  --macosx-core    Use MacOS Core MIDI API (not ready for use).\n"
+#elif defined RTL66_BUILD_WIN_MM
+"  --windows-mm     Use Windows MultiMedia API (not ready for use).\n"
+#elif defined RTL66_BUILD_WIN_UWP
+"  --windows-uwp    Use Windows UWP API (not ready for use).\n"
+#elif defined RTL66_BUILD_ANDROID
+"  --android        Use Android (not ready for use).\n"
+#elif defined RTL66_BUILD_WEB_MIDI
+"  --web-midi       Use Web MIDI (not ready for use).\n"
+
+#endif              // Linux vs non-Linux
+
 #endif              // defined PLATFORM_LINUX
+
+#if defined RTL66_BUILD_DUMMY
+"  --dummy          Use the dummy MIDI API, which does not do anything.\n"
+#endif
+
 "  --test name      Run only the selected test or data file (app-dependent).\n"
 "  --virtual        Use virtual ports (not available to some MIDI engines).\n"
 "  --auto-connect   For non-virtual ports, get the existing system ports and\n"
@@ -709,7 +735,6 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
         {
             util::set_quiet(true);
         }
-#if defined PLATFORM_LINUX
 #if defined RTL66_BUILD_JACK
         else if (arg == "--jack")
         {
@@ -730,7 +755,42 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
             rapi = rtl::rtmidi::api::alsa;
         }
 #endif
-#endif          // defined PLATFORM_LINUX
+#if defined RTL66_BUILD_PIPEWIRE
+        else if (arg == "--pipewire")
+        {
+            rapi = rtl::rtmidi::api::pipewire;
+        }
+#endif
+#if defined RTL66_BUILD_MACOSX_CORE
+        else if (arg == "--macosx-core")
+        {
+            rapi = rtl::rtmidi::api::macosx_core;
+        }
+#endif
+#if defined RTL66_BUILD_WIN_MM          /* deprecated, not implemented      */
+        else if (arg == "--windows-mm")
+        {
+            rapi = rtl::rtmidi::api::windows_mm;
+        }
+#endif
+#if defined RTL66_BUILD_WIN_UWP
+        else if (arg == "--windows-uwp")
+        {
+            rapi = rtl::rtmidi::api::windows_uwp;
+        }
+#endif
+#if defined RTL66_BUILD_WEB_MIDI
+        else if (arg == "--web-midi")
+        {
+            rapi = rtl::rtmidi::api::web_midi;
+        }
+#endif
+#if defined RTL66_BUILD_DUMMY
+        else if (arg == "--dummy")
+        {
+            rapi = rtl::rtmidi::api::dummy;
+        }
+#endif
         else if (arg == "--test")
         {
             if (i + 1 < argc)

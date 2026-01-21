@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone, 2003-2004; refactoring by Chris Ahlstrom
  * \date          2025-08-26
- * \updates       2026-01-09
+ * \updates       2026-01-19
  * \license       See above.
  *
  *      This application has elements of the play test application,
@@ -156,7 +156,7 @@ int
 main (int argc, char * argv [])
 {
     bool can_run { rt_simple_cli("busout", argc, argv) };
-    bool had_error = false;
+    bool had_error { false };
     if (can_run)
     {
         cfg::set_app_name(app_client_info().app_name());
@@ -191,7 +191,7 @@ main (int argc, char * argv [])
         {
             master.choose_port(midi::port::io::output, portcount, false)
         };
-        can_run = midi::is_good_buss(p);    /* ! midi::is_null_buss(p);     */
+        can_run = midi::is_good_buss(p);
 
 #endif  // defined USE_REGULAR_RT_SELECT_PORTS
 

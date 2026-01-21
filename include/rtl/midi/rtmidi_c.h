@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-09-04
+ * \updates       2026-01-21
  * \license       See above.
  *
  *  C interface to realtime MIDI input/output C++ classes.  rtmidi offers a
@@ -107,9 +107,9 @@ typedef void (* RtMidiCCallback)             /* rt_midi_in_data::callback_t */
 typedef enum
 {
     RTMIDI_API_UNSPECIFIED,         /* rtl::rtmidi::api::unspecified        */
-    RTMIDI_API_PIPEWIRE,            /* rtl::rtmidi::api::pipewire TODO@     */
     RTMIDI_API_UNIX_JACK,           /* rtl::rtmidi::api::jack               */
     RTMIDI_API_LINUX_ALSA,          /* rtl:rt:midi::api::alsa               */
+    RTMIDI_API_PIPEWIRE,            /* rtl::rtmidi::api::pipewire TODO      */
     RTMIDI_API_MACOSX_CORE,         /* rtl:rt:midi::api::macosx_core        */
     RTMIDI_API_WINDOWS_MM,          /* rtl::rtmidi::api::windows_mm         */
     RTMIDI_API_WINDOWS_UWP,         /* rtl::rtmidi::api::windows_uwp        */

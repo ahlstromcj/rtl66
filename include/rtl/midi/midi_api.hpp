@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2026-01-12
+ * \updates       2026-01-18
  * \license       See above.
  *
  *      This class is mostly similar to the original RtMidi MidiApi class, but
@@ -220,31 +220,12 @@ public:
         return m_master_bus;
     }
 
-    /**
-     *  Set up the (optional) pointer to the masterbus. Some MIDI API
-     *  classes will want to do additional work, and they should call
-     *  this function in its override.
-     */
-
-#if defined USE_VIRTUAL_MASTER_BUS_SETTER
-
-    virtual void master_bus (midi::masterbus * mb)
-    {
-        m_master_bus = mb;
-        if (not_nullptr(mb))
-            m_has_master = true;
-    }
-
-#else
-
     void master_bus (midi::masterbus * mb)
     {
         m_master_bus = mb;
         if (not_nullptr(mb))
             m_has_master = true;
     }
-
-#endif
 
     midi::port::io port_io_type () const
     {

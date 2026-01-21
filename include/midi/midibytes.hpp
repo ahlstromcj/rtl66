@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2026-01-10
+ * \updates       2026-01-19
  * \license       GNU GPLv2 or above
  *
  *  These aliases are intended to remove ambiguity seen between signed and
@@ -219,14 +219,15 @@ const byte c_note_max   { 127 };
  *  Also see c_null_pulse.  No global buss override is in force if the
  *  buss override number is c_bussbyte_max (0xFF). Note that the terms
  *  "buss" and "port" are somewhat interchangeable; "port" can be negative
- *  to indicate bad values..
+ *  to indicate bad values, but it is best to use the functions
+ *  defined later in this header.
  */
 
 const byte c_byte_max           { byte(0xFFu) };
-const bussbyte c_bussbyte_max   { bussbyte(RTL66_PORT_NULL) };      /* 0xFF */
-const bussbyte c_ports_all      { RTL66_PORTS_ALL };                /* 0xFE */
-const int c_port_null           { int(RTL66_PORT_NULL) };           /* 0xFF */
-const bussbyte c_port_limit     { bussbyte(RTL66_PORT_MAX) };       /* 0xFF */
+const int c_bussbyte_max        { RTL66_PORT_NULL };                /* 0xFF */
+const int c_ports_all           { RTL66_PORTS_ALL };                /* 0xFE */
+const int c_port_null           { RTL66_PORT_NULL };                /* 0xFF */
+const int c_port_limit          { RTL66_PORT_MAX };                 /* 48   */
 const ushort c_ushort_max       { ushort(0xFFFF) };
 const ulong c_ulong_max         { ulong(0xFFFFFFFF) };
 
@@ -252,7 +253,7 @@ const int c_channel_null        { 0x80 };
  *  this value is negative.
  */
 
-const int c_bad_id              { (-1) };
+const int c_bad_id              { -1 };
 
 /*
  * -------------------------------------------------------------------------
@@ -281,7 +282,13 @@ is_null_pulse (pulse p)
 inline bool
 is_null_buss (int b)
 {
-    return b == c_port_null;            /* same as c_bussbyte_max           */
+    return b == c_port_null || b < 0;
+}
+
+inline bool
+is_null_buss (bussbyte b)
+{
+    return b == bussbyte(c_port_null);  /* same as c_bussbyte_max           */
 }
 
 inline bussbyte
@@ -291,32 +298,62 @@ null_buss ()
 }
 
 inline bool
-is_all_busses (bussbyte b)
+is_all_busses (int b)
 {
     return b == c_ports_all;
+}
+
+inline bool
+is_all_busses (bussbyte b)
+{
+    return b == bussbyte(c_ports_all);
 }
 
 inline bussbyte
 all_busses ()
 {
-    return c_ports_all;
+    return bussbyte(c_ports_all);
 }
 
 /*
- * return b < bussbyte(c_busscount_max);
+ *  is_good_buss() checks if the buss number is between 0 and 48.
+ *  is_good_bus_ex() checks if the buss number is between 0 and 48 or
+ *  is the all-buss value. The null-buss value is not useable
+ *  except to indicate an uninitialized buss/port number.
  */
+
+inline bool
+is_good_buss (int b)
+{
+    return (b >= 0 && b <= c_port_limit);
+}
 
 inline bool
 is_good_buss (bussbyte b)
 {
-    return b <= c_port_limit || is_all_busses(b);
+    return b <= bussbyte(c_port_limit);
 }
 
 inline bool
-is_valid_buss (bussbyte b)
+is_good_buss_ex (int b)
 {
-    return is_good_buss(b) || is_null_buss(b) || is_all_busses(b);
+    return is_good_buss(b) || is_all_busses(b);
 }
+
+inline bool
+is_good_buss_ex (bussbyte b)
+{
+    return is_good_buss(b) || is_all_busses(b);
+}
+
+/*
+ *
+inline bool
+is_valid_buss (int b)
+{
+    return is_good_buss_value(b) || is_null_buss(b);
+}
+ */
 
 inline bool
 is_good_busscount (int b)
@@ -359,10 +396,7 @@ abs_byte_value (int b)
     if (b < 0)
         b = -b;
 
-    if (b > max_midi_value())
-        return max_midi_value();
-    else
-        return byte(b);
+    return b > max_midi_value() ? max_midi_value() : byte(b) ;
 }
 
 inline const byte *

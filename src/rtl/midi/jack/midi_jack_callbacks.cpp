@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2026-01-17
+ * \updates       2026-01-20
  * \license       See above.
  *
  *  The JACK callbacks have been moved into a separate file for better
@@ -72,11 +72,12 @@ const char * JACK_METADATA_ICON_NAME
 
 /**
  *  The output buffer size for basic MIDI messages.  Probably excludes SysEx
- *  messages. Also a sanity-check value for input sizes.
+ *  messages. Also a sanity-check value for input sizes:
+ *
+ *      const size_t s_message_in_sanity_size { 0x100000 };
  */
 
 const size_t s_message_outbuffer_size { RTL66_DEFAULT_JACK_BUFSIZE };
-const size_t s_message_in_sanity_size { 0x100000 };
 
 /**
  *  Checks a frame offset for validity.

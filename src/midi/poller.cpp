@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2025-11-08
- * \updates       2026-01-13
+ * \updates       2026-01-19
  * \license       GNU GPLv2 or above
  *
  */
@@ -209,7 +209,7 @@ poller::launch (clientinfo & ci)
         result = activate();
         if (result)
         {
-            if (is_good_buss(m_in_portnumber))
+            if (is_good_buss_ex(m_in_portnumber))
                 launch_input_thread();
         }
     }
@@ -366,7 +366,7 @@ poller::poll_cycle ()
                 {
                     if (enqueue_messages())
                     {
-                        bool ok = m_input_q_ptr->push(incoming);
+                        bool ok { m_input_q_ptr->push(incoming) };
                         if (! ok)
                             printf("Input queue full\n");
                     }

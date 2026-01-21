@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2026-01-12
+ * \updates       2026-01-21
  * \license       See above.
  *
  *  A member function correlation and check-list can be found in
@@ -254,9 +254,9 @@ static const std::string cs_api_names[][2]
      */
 
     { "unspecified",    "Fallback"              },
-    { "pipewire",       "PipeWire"              },  /* TODO!                */
     { "jack",           "JACK"                  },
     { "alsa",           "ALSA"                  },
+    { "pipewire",       "PipeWire"              },  /* TODO!                */
     { "macosx_core",    "CoreMidi"              },
     { "windows_mm",     "Windows MultiMedia"    },
     { "windows_uwp",    "Windows UWP"           },  /* Microsoft-deprecated */

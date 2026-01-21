@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2026-01-09
+ * \updates       2026-01-19
  * \license       See above.
  *
  */
@@ -470,29 +470,6 @@ show_basic_port_info (snd_seq_t * client, bool isoutput, int portnumber)
  *  Some members are initialized "in-class".
  */
 
-#if USE_OLD_CODE
-
-midi_alsa::midi_alsa
-(
-    midi::masterbus & mbus,
-    midi::port::io iotype
-) :
-    midi_api        (mbus, iotype),
-    m_client_name   (mbus.client_name()),
-    m_poll_wrapper
-    (
-        reinterpret_cast<snd_seq_t *>(mbus.void_client_handle())
-    )
-{
-    /*
-     *  (void) initialize(client_name());
-     *
-     *  m_alsa_data.set_initialized(true);
-     */
-}
-
-#else
-
 midi_alsa::midi_alsa
 (
     midi::masterbus & mbus,
@@ -513,8 +490,6 @@ midi_alsa::midi_alsa
         );
     }
 }
-
-#endif
 
 /**
  *  This constructor preserves (mostly) the RtMidi stand-alone port
@@ -559,18 +534,22 @@ midi_alsa::midi_alsa
 
 midi_alsa::~midi_alsa ()
 {
-    if (is_engine())
+    if (is_connected())
     {
-        close_midi_tempo_queue();
-        (void) close_port();
-        engine_disconnect();
-    }
-    else
-    {
-        if (! has_master())
+        if (is_engine())
         {
-            (void) close_port();
+            close_midi_tempo_queue();
+            (void) delete_port();               /* (void) close_port()      */
             engine_disconnect();
+        }
+        else
+        {
+            if (! has_master())
+            {
+                close_midi_tempo_queue();
+                (void) delete_port();           /* (void) close_port()      */
+                engine_disconnect();
+            }
         }
     }
 }
@@ -651,9 +630,6 @@ midi_alsa::engine_connect ()
                 result = seq;           /* reinterpret_cast<void *>(seq)    */
                 if (is_engine())
                 {
-                    ///////
-                    // HMMMMM, not done in RtMidi.cpp
-                    //
                     rc = ::snd_seq_alloc_queue(seq);    /* tempo queue id   */
                     if (rc >= 0)
                         midi_tempo_queue(rc);
@@ -662,7 +638,7 @@ midi_alsa::engine_connect ()
                 {
                     alsa_data().initialize
                     (
-                        seq, midi::port::io::output /*, buffsize        */
+                        seq, midi::port::io::output     /*, buffsize        */
                     );
                 }
                 if (is_input())
@@ -1051,18 +1027,19 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
         error_print("open_port()", "connection already exists");
         return true;
     }
-    else if (portnumber == RTL66_PORTS_ALL)
+    else if (midi::is_all_busses(portnumber))
     {
         status_print("open_port()", "ignoring 'ports-all' value");
         return false;
     }
-    else if (portnumber == RTL66_PORT_NULL)
+    else if (midi::is_null_buss(portnumber))
     {
         error_print("open_port()", "cannot open null port");
         return false;
     }
 
-    bool result { portnumber >= 0 };                    /* -1 == uninit'ed  */
+//  bool result { portnumber >= 0 && connect()};    /* -1 == uninit'ed      */
+    bool result { midi::is_good_buss(portnumber) };
     if (result)
     {
         midi_alsa_data & mad_data { alsa_data() };
@@ -1189,10 +1166,10 @@ midi_alsa::open_port (int portnumber, const std::string & portname)
 #endif
                     ::snd_seq_port_info_set_name(pinfo, CSTR(portname));
 
-                    int vp = ::snd_seq_create_port
-                    (
-                        mad_data.alsa_client(), pinfo
-                    );
+                    int vp
+                    {
+                        ::snd_seq_create_port(mad_data.alsa_client(), pinfo)
+                    };
                     mad_data.vport(vp);
                     if (vp < 0)
                     {
@@ -1412,10 +1389,10 @@ bool
 midi_alsa::remove_subscription ()
 {
     midi_alsa_data & mad_data { alsa_data() };
-    bool result = not_nullptr_2
-    (
-        mad_data.alsa_client(), mad_data.subscription()
-    );
+    bool result
+    {
+        not_nullptr_2(mad_data.alsa_client(), mad_data.subscription())
+    };
     if (result)
     {
         ::snd_seq_unsubscribe_port
@@ -1695,7 +1672,7 @@ midi_alsa::send_message (const midi::byte * msg, size_t sz) const
     else
         error(rterror::kind::driver_error, "send_message(): null buffer");
 
-    bool ok = mad_data.new_event_parser();
+    bool ok { mad_data.new_event_parser() };
     if (! ok)
         error(rterror::kind::driver_error, "send_message(): out of memory");
 
@@ -1788,7 +1765,6 @@ midi_alsa::get_io_port_info (midi::ports & ioports, bool preclear)
         };
         ::snd_seq_port_info_t * pinfo;
         ::snd_seq_client_info_t * cinfo;
-
         bool match { iswriteable && ioports.are_output() };
         if (! match)
             match = ! iswriteable && ioports.are_input();
@@ -1979,7 +1955,7 @@ midi_alsa::PPQN (midi::ppqn ppq)
 bool
 midi_alsa::BPM (midi::bpm bp)
 {
-    bool result = is_output() || is_engine();
+    bool result { is_output() || is_engine() };
     if (result)
     {
         midi_alsa_data & mad_data { alsa_data() };

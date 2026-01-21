@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2025-12-20
+ * \updates       2026-01-21
  * \license       See above.
  *
  *      Also contains some additional capabilities.
@@ -93,9 +93,9 @@ public:
     enum class api
     {
         unspecified,        /**< Search for a working compiled API.         */
-        pipewire,           /**< TODO! Will not be ready for quire awhile.  */
         jack,               /**< Linux/UNIX JACK Low-Latency MIDI Server.   */
         alsa,               /**< Advanced Linux Sound Architecture API.     */
+        pipewire,           /**< TODO! Will not be ready for quite awhile.  */
         macosx_core,        /**< Macintosh OS-X Core Midi API.              */
         windows_mm,         /**< Microsoft Multimedia MIDI API.             */
         windows_uwp,        /**< Windows Universal Platform (deprecated).   */
@@ -428,7 +428,7 @@ extern bool detect_pipewire ();
  * These declarations duplicate those in midi_jack.hpp!
  */
 
-extern bool detect_jack (bool forcecheck);          /* = false */
+extern bool detect_jack (bool forcecheck = true);
 extern void silence_jack_errors (bool silent);
 extern void silence_jack_info (bool silent);
 extern void silence_jack_messages (bool silent);
@@ -436,7 +436,7 @@ extern void silence_jack_messages (bool silent);
 #endif
 
 #if defined RTL66_BUILD_ALSA
-extern bool detect_alsa (bool checkports);
+extern bool detect_alsa (bool checkports = true);
 #endif
 
 #if defined RTL66_BUILD_MACOSX_CORE

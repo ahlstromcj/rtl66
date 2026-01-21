@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2026-01-12
+ * \updates       2026-01-19
  * \license       See above.
  *
  *  Written primarily by Alexander Svetalkin, with updates for delta time by
@@ -347,11 +347,11 @@ set_jack_version ()
     const char * sjv { ::jack_get_version_string() };
     if (not_nullptr(sjv) && std::strlen(sjv) > 0)
     {
-        std::string jv{sjv};
+        std::string jv { sjv };
         midi::global_client_info().api_version(std::string(jv));
     }
 #else
-    std::string jv{"JACK < v. 1"};
+    std::string jv { "JACK < v. 1" };
     midi::global_client_info().api_version(jv);
 #endif
 }
@@ -395,7 +395,7 @@ show_jack_port_status
     if (not_nullptr(sn))
         shortname = std::string(sn);
 
-    int flags = ::jack_port_flags(portptr);
+    int flags { ::jack_port_flags(portptr) };
     std::string portflags { "flags" };
     if (flags & JackPortIsInput)
         portflags += " Input";
@@ -542,15 +542,11 @@ midi_jack::midi_jack
 
 midi_jack::~midi_jack ()
 {
-    bool canclose { is_engine() || ! has_master() };
-    if (canclose)
-        canclose = is_connected();
-
-    if (canclose)
+    if (is_connected())
     {
         if (is_engine())
         {
-            delete_port();              /* must come before client close    */
+            (void) delete_port();       /* must come before client close    */
             engine_disconnect();
         }
         else
@@ -559,31 +555,14 @@ midi_jack::~midi_jack ()
             if (is_output())
                 jack_data().semaphore_destroy();
 #endif
-            delete_port();
             if (! has_master())
+            {
+                (void) delete_port();
                 engine_disconnect();
+            }
         }
     }
 }
-
-#if defined USE_VIRTUAL_MASTER_BUS_SETTER
-
-void
-midi_jack::master_bus (midi::masterbus * mb)
-{
-    midi_api::master_bus(mb);
-    if (not_nullptr(mb))
-    {
-        midi_jack * master_self
-        {
-            reinterpret_cast<midi_jack *>(mb->engine().rt_api_ptr())
-        };
-        midi_jack_data & data = master_self->jack_data();
-        m_jack_master_data_ptr = &data;
-    }
-}
-
-#endif
 
 /*------------------------------------------------------------------------
  * midi_jack engine-related functions
@@ -611,7 +590,10 @@ void *
 midi_jack::engine_connect ()
 {
     void * result { nullptr };
-    if (has_master() && ! is_engine())  /* too tricky                       */
+//
+//  if (has_master() && ! is_engine())  /* too tricky                       */
+//
+    if (has_master())
     {
         result = client_handle();       /* grabs masterbus's client handle  */
         if (not_nullptr(result))
@@ -636,6 +618,7 @@ midi_jack::engine_connect ()
         if (ok)
         {
             const char * cname { CSTR(client_name()) };
+            void * apidata { reinterpret_cast<void *>(&data) };
 			jack_status_t status;
 			jack_status_t * ps { &status };             /* TODO: use this   */
             jack_options_t jopts { JackNoStartServer };
@@ -654,12 +637,18 @@ midi_jack::engine_connect ()
                      */
 
                     result = c;
+#if defined PLATFORM_DEBUG // _TMI
+                    printf
+                    (
+                        "jack_client_t = %p, apidata = %p\n",
+                        (void *)(c), apidata
+                    );
+#endif
                 }
                 else
                 {
                     result = c;
 
-                    void * apidata { reinterpret_cast<void *>(&data) };
                     JackProcessCallback cb { nullptr };
 #if defined PLATFORM_DEBUG_TMI
                     printf
@@ -708,10 +697,15 @@ midi_jack::engine_connect ()
                     }
                     else                    /* assume duplex for now    */
                     {
+#if defined PLATFORM_DEBUG_TMI
+                        printf("No I/O/E specified\n");
+#endif
+#if 0
                         cb = jack_process_io;
                         ok = jack_set_process_cb(c, cb, apidata);
                         if (ok)
                             (void) set_auxiliary_callbacks(c);
+#endif
                     }
                     if (ok)
                         result = c;
@@ -775,6 +769,39 @@ midi_jack::engine_disconnect ()
         if (rc != 0)
             error_print("jack_client_close", "failed");
     }
+}
+
+/**
+ *  This function is called by the midi_jack destructor.
+ *
+ *  Note that there is no need to delete the midi_jack_data object, it is
+ *  not allocated on the heap.
+ *
+ *  Also note that, currently, this is used only in the the destructor, so no
+ *  need for a return value.
+ */
+
+void
+midi_jack::delete_port ()
+{
+    midi_jack_data & data { jack_data() };
+    (void) close_port();
+    if (is_output())
+    {
+        xpc::ring_buffer<midi::message> & rb { data.jack_buffer() };
+        if (rb.dropped() > 0 || rb.count_max() > (rb.buffer_size() / 2))
+        {
+            char tmp[64];
+            snprintf
+            (
+                tmp, sizeof tmp, "%d events dropped, %d max/%d",
+                rb.dropped(), rb.count_max(), rb.buffer_size()
+            );
+            (void) util::warn_message("ring-buffer", tmp);
+        }
+    }
+    if (! has_master())
+        engine_disconnect();
 }
 
 /**
@@ -1076,13 +1103,25 @@ midi_jack::open_port (int portnumber, const std::string & portname)
         error_print(portname, "connection already exists");
         return true;
     }
+    else if (midi::is_all_busses(portnumber))
+    {
+        status_print("open_port()", "ignoring 'ports-all' value");
+        return false;
+    }
+    else if (midi::is_null_buss(portnumber))
+    {
+        error_print("open_port()", "cannot open null port");
+        return false;
+    }
 
-    bool result { portnumber >= 0 && connect()};    /* -1 == uninit'ed      */
+//  bool result { portnumber >= 0 && connect()};    /* -1 == uninit'ed      */
+    bool result { midi::is_good_buss(portnumber) };
     if (result)
     {
         midi_jack_data & data { jack_data() };
         int nsrc { get_port_count() };
-        result = nsrc > 0 && is_nullptr(data.jack_port());
+//      result = nsrc > 0 && is_nullptr(data.jack_port());
+        result = nsrc > 0;
         if (result)                                 /* can create the port  */
         {
             jack_client_t * jclient { data.jack_client() };
@@ -1199,39 +1238,6 @@ midi_jack::open_virtual_port (const std::string & portname)
         error(rterror::kind::driver_error, msg);
     }
     return result;
-}
-
-/**
- *  This function is called by the midi_jack destructor.
- *
- *  Note that there is no need to delete the midi_jack_data object, it is
- *  not allocated on the heap.
- *
- *  Also note that, currently, this is used only in the the destructor, so no
- *  need for a return value.
- */
-
-void
-midi_jack::delete_port ()
-{
-    midi_jack_data & data { jack_data() };
-    (void) close_port();
-    if (is_output())
-    {
-        xpc::ring_buffer<midi::message> & rb { data.jack_buffer() };
-        if (rb.dropped() > 0 || rb.count_max() > (rb.buffer_size() / 2))
-        {
-            char tmp[64];
-            snprintf
-            (
-                tmp, sizeof tmp, "%d events dropped, %d max/%d",
-                rb.dropped(), rb.count_max(), rb.buffer_size()
-            );
-            (void) util::warn_message("ring-buffer", tmp);
-        }
-    }
-    if (! has_master())
-        engine_disconnect();
 }
 
 /**
@@ -1601,10 +1607,13 @@ midi_jack::get_io_port_info
             {
                 iswriteable ? JackPortIsInput : JackPortIsOutput
             };
-            const char ** ports = ::jack_get_ports
-            (
-                data.jack_client(), NULL, RTL66_JACK_MIDI_TYPE, flag
-            );
+            const char ** ports
+            {
+                ::jack_get_ports
+                (
+                    data.jack_client(), NULL, RTL66_JACK_MIDI_TYPE, flag
+                )
+            };
             if (is_nullptr(ports))
             {
                 std::string msg { "found no " };
