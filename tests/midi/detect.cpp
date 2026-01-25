@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary Scavone; refactoring by Chris Ahlstrom
  * \date          2026-01-21
- * \updates       2026-01-21
+ * \updates       2026-01-24
  * \license       See above.
  *
  */
@@ -109,8 +109,19 @@ main (int argc, char * argv [])
     {
         rtl::rtmidi::api rapi { rtl::rtmidi::desired_api() };
         std::string name { rtl::rtmidi::api_name(rapi) };
-        std::cout << "API '" << name << "' requested." << std::endl;
-        return detect(rapi) ? EXIT_SUCCESS : EXIT_FAILURE ;
+        if (rapi == rtl::rtmidi::api::unspecified)
+        {
+            rt_print_help("detect");
+            std::cerr
+                << "Specify a valid MIDI API, e.g. --alsa, --jack, etc."
+                << std::endl
+            ;
+        }
+        else
+        {
+            std::cout << "API '" << name << "' requested." << std::endl;
+            return detect(rapi) ? EXIT_SUCCESS : EXIT_FAILURE ;
+        }
     }
     else
         return EXIT_FAILURE;

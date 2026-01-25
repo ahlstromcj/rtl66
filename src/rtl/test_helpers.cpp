@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2026-01-21
+ * \updates       2026-01-24
  * \license       See above.
  *
  *  We have a lot of functions for selecting ports !
@@ -688,6 +688,18 @@ rt_show_help ()
     return s_test_show_help;
 }
 
+void
+rt_print_help (const std::string & appname)
+{
+    printf
+    (
+        s_help_text_fmt.c_str(),
+        V(appname),
+        V(rtl::get_rtl_midi_version()),
+        V(rtl::get_rtmidi_patch_version())
+    );
+}
+
 static bool s_test_use_callback = false;
 
 void
@@ -935,15 +947,8 @@ rt_simple_cli (const std::string & appname, int argc, char * argv [])
         rtl::rtmidi::desired_api(rapi);
     }
     else
-    {
-        printf
-        (
-            s_help_text_fmt.c_str(),
-            V(appname),
-            V(rtl::get_rtl_midi_version()),
-            V(rtl::get_rtmidi_patch_version())
-        );
-    }
+        rt_print_help(appname);
+
     return can_run;
 }
 

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-06-30
- * \updates       2026-01-02
+ * \updates       2026-01-24
  * \license       See above.
  *
  *  Note that these functions are not in a namespace so that most of them
@@ -76,6 +76,7 @@ extern bool rt_open_all_ports ();
 extern void set_rt_open_all_ports ();
 extern bool rt_virtual_test_port ();
 extern bool rt_show_help ();
+extern void rt_print_help (const std::string & appnae);
 extern bool rt_use_callback ();
 extern int rt_test_port ();
 extern int rt_test_port_in ();
