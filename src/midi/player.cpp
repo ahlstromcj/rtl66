@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom and others
  * \date          2022-07-10
- * \updates       2025-11-23
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  */
@@ -165,9 +165,8 @@ player::append_error_message (const std::string & msg) const
  */
 
 void
-player::unmodify (lib66::notification n)
+player::unmodify ()
 {
-    (void) n;
     m_modified = false;                     /* m_needs_update = false;  */
     track_list().unmodify();
 }

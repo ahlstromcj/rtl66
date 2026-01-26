@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2026-01-15
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -544,9 +544,9 @@ public:     // API implementations
     bool panic (int displaybuss = (-1));
     bool sysex (midi::bussbyte bus, const event * ev);
     void play (midi::bussbyte bus, event * e24, midi::byte channel);
-    bool set_clock (midi::bussbyte bus, midi::clocking clocktype);
-    bool save_clock (midi::bussbyte bus, midi::clocking clock);
-    midi::clocking get_clock (midi::bussbyte bus) const;
+    bool set_clock (midi::bussbyte bus, midi::clock::clocking clocktype);
+    bool save_clock (midi::bussbyte bus, midi::clock::clocking clock);
+    midi::clock::clocking get_clock (midi::bussbyte bus) const;
     bool save_input (midi::bussbyte bus, bool inputing);
     bool set_input (midi::bussbyte bus, bool inputing);
     bool get_input (midi::bussbyte bus) const;

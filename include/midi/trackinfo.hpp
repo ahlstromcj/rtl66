@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2025-08-21
+ * \updates       2026-01-25
  * \license       GNU GPLv2 or above
  *
  *  In addition, this version contains some information from the performer and
@@ -83,7 +83,7 @@ private:
 public:
 
     tempoinfo () = default;
-    tempoinfo (midi::bpm tempobpm, int tempotrack);
+    tempoinfo (midi::bpm tempobpm, int tempotrack = 0);
     tempoinfo (const tempoinfo &) = default;
     tempoinfo (tempoinfo &&) = default;
     tempoinfo & operator = (const tempoinfo &) = default;
@@ -150,14 +150,14 @@ private:
      *  The default value is 4.
      */
 
-    int m_beats_per_bar;
+    int m_beats_per_bar { RTL66_DEFAULT_BEATS_PER_BAR };
 
     /**
      *  Holds the beat width value as obtained from the MIDI file.
      *  The default value is 4.
      */
 
-    int m_beat_width;
+    int m_beat_width { RTL66_DEFAULT_BEAT_WIDTH };
 
     /**
      *  Augments the beats/bar and beat-width with the additional values
@@ -167,23 +167,23 @@ private:
      *  our hymne.mid example.
      */
 
-    unsigned m_clocks_per_metronome;
+    unsigned m_clocks_per_metronome { RTL66_DEFAULT_CLOCKS_PER_METRO };
 
     /**
      *  Number of 32nd notes per quarter note. Defaults to 8. Kind of a
      *  weird concept.
      */
 
-    unsigned m_thirtyseconds_per_qn;
+    unsigned m_thirtyseconds_per_qn { RTL66_DEFAULT_32NDS_PER_QUARTER };
 
 public:
 
+    timesiginfo () = default;
     timesiginfo
     (
-        int bpb                 = 4,
-        int bw                  = 4,
-        unsigned cpm            = 24,
-        unsigned n32nds_per_qn  = 8
+        int bpb, int bw,
+        unsigned cpm            = RTL66_DEFAULT_CLOCKS_PER_METRO,
+        unsigned n32nds_per_qn  = RTL66_DEFAULT_32NDS_PER_QUARTER
     );
     timesiginfo (const timesiginfo &) = default;
     timesiginfo (timesiginfo &&) = default;
@@ -253,21 +253,21 @@ private:
      *  the other members. A TODO item.
      */
 
-    std::string m_keysig_name;
+    std::string m_keysig_name { };
 
     /**
      *  The number of sharps, if positive, and the number of flats, if
      *  negative.  Ranges from -7 to 7.
      */
 
-    int m_sharp_flat_count;
+    int m_sharp_flat_count { 0 };
 
     /**
      *  Indicates if the scale is a minor scale.  If false, it is a major
      *  scale.
      */
 
-    bool m_is_minor_scale;
+    bool m_is_minor_scale { false };
 
 public:
 
@@ -339,19 +339,19 @@ private:
      *  Holds the name of the track. Grabbed from the Seq66 sequence class.
      */
 
-    std::string m_track_name;
+    std::string m_track_name { };
 
     /**
      *  Indicates if the track is exportable.  To be determined.
      */
 
-    bool m_is_exportable;
+    bool m_is_exportable { false };
 
     /**
      *  The putative length of the track.
      */
 
-    midi::pulse m_length;
+    midi::pulse m_length { 0 };
 
     /**
      *  Tempo information.
@@ -386,7 +386,7 @@ private:
      *  channel number.
      */
 
-    midi::byte m_channel;
+    midi::byte m_channel { c_channel_null };
 
 public:
 
@@ -397,7 +397,7 @@ public:
         const tempoinfo & ti,
         const timesiginfo & tsi,
         const keysiginfo & ksi,
-        bool exportable = true
+        bool exportable = false
     );
     trackinfo (const trackinfo &) = default;
     trackinfo (trackinfo &&) = default;

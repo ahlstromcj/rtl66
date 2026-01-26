@@ -24,7 +24,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2020-12-10
- * \updates       2024-06-13
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  */
@@ -87,7 +87,7 @@ inputslist::add
         io ioitem;
         ioitem.io_available = available;
         ioitem.io_enabled = enabled;
-        ioitem.out_clock = midi::clocking::input;
+        ioitem.out_clock = midi::clock::clocking::input;
         ioitem.io_name = portname;
         ioitem.io_alias = alias;
         result = portslist::add(bussno, ioitem, nickname);
@@ -165,7 +165,7 @@ inputslist::set (midi::bussbyte bussno, bool inputing)
     if (result)
     {
         it->second.io_enabled = inputing;
-        it->second.out_clock = midi::clocking::input;
+        it->second.out_clock = midi::clock::clocking::input;
     }
     return result;
 }

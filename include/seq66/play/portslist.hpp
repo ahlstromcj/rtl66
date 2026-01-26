@@ -27,7 +27,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2020-12-11
- * \updates       2024-06-13
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  *  Defines the list of MIDI inputs and outputs (clocks).  We've combined them
@@ -37,7 +37,7 @@
 #include <string>                       /* std::string                      */
 #include <map>                          /* std::map<buss, I/O struct>       */
 
-#include "midi/clocking.hpp"            /* enum class midi::clocking, etc.  */
+#include "midi/clocking.hpp"            /* enum class clock::clocking, etc. */
 #include "midi/midibytes.hpp"           /* midi::bussbyte and other types   */
 
 namespace seq66
@@ -117,7 +117,7 @@ public:
     {
         bool io_available;          /**< Portmapped-bus not present.        */
         bool io_enabled;            /**< The status setting for this buss.  */
-        midi::clocking out_clock;   /**< Clock/disabled setting for buss.   */
+        midi::clock::clocking out_clock; /**< Clock/disabled buss setting.  */
         std::string io_name;        /**< The name of the I/O buss.          */
         std::string io_nick_name;   /**< The short name of the I/O buss.    */
         std::string io_alias;       /**< FYI only, and only for JACK.       */
@@ -260,7 +260,7 @@ protected:
         int & client,
         int & portno
     ) const;
-    std::string midi::clocking_to_string (midi::clocking e) const;
+    std::string midi::clocking_to_string (midi::clock::clocking e) const;
     std::string port_map_list (bool isclock) const;
     std::string io_line
     (

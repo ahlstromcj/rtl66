@@ -159,7 +159,7 @@ private:
             b->init_clock(tick);
     }
 
-    void set_clock (clocking clocktype)
+    void set_clock (clock::clocking clocktype)
     {
         for (auto & b : m_bus_container)
             b->set_clock(clocktype);
@@ -411,7 +411,7 @@ busarray::init_clock (pulse tick)
  */
 
 void
-busarray::set_clock (clocking clk)
+busarray::set_clock (clock::clocking clk)
 {
     p_impl->set_clock(clk);
 }
@@ -480,13 +480,13 @@ busarray::send_sysex (bussbyte b, const event * e24)
  */
 
 bool
-busarray::set_clock (bussbyte b, clocking clocktype)
+busarray::set_clock (bussbyte b, clock::clocking clocktype)
 {
-    clocking current { get_clock(b) };
+    clock::clocking current { get_clock(b) };
     midi::bus * bptr { p_impl->bus_ptr(b) };
     bool result { bus_active(bptr) };
     if (! result)
-        result = current == clocking::disabled;
+        result = current == clock::clocking::disabled;
 
     if (result)
         bptr->set_clock(clocktype);             /* also handles set_clock() */
@@ -509,12 +509,12 @@ busarray::set_clock (bussbyte b, clocking clocktype)
  *      what was read from the "rc" file.
  */
 
-clocking
+clock::clocking
 busarray::get_clock (bussbyte b) const
 {
     midi::bus * bptr { p_impl->bus_ptr(b) };
     return bus_active(bptr) ?
-        bptr->clock_type() : clocking::unavailable ;
+        bptr->clock_type() : clock::clocking::unavailable ;
 }
 
 /**
@@ -550,8 +550,8 @@ busarray::get_midi_bus_name (int b) const
     const midi::bus * bptr { p_impl->bus_ptr(b) };
     if (not_nullptr(bptr))
     {
-        clocking current { bptr->clock_type() };
-        if (bptr->port_enabled() || current == clocking::disabled)
+        clock::clocking current { bptr->clock_type() };
+        if (bptr->port_enabled() || current == clock::clocking::disabled)
         {
             std::string busname { bptr->bus_name() };
             std::string portname { bptr->port_name() };

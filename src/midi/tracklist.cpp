@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-09
- * \updates       2025-09-13
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  *  This class is important when writing the MIDI and sequencer data out to a
@@ -91,9 +91,8 @@ tracklist::modified () const
 }
 
 void
-tracklist::unmodify (lib66::notification n)
+tracklist::unmodify ()
 {
-    (void) n;
     m_modified = false;
     for (const auto & trk : tracks())
         trk->unmodify();

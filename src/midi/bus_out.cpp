@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-12-14
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  */
@@ -122,8 +122,8 @@ bus_out::get_out_port_info ()
 
 /**
  *  Initialize the clock, continuing from the given tick. This function
- *  doesn't depend upon the MIDI API in use.  Here, midi::clocking::none and
- *  midi::clocking::disabled have the same effect... none.
+ *  doesn't depend upon the MIDI API in use.  Here, clocking::none and
+ *  clocking::disabled have the same effect... none.
  *
  * \param tick
  *      The starting tick.

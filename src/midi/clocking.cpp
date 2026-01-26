@@ -24,15 +24,15 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2025-08-15
- * \updates       2025-09-06
+ * \updates       2026-01-26
  * \license       See above.
  *
- *  midi::clocking. A module for enum class clocking.
+ *  midi::clock::clocking. A module for enum class clocking.
  */
 
 #include <sstream>                      /* std::ostringstream               */
 
-#include "midi/clocking.hpp"            /* midi::clocking etc.              */
+#include "midi/clocking.hpp"            /* midi::clock::clocking etc.       */
 
 namespace midi
 {
@@ -42,17 +42,35 @@ namespace midi
  *------------------------------------------------------------------------*/
 
 std::string
-clocking_to_string (midi::clocking e)
+clocking_to_string (midi::clock::clocking e)
 {
     std::string result;
     switch (e)
     {
-        case midi::clocking::unavailable: result = "Unavailable";      break;
-        case midi::clocking::disabled:    result = "Disabled";         break;
-        case midi::clocking::none:        result = "Enabled/No clock"; break;
-        case midi::clocking::pos:         result = "Pos";              break;
-        case midi::clocking::mod:         result = "Mod";              break;
-        default:                          result = "Unknown";          break;
+        case midi::clock::clocking::unavailable:
+            result = "Unavailable";
+            break;
+
+        case midi::clock::clocking::disabled:
+            result = "Disabled";
+            break;
+
+        case midi::clock::clocking::none:
+            result = "Enabled/No clock";
+            break;
+
+        case midi::clock::clocking::pos:
+            result = "Pos";
+            break;
+
+        case midi::clock::clocking::mod:
+
+            result = "Mod";
+            break;
+
+        default:
+            result = "Unknown";
+            break;
     }
     return result;
 }

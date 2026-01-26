@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-11-12
- * \updates       2024-06-13
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  *  The main player!  Coordinates sets, patterns, mutes, playlists, you name
@@ -2764,10 +2764,11 @@ public:
     (
         midi::bussbyte bus, bool & active, std::string & n, bool statusshow = false
     ) const;
-    bool ui_set_clock (midi::bussbyte bus, midi::clocking clocktype);
+    bool ui_set_clock (midi::bussbyte bus, midi::clock::clocking clocktype);
     bool ui_get_clock
     (
-        midi::bussbyte bus, midi::clocking & e, std::string & n, bool statusshow = false
+        midi::bussbyte bus, midi::clock::clocking & e,
+        std::string & n, bool statusshow = false
     ) const;
     bool port_maps_active () const;
 
@@ -2794,12 +2795,12 @@ public:
      *  Mostly meant for use by the Options / MIDI Clocks tab.
      */
 
-    void set_clock (midi::bussbyte bus, midi::clocking clocktype)
+    void set_clock (midi::bussbyte bus, midi::clock::clocking clocktype)
     {
         m_clocks.set(true_output_bus(bus), clocktype);
     }
 
-    midi::clocking get_clock (midi::bussbyte bus) const
+    midi::clock::clocking get_clock (midi::bussbyte bus) const
     {
         return m_clocks.get(true_output_bus(bus));
     }

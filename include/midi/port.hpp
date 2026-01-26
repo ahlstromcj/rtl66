@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24        (seq66::midi_port_info)
- * \updates       2026-01-08
+ * \updates       2026-01-26
  * \license       See above.
  *
  *  Contains information about a single MIDI port, as determined by
@@ -256,9 +256,9 @@ private:
      *  and "port disabled.
      */
 
-    clocking m_io_status
+    clock::clocking m_io_status
     {
-        clocking::none
+        clock::clocking::none
     };
 
 public:
@@ -361,7 +361,7 @@ public:                                 /* getters                          */
         return m_internal_id;
     }
 
-    clocking port_status () const
+    clock::clocking port_status () const
     {
         return m_io_status;
     }
@@ -448,14 +448,15 @@ public:                                 /* setters                          */
         m_internal_id = id;
     }
 
-    void port_status (clocking clk)
+    void port_status (clock::clocking clk)
     {
         m_io_status = clk;
     }
 
     void port_disabled (bool flag)
     {
-        m_io_status = flag ? midi::clocking::none : midi::clocking::disabled ;
+        m_io_status = flag ?
+            midi::clock::clocking::none : midi::clock::clocking::disabled ;
     }
 
 };          // class port

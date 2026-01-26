@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2025-09-11
+ * \updates       2026-01-25
  * \license       GNU GPLv2 or above
  *
  *  This is a header-only module.
@@ -156,7 +156,10 @@ class timing
      *  our hymne.mid example.
      */
 
-    int m_clocks_per_metronome { RTL66_DEFAULT_METRO_CLOCKS };  /* 24       */
+    int m_clocks_per_metronome
+    {
+        RTL66_DEFAULT_CLOCKS_PER_METRO                          /* 24       */
+    };
 
     /**
      *  Augments the beats/bar and beat-width with the additional values
@@ -164,7 +167,10 @@ class timing
      *  duplicate of the same member in the sequence class.
      */
 
-    int m_32nds_per_quarter { RTL66_DEFAULT_32NDS_PER_Q };      /* 8        */
+    int m_32nds_per_quarter
+    {
+        RTL66_DEFAULT_32NDS_PER_QUARTER                         /* 8        */
+    };
 
     /**
      *  The duration of a quarter note (or beat as well?) in microseconds.

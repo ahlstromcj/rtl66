@@ -24,7 +24,7 @@
  * \library       seq66 application
  * \author        Chris Ahlstrom and others
  * \date          2018-11-12
- * \updates       2025-10-27
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  *  Also read the comments in the Seq64 version of this module, perform.
@@ -1320,7 +1320,8 @@ performer::ui_set_input (midi::bussbyte bus, bool active)
 bool
 performer::ui_get_clock
 (
-    midi::bussbyte bus, midi::clocking & e, std::string & n, bool statusshow
+    midi::bussbyte bus, midi::clock::clocking & e,
+    std::string & n, bool statusshow
 ) const
 {
     const clockslist & opm = output_port_map();
@@ -1346,7 +1347,7 @@ performer::ui_get_clock
         name += alias;
         name += "'";
     }
-    if (unavailable && statusshow)          /* e == midi::clocking::unavailable    */
+    if (unavailable && statusshow)
         name += " (unavailable)";
 
     n = name;
@@ -1368,7 +1369,7 @@ performer::true_output_bus (midi::bussbyte nominalbuss) const
         result = seq66::true_output_bus(m_clocks, nominalbuss);
         if (is_null_buss(result))
         {
-            midi::clocking clockvalue;                     /* not used here        */
+            midi::clock::clocking clockvalue;       /* not used here        */
             std::string busname;                    /* this is what we want */
             (void) ui_get_clock(nominalbuss, clockvalue, busname, false);
             if (busname.empty())
@@ -1406,7 +1407,7 @@ performer::true_output_bus (midi::bussbyte nominalbuss) const
  */
 
 bool
-performer::ui_set_clock (midi::bussbyte bus, midi::clocking clocktype)
+performer::ui_set_clock (midi::bussbyte bus, midi::clock::clocking clocktype)
 {
     midi::bussbyte truebus = true_output_bus(bus);
     bool result = m_master_bus->set_clock(truebus, clocktype);

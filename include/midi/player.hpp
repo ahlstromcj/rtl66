@@ -590,7 +590,7 @@ public:
         m_modified = true;
     }
 
-    void unmodify (lib66::notification n = lib66::notification::no);
+    void unmodify ();
     bool read_midi_file
     (
         const std::string & fn,

@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-24
- * \updates       2026-01-08
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  *  The bus module is the new base class for the various implementations
@@ -67,7 +67,7 @@
 
 #include "c_macros.h"                   /* not_nullptr() macro              */
 #include "midi/clientinfo.hpp"          /* midi::clientinfo class           */
-#include "midi/clocking.hpp"            /* midi::clocking enum class        */
+#include "midi/clocking.hpp"            /* clock::clocking enum class       */
 #include "midi/message.hpp"             /* midi::message class              */
 #include "midi/midibytes.hpp"           /* midi::byte alias, etc.           */
 #include "rtl/midi/midi_api.hpp"        /* rtl::rtmidi::midi_api            */
@@ -200,20 +200,20 @@ private:
      *  the IDs are 14 (MIDI Through), 20 (LaunchPad Mini), 128 (TiMidity),
      *  and 129 (Yoshimi). See ports::get_bus_id() and port::m_client_number.
      *
-     *      int m_bus_id;                   // port::m_buss_number
+     *      int m_bus_id;                           // port::m_buss_number
      *
      *  The port ID of the bus object. Numbering starts at 0.
      *
      *  See ports::get_port_id() and port::m_port_number.
      *
-     *      int m_port_id;                  // port::m_port_number
+     *      int m_port_id;                          // port::m_port_number
      *
      *  The type of clock to use.  The special value clocking::disabled means
      *  we will not be using the port, so that a failure in setting up the
      *  port is not a "fatal error".  We could have added an "m_outputing"
      *  boolean as an alternative.
      *
-     *      midi::clocking m_clock_type;    // port::m_io_status
+     *      midi::clock::clocking m_clock_type;     // port::m_io_status
      */
 
     /**
@@ -504,19 +504,19 @@ public:
     }
 
     bool is_port_connectable () const;
-    bool set_clock (midi::clocking clocktype);
+    bool set_clock (midi::clock::clocking clocktype);
 
     bool is_port_locked () const
     {
         return false;                               /* Windows only FIXME   */
     }
 
-    midi::clocking clock_type () const
+    midi::clock::clocking clock_type () const
     {
         return midi_port().port_status();           /* was m_clock_type;    */
     }
 
-    void clock_type (midi::clocking c)
+    void clock_type (midi::clock::clocking c)
     {
         midi_port().port_status(c);
     }
@@ -538,7 +538,7 @@ public:
 
     bool port_unavailable () const
     {
-        return clock_type() == midi::clocking::unavailable;
+        return clock_type() == midi::clock::clocking::unavailable;
     }
 
     /**

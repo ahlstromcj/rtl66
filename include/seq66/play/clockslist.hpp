@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-11-12
- * \updates       2024-06-13
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  *  Defines some midibus constants and the seq66::clock enumeration.
@@ -64,14 +64,13 @@ public:
     bool add
     (
         int bussno,
-//      bool available,
-        midi::midi::clocking clocktype,
+        midi::clock::clocking clocktype,
         const std::string & name,
         const std::string & nickname = "",
         const std::string & alias = ""
     );
-    bool set (midi::bussbyte bus, midi::midi::clocking clocktype);
-    midi::midi::clocking get (midi::bussbyte bus) const;
+    bool set (midi::bussbyte bus, midi::clocking::clocking clocktype);
+    midi::clocking::clocking get (midi::bussbyte bus) const;
 
 };              // class clockslist
 

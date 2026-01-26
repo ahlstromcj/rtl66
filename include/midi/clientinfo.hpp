@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2026-01-09
+ * \updates       2026-01-26
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -699,7 +699,7 @@ public:
         return io_ports(iotype).get_port_is_system(index);
     }
 
-    midi::clocking get_port_status (port::io iotype, int index) const
+    midi::clock::clocking get_port_status (port::io iotype, int index) const
     {
         return io_ports(iotype).get_port_status(index);
     }

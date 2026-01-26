@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-23
- * \updates       2025-11-20
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  */
@@ -123,7 +123,7 @@ bus_in::init_input (bool inputing)
     if (is_system_port())
     {
         activate();
-        clock_type(clocking::none);
+        clock_type(clock::clocking::none);
     }
     else
     {
@@ -132,7 +132,10 @@ bus_in::init_input (bool inputing)
         else
             deactivate();
 
-        clock_type(inputing ? clocking::none : clocking::disabled);
+        clock_type
+        (
+            inputing ? clock::clocking::none : clock::clocking::disabled
+        );
         result = true;
     }
     return result;

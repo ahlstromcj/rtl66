@@ -24,7 +24,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2020-12-10
- * \updates       2025-10-27
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  *  The listbase provides common code for the clockslist and inputslist
@@ -115,7 +115,7 @@ portslist::add
 (
     int bussno,
     bool available,
-    int status,                         /* covers bool or midi::clocking   */
+    int portstatus,
     const std::string & name,
     const std::string & nickname,
     const std::string & alias
@@ -137,8 +137,8 @@ portslist::add
             ioitem.io_port_number = (-1);
         }
         ioitem.io_available = available;
-        ioitem.io_enabled = status > 0;
-        ioitem.out_clock = int_to_clock(status);
+        ioitem.io_enabled = portstatus > 0;
+        ioitem.out_clock = int_to_clock(portstatus);
         ioitem.io_name = name;
         ioitem.io_alias = alias;
         result = add(bussno, ioitem, nickname);
@@ -215,7 +215,7 @@ portslist::is_available (midi::bussbyte bussno) const
  *  port as missing or otherwise unusable. This is enforced in the child
  *  classes' set() functions.  The old check has some issues, in retrospect:
  *
- *      result = it->second.out_clock == midi::clocking::disabled;
+ *      result = it->second.out_clock == midi::clock::clocking::disabled;
  */
 
 bool
@@ -655,7 +655,7 @@ portslist::match_system_to_map (portslist & destination) const
                 io & ncitem = const_cast<io &>(item);
                 ncitem.io_available = false;
                 ncitem.io_enabled = false;
-                ncitem.out_clock = midi::clocking::unavailable;
+                ncitem.out_clock = midi::clock::clocking::unavailable;
             }
         }
     }
@@ -713,7 +713,7 @@ portslist::const_io_block (const std::string & nickname) const
         s_needs_initing = false;
         s_dummy_io.io_available = false;
         s_dummy_io.io_enabled = false;
-        s_dummy_io.out_clock = midi::clocking::disabled;
+        s_dummy_io.out_clock = midi::clock::clocking::disabled;
     }
     for (const auto & iopair : m_master_io)
     {
@@ -729,18 +729,18 @@ portslist::const_io_block (const std::string & nickname) const
 }
 
 std::string
-portslist::midi::clocking_to_string (midi::clocking e) const
+portslist::midi::clocking_to_string (midi::clock::clocking e) const
 {
     std::string result;
     switch (e)
     {
-        case midi::clocking::unavailable:   result = "Unavailable"; break;
-        case midi::clocking::disabled:      result = "Disabled";    break;
-        case midi::clocking::none:          result = "None";        break;
-        case midi::clocking::input:         result = "Input";       break;
-        case midi::clocking::pos:           result = "Pos";         break;
-        case midi::clocking::mod:           result = "Mod";         break;
-        default:                            result = "Unknown";     break;
+        case midi::clock::clocking::unavailable: result = "Unavailable"; break;
+        case midi::clock::clocking::disabled:    result = "Disabled";    break;
+        case midi::clock::clocking::none:        result = "None";        break;
+        case midi::clock::clocking::input:       result = "Input";       break;
+        case midi::clock::clocking::pos:         result = "Pos";         break;
+        case midi::clock::clocking::mod:         result = "Mod";         break;
+        default:                                 result = "Unknown";     break;
     }
     return result;
 }
@@ -776,7 +776,7 @@ portslist::port_map_list (bool isclock) const
             else
             {
                 if (! item.io_available)
-                    pstatus = clock_to_int(midi::clocking::unavailable);
+                    pstatus = clock_to_int(midi::clock::clocking::unavailable);
                 else
                     pstatus = item.io_enabled ? 1 : 0 ;
             }

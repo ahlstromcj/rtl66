@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2026-01-08
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  *  This file provides a base-class implementation for various master MIDI
@@ -562,7 +562,7 @@ masterbus::play_and_flush (midi::bussbyte b, event * ev, midi::byte channel)
  */
 
 bool
-masterbus::set_clock (midi::bussbyte b, midi::clocking clocktype)
+masterbus::set_clock (midi::bussbyte b, midi::clock::clocking clocktype)
 {
     xpc::automutex locker(m_mutex);
     bool result { m_outbus_array.set_clock(b, clocktype) };
@@ -592,7 +592,7 @@ masterbus::set_clock (midi::bussbyte b, midi::clocking clocktype)
  */
 
 bool
-masterbus::save_clock (midi::bussbyte /*b*/, midi::clocking /*clk*/)
+masterbus::save_clock (midi::bussbyte /*b*/, midi::clock::clocking /*clk*/)
 {
 #if THIS_CODE_IS_READY
     bool result { m_master_clocks.set(b, clk) };
@@ -625,7 +625,7 @@ masterbus::save_clock (midi::bussbyte /*b*/, midi::clocking /*clk*/)
  *      setting is returned.  Otherwise, e_clock::disabled is returned.
  */
 
-midi::clocking
+midi::clock::clocking
 masterbus::get_clock (midi::bussbyte b) const
 {
     return m_outbus_array.get_clock(b);

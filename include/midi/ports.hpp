@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05        (seq66::midi_port_info)
- * \updates       2025-11-29
+ * \updates       2026-01-26
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -320,12 +320,12 @@ public:
             return (-1);
     }
 
-    midi::clocking get_port_status (int index) const
+    midi::clock::clocking get_port_status (int index) const
     {
         if (index < port_count())
             return portref(index).port_status();
         else
-            return midi::clocking::unavailable;
+            return midi::clock::clocking::unavailable;
     }
 
     std::string get_connect_name (int index) const;

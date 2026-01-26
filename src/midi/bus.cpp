@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-25
- * \updates       2026-01-01
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  *  This file provides a cross-platform implementation of MIDI support.
@@ -471,11 +471,11 @@ bus::BPM () const
  */
 
 bool
-bus::set_clock (midi::clocking clk)
+bus::set_clock (midi::clock::clocking clk)
 {
     m_port.port_status(clk);
-    m_io_active = clk != midi::clocking::disabled &&
-        clk != midi::clocking::unavailable;
+    m_io_active = clk != midi::clock::clocking::disabled &&
+        clk != midi::clock::clocking::unavailable;
 
     return true;
 }

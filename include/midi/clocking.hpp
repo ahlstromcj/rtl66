@@ -23,22 +23,24 @@
  * \file          clocking.hpp
  *
  *  This module declares/defines the elements that are common to the Linux
- *  and Windows implmentations of midibus.
+ *  and Windows implementations of MIDI support.
  *
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2026-01-08
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
- *  Defines some midibus constants and the clocking enumeration.
+ *  Defines the action and clocking enumerations.
  */
+
+#include <string>                       /* std::string class                */
 
 namespace midi
 {
 
 /*
- * Be aware that this namespace contains only one entity.
+ * Be aware that this namespace contains only two entities
  */
 
 namespace clock
@@ -72,8 +74,6 @@ enum class action
     stop,
     emit
 };
-
-}           // namespace clock
 
 /**
  *  A clock enumeration, as used in the File / Options / MIDI Clock dialog.
@@ -125,45 +125,50 @@ enum class clocking
     max                             /* an illegal value                     */
 };
 
+}           // namespace clock
+
 /*
  *  Inline free functions.
  */
 
-inline clocking
+inline clock::clocking
 int_to_clocking (int e)
 {
-    return e < static_cast<int>(clocking::max) ?
-        static_cast<clocking>(e) : clocking::disabled ;
+    return e < static_cast<int>(clock::clocking::max) ?
+        static_cast<clock::clocking>(e) : clock::clocking::disabled ;
 }
 
 inline int
-clocking_to_int (clocking e)
+clocking_to_int (clock::clocking e)
 {
-    return static_cast<int>(e == clocking::max ? clocking::disabled : e);
+    return static_cast<int>
+    (
+        e == clock::clocking::max ? clock::clocking::disabled : e
+    );
 }
 
-inline clocking
+inline clock::clocking
 bool_to_clocking (bool f)
 {
-    return f ? clocking::none : clocking::disabled ;
+    return f ? clock::clocking::none : clock::clocking::disabled ;
 }
 
 inline bool
-clock_is_enabled (clocking c)
+clock_is_enabled (clock::clocking c)
 {
-    return c == clocking::pos || c == clocking::mod;
+    return c == clock::clocking::pos || c == clock::clocking::mod;
 }
 
 inline bool
-clock_is_mod (clocking c)
+clock_is_mod (clock::clocking c)
 {
-    return c == clocking::mod;
+    return c == clock::clocking::mod;
 }
 
 inline bool
-clock_is_pos (clocking c)
+clock_is_pos (clock::clocking c)
 {
-    return c == clocking::pos;
+    return c == clock::clocking::pos;
 }
 
 /**
@@ -171,34 +176,37 @@ clock_is_pos (clocking c)
  */
 
 inline bool
-inputing_is_enabled (clocking c)
+inputing_is_enabled (clock::clocking c)
 {
-    return c == clocking::none;
+    return c == clock::clocking::none;
 }
 
 inline bool
-output_is_enabled (clocking c)
+output_is_enabled (clock::clocking c)
 {
-    return c == clocking::none || c == clocking::pos || c == clocking::mod;
+    return c == clock::clocking::none ||
+        c == clock::clocking::pos ||
+        c == clock::clocking::mod;
 }
 
 inline bool
-port_is_unavailable (clocking c)
+port_is_unavailable (clock::clocking c)
 {
-    return c == clocking::unavailable;
+    return c == clock::clocking::unavailable;
 }
 
 inline bool
-port_is_disabled (clocking c)
+port_is_disabled (clock::clocking c)
 {
-    return c == clocking::disabled || c == clocking::unavailable ;
+    return c == clock::clocking::disabled ||
+        c == clock::clocking::unavailable ;
 }
 
 /*
  * Free function.
  */
 
-extern std::string clocking_to_string (midi::clocking e);
+extern std::string clocking_to_string (clock::clocking e);
 
 }           // namespace midi
 

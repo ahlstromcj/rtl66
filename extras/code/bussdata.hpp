@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-10
- * \updates       2024-10-28
+ * \updates       2026-01-26
  * \license       See above.
  *
  *  Contains information about a single MIDI bus. It extends the midi::port
@@ -41,7 +41,7 @@
  *  CURRENTLY NOT USED. See clientinfo and rtmidi.
  */
 
-#include "clocking.hpp"                 /* midi::clocking                   */
+#include "clocking.hpp"                 /* midi::clock::clocking            */
 #include "port.hpp"                     /* midi::port                       */
 
 namespace midi

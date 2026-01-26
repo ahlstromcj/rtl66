@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-11-12
- * \updates       2024-06-13
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  *  Defines the list of MIDI inputs, pulled out of the old perform module.
@@ -64,9 +64,7 @@ public:
     bool add
     (
         int bussno,
-//      bool available,
-//      bool enabled,
-        midi::midi::clocking inputstatus,
+        midi::clock::clocking inputstatus,
         const std::string & name,
         const std::string & nickname = "",
         const std::string & alias = ""

@@ -96,7 +96,11 @@ public:
         m_modified = true;
     }
 
-    virtual void unmodify (lib66::notification n = lib66::notification::no);
+    /*
+     * virtual void unmodify (lib66::notification n = lib66::notification::no);
+     */
+
+    virtual void unmodify ();
 
     bool modified () const;
     bool add (midi::track::number trkno, midi::track * trk);

@@ -24,7 +24,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2020-12-10
- * \updates       2024-06-13
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  */
@@ -74,7 +74,7 @@ clockslist::add
 (
     int bussno,
     bool available,
-    midi::clocking clocktype,
+    midi::clock::clocking clocktype,
     const std::string & name,
     const std::string & nickname,
     const std::string & alias
@@ -92,13 +92,13 @@ clockslist::add
         ioitem.io_available = available;
         if (! available)
         {
-            pstatus = clock_to_int(midi::clocking::unavailable);
+            pstatus = clock_to_int(midi::clock::clocking::unavailable);
             ioitem.io_enabled = false;
-            ioitem.out_clock = midi::clocking::unavailable;
+            ioitem.out_clock = midi::clock::clocking::unavailable;
         }
         else
         {
-            ioitem.io_enabled = clocktype != midi::clocking::disabled;
+            ioitem.io_enabled = clocktype != midi::clock::clocking::disabled;
             ioitem.out_clock = clocktype;
         }
         ioitem.io_name = portname;
@@ -118,7 +118,7 @@ clockslist::add_list_line (const std::string & line)
     bool result = parse_port_line(line, pnumber, pstatus, pname);
     if (result)
     {
-        midi::clocking clocktype = int_to_clock(pstatus);
+        midi::clock::clocking clocktype = int_to_clock(pstatus);
         bool available = pstatus != (-2);
         result = add(pnumber, available, clocktype, pname);
     }
@@ -152,7 +152,7 @@ clockslist::add_map_line (const std::string & line)
         if (pstatus == (-2))
             available = false;
 
-        midi::clocking clocktype = int_to_clock(pstatus);
+        midi::clock::clocking clocktype = int_to_clock(pstatus);
         std::string pnum = std::to_string(pnumber);
         result = add(pnumber, available, clocktype, pname, pnum); /* no alias */
     }
@@ -175,25 +175,25 @@ clockslist::add_map_line (const std::string & line)
  */
 
 bool
-clockslist::set (midi::bussbyte bussno, midi::clocking clocktype)
+clockslist::set (midi::bussbyte bussno, midi::clock::clocking clocktype)
 {
     auto it = m_master_io.find(bussno);
     bool result = it != m_master_io.end();
     if (result)
     {
-        bool enabled = clocktype != midi::clocking::disabled;
+        bool enabled = clocktype != midi::clock::clocking::disabled;
         it->second.io_enabled = enabled;
         it->second.out_clock = clocktype;
     }
     return result;
 }
 
-midi::clocking
+midi::clock::clocking
 clockslist::get (midi::bussbyte bussno) const
 {
     auto it = m_master_io.find(bussno);
     return it != m_master_io.end()
-        ? it->second.out_clock : midi::clocking::none ;
+        ? it->second.out_clock : midi::clock::clocking::none ;
 }
 
 std::string
@@ -280,9 +280,9 @@ build_output_port_map (const clockslist & cl)
             const portslist::io & item = iopair.second;
             std::string number = std::to_string(bussno);
             bool available = item.io_available;
-            midi::clocking ec = midi::clocking::none;
+            midi::clock::clocking ec = midi::clock::clocking::none;
             if (! item.io_enabled)
-                ec = midi::clocking::disabled;
+                ec = midi::clock::clocking::disabled;
 
             if (item.io_alias.empty())
             {

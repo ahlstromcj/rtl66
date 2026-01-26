@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-06-02
- * \updates       2025-12-25
+ * \updates       2026-01-26
  * \license       GNU GPLv2 or above
  *
  *  The busarray module defines the busarray and busarray classes so that we
@@ -40,7 +40,7 @@
 #include <vector>                       /* for containing the bus objects   */
 
 #include "midi/port.hpp"                /* midi::port & enum classes        */
-#include "midi/clocking.hpp"            /* midi::clocking I/O enum class    */
+#include "midi/clocking.hpp"            /* clock::clocking I/O enum class   */
 #include "midi/message.hpp"             /* midi::message                    */
 #include "midi/midibytes.hpp"           /* midi::bussbyte and other types   */
 
@@ -110,9 +110,9 @@ public:
     void clock_stop ();
     void clock_continue (midi::pulse tick);
     void init_clock (midi::pulse tick);
-    void set_clock (midi::clocking clocktype);
-    bool set_clock (midi::bussbyte b, midi::clocking clocktype);
-    midi::clocking get_clock (midi::bussbyte b) const;
+    void set_clock (midi::clock::clocking clocktype);
+    bool set_clock (midi::bussbyte b, midi::clock::clocking clocktype);
+    midi::clock::clocking get_clock (midi::bussbyte b) const;
 
     // bool save_clock(bussbyte b, clocking clk
 
