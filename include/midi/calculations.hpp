@@ -347,16 +347,6 @@ bpm_from_bytes (const midi::bytes & tt)
     return bpm_from_tempo_us(tempo_us_from_bytes(tt));
 }
 
-#if defined THIS_IS_NEEDED
-
-inline midi::bpm
-bpm_from_bytes (midi::byte t[3])
-{
-    return bpm_from_tempo_us(tempo_us_from_bytes(t));
-}
-
-#endif
-
 /**
  *  Calculates pulse-length from the BPM (beats-per-minute) and PPQN
  *  (pulses-per-quarter-note) values.  The formula for the pulse-length in

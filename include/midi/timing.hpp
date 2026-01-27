@@ -364,7 +364,7 @@ public:
             return false;
     }
 
-    int clocks_per_metronome () const
+    int clocks_per_metronome () const       // CPM?
     {
         return m_clocks_per_metronome;
     }
@@ -374,7 +374,7 @@ public:
         return m_32nds_per_quarter;
     }
 
-    midi::microsec us_per_quarter_note () const
+    midi::microsec us_per_quarter_note () const // us_per_qn?
     {
         return m_us_per_quarter_note;
     }

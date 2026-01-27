@@ -351,7 +351,7 @@ pulses_to_measurestring (midi::pulse p, const midi::timing & seqparms)
 bool
 pulses_to_midi_measures
 (
-    pulse p,
+    midi::pulse p,
     const midi::timing & seqparms,
     midi::measures & bars
 )
