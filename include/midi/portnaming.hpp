@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2022-12-18
- * \updates       2025-11-29`
+ * \updates       2026-01-29
  * \license       GNU GPLv2 or above
  *
  *  These items were moved from the globals.h module so that only the modules
@@ -72,6 +72,9 @@ extern bool contains
     const std::string & original,
     const std::string & target
 );
+
+extern bool detect_short_name (const std::string & portname);
+extern int count_colons (const std::string & name);
 extern bool extract_port_names
 (
     const std::string & fullname,
@@ -82,6 +85,12 @@ extern std::string extract_bus_name (const std::string & fullname);
 extern std::string extract_port_name (const std::string & fullname);
 extern std::string extract_nickname (const std::string & name);
 extern std::string extract_a2j_port_name (const std::string & alias);
+extern bool extract_port_pair
+(
+    const std::string & name,
+    int & client,
+    int & portno
+);
 extern bool process_aliases
 (
     const std::string & fullname,

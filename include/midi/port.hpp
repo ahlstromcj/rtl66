@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2024-05-24        (seq66::midi_port_info)
- * \updates       2026-01-26
+ * \updates       2026-01-30
  * \license       See above.
  *
  *  Contains information about a single MIDI port, as determined by
@@ -134,22 +134,33 @@ private:
 
     /**
      *  Major buss number of the port. Applicable to ALSA. System devices
-     *  (which includes plugged-in MIDI hardware) range 0 to 128; software
-     *  MIDI clients go from 129 on up. Here's a typical setup; the
+     *  (which includes plugged-in MIDI hardware) range 0 to 127; software
+     *  MIDI clients go from 128 on up. Here's a typical setup; the
      *  additional lines are port numbers:
      *
-     *
-     *      client 0: 'System'
-     *          0 'Timer           '
-     *          1 'Announce        '
-     *      client 14: 'Midi Through'
+     *      $ aconnect -l               (output cleansed for readability)
+     *      client 0: 'System' [type=kernel]
+     *          0 'Timer           '    Connecting To: 144:0
+     *          1 'Announce        '    Connecting To: 144:0, 128:0
+     *      client 14: 'Midi Through' [type=kernel]
      *          0 'Midi Through Port-0'
+     *              Connecting To: 128:1
+     *              Connected From: 128:2
      *      client 28: 'nanoKEY2' [type=kernel,card=3]
-     *          0 'nanoKEY2 _ CTRL '
+     *          0 'nanoKEY2 _ CTRL '    Connected From: 128:3
      *      client 36: 'Q25' [type=kernel,card=5]
-     *          0 'Q25 MIDI 1      '
+     *          0 'Q25 MIDI 1      '    Connected From: 128:4
+     *      client 144: 'PipeWire-System' [type=user,pid=2541941]
+     *          0 'input           '    Connected From: 0:1, 0:0
+     *      client 145: 'PipeWire-RT-Event' [type=user,pid=2541941]
+     *          0 'input
      *
      *  Also known as the "client number" or "client ID".
+     *  Note that an application has one client (buss) number
+     *  (e.g. 128 for Seq66 or 144 for PipwWire), but can have multiple
+     *  port numbers.
+     *
+     *  Do not confuse this with the port index, defined below.
      */
 
     int m_buss_number { -1 };
@@ -366,6 +377,11 @@ public:                                 /* getters                          */
         return m_io_status;
     }
 
+    bool port_available () const
+    {
+        return midi::clock_is_available(port_status());
+    }
+
     bool clock_enabled () const
     {
         return midi::clock_is_enabled(port_status());
@@ -453,10 +469,22 @@ public:                                 /* setters                          */
         m_io_status = clk;
     }
 
-    void port_disabled (bool flag)
+    void port_available (bool flag)
+    {
+        m_io_status = flag ?
+            midi::clock::clocking::none : midi::clock::clocking::unavailable ;
+    }
+
+    void port_enabled (bool flag)
     {
         m_io_status = flag ?
             midi::clock::clocking::none : midi::clock::clocking::disabled ;
+    }
+
+    void port_disabled (bool flag)
+    {
+        m_io_status = flag ?
+            midi::clock::clocking::disabled : midi::clock::clocking::none ;
     }
 
 };          // class port

@@ -1,16 +1,18 @@
 #*****************************************************************************
-# meson.build (seq66/include)
+# meson.build (include/seq66)
 #-----------------------------------------------------------------------------
 ##
-# \file        include/meson.build
+# \file        include/seq66/meson.build
 # \library     seq66
 # \author      Chris Ahlstrom
 # \date        2022-07-05
-# \updates     2023-01-07
+# \updates     2026-01-30
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the "seq66" library. See the top-level meson.build
 #  file for license information.
+#
+# IMPORTANT: This setup is not used. Instead, see the file src/meson.build.
 #
 #-----------------------------------------------------------------------------
 
@@ -36,7 +38,7 @@ libseq66_headers += files(
 install_headers(libseq66_headers)
 
 #****************************************************************************
-# meson.build (seq66/include)
+# meson.build (include/seq66)
 #----------------------------------------------------------------------------
 # vim: ts=3 sw=3 ft=meson
 #----------------------------------------------------------------------------

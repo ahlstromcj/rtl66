@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-11-12
- * \updates       2026-01-26
+ * \updates       2026-01-31
  * \license       GNU GPLv2 or above
  *
  *  Defines the list of MIDI inputs, pulled out of the old perform module.
@@ -64,13 +64,13 @@ public:
     bool add
     (
         int bussno,
-        midi::clock::clocking inputstatus,
+        midi::clock::clocking clocktype,
         const std::string & name,
-        const std::string & nickname = "",
-        const std::string & alias = ""
+        const std::string & nickname    = "",
+        const std::string & alias       = ""
     );
-    bool set (midi::bussbyte busno, bool inputing);
-    bool get (midi::bussbyte busno) const;
+    bool set (int busno, bool inputing);
+    bool get (int busno) const;
 
 };              // class inputslist
 
@@ -84,14 +84,14 @@ extern void clear_input_port_map ();
 extern void activate_input_port_map (bool flag);
 extern midi::bussbyte true_input_bus
 (
-    const inputslist & cl, midi::bussbyte nominalbuss
+    const inputslist & cl, int nominalbuss
 );
 
 #if defined USE_IOPUT_PORT_NAME_FUNCTION
-extern std::string input_port_name (midi::bussbyte b, bool addnumber = false);
+extern std::string input_port_name (int b, bool addnumber = false);
 #endif
 
-extern midi::bussbyte input_port_number (midi::bussbyte b);
+extern midi::bussbyte input_port_number (int b);
 extern std::string input_port_map_list ();
 
 }               // namespace seq66

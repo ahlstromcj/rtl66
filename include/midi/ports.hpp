@@ -27,7 +27,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05        (seq66::midi_port_info)
- * \updates       2026-01-26
+ * \updates       2026-01-30
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -47,8 +47,8 @@
  *  numbers assigned by the MIDI subsystem, midi::ports-based classes use the
  *  concept of an "index", which ranges from 0 to one less than the number of
  *  input or output ports.  These values are indices into a vector of
- *  port_info structures, and are easily looked up when midi::masterbus creates
- *  a midibus object.
+ *  port_info structures, and are easily looked up when midi::masterbus
+ *  creates a midibus object.
  */
 
 /**
@@ -64,7 +64,7 @@
  */
 
 #include <string>                       /* std::string class                */
-#include <vector>                       /* std::vector class                */
+#include <map>                          /* std::map class                   */
 
 #include "midi/midibytes.hpp"           /* midi::bussbyte, etc.             */
 #include "midi/port.hpp"                /* midi::port class                 */
@@ -81,22 +81,24 @@ class ports
 
 private:
 
-#if defined USE_SEQ66_PORTLIST_VALUES       // thinking about this....
-
-    using container = std::map<midi::bussbyte, io>;
-
     /**
-     *  Indicates if the list is to be used.  It will always be saved and read,
-     *  but not used if this flag is false.  For normal I/O usage, this will
-     *  be true.  For usage in portmapping (a future feature) this could be
-     *  false to indicate that the mapping will not be used.
+     *  A port data container. A port has three numeric identifiers: a client
+     *  (buss) number and a port number from the ALSA engine, plus an index
+     *  number (0 on up) assigned by this library. One operation we need is,
+     *  given the client and port number, find which index it has. This is a
+     *  brute-force search whether a vector or map is used. Another very
+     *  common operation is getting a buss or port name based on the index
+     *  number; this can be done using operator [] for either kind of
+     *  container. But with a vector, ports must always be added
+     *  in numerical order.
+     *
+     *          using container = std::vector<midi::port>;
+     *
+     *  The map key is the port index number, and the value is the port
+     *  data.
      */
 
-    bool m_is_active { false };
-
-#else
-    using container = std::vector<midi::port>;
-#endif
+    using container = std::map<int, midi::port>;
 
     /**
      *  Holds the number of ports counted.
@@ -126,9 +128,14 @@ public:
     ports (ports &&) = default;
     ports & operator = (const ports &) = default;
     ports & operator = (ports &&) = default;
-    ~ports () = default;
+    virtual ~ports () = default;
 
-    bool add (const midi::port & p);
+    bool add
+    (
+        const midi::port & p,
+        int index                       = (-1),
+        const std::string & nickname    = ""
+    );
     bool add
     (
         int bussnumber,                     /* example: "14" for MIDI thru  */
@@ -137,7 +144,7 @@ public:
         const std::string & portname,       /* e.g. "Midi Through Port-0:   */
         midi::port::io iotype,
         midi::port::kind porttype,
-        int portid,                         /* an index value from 0 on up  */
+        int portindex,                      /* an index value from 0 on up  */
         int queuenumber             = (-1)
     );
     bool add                                /* useful for JACK aliases      */
@@ -148,7 +155,7 @@ public:
         int portnumber,                     /* example: "0"                 */
         midi::port::io iotype,
         midi::port::kind porttype,
-        int portid,                         /* an index value from 0 on up  */
+        int portindex,                      /* an index value from 0 on up  */
         int queuenumber             = (-1)
     );
 
@@ -163,12 +170,12 @@ public:
         m_port_count = 0;
     }
 
-    bool empty () const
+    bool empty () const                 // not_empty()
     {
         return m_port_container.empty();
     }
 
-    int port_count () const
+    int port_count () const             // count()
     {
         return m_port_count;
     }
@@ -205,7 +212,6 @@ public:
         return m_port_io_types == midi::port::io::duplex;
     }
 
-    midi::bussbyte get_port_id (int bussnumber, int port) const;
     std::string to_string (const std::string & tagmsg = "") const;
 
     midi::port & portref (int index);
@@ -213,18 +219,12 @@ public:
 
     int get_bus_number (int index) const
     {
-        if (index < port_count())
-            return portref(index).buss_number();
-        else
-            return (-1);
+        return portref(index).buss_number();
     }
 
     std::string get_bus_name (int index) const
     {
-        if (index < port_count())
-            return portref(index).buss_name();
-        else
-            return std::string("");
+        return portref(index).buss_name();
     }
 
     /**
@@ -233,60 +233,38 @@ public:
 
     int get_port_number (int index) const
     {
-        if (index < port_count())
-            return portref(index).port_number();
-        else
-            return (-1);
+        return portref(index).port_number();
     }
 
-    /**
-     *  Get the port index. This is weird. Using
-     *  get_port_id() makes more sense.
-     */
+    midi::bussbyte get_port_index (int bussnumber, int port) const;
 
     int get_port_index (int index) const
     {
-        if (index < port_count())
-            return portref(index).port_index();
-        else
-            return (-1);
+        return portref(index).port_index();
     }
 
     std::string get_port_name (int index) const
     {
-        if (index < port_count())
-            return portref(index).port_name();
-        else
-            return std::string("");
+        return portref(index).port_name();
     }
 
     std::string get_port_alias (int index, int aliasno = 0) const
     {
-        static std::string s_dummy;
-        return index < port_count() ?
-            portref(index).port_alias(aliasno) : s_dummy ;
+        return portref(index).port_alias(aliasno);
     }
 
     const lib66::tokenization & get_port_aliases (int index) const
     {
-        static lib66::tokenization s_dummy;
-        return index < port_count() ?
-            portref(index).port_aliases() : s_dummy ;
+        return portref(index).port_aliases();
     }
 
     bool get_port_is_input (int index) const
     {
-        if (index < port_count())
-            return portref(index).io_type() == midi::port::io::input;
-        else
-            return false;
+        return portref(index).io_type() == midi::port::io::input;
     }
 
     midi::port::kind get_port_type (int index) const
     {
-        if (index < 0 || index >= port_count())
-            index = 0;
-
         return portref(index).port_type();
     }
 
@@ -296,39 +274,37 @@ public:
 
     bool get_port_is_virtual (int index) const
     {
-        if (index < port_count())
-            return portref(index).port_type() ==
-                midi::port::kind::manual;
-        else
-            return false;
+        return portref(index).port_type() == midi::port::kind::manual;
     }
 
     bool get_port_is_system (int index) const
     {
-        if (index < port_count())
-            return portref(index).port_type() ==
-                midi::port::kind::system;
-        else
-            return false;
+        return portref(index).port_type() == midi::port::kind::system;
     }
 
     int get_port_queue_number (int index) const
     {
-        if (index < port_count())
-            return portref(index).queue_number();
-        else
-            return (-1);
+        return portref(index).queue_number();
     }
 
     midi::clock::clocking get_port_status (int index) const
     {
-        if (index < port_count())
-            return portref(index).port_status();
-        else
-            return midi::clock::clocking::unavailable;
+        return portref(index).port_status();
     }
 
     std::string get_connect_name (int index) const;
+
+protected:
+
+    container & port_container ()
+    {
+        return m_port_container;
+    }
+
+    const container & port_container () const
+    {
+        return m_port_container;
+    }
 
 };          // class ports
 

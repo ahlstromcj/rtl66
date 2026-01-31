@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2026-01-19
+ * \updates       2026-01-29
  * \license       See above.
  *
  */
@@ -2291,7 +2291,7 @@ midi_alsa::get_midi_event (midi::event * inev)
             {
                 int b
                 {
-                    master_bus()->get_port_id       /* i.e. bus index   */
+                    master_bus()->get_port_index
                     (
                         midi::port::io::input,
                         int(ev->source.client), int(ev->source.port)
@@ -2457,7 +2457,7 @@ midi_alsa::get_message ()
         int b { int(midi::null_buss()) };
         if (has_master())
         {
-            b = master_bus()->get_port_id
+            b = master_bus()->get_port_index
             (
                 midi::port::io::input,
                 int(ev->source.client), int(ev->source.port)

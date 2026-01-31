@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2026-01-26
+ * \updates       2026-01-30
  * \license       GNU GPLv2 or above
  *
  *  Defines the action and clocking enumerations.
@@ -157,6 +157,12 @@ inline bool
 clock_is_enabled (clock::clocking c)
 {
     return c == clock::clocking::pos || c == clock::clocking::mod;
+}
+
+inline bool
+clock_is_available (clock::clocking c)
+{
+    return c != clock::clocking::unavailable;
 }
 
 inline bool

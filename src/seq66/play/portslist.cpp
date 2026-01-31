@@ -24,7 +24,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2020-12-10
- * \updates       2026-01-26
+ * \updates       2026-01-30
  * \license       GNU GPLv2 or above
  *
  *  The listbase provides common code for the clockslist and inputslist
@@ -34,60 +34,12 @@
 #include <iostream>                     /* std::cout, etc.                  */
 #include <stdexcept>                    /* std::invalid_argument            */
 
-#include "cfg/settings.hpp"             /* seq66::rc() accessor             */
+#include "midi/portnaming.hpp"          /* midi::detect_short_name()        */
 #include "play/portslist.hpp"           /* seq66::portslist class           */
-#include "util/strfunctions.hpp"        /* util::strncompare()              */
+#include "util/strfunctions.hpp"        /* util::string_to_int() etc.       */
 
 namespace seq66
 {
-
-/**
- *  Looks for the port name in the short-name list. We are interested in
- *  seeing if it is a generic name such as "midi in".
- *
- * \param portname
- *      The name to be checked.  This is the name after the colon in a
- *      "client:port" pair.
- *
- * \return
- *      Returns true if the port-name is found in the short-name list, or is
- *      empty. This is a signal to get the nick-name from the client name and
- *      the portname.
- */
-
-static bool
-detect_short_name (const std::string & portname)
-{
-    static const std::string s_short_names [] =
-    {
-        "midi_",
-        "midi ",
-        "in",
-        "out",
-        "input",
-        "output",
-        ""                              /* empty string is a terminator     */
-    };
-    bool result = portname.empty();
-    if (! result)
-    {
-        for (int i = 0; /* forever */; ++i)
-        {
-            std::string compared = s_short_names[i];
-            if (compared.empty())
-            {
-                break;                              /* there is no match    */
-            }
-            else
-            {
-                result = strncompare(compared, portname);
-                if (result)
-                    break;                          /* a match was found    */
-            }
-        }
-    }
-    return result;
-}
 
 /*
  *  The simple destructor defined in the header file.  A few functions
@@ -95,7 +47,8 @@ detect_short_name (const std::string & portname)
  */
 
 portslist::portslist (bool pmflag) :
-    m_master_io     (),
+
+    midi::ports     (),
     m_is_active     (false),
     m_is_port_map   (pmflag)
 {
@@ -109,6 +62,8 @@ portslist::activate (status s)
     if (s == status::cleared)
         clear();
 }
+
+#if defined USE_OBSOLETE
 
 bool
 portslist::add
@@ -171,6 +126,8 @@ portslist::add
     return result;
 }
 
+#endif  // defined USE_OBSOLETE
+
 /**
  *  Added for clarity, convenience, and, last, but not least, cohesion.
  *  The issue is that this can mess up the clock type, so we leave that alone
@@ -187,25 +144,25 @@ portslist::add
  */
 
 bool
-portslist::set_enabled (midi::bussbyte bussno, bool enabled)
+portslist::set_enabled (int index, bool enabled)
 {
-    auto it = m_master_io.find(bussno);
-    bool result = it != m_master_io.end();
+    auto it { port_container().find(index) };
+    bool result { it != port_container().end() };
     if (result)
     {
-        it->second.io_available = true;
-        it->second.io_enabled = enabled;
+        midi::clock::clocking c { midi::bool_to_clocking(enabled) };
+        it->second.port_status(c);
     }
     return result;
 }
 
 bool
-portslist::is_available (midi::bussbyte bussno) const
+portslist::is_available (int index) const
 {
-    bool result = false;
-    auto it = m_master_io.find(bussno);
-    if (it != m_master_io.end())
-        result = it->second.io_available;
+    auto it { port_container().find(index) };
+    bool result { it != port_container().end() };
+    if (result)
+        result = it->second.port_available();
 
     return result;
 }
@@ -219,111 +176,139 @@ portslist::is_available (midi::bussbyte bussno) const
  */
 
 bool
-portslist::is_enabled (midi::bussbyte bussno) const
+portslist::is_enabled (int index) const
 {
-    bool result = false;
-    auto it = m_master_io.find(bussno);
-    if (it != m_master_io.end())
-        result = it->second.io_enabled;
+    auto it { port_container().find(index) };
+    bool result { it != port_container().end() };
+    if (result)
+        result = it->second.port_enabled();
 
     return result;
 }
 
-void
-portslist::set_name (midi::bussbyte bussno, const std::string & name)
+/**
+ *  Sets the port name and nick-name.
+ *
+ * \param index
+ *      The application's number for the buss.
+ *
+ * \param name
+ *      Provides the port name IN WHAT FORMAT?
+ *
+ * \return
+ *      Returns true if the buss number was found.
+ */
+
+bool
+portslist::set_name (int index, const std::string & name)
 {
-    auto it = m_master_io.find(bussno);
-    if (it != m_master_io.end())
+    auto it { port_container().find(index) };
+    bool result { it != port_container().end() };
+    if (result)
     {
-        std::string nick = extract_nickname(name);
-        it->second.io_name = name;
-        it->second.io_nick_name = nick;
+        std::string nick = midi::extract_nickname(name);
+        it->second.port_name(name);
+        it->second.port_nickname(nick);
     }
+    return result;
 }
 
 #if defined USE_SET_NICK_NAME
 
-void
-portslist::set_nick_name (midi::bussbyte bussno, const std::string & name)
+bool
+portslist::set_nick_name (int index, const std::string & nick)
 {
-    auto it = m_master_io.find(bussno);
-    if (it != m_master_io.end())
-        it->second.io_nick_name = name;
+    auto it { port_container().find(index) };
+    bool result { it != port_container().end() };
+    if (result)
+        it->second.port_nickname(nick);
+
+    return result;
 }
 
 #endif
 
-void
-portslist::set_alias (midi::bussbyte bussno, const std::string & alias)
+bool
+portslist::set_alias (int index, const std::string & alias)
 {
-    auto it = m_master_io.find(bussno);
-    if (it != m_master_io.end())
-        it->second.io_alias = alias;
+    auto it { port_container().find(index) };
+    bool result { it != port_container().end() };
+    if (result)
+        it->second.port_alias(alias);
+
+    return result;
 }
 
+/**
+ * MOVE TO portnaming
+ */
+
 static std::string
-buss_string (const std::string & name, midi::bussbyte bussno)
+buss_string (const std::string & name, int index)
 {
     std::string result;
     if (! name.empty())
     {
-        result = "[" + std::to_string(int(bussno)) + "] " + name;
+        result = "[" + std::to_string(int(index)) + "] " + name;
     }
     return result;
 }
 
 std::string
-portslist::get_name (midi::bussbyte bussno) const
+portslist::get_name (int index) const
 {
     static std::string s_dummy;
-    auto it = m_master_io.find(bussno);
-    std::string result = it != m_master_io.end() ?
-        it->second.io_name : s_dummy ;
-
+    auto it { port_container().find(index) };
+    std::string result
+    {
+        it != port_container().end() ? it->second.port_name() : s_dummy
+    };
     return result;
 }
 
 std::string
-portslist::get_nick_name (midi::bussbyte bussno, portname style) const
+portslist::get_nick_name (int index, midi::portnaming style) const
 {
     static std::string s_dummy;
-    bool addnumber = style != portname::brief;
-    auto it = m_master_io.find(bussno);
-    std::string result = it != m_master_io.end() ?
-        it->second.io_nick_name : s_dummy ;
-
+    bool addnumber { style != midi::portnaming::brief };
+    auto it { port_container().find(index) };
+    std::string result
+    {
+        it != port_container().end() ? it->second.port_nickname() : s_dummy
+    };
     if (addnumber)
-        result = buss_string(result, bussno);
+        result = buss_string(result, index);
 
     return result;
 }
 
 std::string
-portslist::get_alias (midi::bussbyte bussno, portname style) const
+portslist::get_alias (int index, midi::portnaming style) const
 {
     static std::string s_dummy;
-    bool addnumber = style != portname::brief;
-    auto it = m_master_io.find(bussno);
-    std::string result = it != m_master_io.end() ?
-        it->second.io_alias : s_dummy ;
-
+    bool addnumber { style != midi::portnaming::brief };
+    auto it { port_container().find(index) };
+    std::string result
+    {
+        it != port_container().end() ? it->second.port_alias() : s_dummy
+    };
     if (addnumber)
-        result = buss_string(result, bussno);
+        result = buss_string(result, index);
 
     return result;
 }
 
 std::string
-portslist::get_pair_name (midi::bussbyte bussno) const
+portslist::get_pair_name (int index) const
 {
     std::string result;
-    std::string name = get_name(bussno);
-    std::string nick = get_nick_name(bussno);
-    int client, portno;
-    bool ok = extract_port_pair(name, client, portno);        /* side-effects */
+    std::string name { get_name(index) };
+    std::string nick { get_nick_name(index) };
+    int client, portno;                                     /* side-effects */
+    bool ok { midi::extract_port_pair(name, client, portno) };
     if (ok)
     {
-        std::string pairdigits = std::to_string(client);
+        std::string pairdigits { std::to_string(client) };
         pairdigits += ":";
         pairdigits += std::to_string(portno);
         result = pairdigits + " " + nick;
@@ -335,24 +320,24 @@ portslist::get_pair_name (midi::bussbyte bussno) const
 }
 
 std::string
-portslist::get_display_name (midi::bussbyte bussno, portname style) const
+portslist::get_display_name (int index, midi::portnaming style) const
 {
     std::string result;
     switch (style)
     {
-    case portname::brief:
+    case midi::portnaming::brief:
 
-        result = get_nick_name(bussno, style);
+        result = get_nick_name(index, style);
         break;
 
-    case portname::pair:
+    case midi::portnaming::pair:
 
-        result = get_pair_name(bussno);
+        result = get_pair_name(index);
         break;
 
-    case portname::full:
+    case midi::portnaming::full:
 
-        result = get_name(bussno);
+        result = get_name(index);
         break;
 
     default:
@@ -362,151 +347,13 @@ portslist::get_display_name (midi::bussbyte bussno, portname style) const
     return result;
 }
 
-static int
-count_colons (const std::string & name)
-{
-    int result = 0;
-    for (std::string::size_type cpos = 0; ; ++cpos)
-    {
-        cpos = name.find_first_of(":", cpos + 1);
-        if (cpos != std::string::npos)
-            ++result;
-        else
-            break;
-    }
-    return result;
-}
-
-/**
- *  The nick-name of a port is roughly all the text following the last colon
- *  in the display-name [see midibase::display_name()].  It seems to be the
- *  same text whether the port name comes from ALSA or from a2jmidid when
- *  running JACK.  We don't have any MIDI hardware that JACK detects without
- *  a2jmidid.
- *
- *  QSynth has a name like the following, which breaks the algorithm and makes
- *  the space position far outside the bounds of the string.  In that case, we
- *  punt and get the whole string.  Also see extract_port_names() in the
- *  calculations module.  Another issue is that each incarnation of QSynth
- *  produces a name with a different port number.
- *
-\verbatim
-        [6] 130:0 FLUID Synth (125507):Synth input port (125507:0)
-\endverbatim
- *
- *  Other cases to handle:
- *
-\verbatim
-        "[3] 36:0 Launchpad Mini MIDI 1"
-        a2j:Midi Through [14] (playback): Midi Through Port-0
-\endverbatim
- *
- */
-
-std::string
-portslist::extract_nickname (const std::string & name) const
-{
-    std::string result;
-    int colons = count_colons(name);
-    if (colons > 2)
-    {
-        if (rc().with_jack_midi())
-        {
-            auto cpos = name.find_last_of(":");
-            ++cpos;
-            if (name[cpos] == ' ')
-                cpos = name.find_first_not_of(" ", cpos);
-
-            result = name.substr(cpos);
-        }
-        else
-        {
-            auto cpos = name.find_first_of(":");
-            auto spos = name.find_first_of(" ", cpos);
-            if (spos != std::string::npos)
-            {
-                ++spos;
-                cpos = name.find_first_of(":", cpos + 1);
-                result = name.substr(spos, cpos - spos);
-            }
-        }
-    }
-    else
-    {
-        auto cpos = name.find_last_of(":");
-        if (cpos != std::string::npos)
-        {
-            ++cpos;
-            if (std::isdigit(name[cpos]))
-            {
-                cpos = name.find_first_of(" ", cpos);
-                if (cpos != std::string::npos)
-                    ++cpos;
-            }
-            else if (std::isspace(name[cpos]))
-                ++cpos;
-
-            if (cpos == std::string::npos)
-                cpos = 0;
-
-            result = name.substr(cpos);
-        }
-    }
-    if (detect_short_name(result))
-    {
-        std::string clientname, portname;
-        bool extracted = extract_port_names(name, clientname, portname);
-        if (extracted)
-            result = clientname + ":" + portname;
-
-        if (result == name)
-            result = simplify(result);          /* can we call only this?? */
-    }
-    else
-    {
-        auto ppos = result.find_first_of("(");  /* happens with fluidsynth  */
-        if (ppos != std::string::npos && ppos > 1)
-        {
-            --ppos;
-            if (result[ppos] == ' ')
-                --ppos;
-
-            result = result.substr(0, ppos + 1);
-        }
-    }
-    if (result.empty())
-        result = name;
-
-    return result;
-}
-
-bool
-portslist::extract_port_pair
-(
-    const std::string & name,
-    int & client,
-    int & portno
-) const
-{
-    int colons = count_colons(name);
-    bool result = colons >= 1;                          /* was 2, too much! */
-    if (result)
-    {
-        tokenization tokens = tokenize(name);
-        result = tokens.size() >= 2;
-        if (result)
-            result = string_to_int_pair(tokens[1], client, portno, ":");
-    }
-    return result;
-}
-
 int
 portslist::available_count () const
 {
-    int result = 0;
-    for (const auto & iopair : m_master_io)
+    int result { 0 };
+    for (const auto & iopair : port_container())
     {
-        if (iopair.second.io_available)
+        if (iopair.second.port_available())
             ++result;
     }
     return result;
@@ -515,12 +362,12 @@ portslist::available_count () const
 midi::bussbyte
 portslist::bus_from_name (const std::string & nick) const
 {
-    midi::bussbyte result = null_buss();
-    for (const auto & iopair : m_master_io)
+    midi::bussbyte result { midi::null_buss() };
+    for (const auto & iopair : port_container())
     {
-        if (nick == iopair.second.io_name)
+        if (nick == iopair.second.port_name())
         {
-            result = iopair.first;
+            result = midi::bussbyte(iopair.first);
             break;
         }
     }
@@ -543,10 +390,10 @@ portslist::bus_from_name (const std::string & nick) const
 midi::bussbyte
 portslist::bus_from_nick_name (const std::string & nick) const
 {
-    midi::bussbyte result = null_buss();
-    for (const auto & iopair : m_master_io)
+    midi::bussbyte result { midi::null_buss() };
+    for (const auto & iopair : port_container())
     {
-        if (nick == iopair.second.io_nick_name)
+        if (nick == iopair.second.port_nickname())
         {
             result = iopair.first;
             break;
@@ -558,10 +405,10 @@ portslist::bus_from_nick_name (const std::string & nick) const
 midi::bussbyte
 portslist::bus_from_alias (const std::string & alias) const
 {
-    midi::bussbyte result = null_buss();
-    for (const auto & iopair : m_master_io)
+    midi::bussbyte result { midi::null_buss() };
+    for (const auto & iopair : port_container())
     {
-        if (alias == iopair.second.io_alias)
+        if (alias == iopair.second.port_alias())
         {
             result = iopair.first;
             break;
@@ -584,21 +431,21 @@ portslist::bus_from_alias (const std::string & alias) const
  */
 
 std::string
-portslist::port_name_from_bus (midi::bussbyte nominalbuss) const
+portslist::port_name_from_bus (int nominalbuss) const
 {
     std::string result;
-    if (is_null_buss(nominalbuss))
+    if (midi::is_null_buss(nominalbuss))
     {
         result = "0xFF";
     }
     else
     {
-        std::string nick = std::to_string(int(nominalbuss));
-        for (const auto & iopair : m_master_io)
+        std::string nick { std::to_string(int(nominalbuss)) };
+        for (const auto & iopair : port_container())
         {
-            if (nick == iopair.second.io_nick_name)
+            if (nick == iopair.second.port_nickname())
             {
-                result = iopair.second.io_name;
+                result = iopair.second.port_name();
                 break;
             }
         }
@@ -639,23 +486,23 @@ portslist::match_system_to_map (portslist & destination) const
 {
     if (is_port_map())
     {
-        for (const auto & iopair : m_master_io)
+        for (const auto & iopair : port_container())
         {
-            const io & item = iopair.second;
-            const std::string & portname = item.io_name;  /* nick-name */
-            io & destinitem = destination.io_block(portname);
+            const midi::port & item { iopair.second };
+            const std::string & portname { item.port_name() };  /* nickname */
+            midi::port & destinitem { destination.io_block(portname) };
             if (valid(destinitem))
             {
-                destinitem.io_available = true;
-                destinitem.io_enabled = item.io_enabled;
-                destinitem.out_clock = item.out_clock;
+                destinitem.port_available(true);
+                destinitem.port_enabled(item.port_enabled());
+                destinitem.port_status(item.port_status());
             }
             else
             {
-                io & ncitem = const_cast<io &>(item);
-                ncitem.io_available = false;
-                ncitem.io_enabled = false;
-                ncitem.out_clock = midi::clock::clocking::unavailable;
+                midi::port & ncitem { const_cast<midi::port &>(item) };
+                ncitem.port_available(false);
+                ncitem.port_enabled(false);
+                ncitem.port_status(midi::clock::clocking::unavailable);
             }
         }
     }
@@ -674,16 +521,16 @@ portslist::match_map_to_system (const portslist & source)
 {
     if (is_port_map())
     {
-        for (auto & iopair : m_master_io)
+        for (auto & iopair : port_container())
         {
-            io & destinitem = iopair.second;
-            const std::string & portname = destinitem.io_name;  /* nick-name */
-            const io & srcitem = source.const_io_block(portname);
+            midi::port & destinitem { iopair.second };
+            const std::string & portname { destinitem.port_name() };
+            const midi::port & srcitem { source.const_io_block(portname) };
             if (valid(srcitem))
             {
-                destinitem.io_available = srcitem.io_available;
-                destinitem.io_enabled = srcitem.io_enabled;
-                destinitem.out_clock = srcitem.out_clock;
+                destinitem.port_available(srcitem.port_available());
+                destinitem.port_enabled(srcitem.port_enabled());
+                destinitem.port_status(srcitem.port_status());
             }
         }
     }
@@ -703,46 +550,33 @@ portslist::match_map_to_system (const portslist & source)
  *
  */
 
-const portslist::io &
+// const portslist::io &
+
+const midi::port &
 portslist::const_io_block (const std::string & nickname) const
 {
-    static bool s_needs_initing = true;
-    static io s_dummy_io;
+    static bool s_needs_initing { true };
+    static midi::port s_dummy_io;
     if (s_needs_initing)
     {
         s_needs_initing = false;
-        s_dummy_io.io_available = false;
-        s_dummy_io.io_enabled = false;
-        s_dummy_io.out_clock = midi::clock::clocking::disabled;
+        s_dummy_io.port_available(false);
+        s_dummy_io.port_enabled(false);
+        s_dummy_io.port_status(midi::clock::clocking::disabled);
     }
-    for (const auto & iopair : m_master_io)
+    for (const auto & iopair : port_container())
     {
-        const io & item = iopair.second;
-        const std::string & comparison = item.io_alias.empty() ?
-            item.io_nick_name : item.io_alias ;     /* TODO */
-
-        bool matches = contains(comparison, nickname);
+        const midi::port & item = iopair.second;
+        const std::string & comparison
+        {
+            item.port_alias().empty() ?
+                item.port_nickname() : item.port_alias()
+        };
+        bool matches { util::contains(comparison, nickname) };
         if (matches)
             return item;            /* iopair.second */
     }
     return s_dummy_io;
-}
-
-std::string
-portslist::midi::clocking_to_string (midi::clock::clocking e) const
-{
-    std::string result;
-    switch (e)
-    {
-        case midi::clock::clocking::unavailable: result = "Unavailable"; break;
-        case midi::clock::clocking::disabled:    result = "Disabled";    break;
-        case midi::clock::clocking::none:        result = "None";        break;
-        case midi::clock::clocking::input:       result = "Input";       break;
-        case midi::clock::clocking::pos:         result = "Pos";         break;
-        case midi::clock::clocking::mod:         result = "Mod";         break;
-        default:                                 result = "Unknown";     break;
-    }
-    return result;
 }
 
 /**
@@ -761,27 +595,32 @@ std::string
 portslist::port_map_list (bool isclock) const
 {
     std::string result;
-    if (not_empty())
+    if (! empty())
     {
-        for (const auto & iopair : m_master_io)
+        for (const auto & iopair : port_container())
         {
-            const io & item = iopair.second;
-            std::string pname = item.io_name;
-            int pnumber = string_to_int(item.io_nick_name);
+            const midi::port & item { iopair.second };
+            std::string pname { item.port_name() };
+            int pnumber { util::string_to_int(item.port_nickname()) };
             int pstatus;
             if (isclock)
             {
-                pstatus = clock_to_int(item.out_clock);
+                pstatus = midi::clocking_to_int(item.port_status());
             }
             else
             {
-                if (! item.io_available)
-                    pstatus = clock_to_int(midi::clock::clocking::unavailable);
+                if (! item.port_available())
+                {
+                    pstatus = midi::clocking_to_int
+                    (
+                        midi::clock::clocking::unavailable
+                    );
+                }
                 else
-                    pstatus = item.io_enabled ? 1 : 0 ;
+                    pstatus = item.port_enabled() ? 1 : 0 ;
             }
 
-            std::string tmp = io_line(pnumber, pstatus, pname);
+            std::string tmp { io_line(pnumber, pstatus, pname) };
             result += tmp;
         }
     }
@@ -801,13 +640,13 @@ portslist::parse_port_line
     std::string & portname
 )
 {
-    tokenization tokens = tokenize_quoted(line);
-    bool result = tokens.size() >= 3;       /* buss, status, & quoted name  */
+    lib66::tokenization tokens = util::tokenize_quoted(line);
+    bool result { tokens.size() >= 3 };     /* buss, status, & quoted name  */
     if (result)
     {
-        int pnumber = string_to_int(tokens[0]);
-        int pstatus = string_to_int(tokens[1], (-1));
-        std::string pname = tokens[2];      /* next_quoted_string(line)     */
+        int pnumber { util::string_to_int(tokens[0]) };
+        int pstatus { util::string_to_int(tokens[1], (-1)) };
+        std::string pname { tokens[2] };    /* next_quoted_string(line)     */
         portnumber = pnumber;
         portstatus = pstatus;
         portname   = pname;
@@ -821,9 +660,9 @@ portslist::parse_port_line
  */
 
 bool
-portslist::valid (const io & item)
+portslist::valid (const midi::port & item)
 {
-    return ! item.io_name.empty();
+    return ! item.port_name().empty();
 }
 
 /**
@@ -842,7 +681,7 @@ portslist::io_line
     const std::string & portalias
 ) const
 {
-    std::string name = add_quotes(portname);
+    std::string name { util::add_quotes(portname) };
     char tmp[128];
     if (portalias.empty())
     {
@@ -866,21 +705,21 @@ portslist::io_line
 std::string
 portslist::to_string (const std::string & tag) const
 {
-    std::string result = "I/O List: '" + tag + "'\n";
-    int count = 0;
-    for (const auto & iopair : m_master_io)
+    std::string result { "I/O List: '" + tag + "'\n" };
+    int count { 0 };
+    for (const auto & iopair : port_container())
     {
-        const io & item = iopair.second;
-        std::string temp = std::to_string(count) + ". ";
-        temp += item.io_enabled ? "Enabled;  " : "Disabled; " ;
-        if (! item.io_available)
+        const midi::port & item { iopair.second };
+        std::string temp { std::to_string(count) + ". " };
+        temp += item.port_enabled() ? "Enabled;  " : "Disabled; " ;
+        if (! item.port_available())
             temp += "Unavailable ";
 
-        temp += "Clock = " + midi::clocking_to_string(item.out_clock);
+        temp += "Clock = " + midi::clocking_to_string(item.port_status());
         temp += "\n   ";
-        temp += "Name:     " + item.io_name + "\n  ";
-        temp += "Nickname: " + item.io_nick_name + "\n  ";
-        temp += "Alias:    " + item.io_alias + "\n";
+        temp += "Name:     " + item.port_name() + "\n  ";
+        temp += "Nickname: " + item.port_nickname() + "\n  ";
+        temp += "Alias:    " + item.port_alias() + "\n";
         result += temp;
         ++count;
     }
@@ -890,7 +729,7 @@ portslist::to_string (const std::string & tag) const
 void
 portslist::show (const std::string & tag) const
 {
-    std::string listdump = to_string(tag);
+    std::string listdump { to_string(tag) };
     std::cout << listdump << std::endl;
 }
 

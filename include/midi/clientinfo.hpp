@@ -28,7 +28,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-05
- * \updates       2026-01-26
+ * \updates       2026-01-29
  * \license       See above.
  *
  *  We need to have a way to get all of the API information from each
@@ -608,9 +608,9 @@ public:
      *  is used to plant the buss number in a midi::event.
      */
 
-    int get_port_id (port::io iotype, int bussno, int portno) const
+    int get_port_index (port::io iotype, int bussno, int portno) const
     {
-        return io_ports(iotype).get_port_id(bussno, portno);
+        return io_ports(iotype).get_port_index(bussno, portno);
     }
 
     ports & previous_ports (port::io iotype)
@@ -655,6 +655,11 @@ public:
     {
         return io_ports(iotype).get_port_number(index);
     }
+
+    /*
+     * Used only in client info. The index is an offset into the
+     * port container.
+     */
 
     int get_port_index (port::io iotype, int index) const
     {

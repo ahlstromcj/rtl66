@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2016-11-23
- * \updates       2026-01-26
+ * \updates       2026-01-29
  * \license       GNU GPLv2 or above
  *
  *  The masterbus module is the base-class version of the mastermidi::bus
@@ -433,9 +433,9 @@ public:
      *  Gets the application index (Seq66-style buss number).
      */
 
-    int get_port_id (port::io iotype, int bussno, int portno) const
+    int get_port_index (port::io iotype, int bussno, int portno) const
     {
-        return client_info().get_port_id(iotype, bussno, portno);
+        return client_info().get_port_index(iotype, bussno, portno);
     }
 
     /*

@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-11-12
- * \updates       2026-01-26
+ * \updates       2026-01-31
  * \license       GNU GPLv2 or above
  *
  *  Defines some midibus constants and the seq66::clock enumeration.
@@ -63,14 +63,14 @@ public:
 
     bool add
     (
-        int bussno,
-        midi::clock::clocking clocktype,
+        int index,
+        midi::clock::clocking clocktype,    // TODO: same fix in inputslist
         const std::string & name,
         const std::string & nickname = "",
         const std::string & alias = ""
     );
-    bool set (midi::bussbyte bus, midi::clocking::clocking clocktype);
-    midi::clocking::clocking get (midi::bussbyte bus) const;
+    bool set (int index, midi::clock::clocking clocktype);
+    midi::clock::clocking get (int bus) const;
 
 };              // class clockslist
 
@@ -85,14 +85,14 @@ extern void activate_output_port_map (bool flag);
 extern midi::bussbyte true_output_bus
 (
     const clockslist & cl,
-    midi::bussbyte nominalbuss
+    int nominalbuss
 );
 
 #if defined USE_IOPUT_PORT_NAME_FUNCTION
-extern std::string output_port_name (midi::bussbyte b, bool addnumber = false);
+extern std::string output_port_name (int b, bool addnumber = false);
 #endif
 
-extern midi::bussbyte output_port_number (midi::bussbyte b);
+extern midi::bussbyte output_port_number (int b);
 extern std::string output_port_map_list ();
 
 }               // namespace seq66

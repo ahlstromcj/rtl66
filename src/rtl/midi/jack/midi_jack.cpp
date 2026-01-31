@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; severe refactoring by Chris Ahlstrom
  * \date          2022-06-07
- * \updates       2026-01-19
+ * \updates       2026-01-29
  * \license       See above.
  *
  *  Written primarily by Alexander Svetalkin, with updates for delta time by
@@ -2067,7 +2067,7 @@ midi_jack::get_message ()
         int b { int(midi::null_buss()) };
         if (has_master())
         {
-            b = master_bus()->get_port_id
+            b = master_bus()->get_port_index
             (
                 midi::port::io::input,
                 int(ev->source.client), int(ev->source.port)

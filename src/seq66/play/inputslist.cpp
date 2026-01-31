@@ -24,7 +24,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2020-12-10
- * \updates       2026-01-26
+ * \updates       2026-01-31
  * \license       GNU GPLv2 or above
  *
  */
@@ -43,7 +43,7 @@ namespace seq66
  *  Saves the input settings read from the "rc" file so that they can be
  *  passed to the mastermidibus after it is created.
  *
- * \param bussno
+ * \param index
  *      The ordinal buss number.
  *
  * \param available
@@ -69,28 +69,32 @@ namespace seq66
 bool
 inputslist::add
 (
-    int bussno,
-    bool available,
-    bool enabled,
+    int index,
+    midi::clock::clocking clocktype,
     const std::string & name,
     const std::string & nickname,
     const std::string & alias
 )
 {
-    bool result = bussno >= 0 && ! name.empty();
+    bool result { index >= 0 && ! name.empty() };
     if (result)
     {
-        std::string portname = next_quoted_string(name);
+        std::string portname { util::next_quoted_string(name) };
         if (portname.empty())                   /* was already parsed       */
             portname = name;
 
-        io ioitem;
-        ioitem.io_available = available;
-        ioitem.io_enabled = enabled;
-        ioitem.out_clock = midi::clock::clocking::input;
-        ioitem.io_name = portname;
-        ioitem.io_alias = alias;
-        result = portslist::add(bussno, ioitem, nickname);
+        midi::port ioitem;
+        bool available { clocktype != midi::clock::clocking::unavailable };
+        bool enabed
+        {
+            available && clocktype != midi::clock::clocking::disabled
+        };
+        ioitem.port_available(available);
+        ioitem.port_enabled(enabed);
+        ioitem.port_status(clocktype);
+        ioitem.port_name(portname);
+        ioitem.port_alias(alias);
+        result = portslist::add(ioitem, index, nickname);
     }
     return result;
 }
@@ -101,12 +105,13 @@ inputslist::add_list_line (const std::string & line)
     int pnumber;
     int pstatus;
     std::string pname;
-    bool result = parse_port_line(line, pnumber, pstatus, pname);
+    bool result { parse_port_line(line, pnumber, pstatus, pname) };
     if (result)
     {
-        bool available = pstatus != (-2);
-        bool enabled = pstatus > 0;
-        result = add(pnumber, available, enabled, pname);
+        midi::clock::clocking clocktype { midi::int_to_clocking(pstatus) };
+//      bool available { clocktype != midi::clock::clocking::unavailable };
+//      bool enabed { clocktype != midi::clock::clocking::disabled };
+        result = add(pnumber, clocktype, pname);
     }
     return result;
 }
@@ -134,10 +139,9 @@ inputslist::add_map_line (const std::string & line)
     bool result = parse_port_line(line, pnumber, pstatus, pname);
     if (result)
     {
-        bool enabled = pstatus > 0;
-        bool available = pstatus != (-2);
-        std::string pnum = std::to_string(pnumber);
-        result = add(pnumber, available, enabled, pname, pnum); /* no alias */
+        midi::clock::clocking clocktype { midi::int_to_clocking(pstatus) };
+        std::string pnum { std::to_string(pnumber) };
+        result = add(pnumber, clocktype, pname, pnum); /* no alias */
     }
     return result;
 }
@@ -147,7 +151,7 @@ inputslist::add_map_line (const std::string & line)
  *  Mostly meant for use by the Options / MIDI Input tab and configuration
  *  files.
  *
- * \param bussno
+ * \param index
  *      The buss number, used to look up the io structure.
  *
  * \param input
@@ -158,36 +162,42 @@ inputslist::add_map_line (const std::string & line)
  */
 
 bool
-inputslist::set (midi::bussbyte bussno, bool inputing)
+inputslist::set (int index, bool inputing)      // midi::clock::clocking ?
 {
-    auto it = m_master_io.find(bussno);
-    bool result = it != m_master_io.end();
+    auto it { port_container().find(index) };
+    bool result { it != port_container().end() };
     if (result)
     {
-        it->second.io_enabled = inputing;
-        it->second.out_clock = midi::clock::clocking::input;
+        midi::clock::clocking clocktype { midi::bool_to_clocking(inputing) };
+        it->second.port_enabled(inputing);
+        it->second.port_status(clocktype);
     }
     return result;
 }
 
 bool
-inputslist::get (midi::bussbyte bussno) const
+inputslist::get (int index) const
 {
-    auto it = m_master_io.find(bussno);
-    return it != m_master_io.end() ? it->second.io_enabled : false ;
+    auto it { port_container().find(index) };
+    return it != port_container().end() ? it->second.port_enabled() : false ;
 }
 
 std::string
 inputslist::io_list_lines () const
 {
     std::string result;
-    int bussno = 0;
-    for (const auto & iopair : m_master_io)
+    int index { 0 };
+    for (const auto & iopair : port_container())
     {
-        const io & item = iopair.second;
-        int status = item.io_enabled ? 1 : 0 ;
-        result += io_line(bussno, status, item.io_name, item.io_alias);
-        ++bussno;
+        const midi::port & item { iopair.second };
+
+        // TODO: fix this in seq66 too ???
+        //
+        // int s { item.port_enabled() ? 1 : 0 };
+
+        int s { midi::clocking_to_int(item.port_status()) };
+        result += io_line(index, s, item.port_name(), item.port_alias());
+        ++index;
     }
     return result;
 }
@@ -211,10 +221,13 @@ input_port_map ()
  */
 
 std::string
-input_port_name (midi::bussbyte b, bool addnumber)
+input_port_name (int b, bool addnumber)
 {
-    const inputslist & ipm = input_port_map();
-    portname style = addnumber ?  portname::full : portname::brief ;
+    const inputslist & ipm { input_port_map() };
+    midi::portnaming style
+    {
+        addnumber ?  midi::portnaming::full : midi::portnaming::brief
+    };
     return ipm.get_name(b, style);
 }
 
@@ -226,20 +239,20 @@ input_port_name (midi::bussbyte b, bool addnumber)
  */
 
 midi::bussbyte
-input_port_number (midi::bussbyte b)
+input_port_number (int b)
 {
-    midi::bussbyte result = b;
-    const inputslist & ipm = input_port_map();
-    std::string nickname = ipm.get_nick_name(b, portname::brief);
+    midi::bussbyte result { midi::bussbyte(b) };
+    const inputslist & ipm { input_port_map() };
+    std::string nickname { ipm.get_nick_name(b, midi::portnaming::brief) };
     if (! nickname.empty())
-        result = string_to_int(nickname);
+        result = util::string_to_int(nickname);
 
     return result;
 }
 
 /**
  *  Builds the internal inputslist which holds a simplified list of nominal
- *  inputs where the io_name field of each element is the nick-ndame of the
+ *  inputs where the portname field of each element is the nick-name of the
  *  source inputslist's element, and the io_nick_name field is the index
  *  number (starting from 0) converted to a string.
  */
@@ -247,30 +260,32 @@ input_port_number (midi::bussbyte b)
 bool
 build_input_port_map (const inputslist & il)
 {
-    bool result = il.not_empty();
+    bool result { ! il.empty() };
     if (result)
     {
-        inputslist & ipm = input_port_map();
+        inputslist & ipm { input_port_map() };
+        int index { 0 };
         ipm.clear();
-        int bussno = 0;
-        for (const auto & iopair : il.master_io())
+        for (const auto & iopair : il.port_container())
         {
-            const portslist::io & item = iopair.second;
-            std::string number = std::to_string(bussno);
-            bool available = item.io_available;
-            bool enabled = item.io_enabled;
-            if (item.io_alias.empty())
+            const midi::port & item { iopair.second };
+            std::string number { std::to_string(index) };
+            midi::clock::clocking ec { midi::clock::clocking::none };
+            if (! item.port_enabled())
+                ec = midi::clock::clocking::disabled;
+
+            if (item.port_alias().empty())
             {
                 result = ipm.add
                 (
-                    bussno, available, enabled, item.io_nick_name, number
+                    index, ec, item.port_nickname(), number
                 );
             }
             else
             {
                 result = ipm.add
                 (
-                    bussno, available, enabled, item.io_alias, number
+                    index, ec, item.port_alias(), number
                 );
             }
 
@@ -279,7 +294,7 @@ build_input_port_map (const inputslist & il)
                 ipm.clear();
                 break;
             }
-            ++bussno;
+            ++index;
         }
         ipm.active(result);
     }
@@ -289,17 +304,18 @@ build_input_port_map (const inputslist & il)
 void
 clear_input_port_map ()
 {
-    inputslist & ipm = input_port_map();
+    inputslist & ipm { input_port_map() };
     ipm.activate(portslist::status::cleared);
 }
 
 void
 activate_input_port_map (bool flag)
 {
-    inputslist & ipm = input_port_map();
-    portslist::status s = flag ?
-        portslist::status::on : portslist::status::off ;
-
+    inputslist & ipm { input_port_map() };
+    portslist::status s
+    {
+        flag ? portslist::status::on : portslist::status::off
+    };
     ipm.activate(s);
 }
 
@@ -332,28 +348,28 @@ activate_input_port_map (bool flag)
  */
 
 midi::bussbyte
-true_input_bus (const inputslist & cl, midi::bussbyte seqbuss)
+true_input_bus (const inputslist & cl, int seqbuss)
 {
-    midi::bussbyte result = seqbuss;
-    if (! is_null_buss(result))
+    midi::bussbyte result { midi::bussbyte(seqbuss) };
+    if (! midi::is_null_buss(result))
     {
-        const inputslist & ipm = input_port_map();
+        const inputslist & ipm { input_port_map() };
         if (ipm.active())
         {
-            std::string shortname = ipm.port_name_from_bus(seqbuss);
+            std::string shortname { ipm.port_name_from_bus(seqbuss) };
             if (shortname.empty())
             {
-                std::string msg = util::string_format
-                (
-                    "Bad input buss %d", seqbuss
-                );
-                errprint(msg);
-                result = null_buss();
+                std::string msg
+                {
+                    util::string_format("Bad input buss %d", seqbuss)
+                };
+                errprint(msg.c_str());          // FIXME
+                result = midi::null_buss();
             }
             else
             {
                 result = cl.bus_from_alias(shortname);
-                if (is_null_buss(result))
+                if (midi::is_null_buss(result))
                     result = cl.bus_from_nick_name(shortname);
             }
         }
@@ -380,7 +396,7 @@ true_input_bus (const inputslist & cl, midi::bussbyte seqbuss)
 std::string
 input_port_map_list ()
 {
-    const inputslist & ipm = input_port_map();
+    const inputslist & ipm { input_port_map() };
     return ipm.port_map_list(false);                /* not clock */
 }
 

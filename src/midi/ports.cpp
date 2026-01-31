@@ -24,7 +24,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2016-12-06
- * \updates       2025-11-29
+ * \updates       2026-01-31
  * \license       See above.
  *
  * Classes defined:
@@ -81,12 +81,29 @@ namespace midi
  */
 
 bool
-ports::add (const port & p)
+ports::add (const port & p, int index, const std::string & nickname)
 {
-    size_t count { m_port_container.size() };
-    m_port_container.push_back(p);
-    m_port_count = int(m_port_container.size());
-    return m_port_count == int(count + 1);
+    int count { index >= 0 ? index : m_port_count };
+    port pnew { p };
+    pnew.port_index(count);
+    if (nickname.empty())
+    {
+        const std::string & existing_nick { pnew.port_nickname() };
+        if (existing_nick.empty())
+        {
+            std::string nick { extract_nickname(pnew.port_name()) };
+            pnew.port_nickname(nick);
+        }
+    }
+    else
+        pnew.port_nickname(nickname);
+
+    auto entry { std::make_pair(m_port_count, pnew) };
+    auto result { m_port_container.insert(entry) };
+    if (result.second)
+        ++m_port_count;
+
+    return result.second;
 }
 
 /**
@@ -101,7 +118,7 @@ ports::add (const port & p)
  *      Provides the system or user-supplied name for the client or buss.
  *
  * \param portnumber
- *      Provides the port number, usually re 0.
+ *      Provides the port number, usually re 0, at least in ALSA.
  *
  * \param portname
  *      Provides the system or user-supplied name for the port.
@@ -116,7 +133,7 @@ ports::add (const port & p)
  *      port, such as a timer port or an ALSA announce port.  For all other
  *      ports, this value is note used.
  *
- * \param portid
+ * \param portindex
  *      The index number of the port, starting at 0.
  *
  * \param queuenumber
@@ -137,7 +154,7 @@ ports::add
     const std::string & portname,
     port::io iotype,
     port::kind porttype,
-    int portid,
+    int portindex,
     int queuenumber
 )
 {
@@ -145,7 +162,7 @@ ports::add
     port temp
     (
         bussnumber, bussname, portnumber, portname,
-        iotype, porttype, portid, queuenumber, nick
+        iotype, porttype, portindex, queuenumber, nick
     );
 
 #if defined PLATFORM_DEBUG_TMI
@@ -160,7 +177,7 @@ ports::add
     (
         str, sizeof str,
         "Added port #%d \"%s:%s\" [%d:%d] %s (%s %s %s)",
-        portid, V(clientname), V(portname),
+        portindex, V(clientname), V(portname),
         clientnumber, portnumber, V(alias0),        // TODO
         vport, iport, sport
     );
@@ -170,7 +187,7 @@ ports::add
 }
 
 /**
- *
+ *  This overload can add aliases, if available.
  */
 
 bool
@@ -182,7 +199,7 @@ ports::add
     int portnumber,
     port::io iotype,
     port::kind porttype,
-    int portid,
+    int portindex,
     int queuenumber
 )
 {
@@ -200,7 +217,7 @@ ports::add
         port temp
         (
             bussnumber, bussname, portnumber, portname,
-            iotype, porttype, portid, queuenumber,
+            iotype, porttype, portindex, queuenumber,
             nickname, alias0, alias1
         );
         result = add(temp);
@@ -213,10 +230,11 @@ ports::add
  *  of the "aplaymidi -l" or "arecordmidi -l" commands) in the port-container.
  *
  * \param bussno
- *      Provides the buss number, the major number of "bus:port".
+ *      Provides the buss number to look up, the major number of "bus:port".
  *
  * \param portno
- *      Provides the port number, the number of a sub-port of the bus.
+ *      Provides the port number to look up, the number of a sub-port of
+ *      the bus.
  *
  * \return
  *      Returns the index of the pair in the port container, which will match
@@ -226,18 +244,20 @@ ports::add
  */
 
 bussbyte
-ports::get_port_id (int bussno, int portno) const
+ports::get_port_index (int bussno, int portno) const
 {
     bussbyte result { null_buss() };
-    for (int i = 0; i < m_port_count; ++i)
+    for (const auto & entry : m_port_container)
     {
-        if (m_port_container[i].m_buss_number != bussno)
-            continue;
-
-        if (m_port_container[i].m_port_number == portno)
+        int index { entry.first };
+        const midi::port & p { entry.second };
+        if (p.buss_number() == bussno)
         {
-            result = bussbyte(i);
-            break;
+            if (p.port_number() == portno)
+            {
+                result = bussbyte(index);
+                break;
+            }
         }
     }
     return result;
@@ -270,16 +290,16 @@ midi::port &
 ports::portref (int index)
 {
     static midi::port s_dummy;
-    return index < port_count() ?
-        m_port_container[index] : s_dummy ;
+    auto it { m_port_container.find(index) };
+    return it != m_port_container.end() ? it->second : s_dummy ;
 }
 
 const midi::port &
 ports::portref (int index) const
 {
     static midi::port s_dummy;
-    return index < port_count() ?
-        m_port_container[index] : s_dummy ;
+    auto it { m_port_container.find(index) };
+    return it != m_port_container.end() ? it->second : s_dummy ;
 }
 
 /**
@@ -296,7 +316,7 @@ ports::to_string (const std::string & tagmsg) const
         result += ":\n";
     }
     for (const auto & information : m_port_container)
-        result += information.to_string();
+        result += information.second.to_string();
 
     return result;
 }

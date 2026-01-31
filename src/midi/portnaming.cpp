@@ -25,7 +25,7 @@
  * \library       rtl66 application
  * \author        Chris Ahlstrom
  * \date          2022-12-18
- * \updates       2025-12-17
+ * \updates       2026-01-30
  * \license       GNU GPLv2 or above
  *
  *  Here is a summary of formats supported; note that the index numbers
@@ -76,6 +76,12 @@
  *  Ports created by "a2jmidid --export-hw" do not have JACK aliases.  Ports
  *  created by Seq66 do not have JACK aliases.  Ports created by qsynth do not
  *  have JACK aliases.
+ *
+ * Note:
+ *
+ *      Functions from the cfg66 util::strfunctions module are used
+ *      in some functions. Some other modules might use that directly
+ *      when working with port names.
  */
 
 #include <cctype>                       /* std::isspace(), std::isdigit()   */
@@ -93,14 +99,62 @@ namespace midi
 
 /**
  *  Indicates if one string can be found within another.  Doesn't force the
- *  caller to use size_type. Also see util::contains() in strfunctions.
+ *  caller to use size_type. Also see util::contains() and add_quotes()
+ *  in the strfunctions module.
  */
 
 bool
 contains (const std::string & original, const std::string & target)
 {
-    auto pos { original.find(target) };
-    return pos != std::string::npos;
+    return util::contains(original, target);
+}
+
+/**
+ *  Looks for the port name in the short-name list. We are interested in
+ *  seeing if it is a generic name such as "midi in".
+ *
+ * \param portname
+ *      The name to be checked.  This is the name after the colon in a
+ *      "client:port" pair.
+ *
+ * \return
+ *      Returns true if the port-name is found in the short-name list, or is
+ *      empty. This is a signal to get the nick-name from the client name and
+ *      the portname.
+ */
+
+bool
+detect_short_name (const std::string & portname)
+{
+    static const std::string s_short_names []
+    {
+        "midi_",
+        "midi ",
+        "in",
+        "out",
+        "input",
+        "output",
+        ""                                          /* a terminator         */
+    };
+    bool result = portname.empty();
+    if (! result)
+    {
+        for (int i = 0; /* forever */; ++i)
+        {
+            std::string compared = s_short_names[i];
+            if (compared.empty())
+            {
+                break;                              /* there is no match    */
+            }
+            else
+            {
+                result = util::strncompare(compared, portname);
+                if (result)
+                    break;                          /* a match was found    */
+            }
+        }
+    }
+    return result;
 }
 
 /**
@@ -210,55 +264,7 @@ extract_port_name (const std::string & fullname)
         fullname.substr(colonpos + 1) : fullname ;
 }
 
-/**
- *  Looks for the port name in the short-name list. We are interested in
- *  seeing if it is a generic name such as "midi in".
- *
- * \param portname
- *      The name to be checked.  This is the name after the colon in a
- *      "client:port" pair.
- *
- * \return
- *      Returns true if the port-name is found in the short-name list, or is
- *      empty. This is a signal to get the nick-name from the client name and
- *      the portname.
- */
-
-static bool
-detect_short_name (const std::string & portname)
-{
-    static const std::string s_short_names [] =
-    {
-        "midi_",
-        "midi ",
-        "in",
-        "out",
-        "input",
-        "output",
-        ""                              /* empty string is a terminator     */
-    };
-    bool result { ! portname.empty() };
-    if (result)
-    {
-        for (int i = 0; /* forever */; ++i)
-        {
-            std::string compared = s_short_names[i];
-            if (compared.empty())
-            {
-                break;                              /* there is no match    */
-            }
-            else
-            {
-                result = util::strncompare(compared, portname);
-                if (result)
-                    break;                          /* a match was found    */
-            }
-        }
-    }
-    return result;
-}
-
-static int
+int
 count_colons (const std::string & name)
 {
     int result { 0 };
@@ -430,6 +436,30 @@ extract_a2j_port_name (const std::string & alias)
                 result = "A2J " + result;
             }
         }
+    }
+    return result;
+}
+
+/**
+ *  Creates a string of the form "client:port" from the given long port name.
+ */
+
+bool
+extract_port_pair
+(
+    const std::string & name,
+    int & client,
+    int & portno
+)
+{
+    int colons = count_colons(name);
+    bool result = colons >= 1;                          /* was 2, too much! */
+    if (result)
+    {
+        lib66::tokenization tokens = util::tokenize(name);
+        result = tokens.size() >= 2;
+        if (result)
+            result = util::string_to_int_pair(tokens[1], client, portno, ":");
     }
     return result;
 }

@@ -2265,9 +2265,6 @@ sequence::onsets_selected_box
     return result;
 }
 
-jxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-
 /**
  *  Returns the 'box' of the clipboard items.  Note the common-code betweem
  *  this function and selected_box().  Also note we could return a boolean
