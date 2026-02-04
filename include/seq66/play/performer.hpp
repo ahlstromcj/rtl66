@@ -48,7 +48,7 @@
 #include <vector>                       /* std::vector<>                    */
 #include <thread>                       /* std::thread                      */
 
-#include "cfg/rcsettings.hpp"           /* lots of other files, see banner  */
+// #include "cfg/rcsettings.hpp"           /* lots of other files, see banner  */
 #include "ctrl/opcontainer.hpp"         /* class seq66::opcontainer         */
 #include "midi/jack_assistant.hpp"      /* optional seq66::jack_assistant   */
 #include "midi/mastermidibus.hpp"       /* seq66::mastermidibus ALSA/JACK   */

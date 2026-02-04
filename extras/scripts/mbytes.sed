@@ -1,5 +1,11 @@
 #!/usr/bin/sed -i -f
 
+s/SEQ66/RTL66/g
+s/is part of seq66/is part of rtl66/g
+s/seq66 is/rtl66 is/g
+s/seq66;/rtl66;/g
+s/seq66 application/rtl66 library/g
+
 s/midi::bussbyte/midi::bussbyte/g
 s/midi::midibyte/midi::byte/g
 s/midi::midibytes/midi::bytes/g
@@ -24,8 +30,10 @@ s/midipulse/pulse/g
 s/midibpm/bpm/g
 s/midippqn/ppqn/g
 s/midistring/bytestring/g
+s/tokenization/lib66::tokenization/g
 
 s/bytes\.hpp/midibytes.hpp/
+s/basic_macros/cpp_types/g
 
 
 

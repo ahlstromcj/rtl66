@@ -27,7 +27,7 @@
  * \library       libmidipp
  * \author        Chris Ahlstrom
  * \date          2014-04-24
- * \updates       2024-06-13
+ * \updates       2026-02-01
  * \version       $Revision$
  * \license       GNU GPL
  *
@@ -130,11 +130,13 @@ notemapper::pair::show () const
 }
 
 /**
- *  Default constructor for the note-mapper.
+ *  Default constructor for the note-mapper. Uses in-class initialization
+ *  for members.
  */
 
 notemapper::notemapper () :
-    basesettings        ("Note Mapper"),
+    basesettings        ("Note Mapper")
+#if 0
     m_mode              (false),
     m_map_type          (),
     m_note_minimum      (999),
@@ -145,8 +147,9 @@ notemapper::notemapper () :
     m_note_map          (),
     m_note_array        (),
     m_is_valid          (false)
+#endif
 {
-    for (int n = 0; n < c_notes_count; ++n)
+    for (int n = 0; n < midi::c_notes_count; ++n)
         m_note_array[n] = midi::byte(n);
 }
 
@@ -157,18 +160,18 @@ notemapper::add
     const std::string & devname, const std::string & gmname
 )
 {
-    bool result =
-    (
-        devnote >= 0 && devnote < c_notes_count &&
-        gmnote >= 0 && gmnote < c_notes_count
-    );
+    bool result
+    {
+        devnote >= 0 && devnote < midi::c_notes_count &&
+        gmnote >= 0 && gmnote < midi::c_notes_count
+    };
     if (result)
     {
-        auto count = m_note_map.size();
+        auto count { m_note_map.size() };
         if (m_map_reversed)
         {
             pair np(gmnote, devnote, devname, gmname, true);    /* reversed */
-            auto p = std::make_pair(gmnote, np);
+            auto p { std::make_pair(gmnote, np) };
             (void) m_note_map.insert(p);
             m_note_array[gmnote] = devnote;
             if (devnote < m_note_minimum)
@@ -180,7 +183,7 @@ notemapper::add
         else
         {
             pair np(devnote, gmnote, devname, gmname, false);   /* !reverse */
-            auto p = std::make_pair(devnote, np);
+            auto p { std::make_pair(devnote, np) };
             (void) m_note_map.insert(p);
             m_note_array[devnote] = gmnote;
             if (gmnote < m_note_minimum)
@@ -218,8 +221,8 @@ notemapper::add
 int
 notemapper::convert (int incoming) const
 {
-    int result = incoming;
-    auto noteiterator = m_note_map.find(incoming);
+    int result { incoming };
+    auto noteiterator { m_note_map.find(incoming) };
     if (noteiterator != m_note_map.end())
         result = noteiterator->second.gm_value();
 
@@ -235,11 +238,11 @@ std::string
 notemapper::to_string (int devnote) const
 {
     std::string result;
-    auto noteiterator = m_note_map.find(devnote);
+    auto noteiterator { m_note_map.find(devnote) };
     if (noteiterator != m_note_map.end())
     {
-        const pair & np = noteiterator->second;
-        int gmnote = map_reversed() ? np.dev_value() : np.gm_value();
+        const pair & np { noteiterator->second };
+        int gmnote { map_reversed() ? np.dev_value() : np.gm_value() };
         result = "[Drum ";
         result += std::to_string(gmnote);
         result += "]\n\n";
@@ -254,7 +257,7 @@ notemapper::show () const
     std::cout
         << "Note-map size: " << list().size() << "\n"
         << "         Type: " << map_type() << "\n"
-        << "     Reversed: " << bool_to_string(map_reversed()) << "\n"
+        << "     Reversed: " << util::bool_to_string(map_reversed()) << "\n"
         << " Note minimum: " << note_minimum() << "\n"
         << " Note maximum: " << note_maximum() << "\n"
         << "  Dev channel: " << std::dec << device_channel() << "\n"

@@ -25,7 +25,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2015-10-30
- * \updates       2025-10-27
+ * \updates       2026-02-01
  * \license       GNU GPLv2 or above
  *
  *  Man, we need to learn a lot more about triggers.  One important thing to
@@ -61,28 +61,21 @@
 
 #include <algorithm>                    /* std::sort(), std::merge()        */
 
-#include "cfg/settings.hpp"             /* seq66::rc() settings access      */
-#include "midi/midi_vector_base.hpp"    /* c_triggers_ex, c_trig_transpose  */
+#include "midi/calculations.hpp"        /* midi::rescale_tick()             */
+#include "midi/seqspec.hpp"             /* seq66::seqspec::c_trig_transpose */
+#if defined SEQUENCE_IS_READY
 #include "play/sequence.hpp"            /* the "parent" of the triggers     */
+#endif
 #include "play/triggers.hpp"            /* seq66::triggers helper class     */
-#include "util/strfunctions.hpp"        /* seq66::bool_to_string()          */
+#include "util/strfunctions.hpp"        /* util::bool_to_string()           */
 
 namespace seq66
 {
 
 /**
- *  The default constructor creates an invalid trigger.
+ *  The default constructor creates an invalid trigger. Uses in-class member
+ *  initialization. The constructor here creates a new and valid trigger.
  */
-
-trigger::trigger () :
-    m_tick_start    (c_midi::pulse_max),  /* start (LONG_MAX) > end is invalid */
-    m_tick_end      (0),
-    m_offset        (0),
-    m_transpose     (0),
-    m_selected      (false)
-{
-    // No code needed
-}
 
 trigger::trigger
 (
@@ -101,15 +94,15 @@ trigger::trigger
 void
 trigger::rescale (int newppqn, int oldppqn)
 {
-    m_tick_start = rescale_tick(m_tick_start, newppqn, oldppqn);
-    m_tick_end = rescale_tick(m_tick_end, newppqn, oldppqn);
-    m_offset = rescale_tick(m_offset, newppqn, oldppqn);
+    m_tick_start = midi::rescale_tick(m_tick_start, newppqn, oldppqn);
+    m_tick_end = midi::rescale_tick(m_tick_end, newppqn, oldppqn);
+    m_offset = midi::rescale_tick(m_offset, newppqn, oldppqn);
 }
 
 std::string
 trigger::to_string () const
 {
-    std::string result = "trigger: ";
+    std::string result { "trigger: " };
     result += std::to_string(tick_start());
     result += " to ";
     result += std::to_string(tick_end());
@@ -129,38 +122,41 @@ trigger::to_string () const
  */
 
 int
-trigger::datasize (midi::ulong sqspec)
+trigger::datasize (midi::ulong ul)
 {
-    if (sqspec == c_trig_transpose)            /* adds a "transpose" byte  */
+    if (match(ul, seqspec::trig_transpose))     /* adds a "transpose" byte  */
         return 3 * 4 + 1;
-    else if (sqspec == c_triggers_ex)          /* seq24's c_triggers_new   */
+    else if (match(ul, seqspec::triggers_ex))   /* seq24's c_triggers_new   */
         return 3 * 4;
-    else if (sqspec == c_triggers)             /* not seen in the wild     */
+    else if (match(ul, seqspec::triggers))      /* not seen in the wild     */
         return 2 * 4;
     else
         return 0;
 }
 
 /**
- *  Principal constructor.
+ *  Principal constructor. Some members are initialized in-class.
  *
  * \param parent
  *      The triggers object often needs to tell its parent sequence object
  *      what to do (such as stop playing).
  */
 
+#if defined SEQUENCE_IS_READY
 triggers::triggers (sequence & parent) :
     m_parent                    (parent),
+#else
+triggers::triggers () :
+#endif
     m_triggers                  (),
-    m_number_selected           (0),
     m_clipboard                 (),
+#if defined USE_CFG66_HISTORY
+    m_trigger_states            (),
+#else
     m_undo_stack                (),
     m_redo_stack                (),
-    m_draw_iterator             (),
-    m_trigger_copied            (false),
-    m_paste_tick                (c_no_paste_trigger),   // stazed
-    m_ppqn                      (0),
-    m_length                    (0)
+#endif
+    m_draw_iterator             ()
 {
     // Empty body
 }
@@ -188,8 +184,12 @@ triggers::operator = (const triggers & rhs)
 
         m_triggers = rhs.m_triggers;
         m_clipboard = rhs.m_clipboard;
+#if defined USE_CFG66_HISTORY
+        m_trigger_states = rhs.m_trigger_states;
+#else
         m_undo_stack = rhs.m_undo_stack;
         m_redo_stack = rhs.m_redo_stack;
+#endif
         m_draw_iterator = rhs.m_draw_iterator;
         m_trigger_copied = rhs.m_trigger_copied;
         m_ppqn = rhs.m_ppqn;
@@ -201,13 +201,13 @@ triggers::operator = (const triggers & rhs)
 bool
 triggers::rescale (int newppqn, int oldppqn)
 {
-    bool result = oldppqn > 0;
+    bool result { oldppqn > 0 };
     if (result)
     {
         for (auto & t : m_triggers)
             t.rescale(newppqn, oldppqn);
 
-        set_length(rescale_tick(m_length, newppqn, oldppqn));
+        set_length(midi::rescale_tick(m_length, newppqn, oldppqn));
     }
     return result;
 }
@@ -228,7 +228,7 @@ triggers::datasize (midi::ulong sqspec) const
 bool
 triggers::any_transposed () const
 {
-    bool result = false;
+    bool result { false };
     for (auto & t : m_triggers)
     {
         if (t.transposed())
@@ -243,20 +243,31 @@ triggers::any_transposed () const
 bool
 triggers::change_ppqn (int p)
 {
-    bool result = p > 0;
+    bool result { p > 0 };                              /* TODO: ENHANCE    */
     if (result)
     {
-        bool result = rescale(p, m_ppqn);               /* new & old PPQN   */
+#if 0
+        FIX THIS IN SEQ66!!!
+        bool result { rescale(p, m_ppqn) };             /* new & old PPQN   */
         if (result)
+            set_ppqn(p);
+#endif
+        if (rescale(p, m_ppqn))                         /* new & old PPQN   */
             set_ppqn(p);
     }
     return result;
 }
 
+#if defined USE_CFG66_HISTORY
+
+#else
+
 /**
  *  Pushes the list-trigger into the trigger undo-list, then flags each
  *  item in the undo-list as unselected.
  */
+
+// TODO: use cfg66 history code
 
 void
 triggers::push_undo ()
@@ -299,6 +310,8 @@ triggers::pop_redo ()
         m_redo_stack.pop();
     }
 }
+
+#endif  // defined USE_CFG66_HISTORY
 
 /**
  *  If playback-mode (song mode) is in force, that is, if using in-triggers
@@ -364,12 +377,12 @@ triggers::play
     bool resumenoteons
 )
 {
-    bool result = false;                    /* turns off after frame play   */
-    bool trigger_state = false;
-    midi::pulse tick = start_tick;            /* saved for later              */
-    midi::pulse trigger_offset = 0;
-    midi::pulse trigger_tick = 0;
-    int tp = 0;
+    bool result { false };                    /* turns off after frame play   */
+    bool trigger_state { false };
+    midi::pulse tick { start_tick };          /* saved for later              */
+    midi::pulse trigger_offset { 0 };
+    midi::pulse trigger_tick { 0 };
+    int tp { 0 };
     transpose = 0;
     for (auto & t : m_triggers)
     {
@@ -378,11 +391,11 @@ triggers::play
          */
 
         if (t.at_trigger_transition(start_tick, end_tick))
-            m_parent.song_playback_block(false);
+            song_playback_block(false);
 
-        midi::pulse trigstart = t.tick_start();
-        midi::pulse trigend = t.tick_end();
-        midi::pulse trigoffset = t.offset();
+        midi::pulse trigstart { t.tick_start() };
+        midi::pulse trigend { t.tick_end() };
+        midi::pulse trigoffset { t.offset() };
         if (trigstart <= end_tick)          /* trigger in range...          */
         {
             trigger_state = true;
@@ -406,20 +419,20 @@ triggers::play
      * we are not improvising (i.e. playing "Live").
      */
 
-    bool ok = trigger_state != m_parent.armed();
+    bool ok { trigger_state != armed() };
     if (ok)
-        ok = ! m_parent.song_playback_block();
+        ok = ! song_playback_block();
 
     if (ok)
     {
         if (trigger_state)                              /* turning on       */
         {
-            if (trigger_tick < m_parent.last_tick())
-                start_tick = m_parent.last_tick();      /* side-effect      */
+            if (trigger_tick < last_tick())
+                start_tick = last_tick();               /* side-effect      */
             else
                 start_tick = trigger_tick;              /* side-effect      */
 
-            m_parent.set_armed(true);                   /* side-effect      */
+            armed(true);                                /* side-effect      */
 
             /*
              * If triggered between a Note On and a Note Off, then play it.
@@ -427,7 +440,13 @@ triggers::play
              */
 
             if (resumenoteons)
+            {
+#if defined SEQUENCE_IS_READY
                 m_parent.resume_note_ons(tick);
+#else
+                (void) tick;
+#endif
+            }
         }
         else
         {
@@ -440,16 +459,16 @@ triggers::play
         // Add probe code here
     }
 
-    bool offplay = m_triggers.empty() && m_parent.armed();
+    bool offplay { m_triggers.empty() && armed() };
     if (offplay)
-        offplay = ! m_parent.song_playback_block();
+        offplay = ! song_playback_block();
 
     if (offplay)
-        m_parent.set_armed(false);                      /* stop playing     */
+        armed(false);                                   /* stop playing     */
     else
         transpose = tp;                                 /* side-effect      */
 
-    m_parent.set_trigger_offset(trigger_offset);
+    set_trigger_offset(trigger_offset);
     return result;
 }
 
@@ -490,18 +509,19 @@ triggers::adjust_offset (midi::pulse offset)
  *
  * \param offset
  *      This value specifies the offset of the trigger.  It is a feature of
- *      the c_triggers_ex that c_triggers doesn't have.  It is the third
- *      value in the trigger specification of the Seq66 MIDI file. The default
- *      value is 0.
+ *      the seqspec::triggers_ex that seqspec::triggers doesn't have.  It is
+ *      the third value in the trigger specification of the Seq66 MIDI file.
+ *      The default value is 0.
  *
  * \param transpose
- *      If the even newer tag value c_trig_transpose is used, it add this value,
- *      which is 0x00 for no transposition, and 0x40 is the base value ("zero")
- *      for transposition.
+ *      If the even newer tag value seqspec::trig_transpose is used, it add
+ *      this value, which is 0x00 for no transposition, and 0x40 is the base
+ *      value ("zero") for transposition.
  *
  * \param fixoffset
  *      If true, the offset parameter is modified by adjust_offset() first.
- *      We think that basically makes sure it is positive. The default is true.
+ *      We think that basically makes sure it is positive. The default is
+ *      true.
  */
 
 void
@@ -513,12 +533,15 @@ triggers::add
 {
     if (tick >= 0 && len >= 0)
     {
-        midi::pulse adjusted_offset = fixoffset ? adjust_offset(offset) : offset;
+        midi::pulse adjusted_offset
+        {
+            fixoffset ? adjust_offset(offset) : offset
+        };
         trigger t(tick, len, adjusted_offset, transpose);
         for (auto ti = m_triggers.begin(); ti != m_triggers.end(); /* ++ti */)
         {
-            midi::pulse tickstart = ti->tick_start();
-            midi::pulse tickend = ti->tick_end();
+            midi::pulse tickstart { ti->tick_start() };
+            midi::pulse tickend { ti->tick_end() };
             if (tickstart >= t.tick_start() && tickend <= t.tick_end())
             {
                 unselect(*ti);                  /* adjust selection count   */
@@ -612,14 +635,14 @@ triggers::intersect (midi::pulse position)
 bool
 triggers::grow_trigger (midi::pulse tickfrom, midi::pulse tickto, midi::pulse len)
 {
-    bool result = false;
+    bool result { false };
     for (auto & t : m_triggers)
     {
-        midi::pulse start = t.tick_start();
-        midi::pulse ender = t.tick_end();
+        midi::pulse start { t.tick_start() };
+        midi::pulse ender { t.tick_end() };
         if (start <= tickfrom && tickfrom <= ender)
         {
-            midi::pulse calcend = tickto + len - 1;
+            midi::pulse calcend { tickto + len - 1 };
             if (tickto < start)
                 start = tickto;
 
@@ -650,7 +673,7 @@ triggers::grow_trigger (midi::pulse tickfrom, midi::pulse tickto, midi::pulse le
 bool
 triggers::remove (midi::pulse tick)
 {
-    bool result = false;
+    bool result { false };
     for (auto i = m_triggers.begin(); i != m_triggers.end(); ++i)
     {
         if (i->tick_start() <= tick && tick <= i->tick_end())
@@ -688,10 +711,10 @@ triggers::sort ()
 bool
 triggers::split (trigger & trig, midi::pulse splittick)
 {
-    midi::pulse new_tick_end = trig.tick_end();
-    midi::pulse new_tick_start = splittick;
-    midi::pulse len = new_tick_end - new_tick_start;
-    bool result = len > 1;
+    midi::pulse new_tick_end { trig.tick_end() };
+    midi::pulse new_tick_start { splittick };
+    midi::pulse len { new_tick_end - new_tick_start };
+    bool result { len > 1 };
     trig.tick_end(splittick - 1);
     if (result)
         add(new_tick_start, len + 1, trig.offset());
@@ -713,13 +736,13 @@ triggers::split (trigger & trig, midi::pulse splittick)
 bool
 triggers::split (midi::pulse splittick, trigger::splitpoint splittype)
 {
-    bool result = false;
+    bool result { false };
     for (auto & t : m_triggers)
     {
         if (t.tick_start() <= splittick && splittick <= t.tick_end())
         {
-            midi::pulse tick = splittick;             /* snap or exact    */
-            midi::pulse offset = 0;
+            midi::pulse tick { splittick };           /* snap or exact    */
+            midi::pulse offset { 0 };
             if (splittype == trigger::splitpoint::middle)
             {
                 tick = (t.tick_end() - t.tick_start() + 1) / 2;
@@ -748,12 +771,15 @@ triggers::adjust_offsets_to_length (midi::pulse newlength)
         t.offset(adjust_offset(t.offset()));
         t.offset(m_length - t.offset());               /* flip */
 
-        midi::pulse inverse_offset = m_length - (t.tick_start() % m_length);
-        midi::pulse local_offset = (inverse_offset - t.offset());
+        midi::pulse inverse_offset { m_length - (t.tick_start() % m_length) };
+        midi::pulse local_offset { inverse_offset - t.offset() };
         local_offset %= m_length;
 
-        midi::pulse inverse_offset_new = newlength - (t.tick_start() % newlength);
-        midi::pulse new_offset = inverse_offset_new - local_offset;
+        midi::pulse inverse_offset_new
+        {
+            newlength - (t.tick_start() % newlength)
+        };
+        midi::pulse new_offset { inverse_offset_new - local_offset };
 
         /** COMMON CODE? **/
 
@@ -776,15 +802,15 @@ triggers::adjust_offsets_to_length (midi::pulse newlength)
 void
 triggers::copy (midi::pulse starttick, midi::pulse distance)
 {
-    midi::pulse from_start_tick = starttick + distance;
-    midi::pulse from_end_tick = from_start_tick + distance - 1;
+    midi::pulse from_start_tick { starttick + distance };
+    midi::pulse from_end_tick { from_start_tick + distance - 1 };
     move(starttick, distance, true);
     for (auto & t : m_triggers)
     {
-        midi::pulse tickstart = t.tick_start();
+        midi::pulse tickstart { t.tick_start() };
         if (tickstart >= from_start_tick && tickstart <= from_end_tick)
         {
-            midi::pulse tickend = t.tick_end();
+            midi::pulse tickend { t.tick_end() };
             trigger xt;
             xt.offset(t.offset());
             xt.tick_start(tickstart - distance);
@@ -884,26 +910,29 @@ triggers::move
     bool direction, bool single
 )
 {
-    bool result = (starttick + distance) > 0;
+    bool result { (starttick + distance) > 0 };
     if (result)
     {
-        int counter = 0;
+        int counter { 0 };
         for (auto & t : m_triggers)                         /* ++counter    */
         {
             if (t.tick_start() >= starttick)
             {
                 if (direction)                              /* forward      */
                 {
-                    midi::pulse stopper = (-1);
-                    const trigger & tnext = find_trigger_by_index(counter + 1);
+                    midi::pulse stopper { -1 };
+                    const trigger & tnext
+                    {
+                        find_trigger_by_index(counter + 1)
+                    };
                     if (tnext.is_valid())
                         stopper = tnext.tick_start();
 
-                    midi::pulse added_end = t.tick_end() + distance;
+                    midi::pulse added_end { t.tick_end() + distance };
                     result = stopper == (-1) || added_end < stopper;
                     if (result)
                     {
-                        midi::pulse added = t.tick_start() + distance;
+                        midi::pulse added { t.tick_start() + distance };
                         t.tick_start(added);
                         t.tick_end(added_end);
                         added = (t.offset() + distance) % m_length;
@@ -915,22 +944,23 @@ triggers::move
                 }
                 else                                        /* backward     */
                 {
-                    midi::pulse stopper = (-1);
-                    const trigger & tprev = find_trigger_by_index(counter - 1);
+                    midi::pulse stopper { -1 };
+                    const trigger & tprev
+                    {
+                        find_trigger_by_index(counter - 1)
+                    };
                     if (tprev.is_valid())
                         stopper = tprev.tick_end();
 
-                    midi::pulse deducted_start = t.tick_start() - distance;
+                    midi::pulse deducted_start { t.tick_start() - distance };
                     result = stopper == (-1) || deducted_start > stopper;
                     if (result)
                         result = deducted_start >= 0;
 
                     if (result)
                     {
-                        midi::pulse deducted_end = t.tick_end() - distance;
-
+                        midi::pulse deducted_end { t.tick_end() - distance };
                         result = true;
-
                         t.tick_start(deducted_start);
                         t.tick_end(deducted_end);
                         deducted_end =
@@ -958,10 +988,12 @@ triggers::move
 void
 triggers::move_split
 (
-    midi::pulse starttick, midi::pulse distance, bool direction
+    midi::pulse starttick,
+    midi::pulse distance,
+    bool direction
 )
 {
-    midi::pulse endtick = starttick + distance;
+    midi::pulse endtick { starttick + distance };
     for (auto i = m_triggers.begin(); i != m_triggers.end(); ++i)
     {
         if (i->tick_start() < starttick && starttick < i->tick_end())
@@ -1004,13 +1036,13 @@ triggers::move_split
  *
  * \return
  *      Returns the tick_start() value of the last-selected trigger.  If no
- *      triggers are selected, then midi::pulse(-1) is returned.
+ *      triggers are selected, then -1 is returned.
  */
 
 midi::pulse
 triggers::get_selected_start ()
 {
-    midi::pulse result = midi::pulse(-1);
+    midi::pulse result { -1 };
     for (auto & t : m_triggers)
     {
         if (t.selected())
@@ -1024,13 +1056,13 @@ triggers::get_selected_start ()
  *
  * \return
  *      Returns the tick_end() value of the last-selected trigger.  If no
- *      triggers are selected, then midi::pulse(-1) is returned.
+ *      triggers are selected, then -1 is returned.
  */
 
 midi::pulse
 triggers::get_selected_end ()
 {
-    midi::pulse result = midi::pulse(-1);
+    midi::pulse result { -1 };
     for (auto & t : m_triggers)
     {
         if (t.selected())
@@ -1076,10 +1108,10 @@ triggers::get_selected_end ()
 bool
 triggers::move_selected (midi::pulse tick, bool fixoffset, grow which)
 {
-    bool result = true;
-    midi::pulse mintick = 0;
-    midi::pulse maxtick = 0x7ffffff;                          /* 0x7fffffff ? */
-    auto s = m_triggers.begin();
+    bool result { true };
+    midi::pulse mintick { 0 };
+    midi::pulse maxtick { 0x7ffffff };                        /* 0x7fffffff ? */
+    auto s { m_triggers.begin() };
     for (auto i = m_triggers.begin(); i != m_triggers.end(); ++i)
     {
         if (i->selected())
@@ -1088,10 +1120,10 @@ triggers::move_selected (midi::pulse tick, bool fixoffset, grow which)
             if (++i != m_triggers.end())
                 maxtick = i->tick_start() - 1;
 
-            midi::pulse deltatick = 0;
+            midi::pulse deltatick { 0 };
             if (which == triggers::grow::end)
             {
-                midi::pulse ppqn_start = s->tick_start() + (m_ppqn / 8);
+                midi::pulse ppqn_start { s->tick_start() + (m_ppqn / 8) };
                 deltatick = tick - s->tick_end();
                 if (deltatick > 0 && tick > maxtick)
                     deltatick = maxtick - s->tick_end();
@@ -1101,7 +1133,7 @@ triggers::move_selected (midi::pulse tick, bool fixoffset, grow which)
             }
             else if (which == triggers::grow::start)
             {
-                midi::pulse ppqn_end = s->tick_end() - (m_ppqn / 8);
+                midi::pulse ppqn_end { s->tick_end() - (m_ppqn / 8) };
                 deltatick = tick - s->tick_start();
                 if (deltatick < 0 && tick < mintick)
                     deltatick = mintick - s->tick_start();
@@ -1184,7 +1216,7 @@ triggers::offset_selected (midi::pulse tick, grow editmode)
 midi::pulse
 triggers::get_maximum () const
 {
-    midi::pulse result = 0;
+    midi::pulse result { 0 };
     if (! m_triggers.empty())
         result = m_triggers.back().tick_end();
 
@@ -1205,7 +1237,7 @@ triggers::get_maximum () const
 bool
 triggers::get_state (midi::pulse tick) const
 {
-    bool result = false;
+    bool result { false };
     for (const auto & t : m_triggers)
     {
         if (t.tick_start() <= tick && tick <= t.tick_end())
@@ -1220,7 +1252,7 @@ triggers::get_state (midi::pulse tick) const
 bool
 triggers::transpose (midi::pulse tick, int transposition)
 {
-    bool result = false;
+    bool result { false };
     for (auto & t : m_triggers)
     {
         if (t.tick_start() <= tick && tick <= t.tick_end())
@@ -1250,7 +1282,7 @@ triggers::transpose (midi::pulse tick, int transposition)
 bool
 triggers::select (midi::pulse tick)
 {
-    bool result = false;
+    bool result { false };
     for (auto & t : m_triggers)
     {
         if (t.tick_start() <= tick && tick <= t.tick_end())
@@ -1277,7 +1309,7 @@ triggers::select (midi::pulse tick)
 bool
 triggers::unselect (midi::pulse tick)
 {
-    bool result = false;
+    bool result { false };
     for (auto & t : m_triggers)
     {
         if (t.tick_start() <= tick && tick <= t.tick_end())
@@ -1315,7 +1347,7 @@ triggers::unselect ()
 bool
 triggers::remove_selected ()
 {
-    bool result = false;
+    bool result { false };
     for (auto i = m_triggers.begin(); i != m_triggers.end(); ++i)
     {
         if (i->selected())
@@ -1363,14 +1395,17 @@ triggers::paste (midi::pulse paste_tick)
 {
     if (m_trigger_copied)
     {
-        midi::pulse len = m_clipboard.tick_end() - m_clipboard.tick_start() + 1;
+        midi::pulse len
+        {
+            m_clipboard.tick_end() - m_clipboard.tick_start() + 1
+        };
         if (paste_tick == c_no_paste_trigger)
         {
             add(m_clipboard.tick_end() + 1, len, m_clipboard.offset() + len);
             m_clipboard.tick_start(m_clipboard.tick_end() + 1);
             m_clipboard.tick_end(m_clipboard.tick_start() + len - 1);
 
-            midi::pulse offset = m_clipboard.offset() + len;
+            midi::pulse offset { m_clipboard.offset() + len };
             m_clipboard.offset(adjust_offset(offset));
         }
         else
@@ -1379,7 +1414,7 @@ triggers::paste (midi::pulse paste_tick)
              * Set the +/- distance to paste the tick, from the start.
              */
 
-            long offset = paste_tick - m_clipboard.tick_start();
+            long offset { paste_tick - m_clipboard.tick_start() };
             add(paste_tick, len, m_clipboard.offset() + offset);
             m_clipboard.tick_start(paste_tick);
             m_clipboard.tick_end(m_clipboard.tick_start() + len - 1);
@@ -1487,7 +1522,7 @@ triggers::print (const std::string & seqname) const
         (
             "  tick_start = %ld; tick_end = %ld; offset = %ld; selected = %s\n",
             long(t.tick_start()), long(t.tick_end()), long(t.offset()),
-            V(bool_to_string(t.selected()))
+            V(util::bool_to_string(t.selected()))
         );
     }
 }
@@ -1495,7 +1530,7 @@ triggers::print (const std::string & seqname) const
 std::string
 triggers::to_string () const
 {
-    std::string result = std::to_string(count());
+    std::string result { std::to_string(count()) };
     result += " triggers:\n";
     for (const auto & t : m_triggers)
     {

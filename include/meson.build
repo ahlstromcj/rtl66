@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-08
-# \updates     2026-01-31
+# \updates     2026-02-04
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the "rtl66" library. See the top-level meson.build
@@ -85,7 +85,9 @@ librtl66_headers += files(
    'rtl/midi/winmm/midi_win_mm_data.hpp',
    'seq66/play/clockslist.hpp',
    'seq66/play/inputslist.hpp',
+   'seq66/play/notemapper.hpp',
    'seq66/play/portslist.hpp',
+   'seq66/play/triggers.hpp',
    'session/rtlconfiguration.hpp',
    'session/rtlmanager.hpp',
    'transport/clock/info.hpp',
@@ -96,6 +98,20 @@ librtl66_headers += files(
    )
 
 '''
+   'seq66/ctrl/automation.hpp
+   'seq66/ctrl/keycontainer.hpp
+   'seq66/ctrl/keycontrol.hpp
+   'seq66/ctrl/keymap.hpp
+   'seq66/ctrl/keystroke.hpp
+   'seq66/ctrl/midicontrolbase.hpp
+   'seq66/ctrl/midicontrol.hpp
+   'seq66/ctrl/midicontrolin.hpp
+   'seq66/ctrl/midicontrolout.hpp
+   'seq66/ctrl/midimacro.hpp
+   'seq66/ctrl/midimacros.hpp
+   'seq66/ctrl/midioperation.hpp
+   'seq66/ctrl/opcontainer.hpp
+   'seq66/ctrl/opcontrol.hpp
    'seq66/midi/seqspec.hpp',
    'seq66/midi/trackdata.hpp'
    'seq66/play/metro.hpp',
@@ -110,7 +126,6 @@ librtl66_headers += files(
    'seq66/play/setmapper.hpp',
    'seq66/play/setmaster.hpp',
    'seq66/play/songsummary.hpp',
-   'seq66/play/triggers.hpp',
    'seq66/session/nsm/clinsmanager.hpp',
 '''
 

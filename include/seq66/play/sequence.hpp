@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2015-07-30
- * \updates       2025-10-26
+ * \updates       2026-02-01
  * \license       GNU GPLv2 or above
  *
  *  The functions add_list_var() and add_long_list() have been replaced by
@@ -38,18 +38,15 @@
  *  module, and now just call its member functions to do the actual work.
  */
 
-#include <atomic>                       /* std::atomic<bool> for dirt       */
-#include <stack>                        /* std::stack<midi::eventlist>      */
-#include <string>                       /* std::string                      */
-
-#include "rtl66_features.hpp"           /* various feature #defines         */
-#include "cfg/usrsettings.hpp"          /* enum class record                */
+// #include "rtl66_features.hpp"           /* various feature #defines         */
+// #include "cfg/usrsettings.hpp"          /* enum class record                */
 // FUTURE
 // #include "ctrl/midimacro.hpp"        /* midi::macro                      */
+#include "midi/track.hpp"               /* midi::track base class           */
 #include "midi/calculations.hpp"        /* seq66::lengthfix, alteration     */
-#include "midi/eventlist.hpp"           /* midi::eventlist                  */
+// #include "midi/eventlist.hpp"           /* midi::eventlist                  */
 #include "play/triggers.hpp"            /* seq66::triggers, etc.            */
-#include "util/automutex.hpp"           /* xpc::recmutex, automutex         */
+// #include "util/automutex.hpp"           /* xpc::recmutex, automutex         */
 
 namespace midi
 {
@@ -250,7 +247,7 @@ struct lfoparameters
  *  you can shake a stick at.
  */
 
-class sequence
+class sequence : public midi::track
 {
     friend class performer;             /* access to set_parent()   */
     friend class triggers;

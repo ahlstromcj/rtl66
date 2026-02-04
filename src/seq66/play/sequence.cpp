@@ -25,7 +25,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-10-27
+ * \updates       2026-02-01
  * \license       GNU GPLv2 or above
  *
  *  The functionality of this class also includes handling some of the
@@ -51,10 +51,10 @@
 #include <cstring>                      /* std::memset()                    */
 #include <cmath>                        /* std::trunc()                     */
 
-#include "cfg/settings.hpp"             /* seq66::rc() and usr()            */
-#include "cfg/scales.hpp"               /* key and scale constants          */
-#include "midi/mastermidibus.hpp"       /* seq66::mastermidibus             */
-#include "midi/midibus.hpp"             /* seq66::midibus                   */
+// #include "cfg/settings.hpp"          /* seq66::rc() and usr()            */
+#include "midi/scales.hpp"              /* key and scale constants          */
+#include "midi/masterbus.hpp"           /* seq66::masterbus                 */
+#include "midi/bus.hpp"                 /* seq66::bus                       */
 #include "play/notemapper.hpp"          /* seq66::notemapper                */
 #include "play/performer.hpp"           /* seq66::performer                 */
 #include "play/sequence.hpp"            /* seq66::sequence                  */

@@ -1,4 +1,4 @@
-#ifndef RTL66_NOTEMAPPER_HPP
+#if ! defined RTL66_NOTEMAPPER_HPP
 #define RTL66_NOTEMAPPER_HPP
 
 /*
@@ -27,10 +27,10 @@
  *
  *    This module provides functions for advanced MIDI/text conversions.
  *
- * \library       libmidipp
+ * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2014-04-24
- * \updates       2024-06-13
+ * \updates       2026-02-01
  * \version       $Revision$
  * \license       GNU GPL
  *
@@ -60,8 +60,8 @@
 #include <map>
 #include <string>
 
-#include "cfg/basesettings.hpp"         /* seq66::basesettings class        */
-#include "midi/midibytes.hpp"           /* seq66::c_notes_count             */
+#include "cfg/basesettings.hpp"         /* cfg::basesettings class          */
+#include "midi/midibytes.hpp"           /* midi::c_notes_count              */
 
 namespace seq66
 {
@@ -78,7 +78,7 @@ namespace seq66
   *    functions that can be used in the C library libmidifilex.
   */
 
-class notemapper final : public basesettings
+class notemapper final : public cfg::basesettings
 {
     friend void show_maps
     (
@@ -94,7 +94,7 @@ public:
      *  value.
      */
 
-    static const int NOT_ACTIVE = -1;
+    static const int NOT_ACTIVE { -1 };
 
 private:
 
@@ -172,6 +172,8 @@ private:
         );
         pair (const pair &) = default;
         pair & operator = (const pair &) = default;
+        pair (pair &&) = default;
+        pair & operator = (pair &&) = default;
         ~pair () = default;
 
         int dev_value () const
@@ -225,7 +227,7 @@ private:
      *  a valid drums (note-mapper) file that was successfully loaded.
      */
 
-    bool m_mode;
+    bool m_mode { false };
 
     /**
      *    Indicates what kind of mapping is allegedly provided by the file.
@@ -244,15 +246,15 @@ private:
      *    is significant.
      */
 
-    std::string m_map_type;
+    std::string m_map_type { };
 
     /**
      * Provides the lowest and highest notes actually read into the map and
      * array.
      */
 
-    int m_note_minimum;
-    int m_note_maximum;
+    int m_note_minimum { 999 };
+    int m_note_maximum { 0 };
 
     /**
      *    Provides the channel to use for General MIDI drums.  This value
@@ -265,7 +267,7 @@ private:
      *    is significant.
      */
 
-    int m_gm_channel;
+    int m_gm_channel { 0 };
 
     /**
      *    Provides the channel that is used by the native device.  Older
@@ -275,7 +277,7 @@ private:
      *    Case is significant.
      */
 
-    int m_device_channel;
+    int m_device_channel { 0 };
 
     /**
      *    Indicates that the mapping should occur in the reverse direction.
@@ -289,7 +291,7 @@ private:
      *    a command-line parameter like "--reverse".
      */
 
-    bool m_map_reversed;
+    bool m_map_reversed { false };
 
     /**
      *    Provides the mapping between pitches.  If m_map_reversed is
@@ -301,25 +303,27 @@ private:
      *    converted from GM mapping to device mapping.
      */
 
-    map m_note_map;
+    map m_note_map { };
 
     /**
      *  Provides a quick translation "map" for use while recording.
      */
 
-    midi::byte m_note_array[c_notes_count];
+    midi::byte m_note_array[midi::c_notes_count] { };
 
     /**
      *    Indicates if the setup is valid.
      */
 
-    bool m_is_valid;
+    bool m_is_valid { false };
 
  public:
 
     notemapper ();
     notemapper (const notemapper &) = default;
     notemapper & operator = (const notemapper &) = default;
+    notemapper (notemapper &&) = default;
+    notemapper & operator = (notemapper &&) = default;
     ~notemapper () = default;
 
     int convert (int incoming) const;

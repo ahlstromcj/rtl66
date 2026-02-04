@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2015-10-30
- * \updates       2024-06-13
+ * \updates       2026-02-04
  * \license       GNU GPLv2 or above
  *
  *  By segregating trigger support into its own module, the sequence class is
@@ -41,18 +41,23 @@
 
 #include "midi/midibytes.hpp"           /* midi::pulse alias, etc.          */
 
+#define USE_CFG66_HISTORY
+
+#if defined USE_CFG66_HISTORY
+#include "cfg/history.hpp"              /* cfg::history<TYPE> template      */
+#endif
+
 namespace seq66
 {
 
 class sequence;
-class triggers;
 
 /**
  *  Indicates that there is no paste-trigger.  This is a new feature from the
  *  stazed/seq32 code.
  */
 
-const int c_no_paste_trigger    = (-1);
+const int c_no_paste_trigger { -1 };
 
 /**
  *  This class hold a single trigger for a sequence object.  This class is
@@ -84,41 +89,41 @@ private:
      *  Provides the starting tick for this trigger.  Also known as "tick on".
      */
 
-    midi::pulse m_tick_start;
+    midi::pulse m_tick_start { midi::c_pulse_max };
 
     /**
      *  Provides the ending tick for this trigger.  Also known as "tick off".
      */
 
-    midi::pulse m_tick_end;
+    midi::pulse m_tick_end { 0 };
 
     /**
      *  Provides the offset for this trigger.  The offset indicates where the
      *  trigger is placed on the "perf roll".
      */
 
-    midi::pulse m_offset;
+    midi::pulse m_offset { 0 };
 
     /**
-     *  New feature.  An additional byte indicates to transpose this trigger,
+     *  New feature. An additional byte indicates to transpose this trigger,
      *  to implement the new c_trig_transpose SeqSpec tag.  The values range
-     *  from 0 to 0x80.  0x00 indicates that transposition is not in effect.
-     *  0x40 indicates that it is in effect, but has a value of 0.  Values
-     *  from 0x41 to 0x80 indicate transposition from +1 to +63.  Values from
-     *  0x3F to 0x01 indicate transposition from -1 to -63.
+     *  from 0 to 0x80. 0x00 indicates that transposition is not in effect.
+     *  0x40 indicates that it is in effect, but has a value of 0. Values from
+     *  0x41 to 0x80 indicate transposition from +1 to +63. Values from 0x3F
+     *  to 0x01 indicate transposition from -1 to -63.
      */
 
-    int m_transpose;
+    int m_transpose { 0 };
 
     /**
      *  Indicates that the trigger is part of a selection.
      */
 
-    bool m_selected;
+    bool m_selected { false };
 
 public:
 
-    trigger ();
+    trigger () = default;
     trigger
     (
         midi::pulse tick, midi::pulse len,
@@ -126,6 +131,8 @@ public:
     );
     trigger (const trigger &) = default;
     trigger & operator = (const trigger &) = default;
+    trigger (trigger &&) = default;
+    trigger & operator = (trigger &&) = default;
     ~trigger () = default;
 
     /**
@@ -252,7 +259,7 @@ public:
     /**
      *  This function maps 0x00 to 0, values less than 0x40 to transposing
      *  downward in semitones, and values greater than 0x40, but less than
-     *  0x80, to transposing upward in semitones. Value 0x40 is not used.  We
+     *  0x80, to transposing upward in semitones. Value 0x40 is not used. We
      *  can transpose up and down by 63 semitones, or a little more than 5
      *  octaves.
      */
@@ -320,9 +327,6 @@ private:
 
 class triggers
 {
-    friend class midi_vector_base;
-    friend class midifile;
-    friend class sequence;
 
 public:
 
@@ -347,12 +351,26 @@ private:
 
     using container = std::vector<trigger>;
 
+#if defined USE_CFG66_HISTORY
+
     /**
-     *  Provides a stack for use with the undo/redo features of the
+     *  Provides a deque for use with the undo/redo features of the
      *  trigger support.
      */
 
+    using mementos = cfg::history<container>;
+
+#else
+
+    /**
+     *  Provides a stack for use with the undo/redo features of the
+     *  trigger support. Two stacks are needed, one for undo, another
+     *  for redo.
+     */
+
     using stack = std::stack<container>;
+
+#endif
 
 private:
 
@@ -361,7 +379,9 @@ private:
      *  object.
      */
 
+#if defined SEQUENCE_IS_READY
     sequence & m_parent;
+#endif
 
     /**
      *  This list holds the current pattern/triggers events.
@@ -374,13 +394,23 @@ private:
      *  selections.
      */
 
-    int m_number_selected;
+    int m_number_selected { 0 };
 
     /**
      *  This item holds a single copied trigger, to be pasted later.
      */
 
     trigger m_clipboard;
+
+#if defined USE_CFG66_HISTORY
+
+    /**
+     *  Handles the undo and redo operations for a series of triggers.
+     */
+
+    mementos m_trigger_states;
+
+#else
 
     /**
      *  Handles the undo list for a series of operations on triggers.
@@ -394,6 +424,8 @@ private:
 
     stack m_redo_stack;
 
+#endif
+
     /**
      *  An iterator for cycling through the triggers during drawing.
      */
@@ -404,14 +436,14 @@ private:
      *  Set to true if there is an active trigger in the trigger clipboard.
      */
 
-    bool m_trigger_copied;
+    bool m_trigger_copied { false };
 
     /**
      *  The tick point for pasting.  Set to -1 if not in force.  This is a new
      *  feature from stazed's Seq32 project.
      */
 
-    midi::pulse m_paste_tick;
+    midi::pulse m_paste_tick { c_no_paste_trigger };
 
     /**
      *  Holds the value of the PPQN from the parent sequence, for easy access.
@@ -420,21 +452,28 @@ private:
      *  constructor.
      */
 
-    int m_ppqn;
+    int m_ppqn { 0 };
 
     /**
      *  Holds the value of the length from the parent sequence, for easy access.
      *  This might change, we're not yet sure.
      */
 
-    int m_length;
+    int m_length { 0 };
 
 public:
 
+#if defined SEQUENCE_IS_READY
+    triggers () = delete;
     triggers (sequence & parent);
-    ~triggers () = default;
+#else
+    triggers ();
+#endif
     triggers (const triggers & rhs) = default;
     triggers & operator = (const triggers & rhs);
+    triggers (triggers &&) = default;
+    triggers & operator = (triggers &&) = default;
+    ~triggers () = default;
 
     std::string to_string () const;
     bool change_ppqn (int p);
@@ -487,9 +526,13 @@ public:
         return m_number_selected;
     }
 
+#if defined USE_CFG66_HISTORY
+#else
     void push_undo ();
     void pop_undo ();
     void pop_redo ();
+#endif
+
     void print (const std::string & seqname) const;
     bool play
     (
@@ -504,7 +547,10 @@ public:
     );
     void adjust_offsets_to_length (midi::pulse newlen);
     bool split (midi::pulse tick, trigger::splitpoint splittype);
-    bool grow_trigger (midi::pulse tickfrom, midi::pulse tickto, midi::pulse length);
+    bool grow_trigger
+    (
+        midi::pulse tickfrom, midi::pulse tickto, midi::pulse length
+    );
     const trigger & find_trigger (midi::pulse tick) const;
     const trigger & find_trigger_by_index (int index) const;
     bool remove (midi::pulse tick);
@@ -513,7 +559,10 @@ public:
     bool select (midi::pulse tick);
     bool unselect (midi::pulse tick);
     bool unselect ();
-    bool intersect (midi::pulse position, midi::pulse & start, midi::pulse & end);
+    bool intersect
+    (
+        midi::pulse position, midi::pulse & start, midi::pulse & end
+    );
     bool intersect (midi::pulse position);
 
     bool remove_selected ();
@@ -571,6 +620,72 @@ public:
     }
 
 private:
+
+#if defined SEQUENCE_IS_READY
+
+    midi::pulse last_tick () const
+    {
+        return m_parent.last_tick();
+    }
+
+    void armed (bool f)
+    {
+        m_parent.armed(f);
+    }
+
+    bool armed () const
+    {
+        return m_parent.armed();
+    }
+
+    bool song_playback_block () const
+    {
+        return m_parent.song_playback_block();
+    }
+
+    void set_trigger_offset (midi::pulse toff)
+    {
+        m_parent.set_trigger_offset(toff);
+    }
+
+    void song_playback_block (bool f)
+    {
+        m_parent.song_playback_block(f);
+    }
+
+#else
+
+    midi::pulse last_tick () const
+    {
+        return 999999999;
+    }
+
+    bool armed () const
+    {
+        return true;
+    }
+
+    void armed (bool f)
+    {
+        (void) f;
+    }
+
+    void set_trigger_offset (midi::pulse toff)
+    {
+        (void) toff;
+    }
+
+    bool song_playback_block () const
+    {
+        return false;
+    }
+
+    void song_playback_block (bool f)
+    {
+        (void) f;
+    }
+
+#endif
 
     void sort ();
     bool split (trigger & t, midi::pulse splittick);

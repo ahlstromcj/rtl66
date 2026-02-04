@@ -87,6 +87,13 @@ enum class seqspec : midi::ulong
  * Free functions
  *------------------------------------------------------------------------*/
 
+inline bool
+match (midi::ulong ul, seqspec v)
+{
+    midi::ulong vul { static_cast<midi::ulong>(v) };
+    return ul == vul;
+}
+
 extern std::string seq66_seqspec_to_string (seqspec sp);
 
 }           // namespace seq66
