@@ -17,7 +17,7 @@
  */
 
 /**
- * \file          transport/jack/scratchpad.cpp
+ * \file          transport/scratchpad.cpp
  *
  *  This module defines the helper class for using JACK in the performance
  *  mode.
@@ -25,12 +25,13 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-14
- * \updates       2025-09-14
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
+ *  Note that this structure is used in some non-JACK code as well.
  */
 
-#include "transport/jack/scratchpad.hpp"    /* transport::jack::scratchpad  */
+#include "transport/scratchpad.hpp"         /* transport::scratchpad        */
 
 /*
  *  All library code in the Seq66 project is in the rtl66 namespace.
@@ -38,11 +39,6 @@
 
 namespace transport
 {
-
-namespace jack
-{
-
-#if defined RTL66_BUILD_JACK
 
 /*
  * -------------------------------------------------------------------------
@@ -97,14 +93,10 @@ scratchpad::add_delta_tick (midi::pulse deltick)
     js_dumping = true;
 }
 
-#endif      // defined RTL66_BUILD_JACK
-
-}           // namespace jack
-
 }           // namespace transport
 
 /*
- * transport/jack/scratchpad.cpp
+ * transport/scratchpad.cpp
  *
  * vim: sw=4 ts=4 wm=4 et ft=cpp
  */

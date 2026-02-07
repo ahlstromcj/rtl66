@@ -63,10 +63,10 @@ midimacro::midimacro (const std::string & name, const std::string & values) :
     m_is_valid = tokenize(values);          /* the member function below    */
 }
 
-const bytes &
+const midi::bytes &
 midimacro::bytes (int index) const
 {
-    static bytes s_dummy { 0 };
+    static midi::bytes s_dummy { 0 };
     if (event_count() == 1 || index == (-1))
     {
         return m_bytes;
@@ -89,7 +89,7 @@ bool
 midimacro::tokenize (const std::string & values)
 {
     bool result;
-    m_tokens = lib66::tokenize(values);         /* from strfunctions module */
+    m_tokens = util::tokenize(values);         /* from strfunctions module */
     result = m_tokens.size() > 0;
     if (result)
     {

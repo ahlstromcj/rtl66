@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-08
-# \updates     2026-02-04
+# \updates     2026-02-07
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the "rtl66" library. See the top-level meson.build
@@ -77,22 +77,6 @@ librtl66_sources += files(
    'rtl/midi/webmidi/midi_web_midi.cpp',
    'rtl/midi/winmm/midi_win_mm.cpp',
    'rtl/midi/winmm/midi_win_mm_data.cpp',
-   'seq66/play/clockslist.cpp',
-   'seq66/play/inputslist.cpp',
-   'seq66/play/notemapper.cpp',
-   'seq66/play/portslist.cpp',
-   'seq66/play/triggers.cpp',
-   'session/rtlconfiguration.cpp',
-   'session/rtlmanager.cpp',
-   'transport/clock/info.cpp',
-   'transport/info.cpp',
-   'transport/jack/info.cpp',
-   'transport/jack/scratchpad.cpp',
-   'transport/jack/transport.cpp'
-   )
-
-'''
-   'seq66/midi/seqspec.cpp',
    'seq66/ctrl/automation.cpp',
    'seq66/ctrl/keycontainer.cpp',
    'seq66/ctrl/keycontrol.cpp',
@@ -107,15 +91,31 @@ librtl66_sources += files(
    'seq66/ctrl/midioperation.cpp',
    'seq66/ctrl/opcontainer.cpp',
    'seq66/ctrl/opcontrol.cpp',
-   'seq66/midi/trackdata.cpp'
-   'seq66/play/metro.cpp',
+   'seq66/play/clockslist.cpp',
+   'seq66/play/inputslist.cpp',
    'seq66/play/mutegroup.cpp',
    'seq66/play/mutegroups.cpp',
+   'seq66/play/notemapper.cpp',
+   'seq66/play/portslist.cpp',
+   'seq66/play/seq.cpp',
+   'seq66/play/triggers.cpp',
+   'session/rtlconfiguration.cpp',
+   'session/rtlmanager.cpp',
+   'transport/clock/info.cpp',
+   'transport/info.cpp',
+   'transport/scratchpad.cpp',
+   'transport/jack/info.cpp',
+   'transport/jack/transport.cpp'
+   )
+
+'''
+   'seq66/play/sequence.cpp',
+   'seq66/midi/seqspec.cpp',
+   'seq66/midi/trackdata.cpp'
+   'seq66/play/metro.cpp',
    'seq66/play/performer.cpp',
    'seq66/play/playlist.cpp',
    'seq66/play/screenset.cpp',
-   'seq66/play/seq.cpp',
-   'se66/play/sequence.cpp',
    'seq66/play/setmapper.cpp',
    'seq66/play/setmaster.cpp',
    'seq66/play/songsummary.cpp',

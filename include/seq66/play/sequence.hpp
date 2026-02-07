@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2015-07-30
- * \updates       2026-02-01
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
  *  The functions add_list_var() and add_long_list() have been replaced by
@@ -38,15 +38,13 @@
  *  module, and now just call its member functions to do the actual work.
  */
 
-// #include "rtl66_features.hpp"           /* various feature #defines         */
-// #include "cfg/usrsettings.hpp"          /* enum class record                */
-// FUTURE
-// #include "ctrl/midimacro.hpp"        /* midi::macro                      */
+#include "cfg/history.hpp"              /* cfg::history<> template class    */
+#include "ctrl/midimacro.hpp"           /* seq66::midimacro                 */
 #include "midi/track.hpp"               /* midi::track base class           */
-#include "midi/calculations.hpp"        /* seq66::lengthfix, alteration     */
-// #include "midi/eventlist.hpp"           /* midi::eventlist                  */
+#include "midi/calculations.hpp"        /* midi::lengthfix, alteration      */
+#include "midi/eventlist.hpp"           /* midi::eventlist                  */
 #include "play/triggers.hpp"            /* seq66::triggers, etc.            */
-// #include "util/automutex.hpp"           /* xpc::recmutex, automutex         */
+#include "xpc/automutex.hpp"            /* xpc::recmutex, automutex         */
 
 namespace midi
 {
@@ -66,6 +64,7 @@ class performer;
  */
 
 const int c_seq_color_none { -1 };
+const int c_use_default_ppqn { -1 };
 
 /**
  *  Provides a way to save a sequence palette color in a single byte.  This
@@ -169,9 +168,9 @@ using colorbyte = char;
 
 struct fixparameters
 {
-    lengthfix fp_fix_type;
-    alteration fp_alter_type;
-    midipulse fp_length;
+    midi::lengthfix fp_fix_type;
+    midi::alteration fp_alter_type;
+    midi::pulse fp_length;
     int fp_tighten_range;
     int fp_quantize_range;
     int fp_random_range;
@@ -189,7 +188,7 @@ struct fixparameters
     double fp_scale_factor;
     std::string fp_notemap_file;
     bool fp_reverse_notemap;
-    fixeffect fp_effect;
+    midi::fixeffect fp_effect;
 };
 
 /**
@@ -236,7 +235,7 @@ struct lfoparameters
     double lfo_range;
     double lfo_periods;
     double lfo_phase;
-    waveform lfo_waveform;
+    midi::waveform lfo_waveform;
     bool lfo_use_measure;
     bool lfo_multiply;
 };
@@ -380,12 +379,16 @@ public:
 
 private:
 
+#if ! defined USE_CFG_HISTORY
+
     /**
      *  Provides a stack of event-lists for use with the undo and redo
      *  facility.
      */
 
     using eventstack = std::stack<midi::eventlist>;
+
+#endif
 
 public:
 
@@ -455,7 +458,7 @@ private:
      *  to do it.
      */
 
-    performer * m_parent;
+    performer * m_parent { nullptr };
 
     /**
      *  This list holds the current pattern/sequence events.  It used to be
@@ -463,14 +466,14 @@ private:
      *  and is the default.
      */
 
-    midi::eventlist m_events;
+    midi::eventlist m_events { };
 
     /**
      *  Holds the list of triggers associated with the sequence, used in the
      *  performance/song editor.
      */
 
-    triggers m_triggers;
+    triggers m_triggers { };
 
     /**
      *  Holds a list of time-signatures in the pattern, for use when drawing
@@ -478,7 +481,7 @@ private:
      *  event (qstriggereditor) panes.
      */
 
-    timesig_list m_time_signatures;
+    timesig_list m_time_signatures { };
 
     /**
      *  Provides a list of event actions to undo for the Stazed LFO and
@@ -487,11 +490,23 @@ private:
 
     midi::eventlist m_events_undo_hold;
 
+#if defined USE_CFG_HISTORY
+
+    /**
+     *  Manages a set of event-lists to provide undo and redo capability.
+     *  Replaces using eventstack = std::stack<midi::eventlist> and
+     *  a couple booleans.
+     */
+
+    cfg::history<midi::eventlist> m_history;
+
+#else
+
     /**
      *  A stazed flag indicating that we have some undo information.
      */
 
-    bool m_have_undo;
+    bool m_have_undo { false };
 
     /**
      *  A stazed flag indicating that we have some redo information.
@@ -499,19 +514,21 @@ private:
      *  facility.
      */
 
-    bool m_have_redo;
+    bool m_have_redo { false };
 
     /**
      *  Provides a list of event actions to undo.
      */
 
-    eventstack m_events_undo;
+    eventstack m_events_undo { };
 
     /**
      *  Provides a list of event actions to redo.
      */
 
-    eventstack m_events_redo;
+    eventstack m_events_redo { };
+
+#endif
 
     /**
      *  A new feature for recording, based on a "stazed" feature.  If true
@@ -520,7 +537,7 @@ private:
      *  set to false.
      */
 
-    bool m_channel_match;
+    bool m_channel_match { false };
 
     /**
      *  Contains the global MIDI output channel for this sequence.  However,
@@ -532,7 +549,7 @@ private:
      *  seqroll.
      */
 
-    midi::byte m_midi_channel;            /* pattern's global MIDI channel    */
+    midi::byte m_midi_channel { 0 };      /* pattern's global MIDI channel    */
 
     /**
      *  This value indicates that the global MIDI channel associated with this
@@ -540,7 +557,7 @@ private:
      *  used.  This is true when m_midi_channel == null_channel().
      */
 
-    bool m_free_channel;
+    bool m_free_channel { false };
 
     /**
      *  Contains the nominal output MIDI bus number for this sequence/pattern.
@@ -548,27 +565,27 @@ private:
      *  place, this number is used only to look up the true output buss.
      */
 
-    midi::bussbyte m_nominal_bus;
+    midi::bussbyte m_nominal_bus { midi::null_buss() };
 
     /**
      *  Contains the actual buss number to be used in output.
      */
 
-    midi::bussbyte m_true_bus;
+    midi::bussbyte m_true_bus { midi::null_buss() };
 
     /**
      *  Similar to the above, but for the input buss, a new feature.
      *  Unlike the output buss, this input buss is optional.
      */
 
-    midi::bussbyte m_nominal_in_bus;
-    midi::bussbyte m_true_in_bus;
+    midi::bussbyte m_nominal_in_bus { midi::null_buss() };
+    midi::bussbyte m_true_in_bus { midi::null_buss() };
 
     /**
      *  Provides a flag for pattern playback song muting.
      */
 
-    bool m_song_mute;
+    bool m_song_mute { false };
 
     /**
      *  Indicate if the sequence is transposable or not.  A potential feature
@@ -576,27 +593,27 @@ private:
      *  feature.
      */
 
-    bool m_transposable;
+    bool m_transposable { true };
 
     /**
      *  Provides a member to hold the polyphonic step-edit note counter.  We
      *  will never come close to the short limit of 32767.
      */
 
-    short m_notes_on;
+    short m_notes_on { 0 };
 
     /**
      *  Provides the master MIDI buss which handles the output of the sequence
      *  to the proper buss and MIDI channel.
      */
 
-    mastermidibus * m_master_bus;
+    midi::masterbus * m_master_bus { nullptr };
 
     /**
      *  Provides a "map" for Note On events.  It is used when muting, to shut
      *  off the notes that are playing.
      *
-     * unsigned short m_playing_notes[c_notes_count];
+     *      unsigned short m_playing_notes[c_notes_count];
      */
 
     std::vector<unsigned short> m_playing_notes;
@@ -614,14 +631,14 @@ private:
      *  In other words, the sequence is armed.
      */
 
-    bool m_armed;
+    bool m_armed { false };
 
     /**
      *  True if sequence recording currently is in progress for this sequence.
      */
 
-    bool m_recording;
-    mutable bool m_draw_locked;
+    bool m_recording { false };
+    mutable bool m_draw_locked { false };
 
     /**
      *  If true, the first incoming event in the step-edit (auto-step) part of
@@ -631,39 +648,39 @@ private:
      *  Hmmm, no longer in seq66::sequence.
      */
 
-    bool m_auto_step_reset;
+    bool m_auto_step_reset { false };
 
     /**
      *  Eliminates a bunch of booleans. The default style is merge.
      */
 
-    recordstyle m_recording_style;
+    midi::recordstyle m_recording_style { midi::recordstyle::merge };
 
     /**
      *  Replaces a potential bunch of booleans. The data type is defined in
      *  the calculations module.
      */
 
-    alteration m_record_alteration;
+    midi::alteration m_record_alteration { midi::alteration::none };
 
     /**
      *  True if recording in MIDI-through mode.
      */
 
-    bool m_thru;
+    bool m_thru { false };
 
     /**
      *  True if there's a popup-menu present. See how it is used in
      *  qloopbutton.
      */
 
-    bool m_has_popup;
+    bool m_has_popup { false };
 
     /**
      *  True if the events are queued.
      */
 
-    bool m_queued;
+    bool m_queued { false };
 
     /**
      *  A member from the Kepler34 project to indicate we are in one-shot mode
@@ -675,7 +692,7 @@ private:
      *  is received.  Kepler34 reserves the period '.' to initiate this event.
      */
 
-    bool m_one_shot;
+    bool m_one_shot { false };
 
     /**
      *  A member from the Kepler34 project, set in sequence ::
@@ -683,7 +700,7 @@ private:
      *  sequence.  Compare this member to m_queued_tick.
      */
 
-    midi::pulse m_one_shot_tick;
+    midi::pulse m_one_shot_tick { 0 };
 
     /**
      *  A counter used in the step-edit (auto-edit) feature.
@@ -691,7 +708,7 @@ private:
      *  Hmmmm, not in seq66::sequence.
      */
 
-    int m_step_count;
+    int m_step_count { 0 };
 
     /**
      *  Number of times to play the pattern in Live mode.  A value of 0 means
@@ -700,13 +717,13 @@ private:
      *  short integer.
      */
 
-    int m_loop_count_max;
+    int m_loop_count_max { 0 };
 
     /**
      *  Indicates if we have turned off from a snap operation.
      */
 
-    bool m_off_from_snap;
+    bool m_off_from_snap { false };
 
     /**
      *  Used to temporarily block Song Mode events while recording new
@@ -715,7 +732,7 @@ private:
      *  song-recording stops.
      */
 
-    bool m_song_playback_block;
+    bool m_song_playback_block { false };
 
     /**
      *  Used to keep on blocking Song Mode events while recording new ones.
@@ -723,34 +740,34 @@ private:
      *  Adapted from Kepler34.
      */
 
-    bool m_song_recording;
+    bool m_song_recording { false };
 
     /**
      *  This value indicates that the following feature is active: the number
      *  of ticks to snap recorded improvisations and manually-added triggers.
      */
 
-    bool m_song_recording_snap;
+    bool m_song_recording_snap { true };
 
     /**
      *  Saves the tick from when we started recording live song data.
      */
 
-    midi::pulse m_song_record_tick;
+    midi::pulse m_song_record_tick { 0 };
 
     /**
      *  Indicates if the play marker has gone to the beginning of the sequence
      *  upon looping.
      */
 
-    bool m_loop_reset;
+    bool m_loop_reset { false };
 
     /**
      *  Hold the current unit for a measure.  Need to clarifiy this one.
      *  It is calculated when needed (lazy evaluation).
      */
 
-    mutable midi::pulse m_unit_measure;
+    mutable midi::pulse m_unit_measure { 0 };
 
     /**
      *  The "m_dirty"  flags indicate that the content of the sequence has
@@ -770,7 +787,7 @@ private:
      *      -   Cause mainwnd to update a given sequence in the live frame.
      */
 
-    mutable std::atomic<bool> m_dirty_main;
+    mutable std::atomic<bool> m_dirty_main { true };
 
     /**
      *  Provides the main is-edited flag. In Seq24, it was:
@@ -782,7 +799,7 @@ private:
      *          seqevent panes.
      */
 
-    mutable std::atomic<bool> m_dirty_edit;
+    mutable std::atomic<bool> m_dirty_edit { true };
 
     /**
      *  Provides performance dirty flagflag.
@@ -793,7 +810,7 @@ private:
      *      -   Used in perfroll to redraw each "dirty perf" sequence.
      */
 
-    mutable std::atomic<bool> m_dirty_perf;
+    mutable std::atomic<bool> m_dirty_perf { true };
 
     /**
      *  Provides the names dirtiness flag.
@@ -804,34 +821,26 @@ private:
      *      -   Used in perfnames to redraw each "dirty names" sequence.
      */
 
-    mutable std::atomic<bool> m_dirty_names;
-
-    /**
-     *  Indicates the pattern was modified.  Unlike the is_dirty_xxx flags,
-     *  this one is not reset when checked.  Useful when closing a file or the
-     *  application to cause a "Save?" prompt.
-     */
-
-    mutable bool m_is_modified;
+    mutable std::atomic<bool> m_dirty_names { true };
 
     /**
      *  Indicates that the sequence is currently being edited.
      */
 
-    bool m_seq_in_edit;
+    bool m_seq_in_edit { false };
 
     /**
      *  Set by seqedit for the handle_action() function to use.
      */
 
-    midi::byte m_status;
-    midi::byte m_cc;
+    midi::byte m_status { 0 };
+    midi::byte m_cc { 0 };
 
     /**
      *  Provides the name/title for the sequence.
      */
 
-    std::string m_name;
+    std::string m_name { "Untitled" };
 
     /**
      *  Provides the default name/title for the sequence.
@@ -844,9 +853,9 @@ private:
      *  including triggering.
      */
 
-    midi::pulse m_last_tick;          /**< Provides the last tick played.     */
-    midi::pulse m_queued_tick;        /**< Provides the tick for queuing.     */
-    midi::pulse m_trigger_offset;     /**< Provides the trigger offset.       */
+    midi::pulse m_last_tick { 0 };      /**< Provides the last tick played.     */
+    midi::pulse m_queued_tick { 0 };    /**< Provides the tick for queuing.     */
+    midi::pulse m_trigger_offset { 0 }; /**< Provides the trigger offset.       */
 
     /**
      *  This constant provides the scaling used to calculate the time position
@@ -854,14 +863,15 @@ private:
      *  c_maxbeats at present.
      */
 
-    const int m_maxbeats;
+    const int m_maxbeats { 0xFFFF };    // c_maxbeats TO BE DEFINED
 
     /**
      *  Holds the PPQN value for this sequence, so that we don't have to rely
      *  on a global constant value.
      */
 
-    unsigned short m_ppqn;
+    ///// TIMING /////
+    unsigned short m_ppqn { RTL66_DEFAULT_PPQN };
 
     /**
      *  A new member so that the sequence number is carried along with the
@@ -871,20 +881,20 @@ private:
      *  Also see the alias seq::number, which is not short, but int!
      */
 
-    short m_seq_number;
+    int m_seq_number { -1 };            // unassigned()
 
     /**
      *  Implements a feature from the Kepler34 project.  It is an index into a
      *  palette.  The colorbyte type is defined in the midi::bytes.hpp file.
      */
 
-    midi::colorbyte m_seq_color;
+    colorbyte m_seq_color { c_seq_color_none };
 
     /**
      * A feature adapted from Kepler34.
      */
 
-    editmode m_seq_edit_mode;
+    editmode m_seq_edit_mode { editmode::note };
 
     /**
      *  Holds the length of the sequence in pulses (ticks).  This value should
@@ -893,7 +903,7 @@ private:
      *  number of measures.
      */
 
-    midi::pulse m_length;
+    midi::pulse m_length { 0 };
 
     /**
      *  Used in handling one-shot recording while playback is in progress.
@@ -901,7 +911,7 @@ private:
      *  the one-shot pattern.
      */
 
-    midipulse m_next_boundary;
+    midi::pulse m_next_boundary { 0 };
 
     /**
      *  Holds the last number of measures, purely for detecting changes that
@@ -910,29 +920,28 @@ private:
      *  beat-width to a smaller value could increase the number of measures.
      */
 
-    mutable int m_measures;
+    mutable int m_measures { 0 };
 
     /**
      *  The size of snap in units of pulses (ticks).  It starts out as the
      *  value m_ppqn / 4.
      */
 
-    midi::pulse m_snap_tick;
+    midi::pulse m_snap_tick { RTL66_DEFAULT_PPQN / 4 };
 
     /**
      *  The size of adding an auto-step (step-edit) note in units of pulses
      *  (ticks).  It starts out as the value m_ppqn / 4.
      */
 
-    midi::pulse m_step_edit_note_length;
+    midi::pulse m_step_edit_note_length { RTL66_DEFAULT_PPQN / 4 };
 
     /**
-     *  Provides the number of beats per bar used in this sequence.  Defaults
-     *  to 4.  Used by the sequence editor to mark things in correct time on
      *  the user-interface.
      */
 
-    unsigned short m_time_beats_per_measure;
+    ///// TIMING /////
+    unsigned short m_time_beats_per_measure { RTL66_DEFAULT_BEATS_PER_BAR };
 
     /**
      *  Provides with width of a beat.  Defaults to 4, which means the beat is
@@ -941,7 +950,8 @@ private:
      *  user-interface.
      */
 
-    unsigned short m_time_beat_width;
+    ///// TIMING /////
+    unsigned short m_time_beat_width { RTL66_DEFAULT_BEAT_WIDTH };
 
     /**
      *  New members to use for the c_timesig SeqSpec. Rather than hold
@@ -950,8 +960,8 @@ private:
      *  have not yet been set.
      */
 
-    unsigned short m_timesig_beats_per_measure;
-    unsigned short m_timesig_beat_width;
+    unsigned short m_timesig_beats_per_measure { 0 };
+    unsigned short m_timesig_beat_width { 0 };
 
     /**
      *  Augments the beats/bar and beat-width with the additional values
@@ -961,6 +971,7 @@ private:
      *  our hymne.mid example.
      */
 
+    ///// TIMING /////
     int m_clocks_per_metronome;     /* make it a short? */
 
     /**
@@ -971,17 +982,19 @@ private:
      *  allow this to be changed.
      */
 
+    ///// TIMING /////
     int m_32nds_per_quarter;        /* make it a short? */
 
     /**
      *  Augments the beats/bar and beat-width with the additional values
      *  included in a Tempo meta event.  This value can be extracted from the
-     *  beats-per-minute value (mastermidibus::m_beats_per_minute), but here
+     *  beats-per-minute value (midi::masterbus::m_beats_per_minute), but here
      *  we set it to 0 by default, indicating that we don't want to write it.
      *  Otherwise, it can be read from a MIDI file, and saved here to be
      *  restored later.
      */
 
+    ///// TIMING /////
     long m_us_per_quarter_note;
 
     /**
@@ -1029,7 +1042,7 @@ private:
      *  Holds a copy of the musical chord for this sequence.
      */
 
-    midibyte m_musical_chord;
+    midi::byte m_musical_chord;
 
     /**
      *  Holds a copy of the background sequence number for this sequence,
@@ -1068,22 +1081,22 @@ public:
 
     void partial_assign (const sequence & rhs, bool toclipboard = false);
 
-    static short maximum ()
+    static int maximum ()
     {
         return 1024;
     }
 
-    static short recorder ()
+    static int recorder ()
     {
         return 2040;
     }
 
-    static short is_recorder (int s)
+    static int is_recorder (int s)
     {
-        return short(s) == 2040;
+        return s == 2040;
     }
 
-    static short metronome ()
+    static int metronome ()
     {
         return 2047;
     }
@@ -1232,7 +1245,7 @@ public:
 
     int seq_number () const
     {
-        return int(m_seq_number);
+        return m_seq_number;
     }
 
     std::string seq_number_string () const
@@ -1243,7 +1256,7 @@ public:
     void seq_number (int seqno)
     {
         if (seqno >= 0 && seqno <= limit())
-            m_seq_number = short(seqno);
+            m_seq_number = seqno;
     }
 
     int color () const
@@ -1275,12 +1288,16 @@ public:
     }
 
     bool loop_count_max (int m, bool user_change = false);
-    void modify (bool notifychange = true);
 
-    void unmodify ()
-    {
-        m_is_modified = false;
-    }
+    virtual void modify
+    (
+        lib66::notification n = lib66::notification::no
+    ) override;
+
+    virtual void unmodify
+    (
+        lib66::notification n = lib66::notification::no
+    ) override;
 
     int event_count () const;
     int note_count () const;
@@ -1368,7 +1385,7 @@ public:
 
     midi::pulse measures_to_ticks (int measures = 1) const
     {
-        return seq66::measures_to_ticks     /* see "calculations" module    */
+        return midi::measures_to_ticks      /* see "calculations" module    */
         (
             int(m_time_beats_per_measure), int(m_ppqn),
             int(m_time_beat_width), measures
@@ -1461,7 +1478,7 @@ public:
         return m_seq_in_edit;
     }
 
-    bool set_length
+    bool set_length_ex
     (
         midi::pulse len = 0,
         bool adjust_triggers = true,
@@ -1488,7 +1505,7 @@ public:
         return m_length;
     }
 
-    midipulse get_length_plus () const
+    midi::pulse get_length_plus () const
     {
         int bpmeas = m_time_beats_per_measure;
         if (bpmeas == 0)
@@ -1499,7 +1516,7 @@ public:
 
     midi::pulse get_tick () const;
     midi::pulse get_last_tick () const;
-    void set_last_tick (midi::pulse tick = c_null_midi::pulse);
+    void set_last_tick (midi::pulse tick = midi::c_null_pulse);
 
     midi::pulse last_tick () const
     {
@@ -1564,14 +1581,15 @@ public:
         return get_queued() && (get_queued_tick() <= tick);
     }
 
-    bool set_recording_style (recordstyle rs);
+    bool set_recording_style (midi::recordstyle rs);
 
     /*
-     * The seq66::toggler flag enumeration is off, on, and flip!
+     * The lib66::lib66::toggler flag enumeration is off, on, and flip!
+     * Compare these two functions to midi::track::set_recording().
      */
 
-    bool set_recording (toggler flag);
-    bool set_recording (alteration q, toggler flag);
+    bool set_recording_ex (lib66::toggler flag);
+    bool set_recording_ex (midi::alteration q, lib66::toggler flag);
     bool set_thru (bool thru_active, bool toggle = false);
 
     bool recording () const
@@ -1581,22 +1599,22 @@ public:
 
     bool alter_recording () const
     {
-        return m_record_alteration != alteration::none;
+        return m_record_alteration != midi::alteration::none;
     }
 
-    alteration record_alteration () const
+    midi::alteration record_alteration () const
     {
         return m_record_alteration;
     }
 
-    void record_alteration (alteration a)
+    void record_alteration (midi::alteration a)
     {
         m_record_alteration = a;
     }
 
     bool quantized_recording () const
     {
-        return m_record_alteration == alteration::quantize;
+        return m_record_alteration == midi::alteration::quantize;
     }
 
     bool quantizing () const
@@ -1606,7 +1624,7 @@ public:
 
     bool tightened_recording () const
     {
-        return m_record_alteration == alteration::tighten;
+        return m_record_alteration == midi::alteration::tighten;
     }
 
     bool tightening () const
@@ -1616,7 +1634,7 @@ public:
 
     bool notemapped_recording () const
     {
-        return m_record_alteration == alteration::notemap;
+        return m_record_alteration == midi::alteration::notemap;
     }
 
     bool notemapping () const
@@ -1626,7 +1644,7 @@ public:
 
     bool expanded_recording () const
     {
-        return m_recording_style == recordstyle::expand;
+        return m_recording_style == midi::recordstyle::expand;
     }
 
     bool expanding () const
@@ -1641,7 +1659,7 @@ public:
 
     bool oneshot_recording () const
     {
-        return m_recording_style == recordstyle::oneshot;
+        return m_recording_style == midi::recordstyle::oneshot;
     }
 
     void auto_step_reset (bool flag)
@@ -1654,7 +1672,7 @@ public:
 
     bool overwriting () const
     {
-        return m_recording_style == recordstyle::overwrite;
+        return m_recording_style == midi::recordstyle::overwrite;
     }
 
     bool thru () const
@@ -1735,12 +1753,6 @@ public:
 
     void resume_note_ons (midi::pulse tick);
     bool toggle_one_shot ();
-
-    bool modified () const
-    {
-        return m_is_modified;
-    }
-
     bool is_dirty_main () const;
     bool is_dirty_edit () const;
     bool is_dirty_perf () const;
@@ -1755,14 +1767,14 @@ public:
         return m_midi_channel;                      /* midi_channel() below */
     }
 
-    midi::byte midi_channel (const event & ev) const
+    midi::byte get_midi_channel (const midi::event & ev) const
     {
         return m_free_channel ? ev.channel() : m_midi_channel ;
     }
 
-    midi::byte midi_channel () const
+    midi::byte get_midi_channel () const
     {
-        return m_free_channel ? null_channel() : m_midi_channel ;
+        return m_free_channel ? midi::null_channel() : m_midi_channel ;
     }
 
     bool free_channel () const
@@ -1776,7 +1788,7 @@ public:
 
     bool is_smf_0 () const
     {
-        return is_null_channel(m_midi_channel);
+        return midi::is_null_channel(m_midi_channel);
     }
 
     std::string to_string () const;
@@ -1800,7 +1812,7 @@ public:
         bool repaint = false,
         int velocity = sm_preserve_velocity
     );
-    bool add_note (midi::pulse len, const event & e);
+    bool add_note (midi::pulse len, const midi::event & e);
     bool add_chord
     (
         int chord, midi::pulse tick, midi::pulse len, int note,
@@ -1816,26 +1828,26 @@ public:
 //  bool delete_time_signature (midi::pulse tick);
     bool log_time_signature
     (
-        midipulse tick, int beats, int width, bool user_change = false
+        midi::pulse tick, int beats, int width, bool user_change = false
     );
     bool update_time_signature (int bpb, int bw, bool user_change = false);
-    bool add_timesig_event (const event & e, bool main_ts = false);
+    bool add_timesig_event (const midi::event & e, bool main_ts = false);
     bool add_timesig_event
     (
-        midipulse t,
+        midi::pulse t,
         int bpb = 4, int bw = 4,
         bool replace = true
     );
     bool set_main_time_signature ();
     bool add_c_timesig (int bpb, int bw, bool main_ts = false);
-    bool delete_time_signature (midipulse tick);
+    bool delete_time_signature (midi::pulse tick);
     bool detect_time_signature
     (
         midi::pulse & tstamp, int & numerator, int & denominator,
         midi::pulse start = 0,
-        midi::pulse limit = c_null_midi::pulse
+        midi::pulse limit = midi::c_null_pulse
     );
-    bool add_event (const event & er);      /* another one declared below */
+    bool add_event (const midi::event & er);    /* another declared below   */
     bool add_event
     (
         midi::pulse tick, midi::byte status,
@@ -1843,9 +1855,9 @@ public:
     );
     bool add_event (midi::pulse tick, const midi::bytes & dbytes);
     bool add_macro (midi::pulse tick, const midimacro & macro);
-    bool append_event (const event & er);
+    bool append_event (const midi::event & er);
     void sort_events ();
-    event find_event (const event & e, bool nextmatch = false);
+    midi::event find_event (const midi::event & e, bool nextmatch = false);
     note_info find_note (midi::pulse tick, int note);
     bool remove_duplicate_events (midi::pulse tick, int note = (-1));
     void notify_change (bool userchange = true);
@@ -1942,10 +1954,10 @@ public:
 
     bool has_in_bus () const
     {
-        return is_good_buss(m_true_in_bus);
+        return midi::is_good_buss(m_true_in_bus);
     }
 
-    bool set_master_midi_bus (const mastermidibus * mmb);
+    bool set_master_midi_bus (const midi::masterbus * mmb);
     bool set_midi_bus (midi::bussbyte mb, bool user_change = false);
     bool set_midi_channel (midi::byte ch, bool user_change = false);
     bool set_midi_in_bus (midi::bussbyte mb, bool user_change = false);
@@ -1958,19 +1970,19 @@ public:
     int select_events
     (
         midi::pulse tick_s, midi::pulse tick_f,
-        midi::byte astatus, midi::byte cc, midi::eventlist::select action
+        midi::status sstatus, midi::byte cc, midi::eventlist::select action
     );
     int select_events
     (
-        midi::byte astatus, midi::byte cc, bool inverse = false
+        midi::status sstatus, midi::byte cc, bool inverse = false
     );
     int select_event_handle
     (
         midi::pulse tick_s, midi::pulse tick_f,
-        midi::byte astatus, midi::byte cc,
+        midi::status sstatus, midi::byte cc,
         midi::byte data
     );
-    void adjust_event_handle (midi::byte astatus, midi::byte data);
+    void adjust_event_handle (midi::status sstatus, midi::byte data);
 
     /**
      *  New convenience function.  What about Aftertouch events?  I think we
@@ -1984,13 +1996,13 @@ public:
 
     void select_all_notes (bool inverse = false)
     {
-        (void) select_events(EVENT_NOTE_ON, 0, inverse);
-        (void) select_events(EVENT_NOTE_OFF, 0, inverse);
-        (void) select_events(EVENT_AFTERTOUCH, 0, inverse);
+        (void) select_events(midi::status::note_on, 0, inverse);
+        (void) select_events(midi::status::note_off, 0, inverse);
+        (void) select_events(midi::status::aftertouch, 0, inverse);
     }
 
     int get_num_selected_notes () const;
-    int get_num_selected_events (midi::byte status, midi::byte cc) const;
+    int get_num_selected_events (midi::status sstatus, midi::byte cc) const;
     void select_all ();
     void select_by_channel (int channel);
     void select_notes_by_channel (int channel);
@@ -2018,29 +2030,29 @@ public:
     midi::pulse clip_timestamp (midi::pulse ontime, midi::pulse offtime);
     bool move_selected_notes (midi::pulse deltatick, int deltanote);
     bool move_selected_events (midi::pulse deltatick);
-    bool stream_event (event & ev);
+    bool stream_event (midi::event & ev);
     bool change_event_data_range
     (
         midi::pulse tick_s, midi::pulse tick_f,
-        midi::byte status, midi::byte cc,
+        midi::status sstatus, midi::byte cc,
         int d_s, int d_f, bool finalize = false
     );
     bool change_event_data_relative
     (
         midi::pulse tick_s, midi::pulse tick_f,
-        midi::byte status, midi::byte cc,
+        midi::status sstatus, midi::byte cc,
         int newval, bool finalize = false
     );
     void change_event_data_lfo
     (
-        const lfoparameters & lp, midibyte status, midibyte cc
+        const lfoparameters & lp, midi::status sstatus, midi::byte cc
     );
     bool fix_pattern (fixparameters & param);   /* for qpatternfix dialog   */
-    void increment_selected (midi::byte status, midi::byte /*control*/);
-    void decrement_selected (midi::byte status, midi::byte /*control*/);
+    void increment_selected (midi::status sstatus, midi::byte /*control*/);
+    void decrement_selected (midi::status sstatus, midi::byte /*control*/);
     bool grow_selected (midi::pulse deltatick);
     bool stretch_selected (midi::pulse deltatick);
-    bool randomize (midibyte status, int range = (-1), bool all = false);
+    bool randomize (midi::status sstatus, int range = (-1), bool all = false);
     bool randomize_note_velocities (int range = (-1), bool all = false);
     bool randomize_note_pitches (int range = (-1), bool all = false);
     bool jitter_notes (int jitter = (-1), bool all = false);
@@ -2072,12 +2084,12 @@ public:
     void draw_lock () const;
     void draw_unlock () const;
 
-    event::buffer::const_iterator cbegin () const
+    midi::event::buffer::const_iterator cbegin () const
     {
         return m_events.cbegin();
     }
 
-    bool cend (event::buffer::const_iterator & evi) const
+    bool cend (midi::event::buffer::const_iterator & evi) const
     {
         return evi == m_events.cend();
     }
@@ -2085,30 +2097,30 @@ public:
     bool reset_interval
     (
         midi::pulse t0, midi::pulse t1,
-        event::buffer::const_iterator & it0,
-        event::buffer::const_iterator & it1
+        midi::event::buffer::const_iterator & it0,
+        midi::event::buffer::const_iterator & it1
     ) const;
     draw get_next_note
     (
         note_info & niout,
-        event::buffer::const_iterator & evi
+        midi::event::buffer::const_iterator & evi
     ) const;
     bool get_next_event_match
     (
         midi::byte status, midi::byte cc,
-        event::buffer::const_iterator & evi
+        midi::event::buffer::const_iterator & evi
     );
     bool get_next_meta_match
     (
         midi::byte metamsg,
-        event::buffer::const_iterator & evi,
+        midi::event::buffer::const_iterator & evi,
         midi::pulse start = 0,
-        midi::pulse range = c_null_midi::pulse
+        midi::pulse range = midi::c_null_pulse
     );
     bool get_next_event
     (
         midi::byte & status, midi::byte & cc,
-        event::buffer::const_iterator & evi
+        midi::event::buffer::const_iterator & evi
     );
     bool next_trigger (trigger & trig);
     bool push_quantize (midi::byte status, midi::byte cc, int divide);
@@ -2130,7 +2142,7 @@ public:
         return m_musical_scale;
     }
 
-    midibyte musical_chord () const
+    midi::byte musical_chord () const
     {
         return m_musical_chord;
     }
@@ -2179,11 +2191,7 @@ public:
         sm_clipboard.clear();                   /* shared between sequences */
     }
 
-    bool remove_selected ();
-    bool remove_marked ();                      /* a forwarding function    */
-
-    static recordstyle loop_record_style (int ri);
-    bool update_recording (int index);
+    static midi::recordstyle loop_record_style (int ri);
 
     /**
      *  Short hand for testing a draw parameter.
@@ -2212,16 +2220,18 @@ public:
 private:
 
     bool flatten (sequence & destseq, bool maketrigger = true);
-    midipulse flatten_trigger
+    midi::pulse flatten_trigger
     (
         sequence & destseq,
         const trigger & trig,
-        midipulse prev_timestamp
+        midi::pulse prev_timestamp
     );
 
 protected:
 
-    void set_parent (performer * p);
+    // TODO: reconcile with midi::track::set_parent()
+
+    void set_parent_ex (performer * p);
 
     void armed (bool flag)
     {
@@ -2235,14 +2245,14 @@ protected:
 
 private:
 
-    midipulse apply_time_factor
+    midi::pulse apply_time_factor
     (
         double factor,
         bool savenotelength = false,
         bool relink = false
     );
 
-    mastermidibus * master_bus ()
+    midi::masterbus * master_bus ()
     {
         return m_master_bus;
     }
@@ -2261,7 +2271,7 @@ private:
     bool quantize_events (midi::byte status, midi::byte cc, int divide);
     bool quantize_notes (int divide);
     bool change_ppqn (int p);
-    void put_event_on_bus (const event & ev);
+    void put_event_on_bus (const midi::event & ev);
 //  void reset_loop ();
     void set_trigger_offset (midi::pulse trigger_offset);
     void adjust_trigger_offsets_to_length (midi::pulse newlen);
@@ -2269,18 +2279,18 @@ private:
     draw get_note_info                      /* used only internally     */
     (
         note_info & niout,
-        event::buffer::const_iterator & evi
+        midi::event::buffer::const_iterator & evi
     ) const;
 
     timesig default_time_signature () const;
     void push_default_time_signature ();
 
 #if defined USE_SEQUENCE_REMOVE_EVENTS
-    void remove (event::buffer::iterator i);
-    void remove (event & e);
+    void remove (midi::event::buffer::iterator i);
+    void remove (midi::event & e);
 #endif
 
-    bool remove_first_match (const event & e, midi::pulse starttick = 0);
+    bool remove_first_match (const midi::event & e, midi::pulse starttick = 0);
     bool remove_all ();
 
     /**
@@ -2296,10 +2306,10 @@ private:
      *      off, in which case the sequence accepts events on any channel.
      */
 
-    bool channels_match (const event & e) const
+    bool channels_match (const midi::event & e) const
     {
         return m_channel_match ?
-            event::mask_channel(e.get_status()) == m_midi_channel : true ;
+            midi::mask_channel(e.status_byte()) == m_midi_channel : true ;
     }
 
     void draw_locked (bool flag)

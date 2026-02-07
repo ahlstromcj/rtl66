@@ -24,7 +24,7 @@
  * \library       seq66 application
  * \author        Chris Ahlstrom and others
  * \date          2018-11-12
- * \updates       2026-01-26
+ * \updates       2026-02-04
  * \license       GNU GPLv2 or above
  *
  *  Also read the comments in the Seq64 version of this module, perform.
@@ -244,6 +244,7 @@
 #include <iostream>                     /* std::cout                        */
 #include <sstream>                      /* std::ostringstream               */
 
+#include "cpp_types.hpp"                /* lib66::???                       */
 #include "cfg/mutegroupsfile.hpp"       /* seq66::mutegroupsfile            */
 #include "cfg/notemapfile.hpp"          /* seq66::notemapfile               */
 #include "cfg/playlistfile.hpp"         /* seq66::playlistfile              */
@@ -264,7 +265,7 @@ namespace seq66
  *  It also had a "lookahead" time of 2 ms, not used however.
  */
 
-static const int c_thread_trigger_width_us = 4 * 1000;
+static const int c_thread_trigger_width_us { 4 * 1000 };
 
 /**
  *  When operating a playlist, especially from a headless seq66cli run, and
@@ -278,43 +279,44 @@ static const int c_thread_trigger_width_us = 4 * 1000;
  *  the middle of play().
  */
 
-static const int c_delay_start = 1000;
+static const int c_delay_start { 1000 };
 
 /**
  *  Indicates how much of a long file-path we will show using the
  *  shorten_file_spec() function.
  */
 
-static const int c_long_path_max = 56;
+static const int c_long_path_max { 56 };
 
 /**
  *  Principal constructor.
  */
 
 performer::performer (int ppqn, int rows, int columns) :
-    m_song_info             (),
-    m_smf_format            (1),
-    m_error_pending         (false),
-    m_error_messages        (),
+//  m_song_info             (),
+//  m_smf_format            (1),
+//  m_error_pending         (false),
+//  m_error_messages        (),
     m_play_set              (),
     m_play_set_storage      (),
     m_play_list             (),
     m_note_mapper           (new (std::nothrow) notemapper()),
     m_metronome             (),                 /* no metronome by default  */
-    m_recorder              (nullptr),          /* no background recording  */
-    m_metronome_count_in    (false),
-    m_song_start_mode       (sequence::playback::automatic),
-    m_reposition            (false),
-    m_excell_FF_RW          (1.0),
-    m_FF_RW_button_type     (ff_rw::none),
-    m_old_seqno             (seq::unassigned()),
-    m_current_seqno         (seq::unassigned()),
+//  m_recorder              (nullptr),          /* no background recording  */
+//  m_metronome_count_in    (false),
+//  m_song_start_mode       (sequence::playback::automatic),
+//  m_reposition            (false),
+//  m_excell_FF_RW          (1.0),
+//  m_FF_RW_button_type     (ff_rw::none),
+//  m_old_seqno             (seq::unassigned()),
+//  m_current_seqno         (seq::unassigned()),
     m_moving_seq            (),
     m_seq_clipboard         (),
-    m_queued_replace_slot   (seq::unassigned()),
+//  m_queued_replace_slot   (seq::unassigned()),
+//  m_solo_seqno            (seq::unassigned()),
     m_clocks                (),                 /* vector wrapper class     */
     m_inputs                (),                 /* vector wrapper class     */
-    m_port_map_error        (false),
+//  m_port_map_error        (false),
     m_key_controls          ("Key controls"),
     m_midi_control_in       ("Performer ctrl in"),
     m_midi_control_out      ("Performer ctrl out"),
@@ -325,67 +327,67 @@ performer::performer (int ppqn, int rows, int columns) :
     (
         m_set_master, m_mute_groups, rows, columns
     ),
-    m_transpose             (0),
+//  m_transpose             (0),
     m_out_thread            (),
     m_in_thread             (),
-    m_out_thread_launched   (false),
-    m_in_thread_launched    (false),
-    m_io_active             (false),            /* !done(), set in launch() */
-    m_is_running            (false),
-    m_is_pattern_playing    (false),
-    m_needs_update          (true),
-    m_is_busy               (false),            /* try this flag for now    */
-    m_looping               (false),
-    m_song_recording        (false),
-    m_song_record_snap      (true),
-    m_record_snap_length    (0),
-    m_alter_recording       (alteration::none),
-    m_resume_note_ons       (usr().resume_note_ons()),
+//  m_out_thread_launched   (false),
+//  m_in_thread_launched    (false),
+//  m_io_active             (false),            /* !done(), set in launch() */
+//  m_is_running            (false),
+//  m_is_pattern_playing    (false),
+//  m_needs_update          (true),
+//  m_is_busy               (false),            /* try this flag for now    */
+//  m_looping               (false),
+//  m_song_recording        (false),
+//  m_song_record_snap      (true),
+//  m_record_snap_length    (0),
+//  m_alter_recording       (alteration::none),
+//  m_resume_note_ons       (usr().resume_note_ons()),
     m_ppqn                  (choose_ppqn(ppqn)),
-    m_file_ppqn             (0),
-    m_bpm                   (usr().midi_beats_per_minute()),
-    m_resolution_change     (true),
-    m_current_beats         (0),
-    m_delta_us              (0),
-    m_base_time_ms          (0),
-    m_last_time_ms          (0),
-    m_beats_per_bar         (usr().midi_beats_per_bar()),
-    m_beat_width            (usr().midi_beat_width()),
-    m_clocks_per_metronome  (24),
-    m_32nds_per_quarter     (0),
-    m_us_per_quarter_note   (0),
+//  m_file_ppqn             (0),
+//  m_bpm                   (usr().midi_beats_per_minute()),
+//  m_resolution_change     (true),
+//  m_current_beats         (0),
+//  m_delta_us              (0),
+//  m_base_time_ms          (0),
+//  m_last_time_ms          (0),
+//  m_beats_per_bar         (usr().midi_beats_per_bar()),
+//  m_beat_width            (usr().midi_beat_width()),
+//  m_clocks_per_metronome  (24),
+//  m_32nds_per_quarter     (0),
+//  m_us_per_quarter_note   (0),
     m_master_bus            (),                 /* this is a shared pointer */
-    m_record_by_buss        (false),
-    m_record_by_channel     (false),
+//  m_record_by_buss        (false),
+//  m_record_by_channel     (false),
     m_buss_patterns         (),
-    m_one_measure           (0),
-    m_fast_ticks            (0),
-    m_left_tick             (0),
-    m_right_tick            (0),
-    m_start_tick            (0),
-    m_tick                  (0),
-    m_max_extent            (0),
+//  m_one_measure           (0),
+//  m_fast_ticks            (0),
+//  m_left_tick             (0),
+//  m_right_tick            (0),
+//  m_start_tick            (0),
+//  m_tick                  (0),
+//  m_max_extent            (0),
     m_jack_pad              (),                 /* data for JACK... & ALSA  */
-    m_jack_tick             (0),
-    m_usemidiclock          (false),            /* MIDI Clock support       */
-    m_midiclockrunning      (false),
-    m_midiclocktick         (0),
+//  m_jack_tick             (0),
+//  m_usemidiclock          (false),            /* MIDI Clock support       */
+//  m_midiclockrunning      (false),
+//  m_midiclocktick         (0),
     m_midiclockincrement    (clock_ticks_from_ppqn(m_ppqn)),
-    m_midiclockpos          (0),
-    m_dont_reset_ticks      (false),            /* support for pausing      */
-    m_is_modified           (false),
+//  m_midiclockpos          (0),
+//  m_dont_reset_ticks      (false),            /* support for pausing      */
 #if defined USE_SONG_BOX_SELECT
     m_selected_seqs         (),
 #endif
     m_condition_var         (*this),            /* private access via cv()  */
 #if defined SEQ66_JACK_SUPPORT
-    m_jack_asst
+    m_jack_asst     xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     (
         *this, usr().bpm_default(),             /* beats per minute         */
         m_ppqn, usr().bpb_default(),            /* beats per bar (measure)  */
         usr().bw_default()                      /* beat width (denominator) */
     ),
 #endif
+//  m_is_modified           (false),
     m_have_undo             (false),
     m_undo_vect             (),
     m_have_redo             (false),
@@ -431,7 +433,7 @@ performer::enregister (callbacks * pfcb)
 {
     if (not_nullptr(pfcb))
     {
-        auto it = std::find(m_notify.begin(), m_notify.end(), pfcb);
+        auto it { std::find(m_notify.begin(), m_notify.end(), pfcb) };
         if (it == m_notify.end())
             m_notify.push_back(pfcb);
     }
@@ -447,7 +449,7 @@ performer::unregister (callbacks * pfcb)
 {
     if (not_nullptr(pfcb))
     {
-        auto it = std::find(m_notify.begin(), m_notify.end(), pfcb);
+        auto it { std::find(m_notify.begin(), m_notify.end(), pfcb) };
         if (it != m_notify.end())
             (void) m_notify.erase(it);
     }
@@ -462,17 +464,17 @@ void
 performer::append_error_message (const std::string & msg) const
 {
     static std::vector<std::string> s_old_msgs;
-    std::string newmsg = msg;
+    std::string newmsg { msg };
     m_error_pending = true;                         /* a mutable boolean    */
     if (newmsg.empty())
         newmsg = "Performer error";
 
     if (! m_error_messages.empty())
     {
-        const auto finding = std::find
-        (
-            s_old_msgs.cbegin(), s_old_msgs.cend(), newmsg
-        );
+        const auto finding
+        {
+            std::find(s_old_msgs.cbegin(), s_old_msgs.cend(), newmsg)
+        };
         if (finding == s_old_msgs.cend())
         {
             m_error_messages += " ";
@@ -509,8 +511,8 @@ performer::append_error_message (const std::string & msg) const
 bool
 performer::set_track_info (const std::string & s, seq::number trk)
 {
-    seq::pointer seqp = get_sequence(trk);
-    bool result = bool(seqp);
+    seq::pointer seqp { get_sequence(trk) };
+    bool result { bool(seqp) };
     if (result)
     {
         event metatext(0, EVENT_MIDI_META, 0);  /* tricky, d0 = 0           */
@@ -545,12 +547,12 @@ performer::set_track_info (const std::string & s, seq::number trk)
 midi::event
 performer::get_track_info_event (seq::number trk, bool nextmatch)
 {
-    static midi::event s_null_event{0, 0, 0};
-    seq::pointer seqp = get_sequence(trk);
+    static midi::event s_null_event { 0, 0, 0 };
+    seq::pointer seqp { get_sequence(trk) };
     bool ok = bool(seqp);
     if (ok)
     {
-        midi::event metatext(0, EVENT_MIDI_META, 0);  /* tricky, d0 = 0           */
+        midi::event metatext(0, EVENT_MIDI_META, 0);  /* tricky, d0 = 0     */
         metatext.set_channel(EVENT_META_TEXT_EVENT);
         return seqp->find_event(metatext, nextmatch);
     }
@@ -578,13 +580,13 @@ performer::song_info () const
 std::string
 performer::get_all_track_text (seq::number trk)
 {
-    static midi::event s_null_result{0, 0, 0};
+    static midi::event s_null_result { 0, 0, 0 };
     std::string result;
-    seq::pointer seqp = get_sequence(trk);
-    bool ok = bool(seqp);
+    seq::pointer seqp { get_sequence(trk) };
+    bool ok { bool(seqp) };
     if (ok)
     {
-        auto cev = seqp->cbegin();
+        auto cev { seqp->cbegin() };
         for (;;)
         {
             if (seqp->get_next_meta_match(EVENT_META_TEXT_EVENT, cev))
@@ -616,7 +618,7 @@ performer::unmodify ()
 bool
 performer::modified () const
 {
-    bool result = m_is_modified;
+    bool result { m_is_modified };
     if (! result)
         result = set_mapper().any_modified_sequences();
 
@@ -699,7 +701,7 @@ performer::notify_trigger_change (seq::number seqno, change mod)
     {
         if (seq_in_playing_screen(seqno))
         {
-            const seq::pointer s = get_sequence(seqno);
+            const seq::pointer s { get_sequence(seqno) };
             seqno %= screenset_size();
             announce_sequence(s, seqno);
         }
@@ -768,13 +770,13 @@ performer::notify_song_action (bool signalit, playlist::action act)
 bool
 performer::get_settings (const rcsettings & rcs, const usrsettings & usrs)
 {
-    int buses = rcs.clocks().count();
-    bool result = buses > 0;                        /* at least 1 output    */
+    int buses { rcs.clocks().count() };
+    bool result { buses > 0 };                      /* at least 1 output    */
     if (result)
     {
         m_clocks = rcs.clocks();
 
-        int inputs = rcs.inputs().count();
+        int inputs = rcs.inputs().count() };
         if (inputs > 0)
             m_inputs = rcs.inputs();
 
@@ -798,10 +800,10 @@ performer::get_settings (const rcsettings & rcs, const usrsettings & usrs)
         opm.active(false);
     }
 
-    int kcount = rcs.key_controls().count();
-    int micount = rcs.midi_control_in().count();
-    int moacount = rcs.midi_control_out().action_count();
-    int momcount = rcs.midi_control_out().macro_count();
+    int kcount { rcs.key_controls().count() };
+    int micount { rcs.midi_control_in().count() };
+    int moacount { rcs.midi_control_out().action_count() };
+    int momcount { rcs.midi_control_out().macro_count() };
     if (kcount > 0)
         m_key_controls = rcs.key_controls();
 
@@ -826,7 +828,7 @@ performer::get_settings (const rcsettings & rcs, const usrsettings & usrs)
     m_midi_control_out = rcs.midi_control_out();
     if (rc().mute_group_file_active())
     {
-        const std::string & mgf = rc().mute_group_filespec();
+        const std::string & mgf { rc().mute_group_filespec() };
         (void) open_mutegroups(mgf);
     }
     if (! rc().song_start_auto())                   /* detect live vs song  */
@@ -882,7 +884,7 @@ performer::put_settings (rcsettings & rcs, usrsettings & usrs)
     rcs.midi_control_out() = m_midi_control_out;
     if (mutes().is_modified() && rc().mute_group_file_active())
     {
-        const std::string & mgf = rc().mute_group_filespec();
+        const std::string & mgf { rc().mute_group_filespec() };
         (void) save_mutegroups(mgf);
     }
 
@@ -918,7 +920,7 @@ performer::put_settings (rcsettings & rcs, usrsettings & usrs)
 std::string
 performer::automation_key (automation::slot s)
 {
-    int index = slot_to_int_cast(s);
+    int index { slot_to_int_cast(s) };
     return m_key_controls.automation_key(index);
 }
 
@@ -957,15 +959,15 @@ performer::playlist_filename (const std::string & basename)
 bool
 performer::reload_mute_groups (std::string & errmessage)
 {
-    const std::string filename = rc().mute_group_filespec();
-    bool result = open_mutegroups(filename);
+    const std::string filename { rc().mute_group_filespec() };
+    bool result { open_mutegroups(filename) };
     if (result)
     {
         result = get_settings(rc(), usr());
     }
     else
     {
-        std::string msg = filename;
+        std::string msg { filename };
         msg += ": reading mutes failed";
         errmessage = msg;
         append_error_message(errmessage);           /* show it on console   */
@@ -976,9 +978,9 @@ performer::reload_mute_groups (std::string & errmessage)
 bool
 performer::store_io_maps ()
 {
-    bool oki = build_input_port_map(m_inputs);
-    bool oko = build_output_port_map(m_clocks);
-    bool result = oki && oko;
+    bool oki { build_input_port_map(m_inputs) };
+    bool oko { build_output_port_map(m_clocks) };
+    bool result { oki && oko };
     if (result)
     {
         /*
@@ -1015,8 +1017,8 @@ performer::activate_io_maps (bool active)
 void
 performer::store_io_maps_and_restart () const
 {
-    performer * ncperf = const_cast<performer *>(this);
-    bool ok = ncperf->store_io_maps();
+    performer * ncperf { const_cast<performer *>(this) };
+    bool ok { ncperf->store_io_maps() };
     if (ok)
         signal_for_restart();
 }
@@ -1024,7 +1026,7 @@ performer::store_io_maps_and_restart () const
 midi::bussbyte
 performer::true_input_bus (midi::bussbyte nominalbuss) const
 {
-    midi::bussbyte result = nominalbuss;
+    midi::bussbyte result { nominalbuss };
     if (! is_null_buss(result))
     {
         result = seq66::true_input_bus(m_inputs, nominalbuss);
@@ -1034,7 +1036,7 @@ performer::true_input_bus (midi::bussbyte nominalbuss) const
             std::string busname;                    /* this is what we want */
             (void) ui_get_input(nominalbuss, busstatus, busname, false);
 
-            std::string msg = "Unavailable input bus ";
+            std::string msg { "Unavailable input bus " };
             msg += std::to_string(unsigned(nominalbuss));
             if (! busname.empty())
             {
@@ -1078,8 +1080,8 @@ performer::ui_get_input
     midi::bussbyte bus, bool & active, std::string & n, bool statusshow
 ) const
 {
-    const inputslist & ipm = input_port_map();
-    bool unavailable = false;
+    const inputslist & ipm { input_port_map() };
+    bool unavailable { false };
     std::string name;
     std::string alias;
     if (ipm.active())                   /* Should we do this in one call?   */
@@ -1124,25 +1126,25 @@ performer::is_input_system_port (midi::bussbyte bus) const
 bool
 performer::new_ports_available () const
 {
-    bool result = false;
+    bool result { false };
     if (not_nullptr(master_bus()))
     {
-        const mastermidibus * mbus = master_bus();
-        bool new_outputs = false;
-        const clockslist & opm = output_port_map();
+        const mastermidibus * mbus { master_bus() };
+        bool new_outputs { false };
+        const clockslist & opm { output_port_map() };
         if (opm.active())
         {
-            int mappedbuses = opm.available_count();
-            int realbuses = mbus->get_num_out_buses();
-            new_outputs = mappedbuses < realbuses;
+            int mappedbuses { opm.available_count() };
+            int realbuses { mbus->get_num_out_buses() };
+            new_outputs { mappedbuses < realbuses };
         }
 
-        bool new_inputs = false;
-        const inputslist & ipm = input_port_map();
+        bool new_inputs { false };
+        const inputslist & ipm { input_port_map() };
         if (ipm.active())
         {
-            int mappedbuses = ipm.available_count();
-            int realbuses = mbus->get_num_in_buses();
+            int mappedbuses { ipm.available_count() };
+            int realbuses { mbus->get_num_in_buses() };
             new_inputs = mappedbuses < realbuses;
         }
         if (! m_port_map_error)         /* might have earlier errors    */
@@ -1156,12 +1158,12 @@ performer::new_ports_available () const
 bool
 performer::is_port_unavailable (midi::bussbyte bus, midibase::io iotype) const
 {
-    bool result = true;
-    bool processed = false;
+    bool result { true };
+    bool processed { false };
     if (iotype == midibase::io::output)
     {
-        const clockslist & opm = output_port_map();
-        bool outportmap = opm.active();
+        const clockslist & opm { output_port_map() };
+        bool outportmap = opm.active() };
         if (outportmap)
         {
             result = ! opm.is_available(bus);
@@ -1170,8 +1172,8 @@ performer::is_port_unavailable (midi::bussbyte bus, midibase::io iotype) const
     }
     else if (iotype == midibase::io::input)
     {
-        const inputslist & ipm = input_port_map();
-        bool inportmap = ipm.active();
+        const inputslist & ipm { input_port_map() };
+        bool inportmap { ipm.active() };
         if (inportmap)
         {
             result = ! ipm.is_available(bus);
@@ -1213,13 +1215,13 @@ performer::is_port_unavailable (midi::bussbyte bus, midibase::io iotype) const
 bool
 performer::any_ports_unavailable (bool accept_zero_inputs) const
 {
-    bool result = is_nullptr(master_bus());
-    const mastermidibus * mbus = master_bus();
+    bool result { is_nullptr(master_bus()) };
+    const mastermidibus * mbus { master_bus() };
     if (! result)
     {
-        const clockslist & opm = output_port_map();
-        bool outportmap = opm.active();
-        int buses = outportmap ? opm.count() : mbus->get_num_out_buses() ;
+        const clockslist & opm { output_port_map() };
+        bool outportmap { opm.active() };
+        int buses = outportmap ? opm.count() : mbus->get_num_out_buses() };
         if (buses == 0)
         {
             result = true;
@@ -1228,7 +1230,7 @@ performer::any_ports_unavailable (bool accept_zero_inputs) const
         {
             for (int bus = 0; bus < buses; ++bus)
             {
-                midi::bussbyte b = true_output_bus(bus);      /* maybe translate  */
+                midi::bussbyte b { true_output_bus(bus) }; /* translate?    */
                 if (is_null_buss(result))
                 {
                     result = true;
@@ -1250,9 +1252,9 @@ performer::any_ports_unavailable (bool accept_zero_inputs) const
     }
     if (! result)
     {
-        const inputslist & ipm = input_port_map();
-        bool inportmap = ipm.active();
-        int buses = inportmap ? ipm.count() : mbus->get_num_in_buses() ;
+        const inputslist & ipm { input_port_map() };
+        bool inportmap { ipm.active() };
+        int buses { inportmap ? ipm.count() : mbus->get_num_in_buses() };
         if (buses == 0)
         {
             result = ! accept_zero_inputs;
@@ -1261,7 +1263,7 @@ performer::any_ports_unavailable (bool accept_zero_inputs) const
         {
             for (int bus = 0; bus < buses; ++bus)
             {
-                midi::bussbyte b = true_input_bus(bus);       /* maybe translate  */
+                midi::bussbyte b { true_input_bus(bus) };   /* translate?   */
                 if (is_null_buss(result))
                 {
                     result = true;
@@ -1302,11 +1304,11 @@ performer::any_ports_unavailable (bool accept_zero_inputs) const
 bool
 performer::ui_set_input (midi::bussbyte bus, bool active)
 {
-    midi::bussbyte truebus = true_input_bus(bus);
-    bool result = m_master_bus->set_input(truebus, active);
+    midi::bussbyte truebus { true_input_bus(bus) };
+    bool result { m_master_bus->set_input(truebus, active) };
     if (result)
     {
-        inputslist & ipm = input_port_map();
+        inputslist & ipm { input_port_map() };
         if (ipm.active())
             result = ipm.set(bus, active);
 
@@ -1324,8 +1326,8 @@ performer::ui_get_clock
     std::string & n, bool statusshow
 ) const
 {
-    const clockslist & opm = output_port_map();
-    bool unavailable = false;
+    const clockslist & opm { output_port_map() };
+    bool unavailable { false };
     std::string name;
     std::string alias;
     if (opm.active())                   /* Should we do this in one call?   */
@@ -1363,7 +1365,7 @@ performer::port_maps_active () const
 midi::bussbyte
 performer::true_output_bus (midi::bussbyte nominalbuss) const
 {
-    midi::bussbyte result = nominalbuss;
+    midi::bussbyte result { nominalbuss };
     if (! is_null_buss(result))
     {
         result = seq66::true_output_bus(m_clocks, nominalbuss);
@@ -1409,11 +1411,11 @@ performer::true_output_bus (midi::bussbyte nominalbuss) const
 bool
 performer::ui_set_clock (midi::bussbyte bus, midi::clock::clocking clocktype)
 {
-    midi::bussbyte truebus = true_output_bus(bus);
-    bool result = m_master_bus->set_clock(truebus, clocktype);
+    midi::bussbyte truebus { true_output_bus(bus) };
+    bool result { m_master_bus->set_clock(truebus, clocktype) };
     if (result)
     {
-        clockslist & opm = output_port_map();
+        clockslist & opm { output_port_map() };
         if (opm.active())
             result = opm.set(bus, clocktype);
 
@@ -1467,13 +1469,13 @@ std::string
 performer::sequence_label (seq::cref seq) const
 {
     std::string result;
-    int sn = seq.seq_number();
+    int sn { seq.seq_number() };
     if (is_seq_active(sn))
     {
-        midi::bussbyte bus = seq.seq_midi_bus();
-        int bpb = int(seq.get_beats_per_bar());
-        int bw = int(seq.get_beat_width());
-        int chanvar = int(seq.midi_channel());
+        midi::bussbyte bus { seq.seq_midi_bus() };
+        int bpb { int(seq.get_beats_per_bar()) };
+        int bw { int(seq.get_beat_width()) };
+        int chanvar { int(seq.midi_channel()) };
         char tmp[32];
         if (is_null_channel(chanvar))
         {
@@ -1507,7 +1509,7 @@ performer::sequence_label (seq::cref seq) const
 std::string
 performer::sequence_label (seq::number seqno) const
 {
-    const seq::pointer s = get_sequence(seqno);
+    const seq::pointer { get_sequence(seqno) };
     return s ? sequence_label(*s) : std::string("") ;
 }
 
@@ -1529,11 +1531,11 @@ std::string
 performer::sequence_title (seq::cref seq) const
 {
     std::string result;
-    int sn = seq.seq_number();
+    int sn { seq.seq_number() };
     if (is_seq_active(sn))
     {
         char temp[16];
-        const char * fmt = usr().window_scaled_down() ? "%.11s" : "%.14s" ;
+        const char * fmt { usr().window_scaled_down() ? "%.11s" : "%.14s" };
         snprintf(temp, sizeof temp, fmt, V(seq.title()));
         result = std::string(temp);
     }
@@ -1557,11 +1559,11 @@ performer::sequence_title (seq::cref seq) const
 std::string
 performer::sequence_window_title (seq::cref seq) const
 {
-    std::string result = seq_app_name();
-    int sn = seq.seq_number();
+    std::string result { seq_app_name() };
+    int sn { seq.seq_number() };
     if (is_seq_active(sn))
     {
-        int ppqn = seq.get_ppqn();
+        int ppqn { seq.get_ppqn() };
         char temp[32];
         snprintf(temp, sizeof temp, " (%d ppqn)", ppqn);
         result += " #";
@@ -1590,11 +1592,11 @@ performer::sequence_window_title (seq::cref seq) const
 std::string
 performer::main_window_title (const std::string & filename) const
 {
-    std::string result = seq_package_name() + std::string(" ");
-    std::string itemname = rc().no_name();
+    std::string result { seq_package_name() + std::string(" ") };
+    std::string itemname { rc().no_name() };
     if (filename.empty())
     {
-        std::string fn = rc().midi_filename();
+        std::string fn { rc().midi_filename() };
         if (! fn.empty())
         {
 
@@ -1629,7 +1631,7 @@ performer::pulses_to_time_string (midi::pulse tick) const
 std::string
 performer::client_id_string () const
 {
-    std::string result = seq_client_name();
+    std::string result { seq_client_name() };
     result += ':';
     if (rc().with_jack_midi() && ! rc().jack_session().empty())
         result += rc().jack_session();
@@ -1678,7 +1680,7 @@ performer::client_id_string () const
 bool
 performer::install_sequence (sequence * s, seq::number & seqno, bool fileload)
 {
-    bool result = set_mapper().install_sequence(s, seqno);
+    bool result { set_mapper().install_sequence(s, seqno) };
     if (result)
     {
         s->set_parent(this);                    /* also sets a lot of stuff */
@@ -1704,7 +1706,6 @@ performer::install_sequence (sequence * s, seq::number & seqno, bool fileload)
              */
 
             result = add_to_play_set(s);
-
         }
 
         /*
@@ -1720,7 +1721,7 @@ performer::install_sequence (sequence * s, seq::number & seqno, bool fileload)
 bool
 performer::add_to_play_set (sequence * s)
 {
-    bool result = set_mapper().add_to_play_set(play_set(), s);
+    bool result { set_mapper().add_to_play_set(play_set(), s) };
     if (result)
         record_by_buss(sequence_inbus_setup());
 
@@ -1730,7 +1731,7 @@ performer::add_to_play_set (sequence * s)
 bool
 performer::fill_play_set (bool clearit)
 {
-    bool result = set_mapper().fill_play_set(play_set(), clearit);
+    bool result { set_mapper().fill_play_set(play_set(), clearit) };
     if (result)
         record_by_buss(sequence_inbus_setup());
 
@@ -1788,11 +1789,11 @@ performer::get_sequence (seq::number seqno)
 bool
 performer::set_current_sequence (seq::number seqno)
 {
-    const seq::pointer s = get_sequence(seqno);
-    bool result = not_nullptr(s);
+    const seq::pointer { = get_sequence(seqno) };
+    bool result { not_nullptr(s) };
     if (result)
     {
-        const seq::pointer sold = get_sequence(m_current_seqno);
+        const seq::pointer sold { get_sequence(m_current_seqno) };
         if (sold && ! sold->recording())
         {
             m_old_seqno = m_current_seqno;
@@ -1823,9 +1824,10 @@ performer::install_metronome ()
         return true;
     }
 
-    const metrosettings & ms = rc().metro_settings();
+    const metrosettings & ms { rc().metro_settings() };
     m_metronome.reset(new (std::nothrow) metro(ms));
-    bool result = bool(m_metronome);
+
+    bool result { bool(m_metronome) };
     if (result)
     {
         result = m_metronome->initialize(this);     /* add events and arm   */
@@ -1840,7 +1842,7 @@ performer::install_metronome ()
 bool
 performer::is_metronome (seq::number seqno) const
 {
-    bool result = sequence::is_metronome(seqno);
+    bool result { sequence::is_metronome(seqno) };
     if (result)
         result = bool(m_metronome);
 
@@ -1850,12 +1852,12 @@ performer::is_metronome (seq::number seqno) const
 bool
 performer::reload_metronome ()
 {
-    bool wasrunning = is_running();
+    bool wasrunning { is_running() };
     if (wasrunning)
         auto_stop();                                /* or pause? */
 
     remove_metronome();
-    bool result = install_metronome();
+    bool result { install_metronome() };
     if (wasrunning)
         auto_play();
 
@@ -1867,7 +1869,7 @@ performer::remove_metronome ()
 {
     if (m_metronome)
     {
-        seq::number seqno =  m_metronome->seq_number();
+        seq::number seqno { m_metronome->seq_number() };
         auto_stop();                                /* or pause? */
         play_set().remove(seqno);
         if (m_metronome)
@@ -1902,9 +1904,10 @@ performer::install_recorder ()
     if (bool(m_recorder))                           /* transitory pointer   */
         return true;                                /* already in progress  */
 
-    metrosettings & ms = rc().metro_settings();
+    metrosettings & ms { rc().metro_settings() };
     m_recorder = new (std::nothrow) recorder(ms);
-    bool result = not_nullptr(m_recorder);
+
+    bool result { not_nullptr(m_recorder) };
     if (result)
     {
         result = new_sequence(m_recorder, 0);       /* earliest slot        */
@@ -1950,7 +1953,7 @@ performer::remove_recorder ()
 bool
 performer::finish_recorder ()
 {
-    bool result = not_nullptr(m_recorder);
+    bool result { not_nullptr(m_recorder) };
     if (result)
         result = m_recorder->event_count() > 0;
 
@@ -1983,7 +1986,7 @@ performer::finish_recorder ()
 bool
 performer::start_count_in ()
 {
-    bool result = rc().metro_settings().count_in_active();
+    bool result { rc().metro_settings().count_in_active() };
     if (result)
         result = bool(m_metronome);         /* the metronome pattern exists */
 
@@ -2006,7 +2009,7 @@ performer::start_count_in ()
 bool
 performer::finish_count_in ()
 {
-    bool result = m_metronome_count_in;
+    bool result { m_metronome_count_in };
     if (result)
     {
         auto_stop();                        /* halt playback                */
@@ -2051,8 +2054,8 @@ performer::finish_count_in ()
 bool
 performer::new_sequence (seq::number & finalseq, seq::number seqno)
 {
-    sequence * seqptr = new (std::nothrow) sequence(ppqn());
-    bool result = new_sequence(seqptr, seqno);
+    sequence * seqptr { new (std::nothrow) sequence(ppqn()) };
+    bool result { new_sequence(seqptr, seqno) };
     if (result)
         finalseq = seqptr->seq_number();
 
@@ -2062,18 +2065,18 @@ performer::new_sequence (seq::number & finalseq, seq::number seqno)
 bool
 performer::new_sequence (sequence * seqptr, seq::number seqno)
 {
-    bool result = not_nullptr(seqptr);
+    bool result { not_nullptr(seqptr) };
     if (result && seqno != seq::unassigned())
     {
         result = install_sequence(seqptr, seqno);
         if (result)
         {
-            const seq::pointer s = get_sequence(seqno);
+            const seq::pointer s { get_sequence(seqno) };
             result = not_nullptr(s);
             if (result)
             {
-                seq::number finalseq = s->seq_number();
-                screenset::number setno = set_mapper().seq_set(seqno);
+                seq::number finalseq { s->seq_number() };
+                screenset::number setno { set_mapper().seq_set(seqno) };
                 s->set_dirty();
                 record_by_buss(sequence_inbus_setup());
                 announce_sequence(s, finalseq);         /* issue #112       */
@@ -2103,11 +2106,11 @@ performer::new_sequence (sequence * seqptr, seq::number seqno)
 bool
 performer::channelize_sequence (seq::number seqno, int channel)
 {
-    bool result = channel != c_midichannel_null;
+    bool result { channel != c_midichannel_null };
     if (result)
     {
-        const seq::pointer s = get_sequence(seqno);
-        bool result = bool(s);
+        const seq::pointer s { get_sequence(seqno) };
+        bool result { bool(s) };
         if (result)
         {
             m_seq_clipboard.partial_assign(*s, true);
@@ -2124,8 +2127,8 @@ performer::channelize_sequence (seq::number seqno, int channel)
 bool
 performer::clear_sequence (seq::number seqno)
 {
-    const seq::pointer s = get_sequence(seqno);
-    bool result = bool(s);
+    const seq::pointer s { get_sequence(seqno) };
+    bool result { bool(s) };
     if (result)
         result = s->clear_events();         /* ultimately calls modify()    */
 
@@ -2139,8 +2142,8 @@ performer::clear_sequence (seq::number seqno)
 bool
 performer::double_sequence (seq::number seqno)
 {
-    const seq::pointer s = get_sequence(seqno);
-    bool result = bool(s);
+    const seq::pointer s { get_sequence(seqno) };
+    bool result { bool(s) };
     if (result)
         result = s->double_length();        /* ultimately calls modify()    */
 
@@ -2169,10 +2172,10 @@ performer::double_sequence (seq::number seqno)
 bool
 performer::remove_sequence (seq::number seqno)
 {
-    bool result = set_mapper().remove_sequence(seqno);
+    bool result { set_mapper().remove_sequence(seqno) };
     if (result)
     {
-        seq::number buttonno = seqno - playscreen_offset();
+        seq::number buttonno { seqno - playscreen_offset() };
         send_seq_event(buttonno, midicontrolout::seqaction::removed);
         record_by_buss(sequence_inbus_setup());
         notify_sequence_change(seqno, change::recreate);
@@ -2184,8 +2187,8 @@ performer::remove_sequence (seq::number seqno)
 bool
 performer::copy_sequence (seq::number seqno)
 {
-    const seq::pointer s = get_sequence(seqno);
-    bool result = bool(s);
+    const seq::pointer s { get_sequence(seqno) };
+    bool result { bool(s) };
     if (result)
         m_seq_clipboard.partial_assign(*s, true);
 
@@ -2195,10 +2198,10 @@ performer::copy_sequence (seq::number seqno)
 bool
 performer::cut_sequence (seq::number seqno)
 {
-    bool result = is_seq_active(seqno) && ! is_seq_in_edit(seqno);
+    bool result { is_seq_active(seqno) && ! is_seq_in_edit(seqno) };
     if (result)
     {
-        seq::pointer s = get_sequence(seqno);
+        seq::pointer s { get_sequence(seqno) };
         result = bool(s);
         if (result)
         {
@@ -2212,13 +2215,13 @@ performer::cut_sequence (seq::number seqno)
 bool
 performer::paste_sequence (seq::number seqno)
 {
-    bool result = ! is_seq_active(seqno);
+    bool result { ! is_seq_active(seqno) };
     if (result)
     {
         static seq::number s_dummy;
         if (new_sequence(s_dummy, seqno))           /* handles notification */
         {
-            seq::pointer s = get_sequence(seqno);
+            seq::pointer s { get_sequence(seqno) };
             s->partial_assign(m_seq_clipboard);
         }
     }
@@ -2228,14 +2231,14 @@ performer::paste_sequence (seq::number seqno)
 bool
 performer::merge_sequence (seq::number seqno)
 {
-    bool result = false;
+    bool result { false };
     if (! is_seq_active(seqno))
     {
         result = paste_sequence(seqno);             /* handles notification */
     }
     else
     {
-        seq::pointer s = get_sequence(seqno);
+        seq::pointer s { get_sequence(seqno) };
         result = s->merge_events(m_seq_clipboard);
         if (result)
         {
@@ -2254,10 +2257,10 @@ performer::merge_sequence (seq::number seqno)
 bool
 performer::move_sequence (seq::number seqno)
 {
-    bool result = is_seq_active(seqno);
+    bool result { is_seq_active(seqno) };
     if (result)
     {
-        seq::pointer s = get_sequence(seqno);
+        seq::pointer s { get_sequence(seqno) };
         m_old_seqno = seqno;
         m_moving_seq.partial_assign(*s);
         result = remove_sequence(seqno);
@@ -2269,7 +2272,7 @@ bool
 performer::finish_move (seq::number seqno)
 {
     static seq::number s_dummy;
-    bool result = false;
+    bool result { false };
     if (! is_seq_active(seqno))
     {
         if (new_sequence(s_dummy, seqno))
@@ -2292,8 +2295,8 @@ performer::finish_move (seq::number seqno)
 bool
 performer::fix_sequence (seq::number seqno, fixparameters & params)
 {
-    bool result = false;
-    seq::pointer s = get_sequence(seqno);
+    bool result { false };
+    seq::pointer s { get_sequence(seqno) };
     if (s)
     {
         result = s->fix_pattern(params);
@@ -2334,7 +2337,7 @@ performer::fix_sequence (seq::number seqno, fixparameters & params)
 bool
 performer::set_ppqn (int p)
 {
-    bool result = m_ppqn != p && ppqn_in_range(p);
+    bool result { m_ppqn != p && ppqn_in_range(p) };
     if (result)
     {
         if (m_master_bus)
@@ -2365,10 +2368,10 @@ performer::set_ppqn (int p)
 int
 performer::get_ppqn_from_master_bus () const
 {
-    int result = ppqn();
+    int result { ppqn() };
     if (m_master_bus)
     {
-        int mbppq = master_bus()->get_ppqn();
+        int mbppq { master_bus()->get_ppqn() };
         if (mbppq != result)
         {
             warnprint("master PPQN != performer PPQN");
@@ -2381,10 +2384,10 @@ performer::get_ppqn_from_master_bus () const
 int
 performer::ppqn () const
 {
-    int result = m_ppqn;
+    int result { m_ppqno };
     if (c_use_file_ppqn)
     {
-        int fileppq = m_file_ppqn;
+        int fileppq { m_file_ppqno };
         if (fileppq != result)
         {
             warnprint("file PPQN != performer PPQN");
@@ -2404,14 +2407,14 @@ performer::ppqn () const
 bool
 performer::change_ppqn (int p)
 {
-    bool result = set_ppqn(p);                  /* performer & master bus   */
+    bool result { set_ppqn(p) };                /* performer & master bus   */
     if (result)
     {
         set_mapper().exec_set_function
         (
             [p] (seq::pointer sp, seq::number /*sn*/)
             {
-                bool result = bool(sp);
+                bool result { bool(sp) };
                 if (result)
                     sp->change_ppqn(p);
 
@@ -2420,9 +2423,10 @@ performer::change_ppqn (int p)
         );
         if (result)
         {
-            change ch = rc().midi_filename().empty() ?
-                change::no : change:: yes;
-
+            change ch
+            {
+                rc().midi_filename().empty() ? change::no : change:: yes
+            };
             notify_resolution_change(ppqn(), get_beats_per_minute(), ch);
         }
     }
@@ -2441,8 +2445,8 @@ performer::change_ppqn (int p)
 bool
 performer::ui_change_set_bus (int buss)
 {
-    midi::bussbyte b = midi::bussbyte(buss);
-    bool result = is_good_buss(b);
+    midi::bussbyte b { midi::bussbyte(buss) };
+    bool result { is_good_buss(b) };
     if (result)
     {
         for (auto seqi : play_set().seq_container())
@@ -2478,15 +2482,15 @@ performer::next_song_mode ()
     (void) set_playing_screenset(screenset::number(0));
     if (rc().song_start_auto())                     /* detect live vs song  */
     {
-        bool has_triggers = set_mapper().trigger_count() > 0;
+        bool has_triggers { set_mapper().trigger_count() > 0 };
         song_mode(has_triggers);
         if (has_triggers || playlist_auto_arm())    /* ca 2023-10-29        */
             set_song_mute(mutegroups::action::off);
     }
     else
     {
-        bool mutem = rc().is_setsmode_normal();
-        bool songmode = rc().song_start_mode();     /* song vs live here    */
+        bool mutem { rc().is_setsmode_normal() };
+        bool songmode { rc().song_start_mode() };   /* song vs live here    */
         mute_all_tracks(mutem);
         song_mode(songmode);
     }
@@ -2612,10 +2616,10 @@ performer::screenset_name
     bool is_load_modification
 )
 {
-    bool changed = set_mapper().name(sn, name);
+    bool changed { set_mapper().name(sn, name) };
     if (changed)
     {
-        change mod = is_load_modification ? change::no : change::yes ;
+        change mod { is_load_modification ? change::no : change::yes };
         notify_set_change(sn, mod);
     }
 }
@@ -2637,7 +2641,7 @@ performer::screenset_name
 bool
 performer::needs_update (seq::number seqno) const
 {
-    bool result = false;
+    bool result { false };
     if (m_is_busy)
     {
         warn_message("performer busy!");
@@ -2696,7 +2700,7 @@ performer::needs_update (seq::number seqno) const
 bool
 performer::set_beats_per_minute (midibpm bp, bool user_change)
 {
-    bool result = usr().bpm_is_valid(bp);
+    bool result { usr().bpm_is_valid(bp) };
     if (result)
         result = bp != get_beats_per_minute();
 
@@ -2742,13 +2746,13 @@ performer::set_beats_per_minute (midibpm bp, bool user_change)
 bool
 performer::jack_set_beats_per_minute (midibpm bp, bool user_change)
 {
-    bool result = bp != m_bpm && usr().bpm_is_valid(bp);
+    bool result { bp != m_bpm && usr().bpm_is_valid(bp) };
     if (result)
     {
 #if defined SEQ66_JACK_SUPPORT
         m_jack_asst.set_beats_per_minute(bp);           /* see banner note  */
 #endif
-        int ppq = ppqn();                               /* was get_ppqn()   */
+        int ppq { ppqn() };                             /* was get_ppqn()   */
         if (m_master_bus)
             m_master_bus->set_beats_per_minute(bp);
 
@@ -2760,7 +2764,7 @@ performer::jack_set_beats_per_minute (midibpm bp, bool user_change)
          * next song triggers a bogus modify() call.
          */
 
-        change ch = rc().midi_filename().empty() ? change::no : change::yes ;
+        change ch { rc().midi_filename().empty() ? change::no : change::yes };
         if (rc().playlist_active() || ! user_change)
             ch = change::no;
 
@@ -2780,7 +2784,7 @@ performer::jack_set_beats_per_minute (midibpm bp, bool user_change)
 midibpm
 performer::decrement_beats_per_minute ()
 {
-    midibpm result = get_beats_per_minute() - usr().bpm_step_increment();
+    midibpm result { get_beats_per_minute() - usr().bpm_step_increment() };
     set_beats_per_minute(result, true);
     return result;
 }
@@ -2796,7 +2800,7 @@ performer::decrement_beats_per_minute ()
 midibpm
 performer::increment_beats_per_minute ()
 {
-    midibpm result = get_beats_per_minute() + usr().bpm_step_increment();
+    midibpm result { get_beats_per_minute() + usr().bpm_step_increment() };
     set_beats_per_minute(result, true);
     return result;
 }
@@ -2815,7 +2819,7 @@ performer::increment_beats_per_minute ()
 midibpm
 performer::page_decrement_beats_per_minute ()
 {
-    midibpm result = get_beats_per_minute() - usr().bpm_page_increment();
+    midibpm result { get_beats_per_minute() - usr().bpm_page_increment() };
     set_beats_per_minute(result, true);
     return result;
 }
@@ -2834,7 +2838,7 @@ performer::page_decrement_beats_per_minute ()
 midibpm
 performer::page_increment_beats_per_minute ()
 {
-    midibpm result = get_beats_per_minute() + usr().bpm_page_increment();
+    midibpm result { get_beats_per_minute() + usr().bpm_page_increment() };
     set_beats_per_minute(result, true);
     return result;
 }
@@ -2847,8 +2851,8 @@ performer::page_increment_beats_per_minute ()
 midibpm
 performer::update_tap_bpm ()
 {
-    midibpm bp = 0.0;
-    long ms = millitime();
+    midibpm bp { 0.0 };
+    long ms { millitime() };
     if (m_current_beats == 0)
     {
         m_base_time_ms = ms;
@@ -2856,7 +2860,7 @@ performer::update_tap_bpm ()
     }
     else if (m_current_beats >= 1)
     {
-        int diffms = ms - m_base_time_ms;
+        int diffms { ms - m_base_time_ms };
         bp = diffms > 0 ? (m_current_beats * 60000.0 / diffms) : m_bpm ;;
         m_last_time_ms = ms;
     }
@@ -2867,11 +2871,11 @@ performer::update_tap_bpm ()
 bool
 performer::tap_bpm_timeout ()
 {
-    bool result = false;
+    bool result { false };
     if (m_current_beats > 0 && m_last_time_ms > 0)
     {
-        long ms = millitime();
-        long difference = ms - m_last_time_ms;
+        long ms { millitime() };
+        long difference { ms - m_last_time_ms };
         if (difference > usr().tap_button_timeout())
         {
             clear_current_beats();
@@ -2898,13 +2902,13 @@ performer::tap_bpm_timeout ()
 bool
 performer::log_current_tempo ()
 {
-    seq::pointer s = get_sequence(rc().tempo_track_number());
-    bool result = bool(s);
+    seq::pointer s { get_sequence(rc().tempo_track_number());
+    bool result { bool(s) };
     if (result)
     {
-        midi::pulse tick = get_tick();
-        midi::bpm bp = get_beats_per_minute();
-        midi::event e = create_tempo_event(tick, bp);
+        midi::pulse tick { get_tick() };
+        midi::bpm bp { get_beats_per_minute() };
+        midi::event e { create_tempo_event(tick, bp) };
         if (s->add_event(e))                                /* sorts too    */
         {
             s->set_dirty();
@@ -2927,13 +2931,13 @@ performer::log_current_tempo ()
 screenset::number
 performer::set_playing_screenset (screenset::number setno)
 {
-    bool ok = ! done();
+    bool ok { ! done() };
     if (ok)
         ok = set_mapper().set_playing_screenset(setno);
 
     if (ok)
     {
-        bool clearit = rc().is_setsmode_clear();    /* remove all patterns? */
+        bool clearit { rc().is_setsmode_clear() };  /* remove all patterns? */
         announce_exit(false);                       /* blank the device     */
         unset_queued_replace();                     /* clear queueing       */
         (void) fill_play_set(clearit);
@@ -2981,15 +2985,15 @@ performer::reset_playset ()
 bool
 performer::copy_playscreen ()
 {
-    screenset::number pscreen = playscreen_number();
+    screenset::number pscreen { playscreen_number() };
     return set_mapper().save_screenset(pscreen);
 }
 
 bool
 performer::paste_to_playscreen ()
 {
-    screenset::number pscreen = playscreen_number();
-    bool result = set_mapper().paste_screenset(pscreen);
+    screenset::number pscreen { playscreen_number() };
+    bool result { set_mapper().paste_screenset(pscreen) };
     if (result)
         notify_set_change(pscreen, change::yes);
 
@@ -3006,7 +3010,7 @@ performer::paste_to_playscreen ()
 bool
 performer::remove_set (screenset::number setno)
 {
-    bool result = set_mapper().remove_set(setno);
+    bool result { set_mapper().remove_set(setno) };
     if (result)
         notify_set_change(setno, change::removed);
 
@@ -3023,7 +3027,7 @@ performer::remove_set (screenset::number setno)
 bool
 performer::clear_set (screenset::number setno)
 {
-    bool result = set_mapper().clear_set(setno);
+    bool result { set_mapper().clear_set(setno) };
     if (result)
         notify_set_change(setno, change::removed);
 
@@ -3038,7 +3042,7 @@ performer::clear_set (screenset::number setno)
 bool
 performer::swap_sets (seq::number set0, seq::number set1)
 {
-    bool result = set_mapper().swap_sets(set0, set1);
+    bool result { set_mapper().swap_sets(set0, set1) };
     if (result)
     {
         notify_set_change(set0);
@@ -3081,7 +3085,7 @@ performer::swap_sets (seq::number set0, seq::number set1)
 bool
 performer::clear_all (bool /* clearplaylist */ )
 {
-    bool result = clear_song();
+    bool result { clear_song() };
     usr().clear_global_seq_features();
     m_song_info.clear();
     if (result)
@@ -3107,7 +3111,7 @@ performer::clear_all (bool /* clearplaylist */ )
 bool
 performer::clear_song ()
 {
-    bool result = ! set_mapper().any_in_edit() && ! m_is_busy;
+    bool result { ! set_mapper().any_in_edit() && ! m_is_busy };
     if (result)
     {
         m_is_busy = true;               /* { */
@@ -3152,8 +3156,8 @@ performer::clear_song ()
 void
 performer::reset_sequences (bool p)
 {
-    void (sequence::* f) (bool) = p ? &sequence::pause : &sequence::stop ;
-    bool songmode = song_mode();
+    void (sequence::* f) (bool) { p ? &sequence::pause : &sequence::stop };
+    bool songmode { song_mode() };
     for (auto & seqi : play_set().seq_container())
         (seqi.get()->*f)(songmode);
 
@@ -3174,8 +3178,8 @@ performer::repitch (midi::event & ev) const
 {
     if (notemap_exists() && ev.is_note())
     {
-        midi::byte incoming = ev.d0();
-        midi::byte outgoing = m_note_mapper->fast_convert(incoming);
+        midi::byte incoming { ev.d0() };
+        midi::byte outgoing { m_note_mapper->fast_convert(incoming) };
         if (rc().investigate())
             printf("Note %d in --> %d out\n", incoming, outgoing);
 
@@ -3186,7 +3190,7 @@ performer::repitch (midi::event & ev) const
 bool
 performer::repitch_all (const std::string & nmapfile, seq::ref s)
 {
-    bool result = open_note_mapper(nmapfile);
+    bool result { open_note_mapper(nmapfile) };
     if (result)
         result = s.repitch(*m_note_mapper, true);
 
@@ -3199,7 +3203,7 @@ performer::repitch_all (const std::string & nmapfile, seq::ref s)
 bool
 performer::repitch_selected (const std::string & nmapfile, seq::ref s)
 {
-    bool result = open_note_mapper(nmapfile);
+    bool result { open_note_mapper(nmapfile) };
     if (result)
         result = s.repitch(*m_note_mapper);
 
@@ -3282,7 +3286,7 @@ performer::set_song_mute (mutegroups::action op)
 bool
 performer::create_master_bus ()
 {
-    bool result = false;
+    bool result { false };
     if (! m_master_bus)                 /* no master buss yet?  */
     {
         /*
@@ -3339,11 +3343,11 @@ bool
 performer::launch (int ppqn)
 {
 #if defined PLATFORM_WINDOWS
-    bool allow_unavailable_devices = true;
+    bool allow_unavailable_devices { true };
 #else
-    bool allow_unavailable_devices = false;
+    bool allow_unavailable_devices { false };
 #endif
-    bool result = create_master_bus();      /* calls set_port_statuses()    */
+    bool result { create_master_bus() };    /* calls set_port_statuses()    */
     if (result)
     {
         if (init_jack_transport())
@@ -3378,7 +3382,7 @@ performer::launch (int ppqn)
 #if defined SEQ66_USE_DEFAULT_PORT_MAPPING
             if (! rc().portmaps_present())  /* don't mung existing port-map */
             {
-                bool ok = store_io_maps();
+                bool ok { store_io_maps() };
                 if (ok)
                 {
                     rc().portmaps_active(true);
@@ -3401,14 +3405,14 @@ performer::launch (int ppqn)
 
             if (midi_control_in().is_enabled())
             {
-                midi::bussbyte namedbus = m_midi_control_in.nominal_buss();
-                midi::bussbyte truebus = true_input_bus(namedbus);
+                midi::bussbyte namedbus { m_midi_control_in.nominal_buss() };
+                midi::bussbyte truebus { true_input_bus(namedbus) };
                 m_midi_control_in.true_buss(truebus);
             }
             if (midi_control_out().is_enabled())
             {
-                midi::bussbyte namedbus = m_midi_control_out.nominal_buss();
-                midi::bussbyte truebus = true_output_bus(namedbus);
+                midi::bussbyte namedbus { m_midi_control_out.nominal_buss() };
+                midi::bussbyte truebus { true_output_bus(namedbus) };
                 m_midi_control_out.true_buss(truebus);
             }
             m_io_active = true;                     /* set done()           */
@@ -3421,17 +3425,17 @@ performer::launch (int ppqn)
             (void) set_playing_screenset(screenset::number(0));
             if (any_ports_unavailable())
             {
-                static bool s_already_added = false;
+                static bool s_already_added { false };
                 if (! s_already_added)
                 {
-                    std::string msg =
+                    std::string msg
+                    {
                         "Some ports missing. "
                         "Remap if that's fine. "
                         "OK preserves the map. "
                         "Exit to edit the 'rc' file directly. "
                         "Suppress this message in Preferences / Display."
-                        ;
-
+                    };
                     m_port_map_error = true;        /* mutable boolean      */
                     append_error_message(msg);
                     s_already_added = true;
@@ -3463,7 +3467,7 @@ performer::launch (int ppqn)
 bool
 performer::sequence_inbus_setup ()
 {
-    bool result = false;
+    bool result { false };
     if (rc().sequence_lookup_support())
     {
         /*
@@ -3480,7 +3484,7 @@ performer::sequence_inbus_setup ()
         {
             if (seqi->has_in_bus())
             {
-                midi::bussbyte b = seqi->true_in_bus();
+                midi::bussbyte b { seqi->true_in_bus() };
                 if (! is_null_buss(b))              /* b < buscount */
                 {
                     m_buss_patterns.push_back(seqi.get());
@@ -3522,13 +3526,13 @@ performer::sequence_inbus_clear ()
 sequence *
 performer::sequence_inbus_lookup (const midi::event & ev)
 {
-    sequence * result = nullptr;
+    sequence * result { nullptr };
 #if defined USE_OLD_CODE
-    size_t b = size_t(ev.input_bus());
+    size_t b { size_t(ev.input_bus()) };
     if (b < m_buss_patterns.size())
         result = m_buss_patterns[b];
 #else
-    midi::bussbyte b = ev.input_bus();
+    midi::bussbyte b { ev.input_bus() };
     for (auto seqi : m_buss_patterns)
     {
         if (b == seqi->true_in_bus())
@@ -3616,7 +3620,7 @@ performer::announce_mutes ()
 {
     for (int g = 0; g < mutegroups::Size(); ++g)
     {
-        bool hasany = mutes().any(mutegroup::number(g));
+        bool hasany { mutes().any(mutegroup::number(g)) };
         if (hasany)
             send_mutes_event(g, false);                 /* should turn red  */
         else
@@ -3654,7 +3658,7 @@ performer::announce_mutes ()
 bool
 performer::announce_sequence (seq::pointer s, seq::number sn)
 {
-    bool ok = not_nullptr(s);
+    bool ok { not_nullptr(s) };
     midicontrolout::seqaction what;
     if (ok)
     {
@@ -3685,8 +3689,8 @@ performer::announce_sequence (seq::pointer s, seq::number sn)
 bool
 performer::announce_pattern (seq::number seqno)
 {
-    seq::pointer s = get_sequence(seqno);
-    bool result = bool(s);
+    seq::pointer s { get_sequence(seqno) };
+    bool result { bool(s) };
     if (result)
         result = announce_sequence(s, set_mapper().seq_to_offset(*s));
 
@@ -3704,7 +3708,7 @@ performer::announce_pattern (seq::number seqno)
 bool
 performer::set_beats_per_measure (int bpm, bool user_change)
 {
-    bool result = bpm != m_beats_per_bar;   /* the current performer value  */
+    bool result { bpm != m_beats_per_bar }; /* the current performer value  */
     if (result)
     {
         set_beats_per_bar(bpm);             /* also sets in jack_assistant  */
@@ -3712,7 +3716,7 @@ performer::set_beats_per_measure (int bpm, bool user_change)
         (
             [bpm, user_change] (seq::pointer sp, seq::number /*sn*/)
             {
-                bool result = bool(sp);
+                bool result { bool(sp) };
                 if (result)
                 {
                     sp->set_beats_per_bar(bpm, user_change);
@@ -3736,7 +3740,7 @@ performer::set_beats_per_measure (int bpm, bool user_change)
 bool
 performer::set_beat_width (int bw, bool user_change)
 {
-    bool result = bw != m_beat_width;
+    bool result { bw != m_beat_width };
     if (result)
     {
         set_beat_length(bw);            /* also sets in jack_assistant  */
@@ -3744,7 +3748,7 @@ performer::set_beat_width (int bw, bool user_change)
         (
             [bw, user_change] (seq::pointer sp, seq::number /*sn*/)
             {
-                bool result = bool(sp);
+                bool result { bool(sp) };
                 if (result)
                 {
                     sp->set_beat_width(bw, user_change);
@@ -3791,7 +3795,7 @@ performer::launch_output_thread ()
 {
     if (rc().verbose())
     {
-        unsigned num_cpus = std::thread::hardware_concurrency();
+        unsigned num_cpus { std::thread::hardware_concurrency() };
         infoprintf("%u CPUs detected", num_cpus);
     }
     if (! m_out_thread_launched)
@@ -3801,8 +3805,8 @@ performer::launch_output_thread ()
         debug_message("Output thread launched");
         if (rc().priority())                        /* Not in MinGW RCB     */
         {
-            int p = rc().thread_priority();
-            bool ok = set_thread_priority(m_out_thread, p);
+            int p { rc().thread_priority() };
+            bool ok { set_thread_priority(m_out_thread, p) };
             if (ok)
             {
                 warn_message("Output priority", std::to_string(p));
@@ -3840,8 +3844,8 @@ performer::launch_input_thread ()
         debug_message("Input thread launched");
         if (rc().priority())                        /* Not in MinGW RCB     */
         {
-            int p = rc().thread_priority();
-            bool ok = set_thread_priority(m_in_thread, p);
+            int p { rc().thread_priority() };
+            bool ok { set_thread_priority(m_in_thread, p) };
             if (ok)
             {
                 warn_message("Input priority", std::to_string(p));
@@ -3886,7 +3890,7 @@ performer::launch_input_thread ()
 bool
 performer::finish ()
 {
-    bool result = true;
+    bool result { true };
     if (! done())                           /* m_io_active is true          */
     {
         stop_playing();                     /* see notes in banner          */
@@ -3932,7 +3936,7 @@ performer::finish ()
 bool
 performer::activate ()
 {
-    bool result = m_master_bus && m_master_bus->activate();
+    bool result { m_master_bus && m_master_bus->activate() };
 
 #if defined SEQ66_JACK_SUPPORT_ACTIVATE_HERE // init_jack_transport() instead
     if (result)
@@ -3971,7 +3975,7 @@ performer::set_tick (midi::pulse tick, bool dontreset)
 void
 performer::move_tick (midi::pulse ticks, bool dontreset)
 {
-    midi::pulse curtick = m_tick;
+    midi::pulse curtick { m_tick };
     if (ticks != 0)
     {
         curtick += ticks;
@@ -4060,7 +4064,7 @@ performer::set_right_tick (midi::pulse tick)
 void
 performer::set_left_tick_seq (midi::pulse tick, midi::pulse snap)
 {
-    midi::pulse remainder = tick % snap;
+    midi::pulse remainder { tick % snap };
     if (remainder > (snap / 2))
         tick += snap - remainder;               /* move up to next snap     */
     else
@@ -4081,7 +4085,7 @@ performer::set_left_tick_seq (midi::pulse tick, midi::pulse snap)
 void
 performer::set_right_tick_seq (midi::pulse tick, midi::pulse snap)
 {
-    midi::pulse remainder = tick % snap;
+    midi::pulse remainder { tick % snap };
     if (remainder > (snap / 2))
         tick += snap - remainder;               /* move up to next snap     */
     else
@@ -4104,6 +4108,8 @@ performer::set_right_tick_seq (midi::pulse tick, midi::pulse snap)
  *
  *      bool result = set_mapper().color(seqno, c); if (result) modify();
  */
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 bool
 performer::set_color (seq::number seqno, int c)

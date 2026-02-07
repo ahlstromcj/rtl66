@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-11-13
+ * \updates       2026-02-05
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -198,8 +198,8 @@ private:
      *  we need to store the channel, even if we override it when playing the
      *  MIDI data.
      *
-     *  Overload: For Meta events, where is_meta() is true, this value holds
-     *  the type of Meta event. See the editable_event::sm_meta_event_names[]
+     *  OVERLOAD: For *Meta* events, where is_meta() is true, this value holds
+     *  the *type* of Meta event. See the editable_event::sm_meta_event_names[]
      *  array.
      */
 
@@ -271,8 +271,16 @@ public:
         midi::byte d0,
         midi::byte d1 = 0
     );
+    event
+    (
+        midi::pulse tstamp,
+        midi::status notekind,
+        midi::byte channel,
+        int d0, int d1 = 0
+    );
     event (midi::pulse tstamp, midi::bpm tempo);
     event (midi::pulse tstamp, midi::meta metatype, const midi::bytes & data);
+#if 0
     event
     (
         midi::pulse tstamp,
@@ -280,6 +288,7 @@ public:
         midi::byte channel,
         int note, int velocity
     );
+#endif
     event (const event & rhs);
     event (event &&) = default;
     event & operator = (const event & rhs);         /* REVISIT! */
@@ -941,9 +950,9 @@ public:
             midi::mask_status(status_byte()) == midi::mask_status(s);
     }
 
-    bool is_desired (midi::byte status, midi::byte cc) const;
-    bool is_desired (midi::byte status, midi::byte cc, midi::byte data) const;
-    bool is_desired_ex (midi::byte status, midi::byte cc) const;
+    bool is_desired (midi::byte bstatus, midi::byte cc) const;
+    bool is_desired (midi::byte bstatus, midi::byte cc, midi::byte data) const;
+    bool is_desired_ex (midi::byte bstatus, midi::byte cc) const;
     bool is_data_in_handle_range (midi::byte target) const;
 
     /**

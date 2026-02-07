@@ -25,7 +25,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2019-02-12
- * \updates       2024-06-13
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
  *  Implements the screenset class.  The screenset class represent all of the
@@ -39,7 +39,6 @@
 #include <iostream>                     /* std::cout                        */
 #include <sstream>                      /* std::ostringstream               */
 
-#include "cfg/settings.hpp"             /* seq66::usr() and rc()            */
 #include "play/screenset.hpp"           /* seq66::screenset class           */
 #include "util/strfunctions.hpp"        /* util::bool_to_string()           */
 
@@ -66,18 +65,23 @@ namespace seq66
  *      Provides the number of virtual columns in the set.
  */
 
-screenset::screenset (screenset::number setnum, int rows, int columns) :
+screenset::screenset
+(
+    screenset::number setnum,
+    int rows, int columns,
+    bool swapcoordinates
+) :
     m_rows              (rows),
     m_columns           (columns),
-    m_swap_coordinates  (usr().swap_coordinates()),
+    m_swap_coordinates  (swapcoordinates),
     m_set_size          (rows * columns),
     m_container         (),
     m_set_number        (setnum),
     m_set_offset        (m_set_number * m_set_size),
-    m_set_maximum       (m_set_offset + m_set_size),
-    m_set_name          ("empty"),          /* usable() ? "New" : "Empty"   */
-    m_is_playscreen     (false),
-    m_sequence_high     (0)
+    m_set_maximum       (m_set_offset + m_set_size)
+//  m_set_name          ("empty"),          /* usable() ? "New" : "Empty"   */
+//  m_is_playscreen     (false),
+//  m_sequence_high     (0)
 {
     clear();
 }
@@ -92,13 +96,13 @@ screenset::screenset (screenset::number setnum, int rows, int columns) :
 void
 screenset::change_set_number (screenset::number setno)
 {
-    int seq_offset = setno * m_set_size;
+    int seq_offset { setno * m_set_size };
     m_set_number = setno;
     m_set_offset = seq_offset;
     m_set_maximum = m_set_offset + m_set_size;
     for (auto & s : m_container)            /* renumber all the sequences   */
     {
-        seq::number oldno = s.seq_number();
+        seq::number oldno { s.seq_number() };
         if (oldno != seq::unassigned())     /* inactive sequence?           */
             s.change_seq_number(seq_offset);
 
@@ -116,11 +120,11 @@ screenset::clear ()
 }
 
 void
-screenset::initialize (int rows, int columns)
+screenset::initialize (int rows, int columns, bool swapcoords)
 {
     m_rows              = rows;
     m_columns           = columns;
-    m_swap_coordinates  = usr().swap_coordinates();
+    m_swap_coordinates  = swapcoords;
     m_set_size          = rows * columns;
     m_set_maximum       = m_set_size;
     m_is_playscreen     = false;
@@ -147,12 +151,12 @@ screenset::initialize (int rows, int columns)
 bool
 screenset::add (sequence * s, seq::number & seqno)
 {
-    bool result = false;
+    bool result { false };
     if (not_nullptr(s))
     {
         for (seq::number i = seqno - offset(); i < m_set_maximum; ++i)
         {
-            seq sseq = seqinfo(i);              /* get seq info in the set  */
+            seq sseq { seqinfo(i) };            /* get seq info in the set  */
             if (! sseq.active())                /* no seq already in slot?  */
             {
                 seqno = i + offset();           /* change to unused seqno   */
@@ -184,8 +188,8 @@ screenset::add (sequence * s, seq::number & seqno)
 bool
 screenset::remove (seq::number seqno)
 {
-    bool result = false;
-    seq::pointer sp = seqinfo(seqno).loop();
+    bool result { false };
+    seq::pointer sp { seqinfo(seqno).loop() };
     if (sp && ! sp->seq_in_edit())
     {
         seq newseq;                         /* non-functional pattern       */
@@ -223,8 +227,8 @@ screenset::active () const
 int
 screenset::active_count () const
 {
-    int result = 0;
-    seq::number seqno = m_set_offset;
+    int result { 0 };
+    seq::number seqno { m_set_offset };
     m_sequence_high = 0;                        /* a mutable member         */
     for (auto & s : m_container)
     {
@@ -250,7 +254,7 @@ screenset::active_count () const
 seq::number
 screenset::first_seq () const
 {
-    seq::number result = seq::unassigned();
+    seq::number result { seq::unassigned() };
     for (auto & s : m_container)
     {
         if (s.active())
@@ -276,7 +280,7 @@ screenset::grid_to_index (int row, int column) const
 seq::number
 screenset::grid_to_seq (int row, int column) const
 {
-    seq::number result = grid_to_index(row, column);
+    seq::number result { grid_to_index(row, column) };
     if (! seq::unassigned(result))
         result += offset();
 
@@ -286,7 +290,7 @@ screenset::grid_to_seq (int row, int column) const
 seq::number
 screenset::grid_to_seq (screenset::number setno, int row, int column) const
 {
-    seq::number result = grid_to_index(row, column);
+    seq::number result { grid_to_index(row, column) };
     if (! seq::unassigned(result))
         result += setno * m_set_size;         /* add the set offset   */
 
@@ -328,8 +332,8 @@ screenset::seq_to_grid
     bool global
 ) const
 {
-    seq::number index = seqno - offset();
-    bool result = global || (index >= 0 && index < m_set_size);
+    seq::number index { seqno - offset() };
+    bool result { global || (index >= 0 && index < m_set_size) };
     if (result)
         result = index_to_grid(index, row, column);
 
@@ -356,7 +360,7 @@ screenset::index_to_grid (seq::number index, int & row, int & column) const
 bool
 screenset::is_seq_in_edit (seq::number seqno) const
 {
-    seq::pointer trk = seqinfo(seqno).loop();
+    seq::pointer trk { seqinfo(seqno).loop() };
     return trk ? trk->seq_in_edit() : false ;
 }
 
@@ -430,12 +434,12 @@ screenset::clamp (seq::number seqno) const
 void
 screenset::off_sequences (seq::number seqno)
 {
-    bool solo = seqno != seq::unassigned();
+    bool solo { seqno != seq::unassigned() };
     for (auto & s : m_container)
     {
         if (s.active())
         {
-            bool disarm = ! solo || (s.seq_number() != seqno);
+            bool disarm { ! solo || (s.seq_number() != seqno) };
             if (disarm)
                 s.loop()->set_armed(false);
         }
@@ -494,7 +498,7 @@ screenset::restore_snapshot ()
 bool
 screenset::copy_patterns (const screenset & source)
 {
-    bool result = source.active_count() > 0;
+    bool result { source.active_count() > 0 };
     if (result)
     {
         m_set_name = source.m_set_name;
@@ -507,14 +511,15 @@ screenset::copy_patterns (const screenset & source)
          */
 
         clear();                /* clear our sequences, init the container  */
-        int srci = int(source.offset());
-        int destend = int(offset()) + set_size();
+
+        int srci { int(source.offset()) };
+        int destend { int(offset()) + set_size() };
         for (int desti = int(offset()); desti < destend; ++desti, ++srci)
         {
-            seq::pointer s = source.loop(srci);
+            seq::pointer s { source.loop(srci) };
             if (s)
             {
-                sequence * d = new (std::nothrow) sequence();
+                sequence * d { new (std::nothrow) sequence() };
                 if (not_nullptr(d))
                 {
                     d->partial_assign(*s, true);    /* to clipboard, no mod */
@@ -539,7 +544,7 @@ screenset::set_last_ticks (midi::pulse tick)
 void
 screenset::armed_status (seq::number seqno, bool flag)
 {
-    seq & s = seqinfo(seqno);
+    seq & s { seqinfo(seqno) };
     if (s.active())
         s.armed_status(flag);
 }
@@ -551,7 +556,7 @@ screenset::armed_status (seq::number seqno, bool flag)
 void
 screenset::armed (seq::number seqno, bool flag)
 {
-    const seq::pointer trk = seqinfo(seqno).loop();
+    const seq::pointer trk { seqinfo(seqno).loop() };
     if (trk)
         trk->set_armed(flag);
 }
@@ -574,8 +579,8 @@ screenset::armed (seq::number seqno, bool flag)
 bool
 screenset::exec_slot_function (slothandler p, bool use_set_offset)
 {
-    bool result = false;
-    seq::number sn = use_set_offset ? offset() : 0 ;
+    bool result { false };
+    seq::number sn { use_set_offset ? offset() : 0 };
     for (auto & s : m_container)
     {
         result = p(s.loop(), sn++);         /* note post-increment of sn    */
@@ -596,7 +601,7 @@ screenset::exec_slot_function (slothandler p, bool use_set_offset)
 bool
 screenset::exec_set_function (sethandler s, slothandler p)
 {
-    bool result = s(*this, 0);              /* handle set, index not used   */
+    bool result { s(*this, 0) };            /* handle set, index not used   */
     if (result)
         result = exec_slot_function(p);     /* handle set's slots/sequences */
 
@@ -606,7 +611,7 @@ screenset::exec_set_function (sethandler s, slothandler p)
 bool
 screenset::any_modified_sequences () const
 {
-    bool result = false;
+    bool result { false };
     for (const auto & s : m_container)
     {
         if (s.active())
@@ -651,7 +656,7 @@ screenset::set_dirty (seq::number seqno)
     }
     else
     {
-        seq::pointer sp = find_by_number(seqno);
+        seq::pointer sp { find_by_number(seqno) };
         if (sp)
             sp->set_dirty();
     }
@@ -660,15 +665,15 @@ screenset::set_dirty (seq::number seqno)
 midi::pulse
 screenset::max_timestamp () const
 {
-    midi::pulse result = 0;
-    int seqno = 0;
+    midi::pulse result { 0 };
+    int seqno { 0 };
     for (const auto & s : m_container)
     {
         if (s.active())
         {
             if (s.loop())
             {
-                midi::pulse t = s.loop()->get_max_timestamp();
+                midi::pulse t { s.loop()->get_max_timestamp() };
                 if (t > result)
                     result = t;
             }
@@ -683,12 +688,12 @@ screenset::max_timestamp () const
 midi::pulse
 screenset::max_extent () const
 {
-    midi::pulse result = 0;
+    midi::pulse result { 0 };
     for (const auto & s : m_container)
     {
         if (s.active())
         {
-            midi::pulse t = s.loop()->get_length();
+            midi::pulse t { s.loop()->get_length() };
             if (t > result)
                 result = t;
         }
@@ -709,7 +714,7 @@ screenset::max_extent () const
 int
 screenset::trigger_count () const
 {
-    int result = 0;
+    int result { 0 };
     for (const auto & s : m_container)
     {
         if (s.active())
@@ -725,12 +730,12 @@ screenset::trigger_count () const
 midi::pulse
 screenset::max_trigger () const
 {
-    midi::pulse result = 0;
+    midi::pulse result { 0 };
     for (const auto & s : m_container)
     {
         if (s.active())
         {
-            midi::pulse t = s.loop()->get_max_trigger();
+            midi::pulse t { s.loop()->get_max_trigger() };
             if (t > result)
                 result = t;
         }
@@ -750,7 +755,7 @@ screenset::move_triggers
     bool direction, seq::number seqno
 )
 {
-    bool result = false;
+    bool result { false };
     if (seqno == seq::all())
     {
         for (auto & s : m_container)
@@ -764,7 +769,7 @@ screenset::move_triggers
     }
     else
     {
-        seq::pointer sp = find_by_number(seqno);
+        seq::pointer sp { find_by_number(seqno) };
         if (sp)
         {
             if (sp->move_triggers(lefttick, distance, direction))
@@ -813,8 +818,8 @@ screenset::pop_trigger_redo ()
 bool
 screenset::color (seq::number seqno, int c)
 {
-    bool result = false;
-    seq::pointer trk = seqinfo(seqno).loop();
+    bool result { false };
+    seq::pointer trk { seqinfo(seqno).loop() };
     if (trk)
         result = trk->set_color(c);
 
@@ -824,7 +829,7 @@ screenset::color (seq::number seqno, int c)
 void
 screenset::set_seq_name (seq::number seqno, const std::string & name)
 {
-    seq::pointer trk = seqinfo(seqno).loop();
+    seq::pointer trk { seqinfo(seqno).loop() };
     if (trk)
         trk->set_name(name);
 }
@@ -832,7 +837,7 @@ screenset::set_seq_name (seq::number seqno, const std::string & name)
 bool
 screenset::name (const std::string & nm)
 {
-    bool result = nm != m_set_name;
+    bool result { nm != m_set_name };
     m_set_name = nm;
     return result;
 }
@@ -840,7 +845,7 @@ screenset::name (const std::string & nm)
 void
 screenset::arm (seq::number seqno)
 {
-    const seq::pointer trk = seqinfo(seqno).loop();
+    const seq::pointer trk { seqinfo(seqno).loop() };
     if (trk)
         trk->set_armed(true);
 }
@@ -852,7 +857,7 @@ screenset::arm (seq::number seqno)
 void
 screenset::mute (seq::number seqno)
 {
-    const seq::pointer trk = seqinfo(seqno).loop();
+    const seq::pointer trk { seqinfo(seqno).loop() };
     if (trk)
         trk->set_armed(false);
 }
@@ -884,11 +889,14 @@ seq::pointer
 screenset::find_by_number (seq::number seqno)
 {
     static seq::pointer s_dummy;
-    auto seqit = std::find_if
-    (
-        m_container.begin(), m_container.end(),
-        [ & seqno ] (const seq & sn) { return sn.seq_number() == seqno; }
-    );
+    auto seqit
+    {
+        std::find_if
+        (
+            m_container.begin(), m_container.end(),
+            [ & seqno ] (const seq & sn) { return sn.seq_number() == seqno; }
+        )
+    };
     return seqit != m_container.end() ? seqit->loop() : s_dummy ;
 }
 
@@ -922,7 +930,7 @@ screenset::add_to_play_set (playset & p, seq::number seqno)
 seq::number
 screenset::play_seq (seq::number seqno)
 {
-    seq::number result = seqno;
+    seq::number result { seqno };
     if (result < set_size())
     {
         if (offset() != seq::unassigned())
@@ -939,7 +947,8 @@ screenset::play_seq (seq::number seqno)
 void
 screenset::copy_triggers
 (
-    midi::pulse lefttick, midi::pulse distance, seq::number seqno
+    midi::pulse lefttick, midi::pulse distance,
+    seq::number seqno
 )
 {
     if (seqno == seq::all())
@@ -952,7 +961,7 @@ screenset::copy_triggers
     }
     else
     {
-        seq::pointer sp = find_by_number(seqno);
+        seq::pointer sp { find_by_number(seqno) };
         if (sp)
             sp->copy_triggers(lefttick, distance);
     }
@@ -989,13 +998,15 @@ screenset::select_triggers_in_range
 {
     for (seq::number s = seqlow; s <= seqhigh; ++s)
     {
-        auto lambdafunc = [s] (const seq & sseq) ->
-            bool { return sseq.seq_number() == s; };
-
-        auto seqit = std::find_if
-        (
-            m_container.begin(), m_container.end(), lambdafunc
-        );
+        auto lambdafunc
+        {
+            [s] (const seq & sseq) ->
+            bool { return sseq.seq_number() == s }
+        };
+        auto seqit
+        {
+            std::find_if(m_container.begin(), m_container.end(), lambdafunc)
+        };
         if (seqit != m_container.end())
         {
             if (seqit->loop()->unselect_triggers())
@@ -1026,7 +1037,7 @@ screenset::unselect_triggers (seq::number seqno)
     }
     else
     {
-        seq::pointer sp = find_by_number(seqno);
+        seq::pointer sp { find_by_number(seqno) };
         if (sp)
             sp->unselect_triggers();
     }
@@ -1049,12 +1060,12 @@ void
 screenset::reset_sequences (bool pause, sequence::playback mode)
 {
     void (sequence::* f) (bool) = pause ? &sequence::pause : &sequence::stop ;
-    bool songmode = mode == sequence::playback::song;
+    bool songmode { mode == sequence::playback::song };
     for (auto & s : m_container)
     {
         if (s.active())                     /* guarantees a valid pointer */
         {
-            sequence * sp = s.loop().get();
+            sequence * sp { s.loop().get() };
             (sp->*f)(songmode);
         }
     }
@@ -1069,7 +1080,7 @@ screenset::arm ()
     {
         if (s.active())                     /* guarantees a valid pointer */
         {
-            seq::pointer sp = s.loop();
+            seq::pointer sp { s.loop() };
             sp->set_armed(true);
         }
     }
@@ -1082,7 +1093,7 @@ screenset::mute ()
     {
         if (s.active())                     /* guarantees a valid pointer */
         {
-            seq::pointer sp = s.loop();
+            seq::pointer sp { s.loop() };
             sp->set_armed(false);
         }
     }
@@ -1097,18 +1108,18 @@ screenset::toggle (seq::number seqno)
         {
             if (s.active())                     /* guarantees valid pointer */
             {
-                seq::pointer sp = s.loop();
-                bool armed = sp->armed();
+                seq::pointer sp { s.loop() };
+                bool armed { sp->armed() };
                 sp->set_armed(! armed);
             }
         }
     }
     else
     {
-        const seq::pointer trk = seqinfo(seqno).loop();
+        const seq::pointer trk { seqinfo(seqno).loop() };
         if (trk)
         {
-            bool armed = trk->armed();
+            bool armed { trk->armed() };
             trk->set_armed(! armed);
         }
     }
@@ -1121,7 +1132,7 @@ screenset::toggle (seq::number seqno)
 void
 screenset::play (midi::pulse tick, sequence::playback mode, bool resumenoteons)
 {
-    bool songmode = mode == sequence::playback::song;
+    bool songmode { mode == sequence::playback::song };
     for (auto & s : m_container)
     {
         if (s.active())
@@ -1142,7 +1153,7 @@ screenset::toggle_song_mute (seq::number seqno)
     }
     else
     {
-        const seq::pointer trk = seqinfo(seqno).loop();
+        const seq::pointer trk { seqinfo(seqno).loop() };
         if (trk)
             trk->toggle_song_mute();
     }
@@ -1161,7 +1172,7 @@ screenset::apply_armed_statuses ()
     {
         if (s.armed_status())                       /* checks active()  */
         {
-            seq::pointer sp = s.loop();             /* guaranteed valid */
+            seq::pointer sp { s.loop() };           /* guaranteed valid */
             sp->toggle_song_mute();
             sp->toggle_playing();
         }
@@ -1179,14 +1190,14 @@ screenset::apply_armed_statuses ()
 bool
 screenset::learn_armed_statuses ()
 {
-    bool result = false;
+    bool result { false };
     for (auto & s : m_container)
     {
-        seq & seqstatus = s;
+        seq & seqstatus { s };
         if (seqstatus.active())             /* guarantees a valid pointer */
         {
-            seq::pointer sp = seqstatus.loop();
-            bool armed = sp->armed();
+            seq::pointer sp { seqstatus.loop() };
+            bool armed { sp->armed() };
             seqstatus.armed_status(armed);
             if (armed)
             {
@@ -1218,7 +1229,7 @@ screenset::apply_song_transpose (seq::number seqno)
     }
     else
     {
-        seq::pointer sp = find_by_number(seqno);
+        seq::pointer sp { find_by_number(seqno) };
         if (sp)
             sp->apply_song_transpose();
     }
@@ -1246,11 +1257,14 @@ screenset::sequence_playing_change
     bool qinprogress
 )
 {
-    auto seqit = std::find_if               /* also see find_by_number()    */
-    (
-        m_container.begin(), m_container.end(),
-        [ & seqno ] (const seq & sn) { return sn.seq_number() == seqno; }
-    );
+    auto seqit
+    {
+        std::find_if               /* also see find_by_number()    */
+        (
+            m_container.begin(), m_container.end(),
+            [ & seqno ] (const seq & sn) { return sn.seq_number() == seqno; }
+        )
+    };
     if (seqit != m_container.end())
     {
         seqit->sequence_playing_change(on, qinprogress);
@@ -1283,9 +1297,9 @@ screenset::save_queued (seq::number repseq)
     {
         if (s.active())
         {
-            seq::pointer sp = s.loop();
-            seq::number seqno = sp->seq_number();
-            bool on = sp->armed() || (seqno == repseq);
+            seq::pointer sp { s.loop() };
+            seq::number seqno { sp->seq_number() };
+            bool on { sp->armed() || (seqno == repseq) };
             s.queued(on);
         }
     }
@@ -1317,8 +1331,8 @@ screenset::unqueue (seq::number hotseq)
     {
         if (s.active())
         {
-            seq::pointer sp = s.loop();
-            seq::number seqno = sp->seq_number();
+            seq::pointer sp { s.loop() };
+            seq::number seqno { sp->seq_number() };
             if (seqno == hotseq)
             {
                 if (! sp->armed())
@@ -1351,14 +1365,14 @@ screenset::unqueue (seq::number hotseq)
 bool
 screenset::apply_bits (const midi::booleans & bits)
 {
-    bool result = count() == int(bits.size());
+    bool result { count() == int(bits.size()) };
     if (result)
     {
-        int bit = 0;
-        seq::number seqend = offset() + m_set_size;
+        int bit { 0 };
+        seq::number seqend { offset() + m_set_size };
         for (seq::number seqno = offset(); seqno != seqend; ++seqno, ++bit)
         {
-            seq::pointer sp = find_by_number(seqno);
+            seq::pointer sp { find_by_number(seqno) };
             if (sp)
             {
                 bool armed = bits[bit];
@@ -1383,17 +1397,17 @@ screenset::apply_bits (const midi::booleans & bits)
 bool
 screenset::learn_bits (midi::booleans & bits)
 {
-    bool result = count() > 0;
+    bool result { count() > 0 };
     if (result)
     {
-        int bit = 0;
+        int bit { 0 };
         bits.clear();
         for (seq::number s = offset(); s != m_set_maximum; ++s, ++bit)
         {
-            seq::pointer sp = find_by_number(s);
+            seq::pointer sp { find_by_number(s) };
             if (sp)
             {
-                bool armed = sp->armed();
+                bool armed { sp->armed() };
                 bits.push_back(midi::boolean(armed));
             }
             else
@@ -1407,11 +1421,11 @@ std::string
 screenset::to_string (bool showseqs, int limit) const
 {
     std::ostringstream result;
-    int index = 0;
+    int index { 0 };
     result << "Set " << set_number() << " ('" << name() << "')" << std::endl;
     if (showseqs)
     {
-        int counter = 0;
+        int counter { 0 };
         for (auto & s : m_container)
         {
             result << s.to_string(index++);
@@ -1444,19 +1458,19 @@ playset::playset () :
 bool
 playset::set_found (screenset::number setno) const
 {
-    const auto seqiterator = m_screen_sets.find(setno);
+    const auto seqiterator { m_screen_sets.find(setno) };
     return seqiterator != m_screen_sets.cend();
 }
 
 bool
 playset::fill (const screenset & sset, bool clearit)
 {
-    bool result = false;
+    bool result { false };
     if (clearit)
         clear();
 
-    auto p = std::make_pair(sset.set_number(), &sset);
-    auto r = m_screen_sets.insert(p);
+    auto p { std::make_pair(sset.set_number(), &sset) };
+    auto r { m_screen_sets.insert(p) };
     if (r.second)
     {
         for (auto & s : sset.seq_container())
@@ -1481,8 +1495,8 @@ playset::fill (const screenset & sset, bool clearit)
 bool
 playset::add (const screenset & sset, seq::number seqno)
 {
-    const seq & s = sset.seqinfo(seqno);
-    bool result = s.active();
+    const seq & s { sset.seqinfo(seqno) };
+    bool result { s.active() };
     if (result)
         m_sequence_array.push_back(s.loop());
 
@@ -1492,7 +1506,7 @@ playset::add (const screenset & sset, seq::number seqno)
 bool
 playset::add (seq::pointer s)
 {
-    bool result = bool(s);
+    bool result { bool(s) };
     if (result)
         m_sequence_array.push_back(s);
 
@@ -1502,14 +1516,17 @@ playset::add (seq::pointer s)
 void
 playset::remove (seq::number seqno)
 {
-    auto seqit = std::find_if
-    (
-        m_sequence_array.begin(), m_sequence_array.end(),
-        [ & seqno ] (const seq::pointer & sp)
-        {
-            return sp->seq_number() == seqno;
-        }
-    );
+    auto seqit
+    {
+        std::find_if
+        (
+            m_sequence_array.begin(), m_sequence_array.end(),
+            [ & seqno ] (const seq::pointer & sp)
+            {
+                return sp->seq_number() == seqno;
+            }
+        )
+    };
     if (seqit != m_sequence_array.end())
         (void) m_sequence_array.erase(seqit);
 }
@@ -1527,10 +1544,10 @@ playset::count () const
 std::string
 playset::to_string () const
 {
-    std::string result = "Playset:\n";
+    std::string result { "Playset:\n" };
     for (const auto & sp : m_sequence_array)
     {
-        std::string seqno = std::to_string(int(sp->seq_number()));
+        std::string seqno { std::to_string(int(sp->seq_number())) };
         result += "  Seq ";
         result += seqno;
         result += ": '";

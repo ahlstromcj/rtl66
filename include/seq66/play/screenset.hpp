@@ -29,7 +29,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2019-02-12
- * \updates       2024-06-13
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
  *  This module also creates a small structure for managing sequence
@@ -109,7 +109,7 @@ public:
      *  as well as the virtual layout of sets into rows and columns.
      */
 
-    static const int c_default_rows = 4;
+    static const int c_default_rows { 4 };
 
     /**
      *  Minimum number of rows in the main-window's grid.  This will remain
@@ -117,7 +117,7 @@ public:
      *  of sequences per set, at least at this time.
      */
 
-    static const int c_min_rows = 4;
+    static const int c_min_rows { 4 };
 
     /**
      *  Maximum number of rows in the main-window's grid.  With the default
@@ -125,13 +125,13 @@ public:
      *  from 32 to 64.
      */
 
-    static const int c_max_rows = 12;       /* that is, 4 * 3 */
+    static const int c_max_rows { 12 };
 
     /**
      *  Default number of columns in the main-window's grid.
      */
 
-    static const int c_default_columns = 8;
+    static const int c_default_columns { 8 };
 
     /**
      *  Minimum number of columns in the main-window's grid.  Currently the
@@ -140,14 +140,21 @@ public:
      *  default 4 x 8 settings.
      */
 
-    static const int c_min_columns = 4;
+    static const int c_min_columns { 4 };
 
     /**
      *  Maximum number of columns in the main-window's grid.  Currently the
      *  same as the default number.
      */
 
-    static const int c_max_columns = 12;
+    static const int c_max_columns { 12 };
+
+    /**
+     *  Provides the default screenset size. See the row and column counts
+     *  defined above in this class.
+     */
+
+    static const int c_default_size { 32 };     /* 4 x 8 */
 
 private:
 
@@ -168,7 +175,7 @@ private:
      *  are greater than or equal to 0.  See the unassigned() function.
      */
 
-    static const int sm_number_none = (-1);
+    static const int sm_number_none { -1 };
 
     /**
      *  Indicates the number of virtual rows in a screen-set (bank), which is
@@ -179,7 +186,7 @@ private:
      *  removed the const qualifier, as this causes issues with containers.
      */
 
-    int m_rows;
+    int m_rows { 4 };
 
     /**
      *  Indicates the number of virtual columns in a screen-set (bank), which
@@ -189,7 +196,7 @@ private:
      *  per set or mute-group.  It can be mapped against a sequence number.
      */
 
-    int m_columns;
+    int m_columns { 8 };
 
     /**
      *  Experimental option to swap rows and columns.  See the function
@@ -198,27 +205,27 @@ private:
      *  next or othe next column.
      */
 
-    bool m_swap_coordinates;
+    bool m_swap_coordinates { false };
 
     /**
      *  Indicates the size of a screenset, equivalent to the rows x columns
      *  measurement.  In this map implementation, it is not pre-allocated.
      */
 
-    int m_set_size;
+    int m_set_size { 32 };
 
     /**
      *  Holds a generally sparse vector of seq objects.
      */
 
-    container m_container;
+    container m_container { };
 
     /**
      *  Indicates the the set (bank) number represented by this screenset
      *  object.  If set to sm_number_none, this screenset is not active.
      */
 
-    number m_set_number;
+    number m_set_number { 0 };
 
     /**
      *  Indicates the screen-set offset (the number of the first loop/pattern
@@ -226,32 +233,32 @@ private:
      *  This saves a calculation.
      */
 
-    seq::number m_set_offset;
+    seq::number m_set_offset { 0 };
 
     /**
      *  Indicates a number one above the maximum sequence number for this
      *  screenset.  Saves a calculation.
      */
 
-    seq::number m_set_maximum;
+    seq::number m_set_maximum { 32 };
 
     /**
      *  Holds the text/name for this screenset.
      */
 
-    std::string m_set_name;
+    std::string m_set_name { "Set" };
 
     /**
      *  Is this screenset the current play-screen?  Managed by the setmapper.
      */
 
-    bool m_is_playscreen;
+    bool m_is_playscreen { true };
 
     /**
      *  Indicates the highest sequence number, plus 1, for this screenset.
      */
 
-    mutable seq::number m_sequence_high;
+    mutable seq::number m_sequence_high  { 0 };
 
 public:
 
@@ -259,8 +266,9 @@ public:
     screenset
     (
         number setnum,
-        int rows        = c_default_rows,
-        int columns     = c_default_columns
+        int rows                = c_default_rows,
+        int columns             = c_default_columns,
+        bool swapcoordinates    = false
     );
 
     /**
@@ -386,7 +394,7 @@ public:
 
     int color (seq::number seqno) const
     {
-        const seq::pointer track = seqinfo(seqno).loop();
+        const seq::pointer track { seqinfo(seqno).loop() };
         return track ? track->color() : (-1) ;
     }
 
@@ -437,13 +445,13 @@ public:
 
     bool armed (seq::number seqno) const
     {
-        const seq::pointer track = seqinfo(seqno).loop();
+        const seq::pointer track { seqinfo(seqno).loop() };
         return track ? track->armed() : false ;
     }
 
     bool armed_status (seq::number seqno) const
     {
-        const seq & s = seqinfo(seqno);
+        const seq & s { seqinfo(seqno) };
         return s.active() ? s.armed_status() : false ;
     }
 
@@ -563,7 +571,7 @@ private:
     void save_queued (seq::number repseq); // save_current_screenset ()
     void unqueue (seq::number hotseq);
     void clear ();
-    void initialize (int rows, int columns);
+    void initialize (int rows, int columns, bool swapcoords = false);
     std::string to_string (bool showseqs = true, int limit = 0) const;
     void show (bool showseqs = true) const;
     void play (midi::pulse tick, sequence::playback mode, bool resumenoteons);

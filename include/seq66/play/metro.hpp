@@ -29,7 +29,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2022-08-05
- * \updates       2024-06-13
+ * \updates       2026-02-06
  * \license       GNU GPLv2 or above
  *
  *  The metro is a sequence with a special configuration.  It can be added
@@ -45,6 +45,14 @@
 
 namespace seq66
 {
+
+/**
+ *  These values limiit the range of a metronome fraction. Zero is also a
+ *  legal value.
+ */
+
+const float c_metro_fraction_min { 0.125F };
+const float c_metro_fraction_max { 2.0F  };
 
 /**
  *  Configuration class for the metro class. It covers the members of the
@@ -341,7 +349,12 @@ public:
 
     void main_note_fraction (float fraction)
     {
-        if (fraction == 0.0 || (fraction >= 0.125 && fraction <= 2.0))
+        bool inrange
+        {
+            fraction >= c_metro_fraction_min &&
+            fraction <= c_metro_fraction_max
+        };
+        if (inrange || fraction == 0.0)
             m_main_note_fraction = fraction;
     }
 
@@ -359,7 +372,12 @@ public:
 
     void sub_note_fraction (float fraction)
     {
-        if (fraction == 0.0 || (fraction >= 0.125 && fraction <= 2.0))
+        bool inrange
+        {
+            fraction >= c_metro_fraction_min &&
+            fraction <= c_metro_fraction_max
+        };
+        if (inrange || fraction == 0.0)
             m_sub_note_fraction = fraction;
     }
 
@@ -453,8 +471,7 @@ public:
 #endif      // RTL66_METRO_HPP
 
 /*
- * recorder.hpp
+ * metro.hpp
  *
  * vim: sw=4 ts=4 wm=4 et ft=cpp
  */
-

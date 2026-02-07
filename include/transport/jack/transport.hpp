@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-23
- * \updates       2025-09-11
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
  *  This class contains a number of functions that used to reside in the
@@ -48,7 +48,7 @@
 
 #include "midi/midibytes.hpp"               /* midi::pulse alias            */
 #include "transport/info.hpp"               /* transport::info              */
-#include "transport/jack/scratchpad.hpp"    /* transport::info              */
+#include "transport/scratchpad.hpp"         /* transport::scratchpad        */
 
 /**
  *  This metadata item exists in the JACK 2 source code, but not in the

@@ -27,13 +27,18 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2026-01-25
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
  *  This is a header-only module.
  *
  *  Do not confuse this timing module with the timing module in the xpc66
  *  library. This module is MIDI timing, the other is OS-specific timing.
+ *  This module provides:
+ *
+ *      -   Constants for min, max, and default BPM, beats/bar, and PPQN.
+ *      -   class timing: beats/minutes, beats/bar, PPQN, clocks/metronome,
+ *          32nds/quarter.
  */
 
 #include "midi/midibytes.hpp"           /* midi::bpm double type            */
@@ -57,7 +62,7 @@ namespace midi
  */
 
 static const int c_min_beats_per_measure {  1 };
-static const int c_def_beats_per_measure {  4 };
+static const int c_def_beats_per_measure { RTL66_DEFAULT_BEATS_PER_BAR };
 static const int c_max_beats_per_measure { 32 };
 
 /**
@@ -69,7 +74,7 @@ static const int c_max_beats_per_measure { 32 };
  */
 
 static const int c_min_beat_width {  1 };
-static const int c_def_beat_width {  4 };
+static const int c_def_beat_width { RTL66_DEFAULT_BEAT_WIDTH };
 static const int c_max_beat_width { 32 };
 
 /**
@@ -83,7 +88,7 @@ static const int c_max_beat_width { 32 };
  */
 
 static const midi::bpm c_min_beats_per_minute {    2.0 };
-static const midi::bpm c_def_beats_per_minute {  120.0 };
+static const midi::bpm c_def_beats_per_minute { RTL66_DEFAULT_BPM };
 static const midi::bpm c_max_beats_per_minute {  600.0 };
 static const float c_beats_per_minute_scale   { 1000.0 };
 static const long c_bpm_tap_button_timeout    { 5000L };       /* milliseconds */
@@ -99,8 +104,9 @@ static const midi::bpm c_max_bpm_increment    {    50.0 };
  *  function usrsettings::is_ppqn_valid().
  */
 
-static const int c_minimum_ppqn  {    24 }; /* was 32, not a multiple of 24 */
-static const int c_maximum_ppqn  { 19200 }; /* way above the useful maximum */
+static const int c_min_ppqn  {    24 }; /* was 32, not a multiple of 24     */
+static const int c_def_ppqn  { RTL66_DEFAULT_PPQN }; /* a useful default    */
+static const int c_max_ppqn  { 19200 }; /* way above the useful maximum     */
 
 /**
  *  We anticipate the need to have a small structure holding the parameters
@@ -334,7 +340,7 @@ public:
 
     bool PPQN_is_valid (int p) const
     {
-        return p >= c_minimum_ppqn && p <= c_maximum_ppqn;
+        return p >= c_min_ppqn && p <= c_max_ppqn;
     }
 
     void PPQN_set_default (int p)

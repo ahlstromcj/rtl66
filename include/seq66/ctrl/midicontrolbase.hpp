@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        C. Ahlstrom
  * \date          2019-11-25
- * \updates       2022-08-25
+ * \updates       2026-02-04
  * \license       GNU GPLv2 or above
  *
  *  Provides the base class for midicontrolout.
@@ -38,7 +38,7 @@
  *      It is NOT a base class for midicontrol or midicontrolin!
  */
 
-#include "midi/midibytes.hpp"           /* seq66::bussbyte data type        */
+#include "midi/midibytes.hpp"           /* midi::bussbyte data type         */
 
 namespace seq66
 {
@@ -71,13 +71,13 @@ private:
      *  instead.
      */
 
-    bussbyte m_buss;
+    midi::bussbyte m_buss;
 
     /**
      * The true buss, which exists on the system.
      */
 
-    bussbyte m_true_buss;
+    midi::bussbyte m_true_buss;
 
     /**
      *  Holds the original value read in from the 'ctrl' file.
@@ -86,7 +86,7 @@ private:
      *  exit completes.
      */
 
-    bussbyte m_configured_buss;
+    midi::bussbyte m_configured_buss;
 
     /**
      *  Indicates that this container is "empty".
@@ -144,17 +144,17 @@ public:
         return m_name;
     }
 
-    bussbyte nominal_buss () const
+    midi::bussbyte nominal_buss () const
     {
         return m_buss;
     }
 
-    bussbyte true_buss () const
+    midi::bussbyte true_buss () const
     {
         return m_true_buss;
     }
 
-    bussbyte configured_buss () const
+    midi::bussbyte configured_buss () const
     {
         return m_configured_buss;
     }
@@ -196,20 +196,20 @@ public:
 
 protected:
 
-    void nominal_buss (bussbyte b)
+    void nominal_buss (midi::bussbyte b)
     {
         m_buss = b;
     }
 
-    void true_buss (bussbyte b)
+    void true_buss (midi::bussbyte b)
     {
-        if (is_good_buss(b))
+        if (midi::is_good_buss(b))
             m_true_buss = b;
         else
             is_enabled(false);
     }
 
-    void configured_buss (bussbyte b)
+    void configured_buss (midi::bussbyte b)
     {
         m_configured_buss = b;
     }
@@ -261,10 +261,10 @@ protected:
  *  'ctrl' file.
  */
 
-inline bussbyte
+inline midi::bussbyte
 default_control_in_buss ()
 {
-    return null_buss();
+    return midi::null_buss();
 }
 
 /**
@@ -273,10 +273,10 @@ default_control_in_buss ()
  *  file.
  */
 
-inline bussbyte
+inline midi::bussbyte
 default_control_out_buss ()
 {
-    return null_buss();
+    return midi::null_buss();
 }
 
 }           // namespace seq66

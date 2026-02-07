@@ -25,7 +25,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-11-23
- * \updates       2026--2-04
+ * \updates       2026-02-05
  * \license       GNU GPLv2 or above
  *
  * MIDI control container:
@@ -190,7 +190,7 @@ midicontrolin::control (const midicontrol::key & k) const
         const auto & cki { m_container.find(k) };
         ok = cki != m_container.end();
         if (ok)
-            ok = is_null_buss(nominal_buss()) || k.buss() == true_buss();
+            ok = midi::is_null_buss(nominal_buss()) || k.buss() == true_buss();
 
         return ok ? cki->second : sm_midicontrol_dummy;
     }

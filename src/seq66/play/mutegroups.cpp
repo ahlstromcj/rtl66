@@ -25,7 +25,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-12-01
- * \updates       2024-06-13
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
  *  The mutegroups object contains the mute-group data read from a mute-group
@@ -39,7 +39,6 @@
 #include <iomanip>                      /* std::setw() manipulator          */
 #include <iostream>                     /* std::cerr to note errors         */
 
-#include "cfg/settings.hpp"             /* seq66::usr()                     */
 #include "play/mutegroups.hpp"          /* seq66::mutegroups class          */
 
 namespace seq66
@@ -126,7 +125,7 @@ mutegroups::grid_to_group (int row, int column)
 }
 
 /**
- *  Creates an empty, default mutegroups object.  The default size is 4 x 8,
+ *  Creates an empty, names mutegroups object.  The default size is 4 x 8,
  *  but this is currently the only size we will support: 32 mute-groups.
  *  (The size of a mute-group can vary, however.)
  *
@@ -139,27 +138,20 @@ mutegroups::grid_to_group (int row, int column)
  *      ultimately comes from usr().mainwnd_rows().
  */
 
-mutegroups::mutegroups (int rows, int columns) :
+mutegroups::mutegroups
+(
+    const std::string & name,
+    int rows,
+    int columns,
+    bool swapcoordinates
+) :
     basesettings                (),
     m_container                 (),
-    m_container_name            ("Default"),
+    m_container_name            (name),
     m_rows                      (rows),
-    m_columns                   (columns),
-    m_group_format_hex          (false),
-    m_loaded_from_mutes         (false),
-    m_group_event               (false),
-    m_group_error               (false),
-    m_group_mode                (true),             /* see its description  */
-    m_group_learn               (false),
-    m_group_selected            (c_null_mute_group),
-    m_group_present             (false),
-    m_group_save                (saving::midi),     /* midi or mutes files? */
-    m_group_load                (loading::midi),    /* midi or mutes files? */
-    m_toggle_active_only        (false),
-    m_strip_empty               (true),
-    m_legacy_mutes              (false)
+    m_columns                   (columns)
 {
-    s_swap_coordinates = usr().swap_coordinates();
+    s_swap_coordinates = swapcoordinates;
     create_empty_mutes();
 }
 
@@ -177,7 +169,6 @@ mutegroups::mutegroups (int rows, int columns) :
  * \param columns
  *      Provides the number of virtual columns in the set of mute-groups.
  *
- */
 
 mutegroups::mutegroups (const std::string & name, int rows, int columns) :
     basesettings                (),
@@ -201,6 +192,7 @@ mutegroups::mutegroups (const std::string & name, int rows, int columns) :
     s_swap_coordinates = usr().swap_coordinates();
     create_empty_mutes();
 }
+ */
 
 /**
  *  Creates a new mutegroup from the incoming bit vector, and adds it at the
@@ -232,8 +224,8 @@ mutegroups::load (mutegroup::number gmute, const midi::booleans & bits)
 bool
 mutegroups::set (mutegroup::number gmute, const midi::booleans & bits)
 {
-    auto mgiterator = m_container.find(gmute);
-    bool result = mgiterator != m_container.end();
+    auto mgiterator { m_container.find(gmute) };
+    bool result { mgiterator != m_container.end() };
     if (result)
         mgiterator->second.set(bits);
 
@@ -254,7 +246,7 @@ mutegroups::set (mutegroup::number gmute, const midi::booleans & bits)
 midi::booleans
 mutegroups::get (mutegroup::number gmute) const
 {
-    auto mgiterator = m_container.find(gmute);
+    auto mgiterator { m_container.find(gmute) };
     if (mgiterator != m_container.end())
     {
         return mgiterator->second.get();
@@ -278,8 +270,8 @@ mutegroups::get_active_groups () const
     result.resize(Size());
     for (const auto & mgpair : m_container)
     {
-        int g = mgpair.first;   /* const mutegroup & m = mgpair.second */
-        const mutegroup & m = mgpair.second;
+        int g { mgpair.first };
+        const mutegroup & m { mgpair.second };
         if (g >= 0 && g < Size())
             result[g] = midi::boolean(m.any());
     }
@@ -313,11 +305,11 @@ mutegroups::create_empty_mutes ()
 bool
 mutegroups::add (mutegroup::number gmute, const mutegroup & m)
 {
-    container::size_type sz = m_container.size();
-    auto p = std::make_pair(gmute, m);
+    container::size_type sz { m_container.size() };
+    auto p { std::make_pair(gmute, m) };
     (void) m_container.insert(p);
 
-    bool result = m_container.size() == (sz + 1);
+    bool result { m_container.size() == (sz + 1) };
     if (! result)
         std::cerr << "[Duplicate group " << gmute  << "]" << std::endl;
 
@@ -327,8 +319,8 @@ mutegroups::add (mutegroup::number gmute, const mutegroup & m)
 bool
 mutegroups::update (mutegroup::number gmute, const midi::booleans & bits)
 {
-    mutegroup & mdestination = mute_group(gmute);
-    bool result = mdestination.valid();
+    mutegroup & mdestination { mute_group(gmute) };
+    bool result { mdestination.valid() };
     if (result)
     {
         result = mdestination.set(bits);
@@ -350,7 +342,7 @@ mutegroups::update (mutegroup::number gmute, const midi::booleans & bits)
 bool
 mutegroups::any () const
 {
-    bool result = false;
+    bool result { false };
     for (const auto & m : m_container)
     {
         if (m.second.any())
@@ -375,7 +367,7 @@ mutegroups::any (mutegroup::number gmute) const
 const mutegroup &
 mutegroups::mute_group (mutegroup::number gmute) const
 {
-    static bool s_dummy_uninitialized = true;
+    static bool s_dummy_uninitialized { true };
     static mutegroup s_mute_group_dummy;
     if (s_dummy_uninitialized)
     {
@@ -383,14 +375,14 @@ mutegroups::mute_group (mutegroup::number gmute) const
         s_mute_group_dummy.invalidate();
     }
 
-    const auto cmi = m_container.find(gmute);
+    const auto cmi { m_container.find(gmute) };
     return cmi != m_container.end() ? cmi->second : s_mute_group_dummy;
 }
 
 mutegroup &
 mutegroups::mute_group (mutegroup::number gmute)
 {
-    static bool s_dummy_uninitialized = true;
+    static bool s_dummy_uninitialized { true };
     static mutegroup s_mute_group_dummy;
     if (s_dummy_uninitialized)
     {
@@ -398,7 +390,7 @@ mutegroups::mute_group (mutegroup::number gmute)
         s_mute_group_dummy.invalidate();
     }
 
-    auto mi = m_container.find(gmute);
+    auto mi { m_container.find(gmute) };
     return mi != m_container.end() ? mi->second : s_mute_group_dummy;
 }
 
@@ -410,11 +402,11 @@ mutegroups::mute_group (mutegroup::number gmute)
 bool
 mutegroups::apply (mutegroup::number group, midi::booleans & bits)
 {
-    auto mgiterator = list().find(clamp_group(group));
-    bool result = mgiterator != list().end();
+    auto mgiterator { list().find(clamp_group(group)) };
+    bool result { mgiterator != list().end() };
     if (result)
     {
-        mutegroup & mg = mgiterator->second;
+        mutegroup & mg { mgiterator->second };
         result = mg.any();              /* ignore an inactive mute-group    */
         if (result)
         {
@@ -434,14 +426,14 @@ mutegroups::apply (mutegroup::number group, midi::booleans & bits)
 bool
 mutegroups::unapply (mutegroup::number group, midi::booleans & bits)
 {
-    bool result = false;
+    bool result { false };
     if (group >= 0)
     {
-        auto mgiterator = list().find(clamp_group(group));
+        auto mgiterator { list().find(clamp_group(group)) };
         result = mgiterator != list().end();
         if (result)
         {
-            mutegroup & mg = mgiterator->second;
+            mutegroup & mg { mgiterator->second };
             result = mg.any();          /* ignore an inactive mute-group    */
             if (result)
             {
@@ -472,26 +464,26 @@ mutegroups::unapply (mutegroup::number group, midi::booleans & bits)
 bool
 mutegroups::toggle (mutegroup::number group, midi::booleans & bits)
 {
-    auto mgiterator = list().find(clamp_group(group));
-    bool result = mgiterator != list().end();
+    auto mgiterator { list().find(clamp_group(group)) };
+    bool result { mgiterator != list().end() };
     if (result)
     {
         if (group != m_group_selected && m_group_selected >= 0)
         {
-            auto mgiterator = list().find(clamp_group(m_group_selected));
-            bool result = mgiterator != list().end();
+            auto mgiterator { list().find(clamp_group(m_group_selected)) };
+            bool result { mgiterator != list().end() };
             if (result)
             {
-                mutegroup & mg = mgiterator->second;
+                mutegroup & mg { mgiterator->second };
                 mg.group_state(false);
             }
         }
 
-        mutegroup & mg = mgiterator->second;
+        mutegroup & mg { mgiterator->second };
         result = mg.any();              /* ignore an inactive mute-group    */
         if (result)
         {
-            bool mgnewstate = ! mg.group_state();
+            bool mgnewstate { ! mg.group_state() };
             bits = mgnewstate ? mg.get() : mg.zeroes() ;
             mg.group_state(mgnewstate);
             m_group_selected = mgnewstate ? group : c_null_mute_group ;
@@ -509,8 +501,8 @@ mutegroups::toggle (mutegroup::number group, midi::booleans & bits)
 bool
 mutegroups::toggle_active (mutegroup::number group, midi::booleans & armedbits)
 {
-    auto mgiterator = list().find(clamp_group(group));
-    bool result = mgiterator != list().end();
+    auto mgiterator { list().find(clamp_group(group)) };
+    bool result { mgiterator != list().end() };
     if (result)
     {
         if (group != m_group_selected && m_group_selected >= 0)
@@ -518,14 +510,14 @@ mutegroups::toggle_active (mutegroup::number group, midi::booleans & armedbits)
             (void) toggle_active(m_group_selected, armedbits);
         }
 
-        mutegroup & mg = mgiterator->second;
-        midi::booleans mutebits = mg.get();                /* get mutes set    */
-        bool active = mg.group_state();
+        mutegroup & mg { mgiterator->second };
+        midi::booleans mutebits { mg.get() };              /* get mutes set    */
+        bool active { mg.group_state() };
         result = mutebits.size() == armedbits.size();
         if (result)
         {
-            auto ait = armedbits.begin();
-            auto mit = mutebits.begin();
+            auto ait { armedbits.begin() };
+            auto mit { mutebits.begin() };
             for ( ; mit != mutebits.end(); ++mit, ++ait)
             {
                 if (active)
@@ -575,7 +567,7 @@ mutegroups::group_save (saving mgh)
 bool
 mutegroups::group_save (const std::string & v)
 {
-    saving value = string_to_group_save(v);
+    saving value { string_to_group_save(v) };
     if (value != saving::max)
         return group_save(value);
     else
@@ -611,7 +603,7 @@ mutegroups::group_save (bool midi, bool mutes)
 std::string
 mutegroups::group_save_label () const
 {
-    std::string result = "bad";
+    std::string result { "bad" };
     if (m_group_save == saving::mutes)
         result = "mutes";
     else if (m_group_save == saving::midi)
@@ -669,7 +661,7 @@ mutegroups::group_load (bool midi, bool mutes)
 std::string
 mutegroups::group_load_label () const
 {
-    std::string result = "bad";
+    std::string result { "bad" };
     if (m_group_load == loading::none)
         result = "none";
     else if (m_group_load == loading::mutes)
@@ -700,7 +692,7 @@ mutegroups::load_mute_groups (bool midi, bool mutes)
 bool
 mutegroups::clear ()
 {
-    bool result = const_cast<mutegroups *>(this)->any();
+    bool result { const_cast<mutegroups *>(this)->any() };
     m_container.clear();
     create_empty_mutes();
     return result;
@@ -733,11 +725,11 @@ mutegroups::reset_defaults ()
 int
 mutegroups::group_names_letter_count () const
 {
-    int result = 0;
+    int result { 0 };
     for (const auto & mgpair : m_container)
     {
-        const mutegroup & m = mgpair.second;
-        const std::string & gname = m.name();
+        const mutegroup & m { mgpair.second };
+        const std::string & gname { m.name() };
         result += gname.length() + 2;
     }
     return result;
@@ -753,19 +745,19 @@ mutegroups::show (const std::string & tag, mutegroup::number gmute) const
     std::cout << "Mute-group " << tag << " size: " << count() << std::endl;
     if (gmute == c_null_mute_group)
     {
-        int index = 0;
+        int index { 0 };
         for (const auto & mgpair : m_container)
         {
-            int g = mgpair.first;
-            const mutegroup & m = mgpair.second;
+            int g { mgpair.first };
+            const mutegroup & m { mgpair.second };
             std::cout << "[" << std::setw(2) << index++ << "] " << g << ": ";
             m.show();
         }
     }
     else
     {
-        auto mgiterator = m_container.find(gmute);
-        bool result = mgiterator != m_container.end();
+        auto mgiterator { m_container.find(gmute) };
+        bool result { mgiterator != m_container.end() };
         std::cout << "Mute-group ";
         std::cout << "[" << std::setw(2) << int(gmute) << "]: ";
         if (result)

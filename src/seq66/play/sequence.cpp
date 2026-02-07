@@ -25,7 +25,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2026-02-01
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
  *  The functionality of this class also includes handling some of the
@@ -46,20 +46,41 @@
  *      and unlocks, then we lock again.  This should only be an issue if
  *      altering selected notes while recording.  We will test this at some
  *      point, and add better locking coverage if necessary.
+ *
+ * usr() variables:
+ *
+ *      usr().pattern_record_style())
+ *      usr().record_alteration())
+ *      tempo_us_from_bpm(usr().bpm_default()))
+ *      usr().preserve_velocity())
+ *      usr().note_on_velocity())
+ *      usr().note_off_velocity())
+ *      usr().seqedit_key())
+ *      usr().seqedit_scale())
+ *      usr().seqedit_bgsequence())
+ *      sm_preserve_velocity = usr().preserve_velocity();
+ *      sm_fingerprint_size = usr().fingerprint_size();
+ *      usr().max_note_on_velocity();
+ *      usr().randomization_amount();
+ *      usr().midi_bpm_minimum() &&
+ *      usr().midi_bpm_maximum();
+ *      usr().jitter_range(snap());
+ *      usr().midi_buss_override();
+ *      usr().base_ppqn();
+ *      usr().grid_record_code(result);
  */
 
 #include <cstring>                      /* std::memset()                    */
 #include <cmath>                        /* std::trunc()                     */
 
-// #include "cfg/settings.hpp"          /* seq66::rc() and usr()            */
 #include "midi/scales.hpp"              /* key and scale constants          */
-#include "midi/masterbus.hpp"           /* seq66::masterbus                 */
-#include "midi/bus.hpp"                 /* seq66::bus                       */
+#include "midi/masterbus.hpp"           /* midi::masterbus                  */
+#include "midi/bus.hpp"                 /* midi::bus                       */
 #include "play/notemapper.hpp"          /* seq66::notemapper                */
 #include "play/performer.hpp"           /* seq66::performer                 */
 #include "play/sequence.hpp"            /* seq66::sequence                  */
-#include "os/timing.hpp"                /* seq66::microsleep()              */
-#include "util/palette.hpp"             /* seq66::palette_to_int(), colors  */
+#include "xpc/timing.hpp"               /* xpc::microsleep()                */
+#include "cfg/palette.hpp"              /* cfg::palette_to_int(), colors    */
 #include "util/strfunctions.hpp"        /* bool_to_string()                 */
 
 namespace seq66
@@ -71,8 +92,8 @@ namespace seq66
  *  This increment allows the rest of the threads to notice the change.
  */
 
-static const int c_song_record_incr = 16;
-static const int c_maxbeats         = 0xFFFF;
+static const int c_song_record_incr { 16 };
+static const int c_maxbeats         { 0xFFFF };
 
 /**
  *  The c_handlesize value is an internal variable for handle size.  Note
@@ -99,7 +120,11 @@ static const double c_measure_max   { 1000.00 };
  *  was 2. Let's try something else. Maybe 8 would work, too.
  */
 
-static const midi::pulse c_reset_divisor = 4;
+static const midi::pulse c_reset_divisor { 4 };
+
+/*
+ * Static members.
+ */
 
 /*
  * Member value.  A fingerprint size of 0 means to not use a fingerprint...
@@ -157,71 +182,71 @@ sequence::sequence (int ppqn) :
     m_triggers                  (*this),
     m_time_signatures           (),
     m_events_undo_hold          (),
-    m_have_undo                 (false),
-    m_have_redo                 (false),
-    m_events_undo               (),
-    m_events_redo               (),
-    m_channel_match             (false),
-    m_midi_channel              (0),            /* null_channel() better?   */
-    m_free_channel              (false),
-    m_nominal_bus               (0),            /* out buss default value   */
-    m_true_bus                  (null_buss()),
-    m_nominal_in_bus            (null_buss()),  /* optional input buss no.  */
-    m_true_in_bus               (null_buss()),
-    m_song_mute                 (false),
-    m_transposable              (true),
-    m_notes_on                  (0),
-    m_master_bus                (nullptr),
+#if defined USE_CFG_HISTORY
+    m_history                   (32, m_events), /* start with empty list    */
+#else
+//  m_have_undo                 (false),
+//  m_have_redo                 (false),
+//  m_events_undo               (),
+//  m_events_redo               (),
+#endif
+//  m_channel_match             (false),
+//  m_midi_channel              (0),            /* null_channel() better?   */
+//  m_free_channel              (false),
+//  m_nominal_bus               (0),            /* out buss default value   */
+//  m_true_bus                  (null_buss()),
+//  m_nominal_in_bus            (null_buss()),  /* optional input buss no.  */
+//  m_true_in_bus               (null_buss()),
+//  m_song_mute                 (false),
+//  m_transposable              (true),
+//  m_notes_on                  (0),
+//  m_master_bus                (nullptr),
     m_playing_notes             (c_notes_count, 0),
-    m_armed                     (false),
-    m_recording                 (false),
-    m_draw_locked               (false),
-    m_auto_step_reset           (false),
-    m_recording_style           (recordstyle::merge),
+//  m_armed                     (false),
+//  m_recording                 (false),
+//  m_draw_locked               (false),
+//  m_auto_step_reset           (false),
 //  m_recording_style           (usr().pattern_record_style()),
 //  m_record_alteration         (usr().record_alteration()),
-    m_alter_recording           (alteration::none),
-    m_thru                      (false),
-    m_has_popup                 (false),
-    m_queued                    (false),
-    m_one_shot                  (false),
-    m_one_shot_tick             (0),
-    m_step_count                (0),
-    m_loop_count_max            (0),
-    m_off_from_snap             (false),
-    m_song_playback_block       (false),
-    m_song_recording            (false),
-    m_song_recording_snap       (true),
-    m_song_record_tick          (0),
-    m_loop_reset                (false),
-    m_unit_measure              (0),
-    m_dirty_main                (true),
-    m_dirty_edit                (true),
-    m_dirty_perf                (true),
-    m_dirty_names               (true),
-    m_is_modified               (false),
-    m_seq_in_edit               (false),
-    m_status                    (0),
-    m_cc                        (0),
-    m_name                      (),
-    m_last_tick                 (0),
-    m_queued_tick               (0),
-    m_trigger_offset            (0),
-    m_maxbeats                  (c_maxbeats),
+//  m_thru                      (false),
+//  m_has_popup                 (false),
+//  m_queued                    (false),
+//  m_one_shot                  (false),
+//  m_one_shot_tick             (0),
+//  m_step_count                (0),
+//  m_loop_count_max            (0),
+//  m_off_from_snap             (false),
+//  m_song_playback_block       (false),
+//  m_song_recording            (false),
+//  m_song_recording_snap       (true),
+//  m_song_record_tick          (0),
+//  m_loop_reset                (false),
+//  m_unit_measure              (0),
+//  m_dirty_main                (true),
+//  m_dirty_edit                (true),
+//  m_dirty_perf                (true),
+//  m_dirty_names               (true),
+//  m_seq_in_edit               (false),
+//  m_status                    (0),
+//  m_cc                        (0),
+//  m_name                      (),
+//  m_last_tick                 (0),
+//  m_queued_tick               (0),
+//  m_trigger_offset            (0),
+//  m_maxbeats                  (c_maxbeats),
     m_ppqn                      (choose_ppqn(ppqn)),
-    m_seq_number                (unassigned()),
-    m_seq_color                 (c_seq_color_none),
-    m_seq_edit_mode             (sequence::editmode::note),
+//  m_seq_number                (unassigned()),
+//  m_seq_color                 (c_seq_color_none),
+//  m_seq_edit_mode             (editmode::note),
     m_length                    (4 * midi::pulse(m_ppqn)),  /* 1 bar of ticks */
-    m_next_boundary             (0),
-    m_measures                  (0),
+//  m_next_boundary             (0),
+//  m_measures                  (0),
     m_snap_tick                 (int(m_ppqn) / 4),
     m_step_edit_note_length     (int(m_ppqn) / 4),
-    m_time_beats_per_measure    (4),
-    m_time_beat_width           (4),
-    m_timesig_beats_per_measure (0),
-    m_timesig_beat_width        (0),
-    m_clocks_per_metronome      (24),
+//  m_time_beats_per_measure    (4),
+//  m_time_beat_width           (4),
+//  m_timesig_beats_per_measure (0),
+//  m_timesig_beat_width        (0),
     m_clocks_per_metronome      (c_midi_clocks_per_metronome),
     m_32nds_per_quarter         (c_midi_32nds_per_quarter),
     m_us_per_quarter_note       (tempo_us_from_bpm(usr().bpm_default())),
@@ -291,11 +316,25 @@ sequence::~sequence ()
  */
 
 void
-sequence::modify (bool notifychange)
+sequence::modify (lib66::notification n)
 {
     if (is_normal_seq())                /* currently, a seq-number < 1024   */
     {
-        m_is_modified = true;
+        bool notifychange { n == lib66::notification::no };
+        midi::track::modify(n);
+        set_dirty();
+        if (notifychange)
+            notify_change();
+    }
+}
+
+void
+sequence::unmodify (lib66::notification n)
+{
+    if (is_normal_seq())                /* currently, a seq-number < 1024   */
+    {
+        bool notifychange { n == lib66::notification::no };
+        midi::track::unmodify(n);
         set_dirty();
         if (notifychange)
             notify_change();
@@ -1795,7 +1834,7 @@ sequence::play
                  * unmuting shorter patterns, which play() relentlessly.
                  */
 
-                (void) microsleep(1);
+                (void) xpc::microsleep(1);
             }
         }
     }
@@ -1883,7 +1922,7 @@ sequence::live_play (midi::pulse tick)
             {
                 e = m_events.begin();               /* yes, start over      */
                 offset_base += length;              /* for another go at it */
-                (void) microsleep(1);
+                (void) xpc::microsleep(1);
             }
         }
     }
@@ -1980,7 +2019,10 @@ sequence::remove (event::buffer::iterator evi)
         event & er = eventlist::dref(evi);
         if (er.is_note_off() && m_playing_notes[er.get_note()] > 0)
         {
-            master_bus()->play_and_flush(m_true_bus, &er, midi_channel(er));
+            master_bus()->play_and_flush
+            (
+                m_true_bus, &er, get_midi_channel(er)
+            );
             --m_playing_notes[er.get_note()];
         }
         if (m_events.remove(evi))
@@ -2445,7 +2487,7 @@ int
 sequence::select_events
 (
     midi::pulse tick_s, midi::pulse tick_f,
-    midi::byte status, midi::byte cc, eventlist::select action
+    midi::status status, midi::byte cc, eventlist::select action
 )
 {
     xpc::automutex locker(m_mutex);
@@ -2484,9 +2526,9 @@ sequence::select_events (midi::byte status, midi::byte cc, bool inverse)
     for (auto & er : m_events)
     {
         er.get_data(d0, d1);
-        bool match = er.match_status(status);
+        bool match { er.match_status(status) };
         bool canselect;
-        if (status == EVENT_CONTROL_CHANGE)
+        if (status == midi::status::control_change)
             canselect = match && d0 == cc;  /* correct status and correct cc */
         else
             canselect = match;              /* correct status, cc irrelevant */
@@ -2515,10 +2557,10 @@ sequence::select_event_handle
 )
 {
     xpc::automutex locker(m_mutex);
-    int result = m_events.select_event_handle
-    (
-        tick_s, tick_f, astatus, cc, data
-    );
+    int result
+    {
+        m_events.select_event_handle(tick_s, tick_f, astatus, cc, data)
+    };
     set_dirty();
     return result;
 }
@@ -3099,7 +3141,7 @@ sequence::merge_events (const sequence & source)
 
     bool result = len == get_length();              /* no change no problem */
     if (! result)
-        result = set_length(len, false, false);
+        result = set_length_ex(len, false, false);
 
     if (result)
     {
@@ -3559,20 +3601,20 @@ sequence::fix_pattern (fixparameters & params)
              * These functions operate only on selected events.
              */
 
-            if (params.fp_quan_type == alteration::tighten)
+            if (params.fp_quan_type == midi::alteration::tighten)
             {
                 result = m_events.quantize_all_events(snap(), 2);
             }
-            else if (params.fp_quan_type == alteration::quantize)
+            else if (params.fp_quan_type == midi::alteration::quantize)
             {
                 result = m_events.quantize_all_events(snap(), 1);
             }
-            if (params.fp_quan_type == alteration::jitter)
+            if (params.fp_quan_type == midi::alteration::jitter)
             {
                 result = m_events.jitter_notes(snap(), params.fp_jitter);
             }
 #if defined SEQ66_USE_ADDED_ALTERATIONS
-            if (params.fp_quan_type == alteration::random)
+            if (params.fp_quan_type == midi::alteration::random)
             {
                 m_events.select_all();                      // TODO
                 result = m_events_randomize_selected_notes
@@ -3580,7 +3622,7 @@ sequence::fix_pattern (fixparameters & params)
                     params.fp_jitter, params.fp_jitter      // FIXME
                 );
             }
-            if (params.fp_quan_type == alteration::notemap)
+            if (params.fp_quan_type == midi::alteration::notemap)
             {
                 result = m_events.jitter_notes(params.fp_jitter);   // TODO
             }
@@ -3694,7 +3736,7 @@ sequence::add_painted_note
     {
         bool hardwire = velocity == usr().preserve_velocity();
         midi::byte v = hardwire ? midi::byte(m_note_on_velocity) : velocity ;
-        event e(tick, EVENT_NOTE_ON, midi_channel(), note, v);
+        event e(tick, EVENT_NOTE_ON, get_midi_channel(), note, v);
         if (repaint)
             e.paint();
 
@@ -3702,7 +3744,7 @@ sequence::add_painted_note
         if (result)
         {
             midi::byte v = hardwire ? midi::byte(m_note_off_velocity) : 0 ;
-            event e(tick + len, EVENT_NOTE_OFF, midi_channel(), note, v);
+            event e(tick + len, EVENT_NOTE_OFF, get_midi_channel(), note, v);
             result = add_event(e);
         }
     }
@@ -4558,7 +4600,7 @@ sequence::play_note_on (int note)
     if (rc().investigate())
         perf()->repitch(e);
 
-    master_bus()->play_and_flush(m_true_bus, &e, midi_channel(e));
+    master_bus()->play_and_flush(m_true_bus, &e, get_midi_channel(e));
 }
 
 /**
@@ -4580,7 +4622,7 @@ sequence::play_note_off (int note)
     if (rc().investigate())
         perf()->repitch(e);
 
-    master_bus()->play_and_flush(m_true_bus, &e, midi_channel(e));
+    master_bus()->play_and_flush(m_true_bus, &e, get_midi_channel(e));
 }
 
 /*
@@ -5836,7 +5878,7 @@ sequence::get_last_tick () const
 /**
  *  Sets the MIDI buss/port number to dump MIDI data to. When first called,
  *  there is generally no performer yet, so all that it done is to set the
- *  nominal buss. Later, set_parent() is called and here we then determine
+ *  nominal buss. Later, set_parent_ex() is called and here we then determine
  *  the true system MIDI bus in use by this sequence.
  *
  * \threadsafe
@@ -5865,13 +5907,13 @@ sequence::set_midi_bus (midi::bussbyte nominalbus, bool user_change)
         m_nominal_bus = nominalbus;             /* log the putative buss    */
         if (is_nullptr(perf()))                 /* "parent" is not yet set  */
         {
-            m_true_bus = null_buss();           /* an invalid value         */
+            m_true_bus = midi::null_buss();           /* an invalid value         */
         }
         else
         {
             off_playing_notes();                /* off notes except initial */
             m_true_bus = perf()->true_output_bus(nominalbus);
-            if (is_null_buss(m_true_bus))
+            if (midi::is_null_buss(m_true_bus))
                 m_true_bus = nominalbus;        /* buss no longer exists    */
 
             if (user_change)
@@ -5899,12 +5941,12 @@ sequence::set_midi_in_bus (midi::bussbyte nominalbus, bool user_change)
         m_nominal_in_bus = nominalbus;          /* log the putative buss    */
         if (is_nullptr(perf()))                 /* "parent" is not yet set  */
         {
-            m_true_in_bus = null_buss();        /* an invalid value         */
+            m_true_in_bus = midi::null_buss();        /* an invalid value         */
         }
         else
         {
             m_true_in_bus = perf()->true_input_bus(nominalbus);
-            if (is_null_buss(m_true_in_bus))
+            if (midi::is_null_buss(m_true_in_bus))
                 m_true_in_bus = nominalbus;     /* named buss no longer exists  */
 
             if (user_change)
@@ -5954,7 +5996,7 @@ sequence::set_midi_in_bus (midi::bussbyte nominalbus, bool user_change)
  * Issue #88:
  *
  *      If the time signature is something like 4/16, then the pattern length
- *      will be much less than PPQN * 4.   This affects the set_parent()
+ *      will be much less than PPQN * 4.   This affects the set_parent_ex()
  *      function.
  *
  * \threadsafe
@@ -5979,7 +6021,7 @@ sequence::set_midi_in_bus (midi::bussbyte nominalbus, bool user_change)
  */
 
 bool
-sequence::set_length (midi::pulse len, bool adjust_triggers, bool verify)
+sequence::set_length_ex (midi::pulse len, bool adjust_triggers, bool verify)
 {
     xpc::automutex locker(m_mutex);
     bool result = len != m_length;
@@ -6084,7 +6126,7 @@ sequence::apply_length
      * Leave it in for now to avoid breaking other code.
      */
 
-    (void) set_length(seq66::measures_to_ticks(bpb, ppq, bw, measures));
+    (void) set_length(midi::measures_to_ticks(bpb, ppq, bw, measures));
     if (result)
         (void) unit_measure(true);          /* for progress and redrawing   */
 
@@ -6113,7 +6155,7 @@ sequence::extend_length ()
     {
         int measures = int(double(len) / unit_measure(true) + 0.5); /* TIME */
         len = m_unit_measure * measures;
-        result = set_length(len, false, false); /* no trig adjust or verify */
+        result = set_length_ex(len, false, false); /* no trig adjust or verify */
     }
     return result;
 }
@@ -6249,7 +6291,7 @@ sequence::set_armed (bool p)
  */
 
 bool
-sequence::set_recording (toggler flag)
+sequence::set_recording_ex (toggler flag)
 {
     xpc::automutex locker(m_mutex);
     bool recordon = m_recording;
@@ -6270,7 +6312,7 @@ sequence::set_recording (toggler flag)
                 channel_match(true);
         }
         else
-            m_alter_recording = alteration::none;
+            m_alter_recording = midi::alteration::none;
 
         set_dirty();
         notify_trigger();
@@ -6293,7 +6335,7 @@ sequence::set_recording (toggler flag)
  */
 
 bool
-sequence::set_recording (alteration q, toggler flag)
+sequence::set_recording_ex (midi::alteration q, toggler flag)
 {
     xpc::automutex locker(m_mutex);
     bool result = true;
@@ -6304,7 +6346,7 @@ sequence::set_recording (alteration q, toggler flag)
     }
     else if (flag == toggler::off)
     {
-        m_alter_recording = alteration::none;
+        m_alter_recording = midi::alteration::none;
 
         /*
          * Don't change the status of recording just because
@@ -6319,14 +6361,14 @@ sequence::set_recording (alteration q, toggler flag)
     }
     else                                        /* toggler::flip            */
     {
-        if (q == alteration::none)              /* plain basic recording    */
+        if (q == midi::alteration::none)              /* plain basic recording    */
         {
             result = set_recording(toggler::flip);
         }
         else
         {
             if (q == m_alter_recording)
-                m_alter_recording = alteration::none;
+                m_alter_recording = midi::alteration::none;
             else
                 m_alter_recording = q;
 
@@ -6337,14 +6379,14 @@ sequence::set_recording (alteration q, toggler flag)
 }
 
 bool
-sequence::set_recording_style (recordstyle rs)
+sequence::set_recording_style (midi::recordstyle rs)
 {
     xpc::automutex locker(m_mutex);
-    bool result = rs != recordstyle::max;
+    bool result = rs != midi::recordstyle::max;
     if (result)
     {
         m_recording_style = rs;
-        if (rs == recordstyle::overwrite)
+        if (rs == midi::recordstyle::overwrite)
             loop_reset(true);   /* on overwrite, always reset the sequence  */
 
         notify_trigger();                                       /* tricky!  */
@@ -6508,7 +6550,7 @@ sequence::set_midi_channel (midi::byte ch, bool user_change)
     if (result)
     {
         off_playing_notes();
-        m_free_channel = is_null_channel(ch);
+        m_free_channel = midi::is_null_channel(ch);
         m_midi_channel = ch;                /* if (! m_free_channel)        */
         if (user_change)
             modify();                       /* no easy way to undo this     */
@@ -6588,7 +6630,7 @@ sequence::to_string () const
  *  buss.  This function does not bother checking if m_master_bus is a null
  *  pointer.
  *
- *  Note that the call to midi_channel() yields the event channel if
+ *  Note that the call to get_midi_channel() yields the event channel if
  *  free_channel() is true.  Otherwise the global pattern channel is true.
  *
  * \param ev
@@ -6617,7 +6659,7 @@ sequence::put_event_on_bus (const event & ev)
     {
         event evout;
         evout.prep_for_send(perf()->get_tick(), ev);      /* issue #100   */
-        master_bus()->play_and_flush(m_true_bus, &evout, midi_channel(ev));
+        master_bus()->play_and_flush(m_true_bus, &evout, get_midi_channel(ev));
     }
 }
 
@@ -6958,7 +7000,7 @@ sequence::show_events () const
  *  remove_all() function.  Copying the container is a lot of work, but fast.
  *  Also note that we have to recalculate the length of the sequence.
  * Another option, if we have a new sequence length value (in pulses)
- * would be to call sequence::set_length(len, adjust_triggers).  We
+ * would be to call sequence::set_length_ex(len, adjust_triggers).  We
  * need to make sure the length is rounded up to the next quarter note.
  * Actually, should make it a full measure size!  Or do we always want to
  * preserve the pattern length no matter how many trailing events are deleted?
@@ -7046,7 +7088,7 @@ sequence::copy_events (const eventlist & newevents)
  */
 
 void
-sequence::set_parent (performer * p)
+sequence::set_parent_ex (performer * p)
 {
     if (not_nullptr(p))
     {
@@ -7067,10 +7109,10 @@ sequence::set_parent (performer * p)
         set_length();                       /* final verify_and_link()      */
         empty_coloring();                   /* yellow color if no events    */
         if (get_length() < barlength)       /* pad sequence to a measure    */
-            set_length(barlength, false);
+            set_length_ex(barlength, false);
 
         (void) set_midi_in_bus(m_nominal_in_bus);
-        if (is_null_buss(buss_override))
+        if (midi::is_null_buss(buss_override))
             (void) set_midi_bus(m_nominal_bus);
         else
             (void) set_midi_bus(buss_override);
@@ -7358,14 +7400,14 @@ sequence::expand_recording () const
  *  Static member function.
  */
 
-recordstyle
+midi::recordstyle
 sequence::loop_record_style (int ri)
 {
-    recordstyle result = recordstyle::merge;
+    midi::recordstyle result = midi::recordstyle::merge;
     int min = usr().grid_record_code(result);
-    int max = usr().grid_record_code(recordstyle::max);
+    int max = usr().grid_record_code(midi::recordstyle::max);
     if (ri > min && ri < max)
-        result = static_cast<recordstyle>(ri);
+        result = static_cast<midi::recordstyle>(ri);
 
     return result;
 }
@@ -7377,25 +7419,25 @@ sequence::loop_record_style (int ri)
 bool
 sequence::update_recording (int index)
 {
-    recordstyle rectype = loop_record_style(index);
-    bool result = rectype != recordstyle::max;
+    midi::recordstyle rectype = loop_record_style(index);
+    bool result = rectype != midi::recordstyle::max;
     if (result)
     {
         switch (rectype)
         {
-        case recordstyle::merge:
-        case recordstyle::overwrite:
-        case recordstyle::expand:
+        case midi::recordstyle::merge:
+        case midi::recordstyle::overwrite:
+        case midi::recordstyle::expand:
 
             auto_step_reset(false);
             break;
 
-        case recordstyle::oneshot:
+        case midi::recordstyle::oneshot:
 
             auto_step_reset(true);
             break;
 
-        case recordstyle::oneshot_reset:
+        case midi::recordstyle::oneshot_reset:
 
             clear_events();
             m_last_tick = 0;

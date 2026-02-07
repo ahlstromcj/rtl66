@@ -34,7 +34,8 @@
 #include <iostream>                     /* std::cerr                        */
 
 #include "ctrl/keycontainer.hpp"        /* seq66::keycontainer class        */
-#include "util/strfunctions.hpp"        /* seq66::strcasecompare()          */
+#include "util/msgfunctions.hpp"        /* util::info_message()             */
+#include "util/strfunctions.hpp"        /* util::strcasecompare()           */
 
 namespace seq66
 {
@@ -356,9 +357,9 @@ keycontainer::show () const
     int index { 0 };
     std::string tag { "Key container size: " };
     tag += std::to_string(m_container.size());
-    info_message(tag);
+    util::info_message(tag);
     tag = "Index  Key  Name    Category Action Slot/Code";
-    info_message(tag);
+    util::info_message(tag);
     tag.clear();
     for (const auto & kp : m_container)
     {
@@ -366,7 +367,7 @@ keycontainer::show () const
         if (key > 0xff)
             key = 0xff;
 
-        info_message(tag);
+        util::info_message(tag);
         std::cout
             << "[" << std::setw(3) << std::right << index << "] "
             << "(0x" << std::hex << std::setw(2) << std::right << key << ") "
@@ -379,13 +380,13 @@ keycontainer::show () const
 void
 keycontainer::set_kbd_layout (const std::string & lay)
 {
-    if (strcasecompare(lay, "normal"))
+    if (util::strcasecompare(lay, "normal"))
         m_kbd_layout = keyboard::layout::qwerty;
-    else if (strcasecompare(lay, "qwerty"))
+    else if (util::strcasecompare(lay, "qwerty"))
         m_kbd_layout = keyboard::layout::qwerty;
-    else if (strcasecompare(lay, "qwertz"))
+    else if (util::strcasecompare(lay, "qwertz"))
         m_kbd_layout = keyboard::layout::qwertz;
-    else if (strcasecompare(lay, "azerty"))
+    else if (util::strcasecompare(lay, "azerty"))
         m_kbd_layout = keyboard::layout::azerty;
     else
         m_kbd_layout = keyboard::layout::qwerty;

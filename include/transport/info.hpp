@@ -107,10 +107,10 @@ class info
     bool m_is_running { false };
 
     /**
-     *  Indicates if the BPM or PPQN value has changed, for internal handling in
-     *  output_func(). Note that atomic-bool has a deleted copy constructor.
-     *  This ripples down the info class hierarchy, so we will punt and hope we
-     *  can figure out a better way later.
+     *  Indicates if the BPM or PPQN value has changed, for internal handling
+     *  in output_func(). Note that atomic-bool has a deleted copy
+     *  constructor.  This ripples down the info class hierarchy, so we will
+     *  punt and hope we can figure out a better way later.
      */
 
 #if defined RTL_ATOMIC_RESOLUTION_CHANGE_FLAG

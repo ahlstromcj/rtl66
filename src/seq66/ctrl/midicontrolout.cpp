@@ -25,7 +25,7 @@
  * \library       rtl66 library
  * \author        Igor Angst (with refactoring by C. Ahlstrom)
  * \date          2018-03-28
- * \updates       2026-02-04
+ * \updates       2026-02-06
  * \license       GNU GPLv2 or above
  *
  * The class contained in this file encapsulates most of the functionality to
@@ -125,7 +125,7 @@ midicontrolout::initialize (int buss, int rows, int columns)
     if (result)
     {
         int count { rows * columns };
-        event dummy_event;
+        midi::event dummy_event;
         actions actionstemp;
         dummy_event.set_channel_status(0, 0);   /* set status and channel   */
         actionpair apt;
@@ -548,16 +548,16 @@ midicontrolout::send_macro (const std::string & name, bool flush)
         {
             int len { int(byts.size()) };
             midi::bussbyte tb { true_buss() };
-            if (midi::event::is_ex_data_msg(byts[0]))
+            if (midi::is_ex_data_msg(byts[0]))
             {
                 midi::event ev;
-                const midi::byte * b { midi_bytes(byts) };
+                const midi::byte * b { midi::midi_bytes(byts) };
                 (void) ev.set_sysex(b, len);
                 m_master_bus->sysex(tb, &ev);               /* flushes      */
             }
             else
             {
-                midi::byte d1 { len == 3 ? byts[2] : 0 };
+                midi::byte d1 { len == 3 ? byts[2] : midi::byte(0) };
                 midi::event ev(0, byts[0], byts[1], d1);
                 if (flush)
                     m_master_bus->play_and_flush(tb, &ev, ev.channel());
@@ -571,7 +571,7 @@ midicontrolout::send_macro (const std::string & name, bool flush)
 std::string
 midicontrolout::get_event_str (const midi::event & ev) const
 {
-    int s { int(ev.get_status()) };
+    int s { int(ev.status_byte()) };
     midi::byte d0, d1;
     ev.get_data(d0, d1);
     std::ostringstream str;

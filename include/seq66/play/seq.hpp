@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2019-02-12
- * \updates       2024-06-13
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
  *  This module also creates a small structure for managing sequence
@@ -244,7 +244,7 @@ public:
 
     static number limit ()
     {
-        return sequence::limit();               /* 2048 */  /* 0x0800 */
+        return 2048;                    /* sequence::limit() 2048 0x0800    */
     }
 
     /**
@@ -253,7 +253,7 @@ public:
 
     static number unassigned ()
     {
-        return sequence::unassigned();          /* (-1) */
+        return (-1);                    /* sequence::unassigned()           */
     }
 
     /**

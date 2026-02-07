@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2026-02-04
+ * \updates       2026-02-05
  * \license       GNU GPLv2 or above
  *
  *  This module defines a number of constants relating to control of pattern
@@ -96,17 +96,17 @@ public:
         key & operator = (const key &) = default;
         ~key () = default;
 
-        key (byte status, byte d0) :
-            m_buss      (null_buss()),
+        key (midi::byte status, midi::byte d0) :
+            m_buss      (midi::null_buss()),
             m_status    (status),
             m_d0        (d0)
         {
             // no code
         }
 
-        key (const event & ev) :
+        key (const midi::event & ev) :
             m_buss      (ev.input_bus()),
-            m_status    (ev.get_status()),
+            m_status    (ev.status_byte()),
             m_d0        (0)
         {
             ev.get_data(m_d0);

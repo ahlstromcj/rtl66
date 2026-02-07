@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2026-01-19
+ * \updates       2026-02-05
  * \license       GNU GPLv2 or above
  *
  *  These aliases are intended to remove ambiguity seen between signed and
@@ -346,14 +346,11 @@ is_good_buss_ex (bussbyte b)
     return is_good_buss(b) || is_all_busses(b);
 }
 
-/*
- *
 inline bool
 is_valid_buss (int b)
 {
-    return is_good_buss_value(b) || is_null_buss(b);
+    return is_good_buss(b) || is_null_buss(b);
 }
- */
 
 inline bool
 is_good_busscount (int b)
@@ -407,11 +404,10 @@ midi_bytes (const bytes & b)
 
 /*
  *  More free functions, not inline. For reference only.
-
-extern std::string midi_bytes_string (const midistring & b, int limit = 0);
-extern midibyte string_to_midibyte (const std::string & s, midibyte defalt = 0);
-extern midibooleans fix_midibooleans (const midibooleans & mbs, int newsz);
-
+ *
+ * std::string midi_bytes_string (const midistring & b, int limit = 0);
+ * midibyte string_to_midibyte (const std::string & s, midibyte defalt = 0);
+ * midibooleans fix_midibooleans (const midibooleans & mbs, int newsz);
  */
 
 /**

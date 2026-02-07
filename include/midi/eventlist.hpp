@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2025-09-13
+ * \updates       2026-02-06
  * \license       GNU GPLv2 or above
  *
  *  This module extracts the event-list functionality from the sequencer
@@ -371,6 +371,11 @@ public:
     void clear ();
     void sort ();
     bool merge (const eventlist & el, bool presort = true);
+    int count_selected_notes () const;
+    bool any_selected_notes () const;
+    int count_selected_events (midi::byte status, midi::byte cc) const;
+    bool any_selected_events () const;
+    bool any_selected_events (midi::byte status, midi::byte cc) const;
 
     bool action_in_progress () const
     {
@@ -486,11 +491,6 @@ private:                                /* functions for friend sequence    */
 #if defined RTL66_SUPPORT_PAINTED_EVENTS
     void unpaint_all ();
 #endif
-    int count_selected_notes () const;
-    bool any_selected_notes () const;
-    int count_selected_events (midi::byte status, midi::byte cc) const;
-    bool any_selected_events () const;
-    bool any_selected_events (midi::byte status, midi::byte cc) const;
     void select_all ();
     void select_by_channel (int channel);
     void select_notes_by_channel (int channel);
@@ -499,12 +499,12 @@ private:                                /* functions for friend sequence    */
     int select_events
     (
         midi::pulse tick_s, midi::pulse tick_f,
-        midi::byte status, midi::byte cc, select action
+        midi::byte bstatus, midi::byte cc, select action
     );
     int select_event_handle
     (
         midi::pulse tick_s, midi::pulse tick_f,
-        midi::byte astatus, midi::byte cc,
+        midi::byte bstatus, midi::byte cc,
         midi::byte data
     );
     int select_note_events
@@ -514,7 +514,7 @@ private:                                /* functions for friend sequence    */
     );
     bool event_in_range
     (
-        const midi::event & e, midi::byte status,
+        const midi::event & e, midi::byte btatus,
         midi::pulse tick_s, midi::pulse tick_f
     ) const;
     bool get_selected_events_interval

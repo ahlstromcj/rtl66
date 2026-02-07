@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2022-07-10
- * \updates       2025-11-23
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
  *  The player class is a severely cut-down version of seq66::performer, with
@@ -72,7 +72,7 @@
 #include "midi/ports.hpp"                   /* access to MIDI ports         */
 #include "midi/tracklist.hpp"               /* provides a set of tracks     */
 #include "rtl/iothread.hpp"                 /* rtl::iothread class          */
-#include "transport/jack/scratchpad.hpp"    /* transport::jack::scratchpad  */
+#include "transport/scratchpad.hpp"         /* transport::scratchpad        */
 #include "transport/jack/transport.hpp"     /* transport::jack::transport   */
 #include "transport/clock/info.hpp"         /* transport::clock::info       */
 
@@ -263,7 +263,7 @@ private:                            /* key, midi, and op container section  */
      *  data used by other MIDI APIs.
      */
 
-    transport::jack::scratchpad m_jack_pad { };
+    transport::scratchpad m_jack_pad { };
 
     /**
      *  MIDI Clock support. The m_tick member holds the tick to be used in
@@ -638,12 +638,12 @@ public:
      * ---------------------------------------------------------------------
      */
 
-    transport::jack::scratchpad & pad ()
+    transport::scratchpad & pad ()
     {
         return m_jack_pad;
     }
 
-    bool jack_output (transport::jack::scratchpad & pad)
+    bool jack_output (transport::scratchpad & pad)
     {
 #if defined RTL66_BUILD_JACK
         return m_jack_transport.output(pad);

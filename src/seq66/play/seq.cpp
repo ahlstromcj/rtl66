@@ -86,7 +86,7 @@ seq::~seq ()
 bool
 seq::activate (sequence * s, number seqno)
 {
-    bool result = not_nullptr(s);
+    bool result { not_nullptr(s) };
     if (result)
     {
         m_seq.reset(s);
@@ -116,7 +116,7 @@ seq::activate (sequence * s, number seqno)
 bool
 seq::activate (number seqno, bool active)
 {
-    bool result = true;
+    bool result { true };
     if (m_seq_active && ! active)
         set_was_active();               /* weird, investigate   */
 
@@ -141,7 +141,7 @@ seq::activate (number seqno, bool active)
 bool
 seq::deactivate ()
 {
-    bool result = not_nullptr(m_seq);
+    bool result { not_nullptr(m_seq) };
     if (m_seq_active)
         set_was_active();               /* weird, investigate   */
 
@@ -181,7 +181,7 @@ seq::set_was_active ()
 bool
 seq::is_exportable () const
 {
-    bool result = active();
+    bool result { active() };
     if (result)
         result = m_seq->is_exportable();
 
@@ -203,7 +203,7 @@ seq::is_exportable () const
 bool
 seq::is_dirty_main () const
 {
-    bool was_active = false;
+    bool was_active { false };
     if (active())
     {
         was_active = m_seq->is_dirty_main();
@@ -230,7 +230,7 @@ seq::is_dirty_main () const
 bool
 seq::is_dirty_edit () const
 {
-    bool was_active = false;
+    bool was_active { false };
     if (active())
     {
         was_active = m_seq->is_dirty_edit();
@@ -257,7 +257,7 @@ seq::is_dirty_edit () const
 bool
 seq::is_dirty_perf () const
 {
-    bool was_active = false;
+    bool was_active { false };
     if (active())
     {
         was_active = m_seq->is_dirty_perf();
@@ -284,7 +284,7 @@ seq::is_dirty_perf () const
 bool
 seq::is_dirty_names () const
 {
-    bool was_active = false;
+    bool was_active { false };
     if (active())
     {
         was_active = m_seq->is_dirty_names();
@@ -315,7 +315,7 @@ seq::sequence_playing_change (bool on, bool qinprogress)
 {
     if (active())
     {
-        bool queued = m_seq->get_queued();
+        bool queued { m_seq->get_queued() };
         if (on)
         {
             if (qinprogress)
@@ -368,7 +368,7 @@ seq::to_string (int /*index*/) const
 void
 seq::show (int index) const
 {
-    std::string seqmsg = to_string(index);
+    std::string seqmsg { to_string(index) };
     if (! seqmsg.empty())
         std::cout << seqmsg;
 }

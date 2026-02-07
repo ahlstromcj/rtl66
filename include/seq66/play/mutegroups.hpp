@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-12-01
- * \updates       2024-06-13
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
  *  This module is meant to support the main mute groups and the mute groups
@@ -58,7 +58,7 @@ namespace seq66
  *  Provides a flexible container for mutegroup (mute-group) objects.
  */
 
-class mutegroups final : public basesettings
+class mutegroups final : public cfg::basesettings
 {
 
 public:
@@ -140,32 +140,34 @@ private:
      *  whole collection of mute-groups.  Why?  Because we can, in all
      *  practicality, only support 4 x 8 mute-groups with the keystrokes on a
      *  keyboard without interfering with other automation keys.
+     *  Note that this size is unrelated to the screenset size.
      */
 
-    static const int c_rows = 4;
+    static const int c_rows { 4 };
 
     /**
      *  The virtual number of columns in a grid of mute-groups.  Similarly,
      *  this item reflects that we will always have 4 x 8 mute-groups.
+     *  Note that this size is unrelated to the screenset size.
      */
 
-    static const int c_columns = 8;
+    static const int c_columns { 8 };
 
     /**
      *  This value indicates that there is no mute-group selected.
      */
 
-    static const int c_null_mute_group = (-1);
+    static const int c_null_mute_group { -1 };
 
     /**
      *  We force a maximum number of mute-groups.  We really only have enough
      *  keys available for 32 mute-groups.
      */
 
-    static const int c_mute_groups_max = 32;
+    static const int c_mute_groups_max { 32 };
 
     /**
-     *  Experiment feature to swap coordinates.
+     *  Experimental feature to swap coordinates.
      */
 
     static bool s_swap_coordinates;
@@ -175,13 +177,14 @@ private:
      *  group number.
      */
 
-    container m_container;
+    container m_container { };
 
     /**
      *  A name to use for showing the contents of the container.
      */
 
-    std::string m_container_name;
+    std::string m_container_name { "Mutes" };
+    ;
 
     /**
      *  Indicates the number of rows in a group, for reading purposes.  This
@@ -194,7 +197,7 @@ private:
      *  and only one mutegroup object.
      */
 
-    int m_rows;
+    int m_rows { 4 };
 
     /**
      *  Indicates the number of columns in a group.  This value defaults to 8.
@@ -202,7 +205,7 @@ private:
      *  square brackets.  There are rows x column "bits" in a mute-group.
      */
 
-    int m_columns;
+    int m_columns { 8 };
 
     /**
      *  If true, writes the output to a mutes file in hex format.  The default
@@ -210,28 +213,28 @@ private:
      *  0xff) will save a lot of space.
      */
 
-    bool m_group_format_hex;
+    bool m_group_format_hex { false };
 
     /**
      *  Indicates if the control values were loaded from an 'rc' configuration
      *  file, as opposed to being empty.  The default value is false.
      */
 
-    bool m_loaded_from_mutes;
+    bool m_loaded_from_mutes { false };
 
     /**
      *  Indicates that a mute-group-related key has just been pressed, or a
      *  similar event (MIDI or the "L" button) has occurred.
      */
 
-    bool m_group_event;
+    bool m_group_event { false };
 
     /**
      *  Indicates that an error occurred in group processing.  The caller will
      *  check this flag, which clears it, and act on the status.
      */
 
-    mutable bool m_group_error;
+    mutable bool m_group_error { false };
 
     /**
      *  If true, indicates that a mode group is selected, and playing statuses
@@ -240,7 +243,7 @@ private:
      *  keys are struck.
      */
 
-    bool m_group_mode;
+    bool m_group_mode { true };
 
     /**
      *  If true, indicates that a group learn is selected, which also
@@ -248,7 +251,7 @@ private:
      *  change.
      */
 
-    bool m_group_learn;
+    bool m_group_learn { false };
 
     /**
      *  Selects a group to mute.  A "group" is essentially a "set" that is
@@ -259,7 +262,7 @@ private:
      *  mute-group setup time.
      */
 
-    mutegroup::number m_group_selected;
+    mutegroup::number m_group_selected { c_null_mute_group };
 
     /**
      *  If true, indicates that non-zero mute-groups were present in this MIDI
@@ -268,21 +271,21 @@ private:
      *  getting the result of the any() function.
      */
 
-    bool m_group_present;
+    bool m_group_present { false };
 
     /**
      *  Indicates if non-empty mute-groups get saved to the mutes file, MIDI
      *  file, or both.
      */
 
-    saving m_group_save;
+    saving m_group_save { saving::midi };
 
     /**
      *  Indicates if non-empty mute-groups get loaded from the mutes file,
      *  MIDI file, or attempted load from both.
      */
 
-    loading m_group_load;
+    loading m_group_load { loading::midi };
 
     /**
      *  If true (the default is false), then, when turning off mutes via
@@ -290,7 +293,7 @@ private:
      *  leaving alone any other patterns that the user may have turned on.
      */
 
-    bool m_toggle_active_only;
+    bool m_toggle_active_only { false };
 
     /**
      *  If true, and there are no non-zero mutes, then they are not written to
@@ -298,27 +301,24 @@ private:
      *  written.
      */
 
-    bool m_strip_empty;
+    bool m_strip_empty { true };
 
     /**
      *  Indicates the old Seq24/32/64/66 mute-group format, where all values
      *  were stored as longs.
      */
 
-    bool m_legacy_mutes;
+    bool m_legacy_mutes { false };
 
 public:
 
-    mutegroups
-    (
-        int rows    = c_rows,
-        int columns = c_columns
-    );
+    mutegroups () = default;
     mutegroups
     (
         const std::string & name,
-        int rows    = c_rows,
-        int columns = c_columns
+        int rows                = c_rows,
+        int columns             = c_columns,
+        bool swapcoordinates    = false
     );
 
     /*
@@ -546,7 +546,7 @@ public:
 
     bool group_error () const
     {
-        bool result = m_group_error;
+        bool result { m_group_error };
         m_group_error = false;
         return result;
     }

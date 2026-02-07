@@ -25,7 +25,7 @@
  * \library       rtl66 library
  * \author        C. Ahlstrom
  * \date          2021-11-21
- * \updates       2026-02-04
+ * \updates       2026-02-05
  * \license       GNU GPLv2 or above
  *
  *  The specification for the midimacros is of the following format:
@@ -128,7 +128,7 @@ midimacros::expand ()
  *  Recursively expands macro variables (e.g. "$footer")
  */
 
-bytes
+midi::bytes
 midimacros::expand (midimacro & m)
 {
     midi::bytes result;                   /* holds all of the bytes found     */
@@ -167,7 +167,7 @@ midimacros::expand (midimacro & m)
              * result += b;
              */
 
-            midi::byte b { string_to_byte(token) };
+            midi::byte b { midi::string_to_byte(token) };
             result.push_back(b);
             temp.push_back(b);
         }
@@ -231,7 +231,7 @@ midimacros::byte_strings () const
         const midimacro & mac { m.second };
         result += mac.name();
         result += ": ";
-        result += midi_bytes_string(mac.bytes());
+        result += midi::hex_bytes_string(mac.bytes());
         result += "\n";
     }
     return result;
@@ -260,7 +260,7 @@ midimacros::make_defaults ()
     {
         for (int i = 0; ! s_defaults[i].empty(); ++i)
         {
-            lib66::tokenization t { lib66::tokenize(s_defaults[i], "=") };
+            lib66::tokenization t { util::tokenize(s_defaults[i], "=") };
             if (! add(t))
                 break;
         }

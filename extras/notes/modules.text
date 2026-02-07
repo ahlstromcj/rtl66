@@ -61,7 +61,7 @@ midi: namespace midi
         tracklist m_track_list
         rtl::iothread m_out_thread
         rtl::iothread m_in_thread
-        transport::jack::scratchpad m_jack_pad
+        transport::scratchpad m_jack_pad
         transport::clock::info m_clock_info
         transport::info m_transport_info
         transport::jack::transport m_jack_transport     Hmmmmm.

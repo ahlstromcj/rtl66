@@ -1,5 +1,5 @@
-#if ! defined RTL66_TRANSPORT_JACK_SCRATCHPAD_HPP
-#define RTL66_TRANSPORT_JACK_SCRATCHPAD_HPP
+#if ! defined RTL66_TRANSPORT_SCRATCHPAD_HPP
+#define RTL66_TRANSPORT_SCRATCHPAD_HPP
 
 /*
  *  This file is part of rtl66.
@@ -28,23 +28,16 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-23
- * \updates       2025-09-14
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
  *  This class contains a number of functions that used to reside in the
  *  still-large player module.
  */
 
-#include "rtl/rtl_build_macros.h"       /* RTL66_EXPORT, etc.               */
-
-#if defined RTL66_BUILD_JACK
-
 #include "midi/midibytes.hpp"           /* midi::pulse alias                */
 
 namespace transport
-{
-
-namespace jack
 {
 
 /**
@@ -93,16 +86,12 @@ public:
 
 };          // class scratchpad
 
-}           // namespace jack
-
 }           // namespace transport
 
-#endif      // defined RTL66_BUILD_JACK
-
-#endif      // RTL66_TRANSPORT_JACK_SCRATCHPAD_HPP
+#endif      // RTL66_TRANSPORT_SCRATCHPAD_HPP
 
 /*
- * transport/jack/scratchpad.hpp
+ * transport/scratchpad.hpp
  *
  * vim: sw=4 ts=4 wm=4 et ft=cpp
  */

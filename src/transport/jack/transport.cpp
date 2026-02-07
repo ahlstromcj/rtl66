@@ -131,7 +131,7 @@
 
 #include "c_macros.h"                   /* not_nullptr() macro              */
 #include "transport/jack/transport.hpp" /* transport::jack::transport       */
-#include "transport/jack/scratchpad.hpp"
+#include "transport/scratchpad.hpp"
 #include "util/msgfunctions.hpp"        /* util::async_safe_strprint() etc. */
 #include "midi/player.hpp"              /* midi::performer class            */
 

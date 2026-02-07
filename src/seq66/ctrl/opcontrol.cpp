@@ -30,8 +30,8 @@
  *
  */
 
+#include "cpp_types.hpp"                /* lib66::tokenization alias        */
 #include "ctrl/opcontrol.hpp"           /* seq66::opcontrol base class      */
-#include "util/cpp_types.hpp"           /* lib66::tokenization alias        */
 
 namespace seq66
 {

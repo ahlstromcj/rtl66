@@ -29,7 +29,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-12-01
- * \updates       2024-06-13
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
  */
@@ -69,8 +69,8 @@ public:
 
     using grouphandler = std::function<bool (mutegroup &, mutegroup::number)>;
 
-    static const int c_default_rows    = screenset::c_default_rows;
-    static const int c_default_columns = screenset::c_default_columns;
+    static const int c_default_rows    { screenset::c_default_rows };
+    static const int c_default_columns { screenset::c_default_columns };
 
 private:
 
@@ -80,14 +80,14 @@ private:
      *  table in the Mutes tab.
      */
 
-    std::string m_name;
+    std::string m_name { "Group" };
 
     /**
      *  Indicates the current state of the mute-group, either on or off.
      *  Useful in toggling.
      */
 
-    mutable bool m_group_state;
+    mutable bool m_group_state { false };
 
     /**
      *  The number of loops/patterns in the mute-group.  Saves a calculation
@@ -100,7 +100,7 @@ private:
      *  for uncovering that.
      */
 
-    /* const */ int m_group_size;
+    /* const */ int m_group_size { screenset::c_default_size };
 
     /**
      *  Holds a set of boolean values in a 1-D vector, but can be virtually
@@ -118,7 +118,7 @@ private:
      *  mute-group.
      */
 
-    /* const */ int m_rows;
+    /* const */ int m_rows { screenset::c_default_rows };
 
     /**
      *  Indicates the number of virtual columns in a screen-set (bank), which
@@ -128,23 +128,23 @@ private:
      *  per set or mute-group.
      */
 
-    /* const */ int m_columns;
+    /* const */ int m_columns { screenset::c_default_rows };
 
     /**
      *  Experimental option to swap rows and columns.  See the function
      *  swap_coordinates().  This swap doesn't apply to the number of rows and
      *  columns, but to whether incrementing the sequence number moves to the
-     *  next or othe next column.
+     *  next row or the next column.
      */
 
-    bool m_swap_coordinates;
+    bool m_swap_coordinates { false };
 
     /**
      *  Indicates the group (akin to the set or bank number) represented by
      *  this mutegroup object.
      */
 
-    number m_group;
+    number m_group { 0 };
 
     /**
      *  Indicates the screen-set offset (the number of the first loop/pattern
@@ -152,9 +152,11 @@ private:
      *  saves a calculation.
      */
 
-    /* const */ int m_group_offset;
+    /* const */ int m_group_offset { 0 };
 
 public:
+
+    mutegroup () = default;             /* useful for a dummy object        */
 
     /*
      *  Creates the vector of values, setting them all to 0 (false).
@@ -162,9 +164,10 @@ public:
 
     mutegroup
     (
-        number group    = 0,
-        int rows        = c_default_rows,
-        int columns     = c_default_columns
+        number group,
+        int rows                = c_default_rows,
+        int columns             = c_default_columns,
+        bool swapcoordinates    = false
     );
 
     /*

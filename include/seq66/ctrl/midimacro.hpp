@@ -38,8 +38,8 @@
  *      It is NOT a base class for midicontrol or midicontrolin!
  */
 
+#include "cpp_types.hpp"                /* lib66::tokenization container    */
 #include "midi/midibytes.hpp"           /* midi::bytes data type            */
-#include "util/basic_macros.hpp"        /* seq66::tokenization container    */
 
 namespace seq66
 {

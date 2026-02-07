@@ -25,7 +25,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-12-01
- * \updates       2024-06-13
+ * \updates       2026-02-07
  * \license       GNU GPLv2 or above
  *
  *  This class manages one of the lines in the "[mute-group]" section of the
@@ -76,7 +76,6 @@
 
 #include <iostream>                     /* std::cout                        */
 
-#include "cfg/settings.hpp"             /* seq66::usr()                     */
 #include "play/mutegroup.hpp"           /* seq66::mutegroup class           */
 #include "util/strfunctions.hpp"        /* seq66::write_stanza_bits()       */
 
@@ -98,14 +97,19 @@ namespace seq66
  *      Provides the number of virtual columns in a single mute-group.
  */
 
-mutegroup::mutegroup (mutegroup::number group, int rows, int columns) :
-    m_name              ("Group"),
-    m_group_state       (false),
+mutegroup::mutegroup
+(
+    mutegroup::number group,
+    int rows, int columns,
+    bool swapcoordinates
+) :
+//  m_name              ("Group"),
+//  m_group_state       (false),
     m_group_size        (int(rows * columns)),          /* order important  */
     m_mutegroup_vector  (m_group_size, midi::boolean(false)),
     m_rows              (rows),
     m_columns           (columns),
-    m_swap_coordinates  (usr().swap_coordinates()),
+    m_swap_coordinates  (swapcoordinates),
     m_group             (group >= 0 ? group : 0),
     m_group_offset      (m_group * m_group_size)
 {
@@ -127,7 +131,7 @@ mutegroup::mutegroup (mutegroup::number group, int rows, int columns) :
 bool
 mutegroup::set (const midi::booleans & bits)
 {
-    bool result = bits.size() == size_t(m_group_size);
+    bool result { bits.size() == size_t(m_group_size) };
     if (result)
         m_mutegroup_vector = bits;
 
@@ -159,7 +163,7 @@ mutegroup::clear ()
 bool
 mutegroup::any () const
 {
-    bool result = false;
+    bool result { false };
     for (auto mg : m_mutegroup_vector)
     {
         if (bool(mg))
@@ -182,7 +186,7 @@ mutegroup::any () const
 int
 mutegroup::armed_count () const
 {
-    int result = 0;
+    int result { 0 };
     for (auto mg : m_mutegroup_vector)
     {
         if (bool(mg))
@@ -208,8 +212,8 @@ mutegroup::armed_count () const
 bool
 mutegroup::mute_to_grid (int group, int & row, int & column) const
 {
-    int offset = group - int(m_group_offset);
-    bool result = offset >= 0 && offset < int(m_group_size);
+    int offset { group - int(m_group_offset) };
+    bool result { offset >= 0 && offset < int(m_group_size) };
     if (result)
     {
         if (swap_coordinates())
@@ -254,7 +258,7 @@ mutegroup::grid_to_mute (int row, int column)
 bool
 mutegroup::armed (int index) const
 {
-    bool result = index >= 0 && index < m_group_size;
+    bool result { index >= 0 && index < m_group_size };
     if (result)
         return bool(m_mutegroup_vector[index]);
 
@@ -278,7 +282,7 @@ mutegroup::armed (int index, bool flag)
 void
 mutegroup::show () const
 {
-    std::string stanzabits = write_stanza_bits(get(), columns());
+    std::string stanzabits { write_stanza_bits(get(), columns()) };
     std::cout
         << "Group #" << group()
         << " " << stanzabits
@@ -319,17 +323,17 @@ write_stanza_bits
     bool hexstyle
 )
 {
-    std::string result("[ ");
-    int bitcount = int(bitbucket.size());
+    std::string result { "[ " };
+    int bitcount { int(bitbucket.size()) };
     if (bitcount > 0)
     {
         if (hexstyle)
         {
-            int bitcount = grouping;                /* group by 8 bits, ... */
-            unsigned hexvalue = 0x00;
+            int bitcount { grouping };              /* group by 8 bits, ... */
+            unsigned hexvalue { 0x00 };
             for (auto b : bitbucket)
             {
-                unsigned bitvalue = b != 0 ? 1 : 0 ;
+                unsigned bitvalue { unsigned(b != 0 ? 1 : 0) };
                 hexvalue |= bitvalue;
                 --bitcount;
                 if (bitcount == 0)
@@ -358,11 +362,14 @@ write_stanza_bits
         }
         else
         {
-            int counter = 0;
+            int counter { 0 };
             for (auto b : bitbucket)
             {
-                bool ender = ++counter % grouping == 0 &&
-                    counter < int(bitbucket.size());
+                bool ender
+                {
+                    ++counter % grouping == 0 &&
+                        counter < int(bitbucket.size())
+                };
 
                 result += (b != 0) ? "1" : "0" ;
                 result += " ";
@@ -383,12 +390,13 @@ write_stanza_bits
 static void
 push_8_bits (midi::booleans & target, unsigned bits)
 {
-    unsigned bitmask = 0x80;            /* start with the highest (MSB) bit */
+    unsigned bitmask { 0x80 };          /* start with the highest (MSB) bit */
     for (int i = 0; i < 8; ++i)
     {
-        midi::boolean mb = (bits & bitmask) != 0 ?
-            midi::boolean(1) : midi::boolean(0) ;
-
+        midi::boolean mb
+        {
+            (bits & bitmask) != 0 ?  midi::boolean(1) : midi::boolean(0)
+        };
         target.push_back(mb);
         bitmask >>= 1;
     }
@@ -428,21 +436,21 @@ parse_stanza_bits
     const std::string & mutestanza
 )
 {
-    bool result = ! mutestanza.empty();
+    bool result { ! mutestanza.empty() };
     if (result)
     {
         midi::booleans bitbucket;
-        auto p = mutestanza.find_first_of("xX");
-        auto bleft = mutestanza.find_first_of("[");
-        bool hexstyle = p != std::string::npos;
-        tokenization tokens;
-        int tokencount = tokenize_stanzas(tokens, mutestanza, bleft);
+        auto p { mutestanza.find_first_of("xX") };
+        auto bleft { mutestanza.find_first_of("[") };
+        bool hexstyle { p != std::string::npos };
+        lib66::tokenization tokens;
+        int tokencount { util::tokenize_stanzas(tokens, mutestanza, bleft) };
         result = tokencount > 0;
         if (result)
         {
             for (int tk = 0; tk < tokencount; ++tk)
             {
-                std::string temp = tokens[tk];
+                std::string temp { tokens[tk] };
                 if (temp == "[" || temp == "]")
                 {
                     /* nothing to do */
@@ -453,7 +461,7 @@ parse_stanza_bits
                 }
                 else
                 {
-                    unsigned v = unsigned(string_to_int(temp));
+                    unsigned v { unsigned(util::string_to_int(temp)) };
                     if (hexstyle)
                     {
                         if (v < 256)

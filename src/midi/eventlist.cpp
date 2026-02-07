@@ -25,7 +25,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-09-19
- * \updates       2025-10-27
+ * \updates       2026-02-06
  * \license       GNU GPLv2 or above
  *
  *  This container now can indicate if certain Meta events (time-signaure or
@@ -806,7 +806,7 @@ eventlist::remove_unlinked_notes ()
 bool
 eventlist::quantize_events
 (
-    midi::byte astatus, midi::byte cc, int snap,
+    midi::byte bstatus, midi::byte cc, int snap,
     int divide, bool fixlink
 )
 {
@@ -819,14 +819,14 @@ eventlist::quantize_events
         {
             midi::byte d0, d1;
             er.get_data(d0, d1);
-            bool match { er.match_status(astatus) };
+            bool match { er.match_status(bstatus) };
             bool canselect { false };
             if (er.is_marked())                 /* ignore marked events     */
             {
                 er.unmark();
                 continue;
             }
-            if (midi::is_controller_msg(astatus))
+            if (midi::is_controller_msg(bstatus))
                 canselect = match && d0 == cc;  /* correct status and cc    */
             else
                 canselect = match;              /* correct status, any cc   */
@@ -1379,14 +1379,14 @@ eventlist::reverse_events (bool inplace, bool relink)
  */
 
 bool
-eventlist::randomize (midi::byte astatus, int range, bool all)
+eventlist::randomize (midi::byte bstatus, int range, bool all)
 {
     bool result { false };
     if (range > 0)
     {
         for (auto & e : m_events)
         {
-            if (all || e.is_selected_status(astatus))
+            if (all || e.is_selected_status(bstatus))
             {
                 if (e.randomize(range))
                     result = true;
@@ -2384,15 +2384,15 @@ int
 eventlist::select_events
 (
     midi::pulse tick_s, midi::pulse tick_f,
-    midi::byte status, midi::byte cc, select action
+    midi::byte bstatus, midi::byte cc, select action
 )
 {
     int result { 0 };
     for (auto & er : m_events)
     {
-        if (event_in_range(er, status, tick_s, tick_f))
+        if (event_in_range(er, bstatus, tick_s, tick_f))
         {
-            if (er.is_desired(status, cc))
+            if (er.is_desired(bstatus, cc))
             {
                 if (action == select::selecting)
                 {
@@ -2453,7 +2453,7 @@ eventlist::select_events
  *      Provides the finishing  tick, which is some small amount above the
  *      tick represented by the mouse position.
  *
- * \param astatus
+ * \param bstatus
  *      Provides the type of event, such as Note-On/Off, Pitchbend, or Tempo.
  *
  * \param cc
@@ -2472,15 +2472,15 @@ int
 eventlist::select_event_handle
 (
     midi::pulse tick_s, midi::pulse tick_f,
-    midi::byte astatus, midi::byte cc,
+    midi::byte bstatus, midi::byte cc,
     midi::byte data
 )
 {
     int result { 0 };
     bool have_selected_note_ons { false };
-    if (is_note_on_msg(astatus))
+    if (is_note_on_msg(bstatus))
     {
-        if (count_selected_events(astatus, cc) > 0)
+        if (count_selected_events(bstatus, cc) > 0)
             have_selected_note_ons = true;
     }
     else if (is_tempo_msg(cc))
@@ -2489,10 +2489,10 @@ eventlist::select_event_handle
     }
     for (auto & er : m_events)
     {
-        if (event_in_range(er, astatus, tick_s, tick_f)) /* in time-range   */
+        if (event_in_range(er, bstatus, tick_s, tick_f)) /* in time-range   */
         {
-            bool isctrl { is_controller_msg(astatus) };
-            if (isctrl && er.is_desired(astatus, cc, data)) /* in range     */
+            bool isctrl { is_controller_msg(bstatus) };
+            if (isctrl && er.is_desired(bstatus, cc, data)) /* in range     */
             {
                 unselect_all();                         /* or unmark()      */
                 er.select();                            /* or mark()???     */
@@ -2501,7 +2501,7 @@ eventlist::select_event_handle
             }
             if (! isctrl)                               /* chan. pressure?  */
             {
-                bool twobytes { is_two_byte_msg(astatus) };
+                bool twobytes { is_two_byte_msg(bstatus) };
                 if (twobytes)
                 {
                     if (er.is_data_in_handle_range(data))   /* checks d1()  */

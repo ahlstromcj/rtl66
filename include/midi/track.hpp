@@ -239,7 +239,9 @@ private:
 
     /**
      *  Indicates if the track has been modified (by the user via editing or
-     *  recording.
+     *  recording.  Unlike the is_dirty_xxx flags (see the seq66::sequence
+     *  class, this one is not reset when checked.  Useful when closing a file or
+     *  the application to cause a "Save?" prompt.
      */
 
     mutable std::atomic<bool> m_modified { false };

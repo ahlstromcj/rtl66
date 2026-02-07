@@ -24,7 +24,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2025-12-02
+ * \updates       2026-02-05
  * \license       GNU GPLv2 or above
  *
  *  A MIDI event (i.e. "track event") is encapsulated by the midi::event
@@ -126,15 +126,16 @@ event::event (const midi::message & msg) :
  *      Provides the timestamp of this event.
  *
  * \param s
- *      Provides the status value.  The channel nybble is cleared, since the
- *      channel is generally provided by the settings of the sequence.
- *      However, this value should include the channel if applicable!
+ *      Provides the status value as a plain byte. The channel nybble is
+ *      cleared, since the channel is generally provided by the settings
+ *      of the sequence. However, this value can include the channel
+ *      if applicable!
  *
  * \param d0
- *      Provides the first data byte.  There is no default value.
+ *      Provides the first data byte. There is no default value.
  *
  * \param d1
- *      Provides the second data byte.  There is no default value.
+ *      Provides the second data byte. The default value 0.
  */
 
 event::event (midi::pulse tstamp, midi::byte s, midi::byte d0, midi::byte d1) :
@@ -144,6 +145,68 @@ event::event (midi::pulse tstamp, midi::byte s, midi::byte d0, midi::byte d1) :
     m_message.push(s);
     m_message.push(d0);
     m_message.push(d1);
+}
+
+/**
+ *  Creates a channel event.
+ *
+ *  This constructor is similar to the above, but has two new wrinkles:
+ *
+ *      -   Requires a valid channel message.
+ *      -   Requires a channel to be separately provided as a parameter.
+ *
+ * \param tstamp
+ *      Provides the timestamp of this event.
+ *
+ * \param chevent
+ *      Provides the channel message's status value as an enumeration.
+ *      The channel nybble is always zero; see enum class status in
+ *      the eventcodes module.
+ *
+ * \param channel
+ *      Provides the channel nybble as a separate parameter. If valid
+ *      (values from 0 to 15), it is masked into the status event.
+ *      It is stored in m_channel; if a bad value, it is converted to
+ *      the special value null_channel(). See the midibytes module.
+ *
+ * \param d0
+ *      Provides the first data byte.  There is no default value.
+ *      For note and aftertouch events, this is the note value (pitch).
+ *
+ * \param d1
+ *      Provides the second data byte. The default value 0.
+ *      For note and aftertouch events, this is the velocity.
+ */
+
+event::event
+(
+    midi::pulse tstamp,
+    midi::status chevent,
+    midi::byte channel,
+    int d0,
+    int d1
+) :
+    m_timestamp     (tstamp),
+    m_channel       (channel)
+{
+    if (is_good_channel(channel))
+    {
+        m_channel = 0;
+    }
+
+    midi::byte statbyte = midi::byte(chevent);
+    if (is_good_channel(channel))       /* combine the status and channel   */
+    {
+        midi::byte chan = midi::mask_channel(channel);
+        statbyte = midi::add_channel(statbyte, chan);
+        m_channel = chan;
+    }
+    else
+        m_channel = null_channel();
+
+    m_message.push(statbyte);
+    m_message.push(midi::byte(d0));
+    m_message.push(midi::byte(d1));
 }
 
 /**
@@ -170,6 +233,8 @@ event::event
 {
     (void) append_meta_data(metatype, data);
 }
+
+#if 0
 
 /**
  *  Creates a note event.
@@ -202,6 +267,8 @@ event::event
     m_message.push(midi::byte(note));
     m_message.push(midi::byte(velocity));
 }
+
+#endif
 
 /**
  *  This copy constructor initializes most of the class members.  This

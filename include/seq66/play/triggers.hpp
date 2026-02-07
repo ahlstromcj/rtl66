@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2015-10-30
- * \updates       2026-02-04
+ * \updates       2026-02-05
  * \license       GNU GPLv2 or above
  *
  *  By segregating trigger support into its own module, the sequence class is
@@ -327,6 +327,8 @@ private:
 
 class triggers
 {
+
+    friend class sequence;
 
 public:
 

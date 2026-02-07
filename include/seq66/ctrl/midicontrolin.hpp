@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-11-23
- * \updates       2026-02-04
+ * \updates       2026-02-05
  * \license       GNU GPLv2 or above
  *
  *  This container holds a map of midicontrol objects keyed by a key ordinal
@@ -40,7 +40,7 @@
 #include <map>                          /* std::map<> and multimap<>        */
 #include <string>                       /* std::string                      */
 
-#include "cfg/comments.hpp"             /* seq66::comments class            */
+#include "cfg/comments.hpp"             /* cfg::comments class              */
 #include "ctrl/midicontrol.hpp"         /* seq66::midicontrol event item    */
 #include "ctrl/midicontrolbase.hpp"     /* seq66::midicontrolbase class     */
 
@@ -85,7 +85,7 @@ private:
      *  apply.
      */
 
-    comments m_comments_block;
+    cfg::comments m_comments_block;
 
     /**
      *  Indicates if inactive controls are allowed to be added to the
@@ -122,12 +122,12 @@ public:
     virtual ~midicontrolin () = default;
     virtual bool initialize (int buss, int rows, int columns) override;
 
-    comments & comments_block ()
+    cfg::comments & comments_block ()
     {
         return m_comments_block;
     }
 
-    const comments & comments_block () const
+    const cfg::comments & comments_block () const
     {
         return m_comments_block;
     }

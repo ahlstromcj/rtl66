@@ -41,9 +41,9 @@ namespace seq66
 
 midicontrolbase::midicontrolbase (const std::string & name) :
     m_name              (name),
-    m_buss              (null_buss()),       /* 0xFF */
-    m_true_buss         (null_buss()),
-    m_configured_buss   (null_buss()),
+    m_buss              (midi::null_buss()),       /* 0xFF */
+    m_true_buss         (midi::null_buss()),
+    m_configured_buss   (midi::null_buss()),
     m_is_blank          (true),
     m_is_enabled        (false),
     m_configure_enabled (false),
@@ -61,7 +61,7 @@ midicontrolbase::initialize (int buss, int rows, int columns)
     m_buss = m_true_buss = b;
     m_rows = rows;
     m_columns = columns;
-    return is_valid_buss(b) && rows > 0 && columns > 0;
+    return midi::is_valid_buss(b) && rows > 0 && columns > 0;
 }
 
 }           // namespace seq66

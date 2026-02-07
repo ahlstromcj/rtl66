@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-11-12
- * \updates       2026-01-26
+ * \updates       2026-02-06
  * \license       GNU GPLv2 or above
  *
  *  The main player!  Coordinates sets, patterns, mutes, playlists, you name
@@ -48,11 +48,13 @@
 #include <vector>                       /* std::vector<>                    */
 #include <thread>                       /* std::thread                      */
 
-// #include "cfg/rcsettings.hpp"           /* lots of other files, see banner  */
-#include "ctrl/opcontainer.hpp"         /* class seq66::opcontainer         */
-#include "midi/jack_assistant.hpp"      /* optional seq66::jack_assistant   */
-#include "midi/mastermidibus.hpp"       /* seq66::mastermidibus ALSA/JACK   */
+// #include "cfg/rcsettings.hpp"        /* lots of other files, see banner  */
+#include "cfg/history.hpp"              /* cfg::history<> template  class   */
+#include "ctrl/opcontainer.hpp"         /* seq66::opcontainer class         */
+#include "transport/jack/transport.hpp" /* optional seq66::jack_assistant   */
+#include "midi/masterbus.hpp"           /* midi::masterbus ALSA/JACK        */
 #include "play/metro.hpp"               /* seq66::metro metronome pattern   */
+#include "midi/player.hpp"              /* midi::player                     */
 #include "play/playlist.hpp"            /* seq66::playlist                  */
 #include "play/sequence.hpp"            /* seq66::sequence                  */
 #include "play/setmapper.hpp"           /* seq66::seqmanager and seqstatus  */
@@ -71,8 +73,8 @@ namespace seq66
  * class.
  */
 
-const int c_transpose_down_limit = c_notes_count / 2;
-const int c_transpose_up_limit = -c_transpose_down_limit;
+const int c_transpose_down_limit { c_notes_count / 2 };
+const int c_transpose_up_limit   { -c_transpose_down_limit };
 
 /*
  * Forward references.
@@ -87,20 +89,20 @@ class usrsettings;
  *  This class supports the performance mode.
  */
 
-class performer
+class performer : public midi::player
 {
-    friend class jack_assistant;
-    friend class midifile;
-    friend class rcfile;
-    friend class playlist;
-    friend class qperfeditframe64;
-    friend class qplaylistframe;
-    friend class qt5nsmanager;
-    friend class qseditoptions;
-    friend class qsmainwnd;
-    friend class sequence;
-    friend class smanager;
-    friend class wrkfile;
+//  friend class jack_assistant;
+//  friend class midifile;
+//  friend class rcfile;
+//  friend class playlist;
+//  friend class qperfeditframe64;
+//  friend class qplaylistframe;
+//  friend class qt5nsmanager;
+//  friend class qseditoptions;
+//  friend class qsmainwnd;
+//  friend class sequence;
+//  friend class smanager;
+//  friend class wrkfile;
 
 #if defined RTL66_JACK_SUPPORT
 
@@ -161,6 +163,7 @@ public:
      *  function.
      */
 
+#if 0           // synch is in midi::player
     class synch : public synchronizer
     {
 
@@ -385,7 +388,7 @@ private:
      *  string_to_midi_bytes() function in the strfunctions module.
      */
 
-    std::string m_song_info;
+    std::string m_song_info { };
 
     /**
      *  Indicates the format of this file, either SMF 0 or SMF 1.
@@ -394,7 +397,7 @@ private:
      *  indicates that the song has been converted to SMF 0, for export only.
      */
 
-    int m_smf_format;
+    int m_smf_format { 1 };
 
     /**
      *  Indicates that an internal setup error occurred (e.g. a device could
@@ -403,13 +406,13 @@ private:
      *  "rc" file correctly.
      */
 
-    mutable bool m_error_pending;
+    mutable bool m_error_pending { false };
 
     /**
      *  Accumulates error messages for display after launch().
      */
 
-    mutable std::string m_error_messages;
+    mutable std::string m_error_messages { };
 
     /**
      *  When the screenset changes, we put only the existing sequences in this
@@ -457,13 +460,13 @@ private:
      *  settings overlap with metro_settings.
      */
 
-    recorder * m_recorder;
+    recorder * m_recorder { nullptr };
 
     /**
      *  A quick indication that count-in is requested and able to be used.
      */
 
-    bool m_metronome_count_in;
+    bool m_metronome_count_in { false };
 
     /**
      *  If true, playback is done in Song mode, not Live mode.  This option is
@@ -473,14 +476,14 @@ private:
      *  if the loaded tune has any pattern with song triggers.
      */
 
-    sequence::playback m_song_start_mode;
+    sequence::playback m_song_start_mode { sequence::playback::automatic };
 
     /**
      *  It seems that this member, if true, forces a repositioning to the left
      *  (L) tick marker.
      */
 
-    bool m_reposition;
+    bool m_reposition { false };
 
     /**
      *  Provides an "acceleration" factor for the fast-forward and rewind
@@ -488,7 +491,7 @@ private:
      *  multiplied by 1.1 by the FF/RW timeout function.
      */
 
-    float m_excell_FF_RW;
+    float m_excell_FF_RW { 1.0F };
 
     /**
      *  Indicates whether the fast-forward or rewind key is in effect in the
@@ -496,15 +499,16 @@ private:
      *  free (global in a namespace) int in perfedit.
      */
 
-    ff_rw m_FF_RW_button_type;
+    ff_rw m_FF_RW_button_type { ff_rw::none };;
 
     /**
      *  From the liveframe/grid classes, these values make performer the boss
      *  of pattern cut-and-paste from the grid-slot popup menu.
      */
 
-    seq::number m_old_seqno;
-    seq::number m_current_seqno;
+    seq::number m_old_seqno { seq::unassigned };
+    seq::number m_current_seqno { seq::unassigned };
+
     sequence m_moving_seq;
     sequence m_seq_clipboard;
 
@@ -515,14 +519,14 @@ private:
      *  when queue mode is exited.
      */
 
-    seq::number m_queued_replace_slot;
+    seq::number m_queued_replace_slot { seq::unassigned };
 
     /**
      *  Indicates that a snapshot has been stored. It is cleared (currently)
      *  when a soloed pattern is clicked again.
      */
 
-    seq::number m_solo_seqno;
+    seq::number m_solo_seqno { seq::unassigned };
 
 private:                            /* key, midi, and op container section  */
 
@@ -542,7 +546,7 @@ private:                            /* key, midi, and op container section  */
      *  Indicates a clocks/inputs port_map error at startup.
      */
 
-    mutable bool m_port_map_error;
+    mutable bool m_port_map_error { false };
 
     /**
      *  Provides a default-filled keycontrol container.
@@ -595,7 +599,7 @@ private:                            /* key, midi, and op container section  */
      *  Holds the global MIDI transposition value.
      */
 
-    int m_transpose;
+    int m_transpose { 0 };
 
     /**
      *  Provides information for managing threads.  Provides a "handle" to
@@ -614,20 +618,20 @@ private:                            /* key, midi, and op container section  */
      *  Indicates that the output thread has been started.
      */
 
-    bool m_out_thread_launched;
+    bool m_out_thread_launched { false };
 
     /**
      *  Indicates that the input thread has been started.
      */
 
-    bool m_in_thread_launched;
+    bool m_in_thread_launched { false };
 
     /**
      *  Indicates merely that the input and output thread functions can keep
      *  running.  Replaces m_inputing and m_outputing.
      */
 
-    std::atomic<bool> m_io_active;
+    std::atomic<bool> m_io_active { false };
 
     /**
      *  Indicates that playback is running.  However, this flag is conflated
@@ -635,7 +639,7 @@ private:                            /* key, midi, and op container section  */
      *  flag, m_is_pattern_playing.
      */
 
-    std::atomic<bool> m_is_running;
+    std::atomic<bool> m_is_running { false };
 
     /**
      *  Indicates that a pattern is playing.  It replaces rc_settings ::
@@ -643,7 +647,7 @@ private:                            /* key, midi, and op container section  */
      *  visible to all classes that care about it.
      */
 
-    bool m_is_pattern_playing;
+    bool m_is_pattern_playing { false };
 
     /**
      *  Also, there are circumstance where client GUIs need to update, such as
@@ -652,13 +656,13 @@ private:                            /* key, midi, and op container section  */
      *  Perhaps this needs to be a counter?
      */
 
-    mutable bool m_needs_update;
+    mutable bool m_needs_update { true };
 
     /**
      *  Indicates to belay updates during critical work.
      */
 
-    bool m_is_busy;
+    bool m_is_busy { false };
 
     /**
      *  Indicates that status of the "loop" button in the performance editor.
@@ -666,20 +670,20 @@ private:                            /* key, midi, and op container section  */
      *  performance editor.
      */
 
-    bool m_looping;
+    bool m_looping { false };           // transport::info
 
     /**
      *  Indicates to record live sequence-trigger changes into the Song data.
      */
 
-    bool m_song_recording;
+    bool m_song_recording { false };
 
     /**
      *  Snap recorded playback changes to the sequence length or the
      *  snap value.
      */
 
-    bool m_song_record_snap;
+    bool m_song_record_snap { true };
 
     /**
      *  If record-snap is on, this supplies the selected grid-snap as
@@ -687,7 +691,7 @@ private:                            /* key, midi, and op container section  */
      *  the length of the pattern.
      */
 
-    midi::pulse m_record_snap_length;
+    midi::pulse m_record_snap_length { 0 };
 
     /**
      *  Part of a refactoring and expansion of the alterations that can be done
@@ -695,7 +699,7 @@ private:                            /* key, midi, and op container section  */
      *  header for the "alteration" enumeration.
      */
 
-    alteration m_alter_recording;
+    alteration m_alter_recording { alteration::none };
 
     /**
      *  Indicates to resume notes if the sequence is toggled after a Note On.
@@ -703,41 +707,43 @@ private:                            /* key, midi, and op container section  */
      *  usrsettings value.
      */
 
-    bool m_resume_note_ons;
+    bool m_resume_note_ons { false };       // usr().resume_note_ons()
 
     /**
      *  Holds the current PPQN for usage in various actions.  If 0 is the
      *  value, then m_file_ppqn will be used.
      */
 
-    int m_ppqn;
+    // transport::info, midi::timing, midi::timesiginfo
+
+    int m_ppqn { RTL66_DEFAULT_PPQN };
 
     /**
      *  Holds the current PPQN from a MIDI file that has been read.  It might
      *  be 0.
      */
 
-    int m_file_ppqn;
+    int m_file_ppqn { 0 };
 
     /**
      *  Holds the current BPM (beats per minute) for later usage.
      */
 
-    midi::bpm m_bpm;
+    midi::bpm m_bpm { RTL66_DEFAULT_BPM };
 
     /**
      *  Indicates if the BPM or PPQN value has changed, for internal handling in
      *  output_func().
      */
 
-    std::atomic<bool> m_resolution_change;
+    std::atomic<bool> m_resolution_change { true };
 
     /**
      *  Indicates the number of beats considered in calculating the BPM via
      *  button tapping.  This value is displayed in the button.
      */
 
-    int m_current_beats;
+    int m_current_beats { 0 };
 
     /**
      *  Holds the underrun value for possible display during very busy
@@ -745,13 +751,13 @@ private:                            /* key, midi, and op container section  */
      *  locked.  See sequence::draw_lock() and draw_unlock().
      */
 
-    long m_delta_us;
+    long m_delta_us { 0 };
 
     /**
      *  Indicates the first time the tap button was ... tapped.
      */
 
-    long m_base_time_ms;
+    long m_base_time_ms { 0 };
 
     /**
      *  Indicates the last time the tap button was tapped.  If this button
@@ -759,21 +765,21 @@ private:                            /* key, midi, and op container section  */
      *  the tempo he/she tapped out.
      */
 
-    long m_last_time_ms;
+    long m_last_time_ms { 0 };
 
     /**
      *  Holds the beats/bar value as obtained from the MIDI file.  The default
      *  value is 4. See usrsettings.
      */
 
-    int m_beats_per_bar;
+    int m_beats_per_bar { RTL66_DEFAULT_BEATS_PER_BAR }; // usr().midi_beats_per_bar()
 
     /**
      *  Holds the beat width value as obtained from the MIDI file.  The
      *  default value is 4.  See usrsettings.
      */
 
-    int m_beat_width;
+    int m_beat_width { RTL66_DEFAULT_BEAT_WIDTH };  // usr().midi_beat_width()
 
     /**
      *  Augments the beats/bar and beat-width with the additional values
@@ -783,7 +789,7 @@ private:                            /* key, midi, and op container section  */
      *  our hymne.mid example.
      */
 
-    int m_clocks_per_metronome;
+    int m_clocks_per_metronome { RTL66_DEFAULT_CLOCKS_PER_METRO };
 
     /**
      *  Augments the beats/bar and beat-width with the additional values
@@ -791,7 +797,7 @@ private:                            /* key, midi, and op container section  */
      *  duplicate of the same member in the sequence class.
      */
 
-    int m_32nds_per_quarter;
+    int m_32nds_per_quarter { RTL66_DEFAULT_32NDS_PER_QUARTER };
 
     /**
      *  Augments the beats/bar and beat-width with the additional values
@@ -799,7 +805,7 @@ private:                            /* key, midi, and op container section  */
      *  same member in the sequence class.
      */
 
-    long m_us_per_quarter_note;
+    long m_us_per_quarter_note { RTL66_DEFAULT_US_PER_Q };
 
     /**
      *  Provides our MIDI buss.  We changed this item to a pointer so that we
@@ -807,10 +813,10 @@ private:                            /* key, midi, and op container section  */
      *  been read.  Use a smart pointer! Seems like unique_ptr<> is best
      *  here.  See the master_bus() accessors below.
      *
-     *      std::shared_ptr<mastermidibus> m_master_bus;
+     *      std::shared_ptr<midi::masterbus> m_master_bus;
      */
 
-    std::unique_ptr<mastermidibus> m_master_bus;
+    std::unique_ptr<midi::masterbus> m_master_bus;
 
     /**
      *  Provides storage for this "rc" configuration option so that the
@@ -821,14 +827,14 @@ private:                            /* key, midi, and op container section  */
      *  incompatible with each other.
      */
 
-    bool m_record_by_buss;
+    bool m_record_by_buss { false };
 
     /**
      *  Provides storage for this "rc" configuration option so that the
      *  performer can set it in the master buss once that has been created.
      */
 
-    bool m_record_by_channel;
+    bool m_record_by_channel { false };
 
     /**
      *  Provides a mapping of input busses to patterns. Treated like an array
@@ -845,28 +851,28 @@ private:                            /* key, midi, and op container section  */
      *  simply four quarter notes.
      */
 
-    midi::pulse m_one_measure;
+    midi::pulse m_one_measure { 0 };
 
     /**
      *  The number of ticks to move for fast-forward and rewind. Defaults to
      *  one-half of one measure.
      */
 
-    midi::pulse m_fast_ticks;
+    midi::pulse m_fast_ticks { 0 };
 
     /**
      *  Holds the position of the left (L) marker, and it is first defined as
      *  0.  Note that "tick" is actually "pulses".
      */
 
-    midi::pulse m_left_tick;
+    midi::pulse m_left_tick { 0 };
 
     /**
      *  Holds the position of the right (R) marker, and it is first defined as
      *  the end of the fourth measure.  Note that "tick" is actually "pulses".
      */
 
-    midi::pulse m_right_tick;
+    midi::pulse m_right_tick { 0 };
 
     /**
      *  Holds the starting tick for playing.  By default, this value is always
@@ -875,7 +881,7 @@ private:                            /* key, midi, and op container section  */
      *  functionality. Note that "tick" is actually "pulses".
      */
 
-    midi::pulse m_start_tick;
+    midi::pulse m_start_tick { 0 };
 
     /**
      *  MIDI Clock support.  The m_tick member holds the tick to be used in
@@ -884,7 +890,7 @@ private:                            /* key, midi, and op container section  */
      *  functionality.
      */
 
-    mutable midi::pulse m_tick;
+    mutable midi::pulse m_tick { 0 };
 
     /**
      *  Indicates the full extent of the song when in Song mode. Used for
@@ -893,10 +899,10 @@ private:                            /* key, midi, and op container section  */
      *  stops.
      */
 
-    midi::pulse m_max_extent;
+    midi::pulse m_max_extent { 0 };
 
     /**
-     *  Holds a bunch of jack_assistant settings.
+     *  Holds a bunch of jack transport settings.
      */
 
     jack_scratchpad m_jack_pad;
@@ -906,26 +912,26 @@ private:                            /* key, midi, and op container section  */
      *  resume after pausing.
      */
 
-    midi::pulse m_jack_tick;
+    midi::pulse m_jack_tick { 0 };
 
     /**
      *  More MIDI clock support.
      */
 
-    bool m_usemidiclock;
+    bool m_usemidiclock { false };
 
     /**
      *  More MIDI clock support.  Indicates if the MIDI clock is stopped or
      *  started.
      */
 
-    bool m_midiclockrunning;
+    bool m_midiclockrunning { false };
 
     /**
      *  More MIDI clock support.
      */
 
-    int m_midiclocktick;
+    int m_midiclocktick { 0 };
 
     /**
      *  We need to adjust the clock increment for the PPQN that is in force.
@@ -933,13 +939,13 @@ private:                            /* key, midi, and op container section  */
      *  per quarter note.
      */
 
-    int m_midiclockincrement;
+    int m_midiclockincrement { 8 };
 
     /**
      *  More MIDI clock support.
      */
 
-    int m_midiclockpos;
+    int m_midiclockpos { 0 };
 
     /**
      *  Support for pause, which does not reset the "last tick" when playback
@@ -947,14 +953,7 @@ private:                            /* key, midi, and op container section  */
      *  from being reset.
      */
 
-    bool m_dont_reset_ticks;
-
-    /**
-     *  It may be a good idea to eventually centralize all of the dirtiness of
-     *  a performance here.  All the GUIs use a performer.
-     */
-
-    bool m_is_modified;
+    bool m_dont_reset_ticks { false };
 
 #if defined USE_SONG_BOX_SELECT
 
@@ -987,9 +986,22 @@ private:                            /* key, midi, and op container section  */
      *  PortMidi instead).
      */
 
-    jack_assistant m_jack_asst;
+    transport::jack::info m_jack_asst;  // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #endif
+
+#if USE_CFG_HISTORY
+
+    cfg::history<std::vector<seq::number>> m_history;
+
+#else
+
+    /**
+     *  It may be a good idea to eventually centralize all of the dirtiness of
+     *  a performance here.  All the GUIs use a performer.
+     */
+
+    bool m_is_modified { false };
 
     /*
      * Not sure that we need this code; we'll think about it some more.  One
@@ -1021,6 +1033,8 @@ private:                            /* key, midi, and op container section  */
      */
 
     std::vector<seq::number> m_redo_vect;
+
+#endif
 
     /**
      *  Can register here for events.  Used in mainwnd and perform.
@@ -1555,7 +1569,7 @@ public:
     }
 
     /**
-     *  Only a nominal value.  The mastermidibus could be considered the true
+     *  Only a nominal value.  The midi::masterbus could be considered the true
      *  value of BPM (and PPQN).
      */
 
@@ -1743,12 +1757,12 @@ public:
         return m_us_per_quarter_note;
     }
 
-    mastermidibus * master_bus ()
+    midi::masterbus * master_bus ()
     {
         return m_master_bus.get();
     }
 
-    const mastermidibus * master_bus () const
+    const midi::masterbus * master_bus () const
     {
         return m_master_bus.get();
     }

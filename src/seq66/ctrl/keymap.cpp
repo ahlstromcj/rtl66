@@ -32,7 +32,8 @@
 #include <map>                          /* std::map and std::multimap       */
 
 #include "ctrl/keymap.hpp"              /* keymap function declarations     */
-#include "util/strfunctions.hpp"        /* contains()                       */
+#include "util/msgfunctions.hpp"        /* util::error_message()            */
+#include "util/strfunctions.hpp"        /* util::contains()                 */
 
 namespace seq66
 {
@@ -72,25 +73,25 @@ unsigned
 modifier_code (const std::string & name)
 {
     unsigned result { keyboard::KNONE };
-    if (contains(name, "Shift"))
+    if (util::contains(name, "Shift"))
         result |= keyboard::KSHIFT;
 
-    if (contains(name, "Ctrl"))
+    if (util::contains(name, "Ctrl"))
         result |= keyboard::KCTRL;
 
-    if (contains(name, "Alt"))
+    if (util::contains(name, "Alt"))
         result |= keyboard::KALT;
 
-    if (contains(name, "Alt-Gr"))
+    if (util::contains(name, "Alt-Gr"))
         result |= keyboard::KCTRLALT;
 
-    if (contains(name, "Keypad"))
+    if (util::contains(name, "Keypad"))
         result |= keyboard::KEYPAD;
 
-    if (contains(name, "Meta"))
+    if (util::contains(name, "Meta"))
         result |= keyboard::KMETA;
 
-    if (contains(name, "Group"))
+    if (util::contains(name, "Group"))
         result |= keyboard::KGROUP;
 
     return result;
@@ -510,7 +511,7 @@ qt_keys (int i)
         {  0xd1,        0x2b, 0xffab,  "KP_+",     KEYPAD }, // Plus, KP_Add
         {  0xd2,        0x2c, 0xffac,  "KP_,",     KEYPAD }, // Comma, KP_Separator
         {  0xd3,        0x2d, 0xffad,  "KP_-",     KEYPAD }, // Minus, KP_Subtract
-        {  0xd4,        0x2e, 0xffae,  "KP_.",   PADSHIFT }, // Period, KP_Decimal
+        {  0xd4,        0x2e, 0xffae,  "KP_.",  KPADSHIFT }, // Period, KP_Decimal
         {  0xd5,        0x2f, 0xffaf,  "KP_/",     KEYPAD }, // Slash, KP_Divide
 
         /*
@@ -835,7 +836,7 @@ initialize_key_maps (bool reinit)
         }
         s_are_maps_initialized = keymap_size() >= 0xfe;
         if (! s_are_maps_initialized)
-            error_message("Key map unable to be initialized");
+            util::error_message("Key map unable to be initialized");
 
 #if defined RTL66_PLATFORM_DEBUG_TMI
 

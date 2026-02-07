@@ -43,7 +43,7 @@
 #include "ctrl/midicontrolbase.hpp"     /* seq66::midicontrolbase class     */
 #include "ctrl/midimacros.hpp"          /* seq66::midimacros class          */
 #include "midi/event.hpp"               /* midi::event class                */
-#include "midi/mastermidibus.hpp"       /* seq66::mastermidibus class       */
+#include "midi/masterbus.hpp"           /* midi::masterbus class            */
 
 namespace seq66
 {
@@ -243,7 +243,7 @@ private:
      *  it is correct.
      */
 
-    mastermidibus * m_master_bus;
+    midi::masterbus * m_master_bus;
 
     /**
      *  Provides the events to be sent out for sequence status changes.  This
@@ -295,7 +295,7 @@ public:
         maximum = static_cast<int>(midicontrolout::seqaction::max);
     }
 
-    void set_master_bus (mastermidibus * mmbus)
+    void set_master_bus (midi::masterbus * mmbus)
     {
         m_master_bus = mmbus;
     }

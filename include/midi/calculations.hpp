@@ -35,6 +35,8 @@
  *  that need them need to include them.  Also included are some minor
  *  "utility" functions dealing with MIDI and port-related strings.  Many of
  *  the functions are defined in this header file, as inline code.
+ *
+ *  TODO: move some or all of the enum classes to a separate header file.
  */
 
 #include "cpp_types.hpp"                /* std::string, tokenization alias  */
@@ -201,6 +203,76 @@ bit_set (fixeffect lhs, fixeffect rhs)
     lhs = static_cast<fixeffect>(L);
     return lhs;
 }
+
+/**
+ *  Provides settings for tempo recording.  Currently not used, though the
+ *  functionality of logging and recording tempo is in place.
+ */
+
+enum class recordtempo
+{
+    log_event,
+    on,
+    off,
+    max
+};
+
+/**
+ *  Provides the supported loop recording modes.  These values are used
+ *  by the seqedit class, which provides a button with a popup menu to
+ *  select one of these recording modes. These correspond to automation
+ *  slots record_overdub (merge), record_overwrite, record_expand, and
+ *  record_oneshot.
+ *
+ *  Note that we show the label "Overdub" now for recordstyle::merge.
+ *  Also, in the 'usr' file, either "merge" or "overdub" can be used
+ *  for "record-style", but now "overdub" is what gets written.
+ */
+
+enum class recordstyle
+{
+    merge,              /**< Incoming events are merged into the loop.  */
+    overwrite,          /**< Incoming events overwrite the loop.        */
+    expand,             /**< Incoming events increase size of loop.     */
+    oneshot,            /**< Stop when length of loop is reached.       */
+    oneshot_reset,      /**< Reset pattern ticks & re-enable one-shot.  */
+    max                 /**< Provides an illegal/length value.          */
+};
+
+/**
+ *  These enumerations correspond to the automation slots: grid_loop,
+ *  grid_record, grid_copy, ... grid_double.
+ */
+
+enum class gridmode
+{
+    loop,               /**< Normal grid-slot mode.                     */
+    mutes,              /**< Slot-click activates a mute group.         */
+    record,             /**< Use one of the available recording modes.  */
+    copy,               /**< Copy any pattern that is selected.         */
+    paste,              /**< Paste the copied pattern to selected slot. */
+    clear,              /**< Clear all events in selected pattern slot. */
+    remove,             /**< Delete the pattern from the selected slot. */
+    thru,               /**< Set MIDI Thru for the selected pattern.    */
+    solo,               /**< Solo the selected pattern.                 */
+    cut,                /**< Cut a pattern (copy and delete).           */
+    double_length,      /**< Double the length of the selected pattern. */
+    max                 /**< Provides an illegal/length value.          */
+};
+
+/**
+ *  Provides an indication of how to show the piano-key labels in the pattern
+ *  editor.
+ */
+
+enum class showkeys
+{
+    octave_letters,     /**< Show only the octave letters for key note. */
+    even_letters,       /**< Show every other note name.                */
+    all_letters,        /**< Show every note name (can get cramped!)    */
+    even_numbers,       /**< Show every other MIDI note number.         */
+    all_numbers         /**< Show every other MIDI note number.         */
+};
 
 /*------------------------------------------------------------------------
  * Inline functions in the midi namespace.
