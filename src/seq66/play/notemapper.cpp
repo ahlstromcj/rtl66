@@ -135,19 +135,7 @@ notemapper::pair::show () const
  */
 
 notemapper::notemapper () :
-    basesettings        ("Note Mapper")
-#if 0
-    m_mode              (false),
-    m_map_type          (),
-    m_note_minimum      (999),
-    m_note_maximum      (0),
-    m_gm_channel        (0),
-    m_device_channel    (0),
-    m_map_reversed      (false),
-    m_note_map          (),
-    m_note_array        (),
-    m_is_valid          (false)
-#endif
+    basesettings        ()
 {
     for (int n = 0; n < midi::c_notes_count; ++n)
         m_note_array[n] = midi::byte(n);

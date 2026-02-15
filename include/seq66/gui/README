@@ -1,0 +1,8 @@
+Seq66/Gui Directory for the rtl66 library
+Chris Ahlstrom
+2026-02-15 to 2026-02-15
+
+This directory Seq66-specific contains non-GUI-framework support
+code for GUI operations such as zoom and scaling.
+
+# vim: sw=4 ts=4 wm=8 et ft=sh

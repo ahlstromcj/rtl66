@@ -97,6 +97,7 @@ librtl66_headers += files(
    'seq66/ctrl/midioperation.hpp',
    'seq66/ctrl/opcontainer.hpp',
    'seq66/ctrl/opcontrol.hpp',
+   'seq66/gui/zoomer.hpp',
    'seq66/play/clockslist.hpp',
    'seq66/play/inputslist.hpp',
    'seq66/play/mutegroup.hpp',

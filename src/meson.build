@@ -91,6 +91,7 @@ librtl66_sources += files(
    'seq66/ctrl/midioperation.cpp',
    'seq66/ctrl/opcontainer.cpp',
    'seq66/ctrl/opcontrol.cpp',
+   'seq66/gui/zoomer.cpp',
    'seq66/play/clockslist.cpp',
    'seq66/play/inputslist.cpp',
    'seq66/play/mutegroup.cpp',
