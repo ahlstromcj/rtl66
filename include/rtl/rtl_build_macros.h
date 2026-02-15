@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Gary P. Scavone; refactoring by Chris Ahlstrom
  * \date          2022-06-05
- * \updates       2026-01-25
+ * \updates       2026-02-08
  * \license       See above.
  *
  * Introduction:
@@ -105,17 +105,30 @@
 #endif
 
 /*
- *  Default values for the most common parameters.
+ *  Minimum, default, and maximum values for the most common parameters.
  */
 
 #define RTL66_DEFAULT_CLOCKS_PER_METRO   24     /* clocks per metronome     */
 #define RTL66_DEFAULT_32NDS_PER_QUARTER   8     /* 32nds per quarter        */
 #define RTL66_DEFAULT_PITCHBEND_SEMITONES 2     /* +/- pitchbend range      */
-#define RTL66_DEFAULT_PPQN              384     /* pulses per quarter note  */
-#define RTL66_DEFAULT_BPM               120.0   /* beats per minute         */
 #define RTL66_DEFAULT_INPUT_Q_SIZE      100     /* input queue size         */
-#define RTL66_DEFAULT_BEATS_PER_BAR       4     /* beats per bar            */
-#define RTL66_DEFAULT_BEAT_WIDTH          4     /* quarter note             */
+
+#define RTL66_MINIMUM_BEATS_PER_BAR       1     /* beats per bar            */
+#define RTL66_DEFAULT_BEATS_PER_BAR       4
+#define RTL66_MAXIMUM_BEATS_PER_BAR      32
+
+#define RTL66_MINIMUM_BEAT_WIDTH          1     /* quarter note             */
+#define RTL66_DEFAULT_BEAT_WIDTH          4
+#define RTL66_MAXIMUM_BEAT_WIDTH         32
+
+#define RTL66_MINIMUM_BPM                 2.0   /* beats per minute         */
+#define RTL66_DEFAULT_BPM               120.0
+#define RTL66_MAXIMUM_BPM               600.0
+
+#define RTL66_MINIMUM_PPQN               24     /* pulses per quarter note  */
+#define RTL66_DEFAULT_PPQN              384
+#define RTL66_MAXIMUM_PPQN            19200     /* way more than needed     */
+
 #define RTL66_DEFAULT_US_PER_Q       500000     /* microseconds per quarter */
 #define RTL66_DEFAULT_ALSA_EV_BUFSIZE    32     /* event parser buffer size */
 #define RTL66_DEFAULT_JACK_BUFSIZE      256     /* microseconds per quarter */

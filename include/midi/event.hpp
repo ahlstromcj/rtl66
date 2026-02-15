@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2015-07-24
- * \updates       2026-02-05
+ * \updates       2026-02-08
  * \license       GNU GPLv2 or above
  *
  *  This module also declares/defines the various constants, status-byte
@@ -343,6 +343,11 @@ public:
     midi::byte channel () const
     {
         return m_channel;
+    }
+
+    midi::byte meta_byte () const
+    {
+        return is_meta() ? m_channel : to_byte(meta::meta_byte) ;
     }
 
 public:

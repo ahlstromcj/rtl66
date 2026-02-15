@@ -27,7 +27,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2026-02-07
+ * \updates       2026-02-08
  * \license       GNU GPLv2 or above
  *
  *  This is a header-only module.
@@ -41,8 +41,8 @@
  *          32nds/quarter.
  */
 
-#include "midi/midibytes.hpp"           /* midi::bpm double type            */
 #include "rtl/rtl_build_macros.h"       /* PPQN, BPM, and other macros      */
+#include "midi/midibytes.hpp"           /* midi::bpm double type            */
 
 /*
  *  This namespace is not documented because it screws up the document
@@ -61,9 +61,9 @@ namespace midi
  *  per minute".
  */
 
-static const int c_min_beats_per_measure {  1 };
-static const int c_def_beats_per_measure { RTL66_DEFAULT_BEATS_PER_BAR };
-static const int c_max_beats_per_measure { 32 };
+constexpr int c_min_beats_per_measure    { RTL66_MINIMUM_BEATS_PER_BAR };
+constexpr int c_def_beats_per_measure    { RTL66_DEFAULT_BEATS_PER_BAR };
+constexpr int c_max_beats_per_measure    { RTL66_MAXIMUM_BEATS_PER_BAR };
 
 /**
  *  The minimum, default, and maximum values of the beat width.  A new
@@ -73,40 +73,76 @@ static const int c_max_beats_per_measure { 32 };
  *  "BW", or "beat width", not to be confused with "bandwidth".
  */
 
-static const int c_min_beat_width {  1 };
-static const int c_def_beat_width { RTL66_DEFAULT_BEAT_WIDTH };
-static const int c_max_beat_width { 32 };
+constexpr int c_min_beat_width           { RTL66_MINIMUM_BEAT_WIDTH };
+constexpr int c_def_beat_width           { RTL66_DEFAULT_BEAT_WIDTH };
+constexpr int c_max_beat_width           { RTL66_MAXIMUM_BEAT_WIDTH };
 
 /**
  *  Minimum, default, and maximum values for global beats-per-minute, also known
  *  as "BPM".  Do not confuse this "bpm" with the other one, "beats per measure";
- *  we use "BPB" (beats-per-bar) for clarity.  Also, we multiply the BPM by a
- *  scale factor so that we can get extra precision in the value when stored as a
- *  long integer in the MIDI file in the proprietary "bpm" section.  See the
- *  midifile class.  Lastly, we provide a tap-button timeout value (which could
- *  some day be mode configurable.
+ *  we use "BPB" (beats-per-bar) for clarity.
  */
 
-static const midi::bpm c_min_beats_per_minute {    2.0 };
-static const midi::bpm c_def_beats_per_minute { RTL66_DEFAULT_BPM };
-static const midi::bpm c_max_beats_per_minute {  600.0 };
-static const float c_beats_per_minute_scale   { 1000.0 };
-static const long c_bpm_tap_button_timeout    { 5000L };       /* milliseconds */
-static const int c_min_bpm_precision          {    0 };
-static const int c_def_bpm_precision          {    0 };
-static const int c_max_bpm_precision          {    2 };
-static const midi::bpm c_min_bpm_increment    {    0.01 };
-static const midi::bpm c_def_bpm_increment    {    1.0 };
-static const midi::bpm c_max_bpm_increment    {    50.0 };
+constexpr midi::bpm c_min_beats_per_minute   { RTL66_MINIMUM_BPM };
+constexpr midi::bpm c_def_beats_per_minute   { RTL66_DEFAULT_BPM };
+constexpr midi::bpm c_max_beats_per_minute   { RTL66_MINIMUM_BPM };
+
+/*
+ *  Also, we multiply the BPM by a scale factor so that we can get extra
+ *  precision in the value when stored as a long integer in the MIDI file
+ *  in the proprietary "bpm" section.  See the seq66::file class.
+ */
+
+constexpr float c_beats_per_minute_scale    { 1000.0    };
+constexpr int c_min_bpm_precision           {    0      };  /* 120      */
+constexpr int c_def_bpm_precision           {    1      };  /* 120.0    */
+constexpr int c_max_bpm_precision           {    2      };  /* 120.00   */
+constexpr midi::bpm c_min_bpm_increment     {    0.01   };
+constexpr midi::bpm c_def_bpm_increment     {    1.0    };
+constexpr midi::bpm c_max_bpm_increment     {   50.0    };
 
 /**
- *  Minimum and maximum supported PPQN values.  Now hidden, used in the public
- *  function usrsettings::is_ppqn_valid().
+ *  We provide a tap-button timeout value (which could
+ *  some day be mode configurable).
  */
 
-static const int c_min_ppqn  {    24 }; /* was 32, not a multiple of 24     */
-static const int c_def_ppqn  { RTL66_DEFAULT_PPQN }; /* a useful default    */
-static const int c_max_ppqn  { 19200 }; /* way above the useful maximum     */
+constexpr long c_bpm_tap_button_timeout     { 5000L     };  /* millisec */
+
+/**
+ *  Minimum and maximum supported PPQN values. Was hidden and used in the
+ *  public function usrsettings::is_ppqn_valid().
+ */
+
+constexpr int c_min_ppqn                    { RTL66_MINIMUM_PPQN };
+constexpr int c_def_ppqn                    { RTL66_DEFAULT_PPQN };
+constexpr int c_max_ppqn                    { RTL66_MAXIMUM_PPQN };
+
+/**
+ *  This value indicates to use the default value of PPQN and ignore (to some
+ *  extent) what value is specified in the MIDI file.  Note that the default
+ *  default PPQN is given by the global ppqn (192) or, if the "--ppqn qn"
+ *  option is specified on the command-line or the "midi_ppqn" setting in the
+ *  "usr" file.
+ *
+ *  However, if the "midi_ppqn" setting is 0, then the default PPQN is
+ *  whatever the MIDI file specifies.
+ */
+
+constexpr int c_use_default_ppqn            { -1 };
+
+/**
+ *  Use the PPQN from the loaded file, rather than converting to the active
+ *  default PPQN of the application.
+ */
+
+constexpr int c_use_file_ppqn               { 0 };
+
+/**
+ *  Default settings for MIDI as per the specification.
+ */
+
+constexpr int c_midi_clocks_per_metronome   { RTL66_DEFAULT_CLOCKS_PER_METRO };
+constexpr int c_midi_32nds_per_quarter      { RTL66_DEFAULT_32NDS_PER_QUARTER };
 
 /**
  *  We anticipate the need to have a small structure holding the parameters
@@ -123,33 +159,42 @@ class timing
      *  of pulses/ticks/divisions. Symbol T (tempo, BPM in upper-case).
      */
 
-    midi::bpm m_beats_per_minute { RTL66_DEFAULT_BPM };         /* 120.0    */
+    midi::bpm m_beats_per_minute { RTL66_DEFAULT_BPM };
+    midi::bpm m_default_beats_per_minute { RTL66_DEFAULT_BPM };
 
     /**
      *  This value should match the numerator value selected when editing the
      *  sequence.  This value is most commonly set to 4.
      */
 
-    int m_beats_per_measure  { RTL66_DEFAULT_BEATS_PER_BAR };   /* 4        */
+    int m_beats_per_measure { RTL66_DEFAULT_BEATS_PER_BAR };
 
     /**
+     *  Provides with width of a beat.  Defaults to 4, which means the beat is
+     *  a quarter note.  A value of 8 would mean it is an eighth note.  Used
+     *  by the sequence editor to mark things in correct time on the
+     *  user-interface.
+     *
      *  This value should match the denominator value selected when editing
      *  the sequence.  This value is most commonly set to 4, meaning that the
      *  fundamental beat unit is the quarter note.
+     */
+
+    int m_beat_width { RTL66_DEFAULT_BEAT_WIDTH };
+
+    /**
+     *  A modifiable version of the default PPQN. Also known as the "base
+     *  PPQN".
+     */
+
+    midi::ppqn m_default_ppqn { RTL66_DEFAULT_PPQN };
+
+    /**
+     *  Holds the PPQN value for this sequence, so that we don't have to rely
+     *  on a global constant value.
      *
-     */
-
-    int m_beat_width { RTL66_DEFAULT_BEAT_WIDTH };              /* 4        */
-
-    /**
-     *  A modifiable version of the default PPQN.
-     */
-
-    midi::ppqn m_default_ppqn { RTL66_DEFAULT_PPQN };           /* 192      */
-
-    /**
      *  This value provides the precision of the MIDI song.  This value is
-     *  most commonly set to 192, but is also read from the MIDI file.
+     *  most commonly set to 384, but is also read from the MIDI file.
      */
 
     midi::ppqn m_ppqn { RTL66_DEFAULT_PPQN };                   /* 192      */
@@ -169,8 +214,11 @@ class timing
 
     /**
      *  Augments the beats/bar and beat-width with the additional values
-     *  included in a Time Signature meta event.  Useful in export.  A
-     *  duplicate of the same member in the sequence class.
+     *  included in a Tempo meta event.  This value can be extracted from the
+     *  beats-per-minute value (midi::masterbus::m_beats_per_minute), but here
+     *  we set it to 0 by default, indicating that we don't want to write it.
+     *  Otherwise, it can be read from a MIDI file, and saved here to be
+     *  restored later.
      */
 
     int m_32nds_per_quarter
@@ -213,9 +261,21 @@ public:
         return b >= c_min_beats_per_minute && b <= c_max_beats_per_minute;
     }
 
-    midi::bpm BPM_default () const
+    midi::bpm BPM_default () const              /* for configuration files  */
     {
-        return c_def_beats_per_minute;
+        return m_default_beats_per_minute;      /* c_def_beats_per_minute   */
+    }
+
+    void BPM_default (midi::bpm b)
+    {
+         if (BPM_is_valid(b))
+         {
+             m_default_beats_per_minute = b;
+             m_us_per_quarter_note = midi::microsec
+             (
+                 b >= 1.0 ? (60000000.0 / b) : 0.0
+             );
+         }
     }
 
     midi::bpm BPM () const
@@ -233,6 +293,10 @@ public:
         if (BPM_is_valid(b))
         {
             m_beats_per_minute = b;
+            m_us_per_quarter_note = midi::microsec
+            (
+                b >= 1.0 ? (60000000.0 / b) : 0.0
+            );
             return true;
         }
         else
@@ -343,7 +407,7 @@ public:
         return p >= c_min_ppqn && p <= c_max_ppqn;
     }
 
-    void PPQN_set_default (int p)
+    void PPQN_default (int p)
     {
         if (PPQN_is_valid(p))
             m_default_ppqn = p;

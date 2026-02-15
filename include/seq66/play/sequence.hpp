@@ -43,6 +43,7 @@
 #include "midi/track.hpp"               /* midi::track base class           */
 #include "midi/calculations.hpp"        /* midi::lengthfix, alteration      */
 #include "midi/eventlist.hpp"           /* midi::eventlist                  */
+#include "midi/timing.hpp"              /* midi::timing class structure     */
 #include "play/triggers.hpp"            /* seq66::triggers, etc.            */
 #include "xpc/automutex.hpp"            /* xpc::recmutex, automutex         */
 
@@ -403,8 +404,8 @@ public:
         int sig_beats_per_bar;      /* The beats-per-bar in the time-sig.   */
         int sig_beat_width;         /* The size of each beat in the bar.    */
         int sig_ticks_per_beat;     /* Simplifies later calculations.       */
-        midi::pulse sig_start_tick;   /* The pulse where time-sig was placed. */
-        midi::pulse sig_end_tick;     /* Next time-sig start (0 == end?).     */
+        midi::pulse sig_start_tick; /* The pulse where time-sig was placed. */
+        midi::pulse sig_end_tick;   /* Next time-sig start (0 == end?).     */
     };
 
     /**
@@ -412,7 +413,7 @@ public:
      *  beat width vary.
      */
 
-    using timesig_list = std::vector<timesig>;
+    using timesiglist = std::vector<timesig>;
 
 private:
 
@@ -481,7 +482,7 @@ private:
      *  event (qstriggereditor) panes.
      */
 
-    timesig_list m_time_signatures { };
+    timesiglist m_time_signatures { };
 
     /**
      *  Provides a list of event actions to undo for the Stazed LFO and
@@ -866,12 +867,11 @@ private:
     const int m_maxbeats { 0xFFFF };    // c_maxbeats TO BE DEFINED
 
     /**
-     *  Holds the PPQN value for this sequence, so that we don't have to rely
-     *  on a global constant value.
+     *  Holds PPQN, BPM, beats/bar, beat width, and some other mostly
+     *  constant quantities.
      */
 
-    ///// TIMING /////
-    unsigned short m_ppqn { RTL66_DEFAULT_PPQN };
+    midi::timing m_timing;
 
     /**
      *  A new member so that the sequence number is carried along with the
@@ -937,23 +937,6 @@ private:
     midi::pulse m_step_edit_note_length { RTL66_DEFAULT_PPQN / 4 };
 
     /**
-     *  the user-interface.
-     */
-
-    ///// TIMING /////
-    unsigned short m_time_beats_per_measure { RTL66_DEFAULT_BEATS_PER_BAR };
-
-    /**
-     *  Provides with width of a beat.  Defaults to 4, which means the beat is
-     *  a quarter note.  A value of 8 would mean it is an eighth note.  Used
-     *  by the sequence editor to mark things in correct time on the
-     *  user-interface.
-     */
-
-    ///// TIMING /////
-    unsigned short m_time_beat_width { RTL66_DEFAULT_BEAT_WIDTH };
-
-    /**
      *  New members to use for the c_timesig SeqSpec. Rather than hold
      *  the last time-signature that was set, this holds the first one,
      *  or the value in a c_timesig SeqSpec. If 0, the c_timesig values
@@ -962,40 +945,6 @@ private:
 
     unsigned short m_timesig_beats_per_measure { 0 };
     unsigned short m_timesig_beat_width { 0 };
-
-    /**
-     *  Augments the beats/bar and beat-width with the additional values
-     *  included in a Time Signature meta event.  This value provides the
-     *  number of MIDI clocks between metronome clicks.  The default value of
-     *  this item is 24.  It can also be read from some SMF 1 files, such as
-     *  our hymne.mid example.
-     */
-
-    ///// TIMING /////
-    int m_clocks_per_metronome;     /* make it a short? */
-
-    /**
-     *  Augments the beats/bar and beat-width with the additional values
-     *  included in a Time Signature meta event.  This value provides the
-     *  number of notated 32nd notes in a MIDI quarter note (24 MIDI clocks).
-     *  The usual (and default) value of this parameter is 8; some sequencers
-     *  allow this to be changed.
-     */
-
-    ///// TIMING /////
-    int m_32nds_per_quarter;        /* make it a short? */
-
-    /**
-     *  Augments the beats/bar and beat-width with the additional values
-     *  included in a Tempo meta event.  This value can be extracted from the
-     *  beats-per-minute value (midi::masterbus::m_beats_per_minute), but here
-     *  we set it to 0 by default, indicating that we don't want to write it.
-     *  Otherwise, it can be read from a MIDI file, and saved here to be
-     *  restored later.
-     */
-
-    ///// TIMING /////
-    long m_us_per_quarter_note;
 
     /**
      *  The volume to be used when recording.  It can range from 0 to 127,
@@ -1349,31 +1298,31 @@ public:
 
     int get_ppqn () const
     {
-        return int(m_ppqn);
+        return m_timing.PPQN();
     }
 
     void set_beats_per_bar (int beatspermeasure, bool user_change = false);
 
     int get_beats_per_bar () const
     {
-        return int(m_time_beats_per_measure);
+        return m_timing.BPB();
     }
 
     void set_beat_width (int beatwidth, bool user_change = false);
 
     int get_beat_width () const
     {
-        return int(m_time_beat_width);
+        return m_timing.BW();
     }
 
     int timesig_beats_per_measure () const
     {
-        return m_timesig_beats_per_measure;
+        return m_timesig_beats_per_measure;     /* stores the main BPB      */
     }
 
     int timesig_beat_width () const
     {
-        return m_timesig_beat_width;
+        return m_timesig_beat_width;            /* stores the main BW       */
     }
 
     void set_time_signature (int bpb, int bw);
@@ -1385,41 +1334,41 @@ public:
 
     midi::pulse measures_to_ticks (int measures = 1) const
     {
-        return midi::measures_to_ticks      /* see "calculations" module    */
+        return midi::measures_to_ticks          /* "calculations" module    */
         (
-            int(m_time_beats_per_measure), int(m_ppqn),
-            int(m_time_beat_width), measures
+            m_timing.BPB(), int(m_timing.PPQN()),
+            m_timing.BW(), measures
         );
     }
 
     void clocks_per_metronome (int cpm)
     {
-        m_clocks_per_metronome = cpm;       // needs validation
+        m_timing.clocks_per_metronome(cpm);
     }
 
     int clocks_per_metronome () const
     {
-        return m_clocks_per_metronome;
+        return m_timing.clocks_per_metronome();
     }
 
     void set_32nds_per_quarter (int tpq)
     {
-        m_32nds_per_quarter = tpq;          // needs validation
+        m_timing.set_32nds_per_quarter(tpq);
     }
 
     int get_32nds_per_quarter () const
     {
-        return m_32nds_per_quarter;
+        return m_timing.get_32nds_per_quarter();
     }
 
     void us_per_quarter_note (long upqn)
     {
-        m_us_per_quarter_note = upqn;       // needs validation
+        m_timing.us_per_quarter_note(upqn);
     }
 
     long us_per_quarter_note () const
     {
-        return m_us_per_quarter_note;
+        return m_timing.us_per_quarter_note();
     }
 
     void set_rec_vol (int rec_vol);
@@ -1507,7 +1456,7 @@ public:
 
     midi::pulse get_length_plus () const
     {
-        int bpmeas = m_time_beats_per_measure;
+        int bpmeas { m_timing.BPB() };
         if (bpmeas == 0)
             bpmeas = 4;
 

@@ -28,7 +28,7 @@
  * \library       rtl66
  * \author        Chris Ahlstrom
  * \date          2018-11-09
- * \updates       2026-02-05
+ * \updates       2026-02-08
  * \license       GNU GPLv2 or above
  *
  *  These aliases are intended to remove ambiguity seen between signed and
@@ -183,9 +183,7 @@ using booleans = std::vector<boolean>;
  *  Default settings for MIDI as per the specification.
  */
 
-const int c_midi_clocks_per_metronome   { RTL66_DEFAULT_CLOCKS_PER_METRO };
-const int c_midi_32nds_per_quarter      { RTL66_DEFAULT_32NDS_PER_QUARTER };
-const int c_midi_pitch_wheel_range      { RTL66_DEFAULT_PITCHBEND_SEMITONES };
+constexpr int c_midi_pitch_wheel_range  { RTL66_DEFAULT_PITCHBEND_SEMITONES };
 
 /**
  *  We need a unique pulse value that can be used to be indicate a bad,
@@ -196,23 +194,23 @@ const int c_midi_pitch_wheel_range      { RTL66_DEFAULT_PITCHBEND_SEMITONES };
  *  is_null_pulse().
  */
 
-const pulse c_null_pulse { -1 };
-const pulse c_pulse_max  { LONG_MAX };              /* for sanity checks    */
+constexpr pulse c_null_pulse { -1 };
+constexpr pulse c_pulse_max  { LONG_MAX };              /* for sanity checks    */
 
 /**
  *  Defines the maximum number of MIDI values, and one more than the
  *  highest MIDI value, which is 17.
  */
 
-const byte c_byte_data_max  { byte(0x80u) };
-const byte c_byte_value_max { 127 };
+constexpr byte c_byte_data_max  { byte(0x80u) };
+constexpr byte c_byte_value_max { 127 };
 
 /**
  *  The number of MIDI notes supported.  The notes range from 0 to 127.
  */
 
-const int c_notes_count { 128 };
-const byte c_note_max   { 127 };
+constexpr int c_notes_count { 128 };
+constexpr byte c_note_max   { 127 };
 
 /**
  *  Maximum and unusable values.  Use these values to avoid sign issues.
@@ -223,20 +221,20 @@ const byte c_note_max   { 127 };
  *  defined later in this header.
  */
 
-const byte c_byte_max           { byte(0xFFu) };
-const int c_bussbyte_max        { RTL66_PORT_NULL };                /* 0xFF */
-const int c_ports_all           { RTL66_PORTS_ALL };                /* 0xFE */
-const int c_port_null           { RTL66_PORT_NULL };                /* 0xFF */
-const int c_port_limit          { RTL66_PORT_MAX };                 /* 48   */
-const ushort c_ushort_max       { ushort(0xFFFF) };
-const ulong c_ulong_max         { ulong(0xFFFFFFFF) };
+constexpr byte c_byte_max       { byte(0xFFu) };
+constexpr int c_bussbyte_max    { RTL66_PORT_NULL };                /* 0xFF */
+constexpr int c_ports_all       { RTL66_PORTS_ALL };                /* 0xFE */
+constexpr int c_port_null       { RTL66_PORT_NULL };                /* 0xFF */
+constexpr int c_port_limit      { RTL66_PORT_MAX };                 /* 48   */
+constexpr ushort c_ushort_max   { ushort(0xFFFF) };
+constexpr ulong c_ulong_max     { ulong(0xFFFFFFFF) };
 
 /**
  *  Default value for c_max_busses.  Some people use a lot of ports, so we
  *  have increased this value from 32 to 48. See rtl_build_macros.h.
  */
 
-const int c_busscount_max       { RTL66_PORT_MAX };
+constexpr int c_busscount_max   { RTL66_PORT_MAX };
 
 /**
  *  Indicates the maximum number of MIDI channels, counted internally from 0
@@ -245,15 +243,15 @@ const int c_busscount_max       { RTL66_PORT_MAX };
  *  present in the channel.
  */
 
-const int c_channel_max         { 16 };
-const int c_channel_null        { 0x80 };
+constexpr int c_channel_max     { 16 };
+constexpr int c_channel_null    { 0x80 };
 
 /**
  *  Indicates an integer that is not a valid ID.  IDs normally start from 0,
  *  this value is negative.
  */
 
-const int c_bad_id              { -1 };
+constexpr int c_bad_id          { -1 };
 
 /*
  * -------------------------------------------------------------------------
