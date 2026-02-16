@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-08
-# \updates     2026-02-07
+# \updates     2026-02-16
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the "rtl66" library. See the top-level meson.build
@@ -30,6 +30,8 @@ librtl66_headers += files(
    'midi/calculations.hpp',
    'midi/clientinfo.hpp',
    'midi/clocking.hpp',
+   'midi/controllers.hpp',
+   'midi/drums.hpp',
    'midi/event.hpp',
    'midi/eventcodes.hpp',
    'midi/eventlist.hpp',
@@ -38,6 +40,7 @@ librtl66_headers += files(
    'midi/measures.hpp',
    'midi/message.hpp',
    'midi/midibytes.hpp',
+   'midi/patches.hpp',
    'midi/player.hpp',
    'midi/poller.hpp',
    'midi/portnaming.hpp',
