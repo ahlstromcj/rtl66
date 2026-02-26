@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-07
-# \updates     2026-01-30
+# \updates     2026-02-26
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the rtl66 library.
@@ -101,7 +101,7 @@
 #        getting-started-with-meson-in-c-part-2-58150354ff17
 #
 # Note that C++14 is required, in order to support the usage of the
-# std::make_unique<>() function.
+# std::make_unique<>() function, but we've boosted it to C++17.
 #
 #-----------------------------------------------------------------------------
 
@@ -111,7 +111,7 @@ project('rtl66',
    license : 'GPLv3',
    meson_version : '>=1.1.0',
    default_options : [
-      'c_std=c11', 'cpp_std=c++14', 'warning_level=3',
+      'c_std=c11', 'cpp_std=c++17', 'warning_level=3',
       'default_library=both'
    ]
    )
@@ -140,7 +140,7 @@ endif
 rtl66_pkg_description = 'Refactoring/extension of the RtMidi library for Seq66v2.'
 rtl66_pkg_version = meson.project_version()
 rtl66_api_version = '0.1'
-rtl66_info_date = '2026-01-30'
+rtl66_info_date = '2026-02-26'
 rtl66_info_build_type = get_option('buildtype')
 rtl66_info_build_root = meson.project_build_root()
 rtl66_info_lib_type = get_option('default_library')
