@@ -48,7 +48,7 @@
 
 #include <map>                          /* std::map<> for mutegroup storage */
 
-#include "cfg/basesettings.hpp"         /* seq66::basesettings class        */
+#include "cfg/basesettings.hpp"         /* cfg::basesettings class          */
 #include "play/mutegroup.hpp"           /* seq66::mutegroup stanza class    */
 
 namespace seq66
@@ -690,4 +690,3 @@ private:
  *
  * vim: sw=4 ts=4 wm=4 et ft=cpp
  */
-

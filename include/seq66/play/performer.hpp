@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-11-12
- * \updates       2026-02-06
+ * \updates       2026-05-21
  * \license       GNU GPLv2 or above
  *
  *  The main player!  Coordinates sets, patterns, mutes, playlists, you name
@@ -50,15 +50,22 @@
 
 // #include "cfg/rcsettings.hpp"        /* lots of other files, see banner  */
 #include "cfg/history.hpp"              /* cfg::history<> template  class   */
+#include "ctrl/keycontainer.hpp"        /* seq66::keycontainer class        */
+#include "ctrl/midicontrolin.hpp"       /* seq66::midicontrolin class       */
+#include "ctrl/midicontrolout.hpp"      /* seq66::midicontrolout class      */
 #include "ctrl/opcontainer.hpp"         /* seq66::opcontainer class         */
 #include "transport/jack/transport.hpp" /* optional seq66::jack_assistant   */
 #include "midi/masterbus.hpp"           /* midi::masterbus ALSA/JACK        */
-#include "play/metro.hpp"               /* seq66::metro metronome pattern   */
 #include "midi/player.hpp"              /* midi::player                     */
+#include "play/clockslist.hpp"          /* seq66::clockslist                */
+#include "play/inputslist.hpp"          /* seq66::clockslist                */
+#include "play/metro.hpp"               /* seq66::metro metronome pattern   */
+#include "play/mutegroups.hpp"          /* seq66::mutegroups                */
 #include "play/playlist.hpp"            /* seq66::playlist                  */
 #include "play/sequence.hpp"            /* seq66::sequence                  */
 #include "play/setmapper.hpp"           /* seq66::seqmanager and seqstatus  */
-#include "util/condition.hpp"           /* seq66::condition/synchronizer    */
+#include "play/setmaster.hpp"           /* seq66::setmaster                 */
+#include "xpc/condition.hpp"            /* seq66::condition/synchronizer    */
 
 #if defined USE_SONG_BOX_SELECT
 #include <set>                          /* std::set, arbitary selection     */
@@ -73,7 +80,7 @@ namespace seq66
  * class.
  */
 
-const int c_transpose_down_limit { c_notes_count / 2 };
+const int c_transpose_down_limit { midi::c_notes_count / 2 };
 const int c_transpose_up_limit   { -c_transpose_down_limit };
 
 /*
@@ -164,6 +171,7 @@ public:
      */
 
 #if 0           // synch is in midi::player
+
     class synch : public synchronizer
     {
 
@@ -188,6 +196,8 @@ public:
         }
 
     };
+
+#endif
 
     /**
      *  A nested class used for notification of group-learn and other changes.

@@ -28,7 +28,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2018-08-26
- * \updates       2024-06-13
+ * \updates       2026-05-21
  * \license       GNU GPLv2 or above
  *
  * \todo
@@ -37,7 +37,7 @@
 
 #include <map>                          /* std::map<>                       */
 
-#include "cfg/basesettings.hpp"         /* seq66::basesettings class        */
+#include "cfg/basesettings.hpp"         /* cfg::basesettings class          */
 
 namespace seq66
 {
@@ -49,7 +49,7 @@ namespace seq66
  *  or used by the performer class.
  */
 
-class playlist final : public basesettings
+class playlist final : public cfg::basesettings
 {
 
     friend class performer;
@@ -515,7 +515,8 @@ public:
 
 private:
 
-    virtual bool set_error_message (const std::string & added) const override;
+    /* virtual */
+    bool set_error_message (const std::string & added) const override;
 
     /*
      * We want to hide the internal structures from the caller, except for the

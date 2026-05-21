@@ -195,8 +195,7 @@ librtl66_sources = []
 build_args = []
 
 #-----------------------------------------------------------------------------
-# Unlike the cfg66 library, this library will have platform-dependent
-# characteristics.
+# This library has platform-dependent characteristics.
 #-----------------------------------------------------------------------------
 
 os_unix     = false
@@ -418,7 +417,7 @@ else
       c_args : build_args,
       cpp_args : build_args,
       dependencies : [
-         system_depends, liblib66_library_dep,libcfg66_library_dep,
+         system_depends, liblib66_library_dep, libcfg66_library_dep,
          libxpc66_library_dep
          ],
       include_directories : [ librtl66_includes ]

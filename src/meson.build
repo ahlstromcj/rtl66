@@ -6,7 +6,7 @@
 # \library     rtl66
 # \author      Chris Ahlstrom
 # \date        2022-06-08
-# \updates     2026-02-16
+# \updates     2026-05-21
 # \license     $XPC_SUITE_GPL_LICENSE$
 #
 #  This file is part of the "rtl66" library. See the top-level meson.build
@@ -102,6 +102,7 @@ librtl66_sources += files(
    'seq66/play/notemapper.cpp',
    'seq66/play/portslist.cpp',
    'seq66/play/seq.cpp',
+   'seq66/play/sequence.cpp',
    'seq66/play/triggers.cpp',
    'session/rtlconfiguration.cpp',
    'session/rtlmanager.cpp',
@@ -113,7 +114,6 @@ librtl66_sources += files(
    )
 
 '''
-   'seq66/play/sequence.cpp',
    'seq66/midi/seqspec.cpp',
    'seq66/midi/trackdata.cpp'
    'seq66/play/metro.cpp',

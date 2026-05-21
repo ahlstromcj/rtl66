@@ -29,7 +29,7 @@
  * \library       rtl66 library
  * \author        Chris Ahlstrom
  * \date          2022-08-05
- * \updates       2026-02-06
+ * \updates       2026-05-21
  * \license       GNU GPLv2 or above
  *
  *  The metro is a sequence with a special configuration.  It can be added
@@ -280,31 +280,31 @@ public:
 
     void buss_number (int b)
     {
-        if (! is_null_buss(b))
+        if (! midi::is_null_buss(b))
             m_buss = midi::bussbyte(b);
     }
 
     void channel (int ch)
     {
-        if (is_good_channel(ch))
+        if (midi::is_good_channel(ch))
             m_channel = midi::byte(ch);
     }
 
     void recording_buss (int b)
     {
-        if (! is_null_buss(b))
+        if (! midi::is_null_buss(b))
             m_recording_buss = midi::bussbyte(b);
     }
 
     void thru_buss (int b)
     {
-        if (! is_null_buss(b))
+        if (! midi::is_null_buss(b))
             m_thru_buss = midi::bussbyte(b);
     }
 
     void thru_channel (int ch)
     {
-        if (is_good_channel(ch))
+        if (midi::is_good_channel(ch))
             m_thru_channel = midi::byte(ch);
     }
 
@@ -325,25 +325,25 @@ public:
 
     void main_patch (int patch)
     {
-        if (is_good_data_byte(patch))
+        if (midi::is_good_data_byte(patch))
             m_main_patch = midi::byte(patch);
     }
 
     void sub_patch (int patch)
     {
-        if (is_good_data_byte(patch))
+        if (midi::is_good_data_byte(patch))
             m_sub_patch = midi::byte(patch);
     }
 
     void main_note (int note)
     {
-        if (is_good_data_byte(note))
+        if (midi::is_good_data_byte(note))
             m_main_note = midi::byte(note);
     }
 
     void main_note_velocity (int vel)
     {
-        if (is_good_data_byte(vel))
+        if (midi::is_good_data_byte(vel))
             m_main_note_velocity = midi::byte(vel);
     }
 
@@ -360,13 +360,13 @@ public:
 
     void sub_note (int note)
     {
-        if (is_good_data_byte(note))
+        if (midi::is_good_data_byte(note))
             m_sub_note = midi::byte(note);
     }
 
     void sub_note_velocity (int vel)
     {
-        if (is_good_data_byte(vel))
+        if (midi::is_good_data_byte(vel))
             m_sub_note_velocity = midi::byte(vel);
     }
 
