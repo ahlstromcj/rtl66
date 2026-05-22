@@ -8,7 +8,7 @@
 # \library        rtl66
 # \author         Chris Ahlstrom
 # \date           2024-02-06
-# \update         2026-05-21
+# \update         2026-05-22
 # \version        $Revision$
 # \license        $XPC_SUITE_GPL_LICENSE$
 #
@@ -33,7 +33,7 @@ LANG=C
 export LANG
 CYGWIN=binmode
 export CYGWIN
-export RTL66_SCRIPT_EDIT_DATE="2026-05-21"
+export RTL66_SCRIPT_EDIT_DATE="2026-05-22"
 export RTL66_LIBRARY_API_VERSION="0.2"
 export RTL66_LIBRARY_VERSION="$RTL66_LIBRARY_API_VERSION.0"
 export RTL66="rtl66"
@@ -347,17 +347,12 @@ clean_build () {
 
    rm -f doc/dox/*.log
    rm -f doc/latex/*.log
-   echo "Build products removed from the seq66/build sub-directories."
+   echo "Build products removed from the $RTL66/build sub-directories."
    rm -rf subprojects/libcfg66/
    rm -rf subprojects/liblib66/
    rm -rf subprojects/libxpc66/
    rm -rf subprojects/potext/          # available, but code not prep'ed
    echo "Subproject downloaded libraries removed from 'subprojects'."
-
-#  git checkout data/share/doc/seq66-dev-manual.pdf
-#  echo "Previous version of developer guide restored."
-#  Problematic when making a release. Just remember to do it.
-
 }
 
 make_pack () {
@@ -468,7 +463,7 @@ install_project () {
    USERID=$(id -u)
    if test "$USERID" = 0 ; then
       cd $BUILD_DIR
-      echo "Installing the seq66 library..."
+      echo "Installing the $RTL66 library..."
       meson install
       cd ..
    else
